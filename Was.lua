@@ -1,5 +1,5 @@
 --[[
-    WasUI - 轻量级 UI 库（纯库版本）
+    WasUI - 轻量级 UI 库（纯库版本，无背景URL支持）
     包含圆角、MacOS 三色点、iOS 开关、左右分栏、全局通知、配置管理等。
     使用前需调用 WasUI:InitConfig() 初始化配置（可选）。
 ]]
@@ -256,19 +256,9 @@ function Window:Create(data)
     windowCorner.CornerRadius = UDim.new(0, 12)
     windowCorner.Parent = self.Main
 
-    if data.Background then
-        if type(data.Background) == "string" and data.Background:match("^https?://") then
-            local bg = Instance.new("ImageLabel")
-            bg.Size = UDim2.new(1, 0, 1, 0)
-            bg.BackgroundTransparency = 1
-            bg.Image = data.Background
-            bg.ScaleType = Enum.ScaleType.Crop
-            bg.ZIndex = 0
-            bg.Parent = self.Main
-            bg:WaitForChild("ImageLoaded", 5)
-        elseif type(data.Background) == "Color3" then
-            self.Main.BackgroundColor3 = data.Background
-        end
+    -- 仅支持纯色背景（Color3）
+    if data.Background and type(data.Background) == "Color3" then
+        self.Main.BackgroundColor3 = data.Background
     end
 
     self.TitleBar = Instance.new("Frame")
