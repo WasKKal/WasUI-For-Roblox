@@ -1,7 +1,22 @@
 --[[
-    WasUI - 轻量级 UI 库（纯库版本，无背景URL支持）
-    包含圆角、MacOS 三色点、iOS 开关、左右分栏、全局通知、配置管理等。
-    使用前需调用 WasUI:InitConfig() 初始化配置（可选）。
+    WasUI - 轻量级 UI 库
+    使用示例：
+        local WasUI = loadstring(game:HttpGet("你的URL"))()
+        local win = WasUI:CreateWindow({ Title = "窗口" })
+        local tab = win:Tab("选项卡")
+        tab:Button({ Text = "按钮", Callback = function() end })
+        tab:Toggle({ Text = "开关", Value = false, Callback = function(v) end })
+        tab:Slider({ Text = "滑块", Min = 0, Max = 100, Default = 50, Callback = function(v) end })
+        tab:Input({ Text = "输入", Placeholder = "", Callback = function(t) end })
+        tab:Dropdown({ Text = "下拉", Values = {"A","B"}, Default = "A", Callback = function(s) end })
+        tab:Colorpicker({ Text = "颜色", Default = Color3.new(1,0,0), Callback = function(c) end })
+        tab:Paragraph({ Text = "文本", Desc = "描述" })
+        tab:Divider()
+        tab:Space(10)
+        local cols = tab:CreateTwoColumn()
+        cols.left:Button({ Text = "左按钮", Callback = function() end })
+        cols.right:Button({ Text = "右按钮", Callback = function() end })
+        WasUI:Notify("标题", "内容", 3)  -- 屏幕上方通知
 ]]
 
 local Players = game:GetService("Players")
@@ -160,6 +175,9 @@ local Theme = {
 function Theme.GetColor(key) return Theme.Themes[Theme.Current][key] or Theme.Themes.Light[key] end
 function Theme.SetTheme(name) if Theme.Themes[name] then Theme.Current = name return true end return false end
 
+local IconLibrary = {}
+function WasUI:GetIcon(name) return IconLibrary[name] or name end
+
 local StatusManager = {}
 StatusManager.EnabledStatuses = {}
 StatusManager.Container = nil
@@ -225,6 +243,7 @@ function Window:Create(data)
     self.MaxSize = data.MaxSize or Vector2.new(800, 600)
     self.Position = data.Position or UDim2.new(0.5, 0, 0.5, 0)
     self.Draggable = data.Draggable ~= false
+    self.Closable = data.Closable ~= false
     self.Folder = data.Folder or "WasUI"
     self.ConfigManager = ConfigManager
     self.Theme = Theme
@@ -256,9 +275,19 @@ function Window:Create(data)
     windowCorner.CornerRadius = UDim.new(0, 12)
     windowCorner.Parent = self.Main
 
-    -- 仅支持纯色背景（Color3）
-    if data.Background and type(data.Background) == "Color3" then
-        self.Main.BackgroundColor3 = data.Background
+    if data.Background then
+        if type(data.Background) == "string" and data.Background:match("^https?://") then
+            local bg = Instance.new("ImageLabel")
+            bg.Size = UDim2.new(1, 0, 1, 0)
+            bg.BackgroundTransparency = 1
+            bg.Image = data.Background
+            bg.ScaleType = Enum.ScaleType.Crop
+            bg.ZIndex = 0
+            bg.Parent = self.Main
+            bg:WaitForChild("ImageLoaded", 5)
+        elseif type(data.Background) == "Color3" then
+            self.Main.BackgroundColor3 = data.Background
+        end
     end
 
     self.TitleBar = Instance.new("Frame")
@@ -1153,81 +1182,6 @@ function Window:Create(data)
             return para
         end
 
-        function tab:Code(opts)
-            local codeObj = {}
-            local container = Instance.new("Frame")
-            container.Size = UDim2.new(1, -16, 0, 0)
-            container.Position = UDim2.new(0, 8, 0, 0)
-            container.BackgroundColor3 = Theme.GetColor("Surface")
-            container.BorderSizePixel = 1
-            container.BorderColor3 = Theme.GetColor("Border")
-            container.AutomaticSize = Enum.AutomaticSize.Y
-            container.Parent = tab.Frame
-            local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(0, 6)
-            corner.Parent = container
-
-            local titleBar = Instance.new("Frame")
-            titleBar.Size = UDim2.new(1, 0, 0, 24)
-            titleBar.BackgroundColor3 = Theme.GetColor("Surface")
-            titleBar.BorderSizePixel = 0
-            titleBar.Parent = container
-            local titleLabel = Instance.new("TextLabel")
-            titleLabel.Size = UDim2.new(1, -30, 1, 0)
-            titleLabel.Position = UDim2.new(0, 8, 0, 0)
-            titleLabel.BackgroundTransparency = 1
-            titleLabel.Text = opts.Title or "Code"
-            titleLabel.TextColor3 = Theme.GetColor("Text")
-            titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-            titleLabel.Font = Enum.Font.SourceSansBold
-            titleLabel.TextSize = 12
-            titleLabel.Parent = titleBar
-
-            local copyBtn = Instance.new("TextButton")
-            copyBtn.Size = UDim2.new(0, 24, 1, 0)
-            copyBtn.Position = UDim2.new(1, -24, 0, 0)
-            copyBtn.BackgroundColor3 = Theme.GetColor("Surface")
-            copyBtn.Text = "📋"
-            copyBtn.TextColor3 = Theme.GetColor("Text")
-            copyBtn.Font = Enum.Font.SourceSans
-            copyBtn.TextSize = 12
-            copyBtn.BorderSizePixel = 0
-            copyBtn.Parent = titleBar
-
-            local codeText = Instance.new("TextLabel")
-            codeText.Size = UDim2.new(1, -16, 0, 0)
-            codeText.Position = UDim2.new(0, 8, 0, 24)
-            codeText.BackgroundTransparency = 1
-            codeText.Text = opts.Code or ""
-            codeText.TextColor3 = Theme.GetColor("TextSecondary")
-            codeText.Font = Enum.Font.SourceSans
-            codeText.TextSize = 12
-            codeText.TextWrapped = true
-            codeText.TextXAlignment = Enum.TextXAlignment.Left
-            codeText.AutomaticSize = Enum.AutomaticSize.Y
-            codeText.Parent = container
-
-            copyBtn.MouseButton1Click:Connect(function()
-                setclipboard(opts.Code or "")
-                if opts.OnCopy then opts.OnCopy() end
-            end)
-
-            function codeObj:SetCode(code)
-                codeText.Text = code
-            end
-            function codeObj:UpdateTheme()
-                container.BackgroundColor3 = Theme.GetColor("Surface")
-                container.BorderColor3 = Theme.GetColor("Border")
-                titleBar.BackgroundColor3 = Theme.GetColor("Surface")
-                titleLabel.TextColor3 = Theme.GetColor("Text")
-                copyBtn.BackgroundColor3 = Theme.GetColor("Surface")
-                copyBtn.TextColor3 = Theme.GetColor("Text")
-                codeText.TextColor3 = Theme.GetColor("TextSecondary")
-            end
-            tab:AddElement(codeObj)
-            return codeObj
-        end
-
         function tab:Divider()
             local line = Instance.new("Frame")
             line.Size = UDim2.new(1, -16, 0, 1)
@@ -1409,7 +1363,7 @@ function Window:Create(data)
         if self.CurrentTab == tab then return end
         for _, t in ipairs(self.Tabs) do
             t.Frame.Visible = (t == tab)
-            if t.Button and type(t.Button) == "userdata" and t.Button:IsA("TextButton") then
+            if type(t.Button) == "userdata" and t.Button:IsA("TextButton") then
                 t.Button.BackgroundColor3 = (t == tab) and Theme.GetColor("Primary") or Theme.GetColor("Surface")
                 t.Button.TextColor3 = (t == tab) and Color3.fromRGB(255, 255, 255) or Theme.GetColor("Text")
             end
@@ -1424,6 +1378,7 @@ local WasUI = {}
 WasUI.Window = Window
 WasUI.ConfigManager = ConfigManager
 WasUI.Theme = Theme
+WasUI.Icon = function(name) return name end
 
 function WasUI:CreateWindow(data) return self.Window:Create(data) end
 function WasUI:SetTheme(name) return self.Theme.SetTheme(name) end
