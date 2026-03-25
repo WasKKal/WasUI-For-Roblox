@@ -1,3 +1,8 @@
+--[[
+    WasUI - 轻量级 UI 库（最终修复版）
+    包含圆角、MacOS 三色点、iOS 开关、左右分栏、全局通知、配置管理等。
+]]
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
@@ -154,9 +159,6 @@ local Theme = {
 function Theme.GetColor(key) return Theme.Themes[Theme.Current][key] or Theme.Themes.Light[key] end
 function Theme.SetTheme(name) if Theme.Themes[name] then Theme.Current = name return true end return false end
 
-local IconLibrary = {}
-function WasUI:GetIcon(name) return IconLibrary[name] or name end
-
 local StatusManager = {}
 StatusManager.EnabledStatuses = {}
 StatusManager.Container = nil
@@ -222,7 +224,6 @@ function Window:Create(data)
     self.MaxSize = data.MaxSize or Vector2.new(800, 600)
     self.Position = data.Position or UDim2.new(0.5, 0, 0.5, 0)
     self.Draggable = data.Draggable ~= false
-    self.Closable = data.Closable ~= false
     self.Folder = data.Folder or "WasUI"
     self.ConfigManager = ConfigManager
     self.Theme = Theme
@@ -715,7 +716,8 @@ function Window:Create(data)
                 SafeCallback(callback, value)
             end
 
-            track.InputBegan:Connect(function(input)
+            local trackInputConn
+            trackInputConn = track.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     dragging = true
                     local pos = input.Position.X - track.AbsolutePosition.X
@@ -725,13 +727,15 @@ function Window:Create(data)
                     input:StopPropagation()
                 end
             end)
-            handle.InputBegan:Connect(function(input)
+            local handleInputConn
+            handleInputConn = handle.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     dragging = true
                     input:StopPropagation()
                 end
             end)
-            local moveConn = UserInputService.InputChanged:Connect(function(input)
+            local moveConn
+            moveConn = UserInputService.InputChanged:Connect(function(input)
                 if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                     local pos = input.Position.X - track.AbsolutePosition.X
                     local percent = math.clamp(pos / track.AbsoluteSize.X, 0, 1)
@@ -740,8 +744,11 @@ function Window:Create(data)
                     input:StopPropagation()
                 end
             end)
-            local endConn = UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+            local endConn
+            endConn = UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = false
+                end
             end)
 
             slider:Set(value)
@@ -1342,7 +1349,7 @@ function Window:Create(data)
         if self.CurrentTab == tab then return end
         for _, t in ipairs(self.Tabs) do
             t.Frame.Visible = (t == tab)
-            if type(t.Button) == "userdata" and t.Button:IsA("TextButton") then
+            if t.Button and type(t.Button) == "userdata" and t.Button:IsA("TextButton") then
                 t.Button.BackgroundColor3 = (t == tab) and Theme.GetColor("Primary") or Theme.GetColor("Surface")
                 t.Button.TextColor3 = (t == tab) and Color3.fromRGB(255, 255, 255) or Theme.GetColor("Text")
             end
@@ -1357,7 +1364,6 @@ local WasUI = {}
 WasUI.Window = Window
 WasUI.ConfigManager = ConfigManager
 WasUI.Theme = Theme
-WasUI.Icon = function(name) return name end
 
 function WasUI:CreateWindow(data) return self.Window:Create(data) end
 function WasUI:SetTheme(name) return self.Theme.SetTheme(name) end
