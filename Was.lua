@@ -1,6 +1,7 @@
 --[[
-    WasUI - 轻量级 UI 库（最终修复版）
+    WasUI - 轻量级 UI 库（纯库版本）
     包含圆角、MacOS 三色点、iOS 开关、左右分栏、全局通知、配置管理等。
+    使用前需调用 WasUI:InitConfig() 初始化配置（可选）。
 ]]
 
 local Players = game:GetService("Players")
@@ -716,8 +717,7 @@ function Window:Create(data)
                 SafeCallback(callback, value)
             end
 
-            local trackInputConn
-            trackInputConn = track.InputBegan:Connect(function(input)
+            track.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     dragging = true
                     local pos = input.Position.X - track.AbsolutePosition.X
@@ -727,15 +727,13 @@ function Window:Create(data)
                     input:StopPropagation()
                 end
             end)
-            local handleInputConn
-            handleInputConn = handle.InputBegan:Connect(function(input)
+            handle.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     dragging = true
                     input:StopPropagation()
                 end
             end)
-            local moveConn
-            moveConn = UserInputService.InputChanged:Connect(function(input)
+            local moveConn = UserInputService.InputChanged:Connect(function(input)
                 if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                     local pos = input.Position.X - track.AbsolutePosition.X
                     local percent = math.clamp(pos / track.AbsoluteSize.X, 0, 1)
@@ -744,11 +742,8 @@ function Window:Create(data)
                     input:StopPropagation()
                 end
             end)
-            local endConn
-            endConn = UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    dragging = false
-                end
+            local endConn = UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
             end)
 
             slider:Set(value)
@@ -1166,6 +1161,81 @@ function Window:Create(data)
             end
             tab:AddElement(para)
             return para
+        end
+
+        function tab:Code(opts)
+            local codeObj = {}
+            local container = Instance.new("Frame")
+            container.Size = UDim2.new(1, -16, 0, 0)
+            container.Position = UDim2.new(0, 8, 0, 0)
+            container.BackgroundColor3 = Theme.GetColor("Surface")
+            container.BorderSizePixel = 1
+            container.BorderColor3 = Theme.GetColor("Border")
+            container.AutomaticSize = Enum.AutomaticSize.Y
+            container.Parent = tab.Frame
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 6)
+            corner.Parent = container
+
+            local titleBar = Instance.new("Frame")
+            titleBar.Size = UDim2.new(1, 0, 0, 24)
+            titleBar.BackgroundColor3 = Theme.GetColor("Surface")
+            titleBar.BorderSizePixel = 0
+            titleBar.Parent = container
+            local titleLabel = Instance.new("TextLabel")
+            titleLabel.Size = UDim2.new(1, -30, 1, 0)
+            titleLabel.Position = UDim2.new(0, 8, 0, 0)
+            titleLabel.BackgroundTransparency = 1
+            titleLabel.Text = opts.Title or "Code"
+            titleLabel.TextColor3 = Theme.GetColor("Text")
+            titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+            titleLabel.Font = Enum.Font.SourceSansBold
+            titleLabel.TextSize = 12
+            titleLabel.Parent = titleBar
+
+            local copyBtn = Instance.new("TextButton")
+            copyBtn.Size = UDim2.new(0, 24, 1, 0)
+            copyBtn.Position = UDim2.new(1, -24, 0, 0)
+            copyBtn.BackgroundColor3 = Theme.GetColor("Surface")
+            copyBtn.Text = "📋"
+            copyBtn.TextColor3 = Theme.GetColor("Text")
+            copyBtn.Font = Enum.Font.SourceSans
+            copyBtn.TextSize = 12
+            copyBtn.BorderSizePixel = 0
+            copyBtn.Parent = titleBar
+
+            local codeText = Instance.new("TextLabel")
+            codeText.Size = UDim2.new(1, -16, 0, 0)
+            codeText.Position = UDim2.new(0, 8, 0, 24)
+            codeText.BackgroundTransparency = 1
+            codeText.Text = opts.Code or ""
+            codeText.TextColor3 = Theme.GetColor("TextSecondary")
+            codeText.Font = Enum.Font.SourceSans
+            codeText.TextSize = 12
+            codeText.TextWrapped = true
+            codeText.TextXAlignment = Enum.TextXAlignment.Left
+            codeText.AutomaticSize = Enum.AutomaticSize.Y
+            codeText.Parent = container
+
+            copyBtn.MouseButton1Click:Connect(function()
+                setclipboard(opts.Code or "")
+                if opts.OnCopy then opts.OnCopy() end
+            end)
+
+            function codeObj:SetCode(code)
+                codeText.Text = code
+            end
+            function codeObj:UpdateTheme()
+                container.BackgroundColor3 = Theme.GetColor("Surface")
+                container.BorderColor3 = Theme.GetColor("Border")
+                titleBar.BackgroundColor3 = Theme.GetColor("Surface")
+                titleLabel.TextColor3 = Theme.GetColor("Text")
+                copyBtn.BackgroundColor3 = Theme.GetColor("Surface")
+                copyBtn.TextColor3 = Theme.GetColor("Text")
+                codeText.TextColor3 = Theme.GetColor("TextSecondary")
+            end
+            tab:AddElement(codeObj)
+            return codeObj
         end
 
         function tab:Divider()
