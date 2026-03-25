@@ -1,24 +1,3 @@
---[[
-    WasUI - 轻量级 UI 库
-    使用示例：
-        local WasUI = loadstring(game:HttpGet("你的URL"))()
-        local win = WasUI:CreateWindow({ Title = "窗口" })
-        local tab = win:Tab("选项卡")
-        tab:Button({ Text = "按钮", Callback = function() end })
-        tab:Toggle({ Text = "开关", Value = false, Callback = function(v) end })
-        tab:Slider({ Text = "滑块", Min = 0, Max = 100, Default = 50, Callback = function(v) end })
-        tab:Input({ Text = "输入", Placeholder = "", Callback = function(t) end })
-        tab:Dropdown({ Text = "下拉", Values = {"A","B"}, Default = "A", Callback = function(s) end })
-        tab:Colorpicker({ Text = "颜色", Default = Color3.new(1,0,0), Callback = function(c) end })
-        tab:Paragraph({ Text = "文本", Desc = "描述" })
-        tab:Divider()
-        tab:Space(10)
-        local cols = tab:CreateTwoColumn()
-        cols.left:Button({ Text = "左按钮", Callback = function() end })
-        cols.right:Button({ Text = "右按钮", Callback = function() end })
-        WasUI:Notify("标题", "内容", 3)  -- 屏幕上方通知
-]]
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
