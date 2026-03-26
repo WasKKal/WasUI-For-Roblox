@@ -10109,12 +10109,15 @@ Active=false,
 })
 
 -- 创建 TooltipGui（修复错误的关键）
+-- 创建 TooltipGui（修复错误的关键）
 local tooltipGui = ak("ScreenGui", {
     Name = "WindUI_Tooltip",
     Parent = ar.WindUI.ScreenGui.Parent,
     IgnoreGuiInset = true,
 })
-as(tooltipGui)
+-- 修复：使用 protectgui 函数（原 as 是 protectgui 的别名，但被局部变量覆盖）
+local protectGui = protectgui or (syn and syn.protect_gui) or function() end
+protectGui(tooltipGui)
 ar.WindUI.TooltipGui = tooltipGui
 
 -- 主布局
