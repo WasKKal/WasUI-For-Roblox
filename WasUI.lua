@@ -86,7 +86,6 @@ function Control:SetVisible(visible)
     end
 end
 
--- 按钮控件
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 
@@ -94,7 +93,7 @@ function Button:New(name, parent, text, onClick)
     local self = Control.New(self, name, parent)
     self.Instance = CreateInstance("TextButton", {
         Name = name,
-        Size = UDim2.new(1, 0, 0, 28), -- 宽度自适应
+        Size = UDim2.new(1, 0, 0, 28),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         Text = text or "按钮",
         TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -126,7 +125,6 @@ function Button:New(name, parent, text, onClick)
     return self
 end
 
--- 重做开关控件（使用 ImageButton 作为背景，更稳定）
 local ToggleSwitch = setmetatable({}, {__index = Control})
 ToggleSwitch.__index = ToggleSwitch
 
@@ -174,7 +172,6 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
     return self
 end
 
--- 标签控件
 local Label = setmetatable({}, {__index = Control})
 Label.__index = Label
 
@@ -195,7 +192,6 @@ function Label:New(name, parent, text)
     return self
 end
 
--- 分类标题控件
 local Category = setmetatable({}, {__index = Control})
 Category.__index = Category
 
@@ -235,7 +231,6 @@ function Category:New(name, parent, title)
     return self
 end
 
--- 彩虹文字系统
 WasUI.RainbowTexts = {}
 local rainbowConnections = {}
 
@@ -292,7 +287,6 @@ local function RemoveRainbowText(text)
     end
 end
 
--- 通知系统
 WasUI.Notifications = {}
 WasUI.NotificationQueue = {}
 
@@ -373,7 +367,6 @@ function WasUI:ProcessNotificationQueue()
     end)
 end
 
--- 检测执行器类型
 local function getExecutor()
     if syn then
         return "Synapse X"
@@ -389,8 +382,6 @@ local function getExecutor()
         return "Sirhurt"
     elseif pebc_execute then
         return "ProtoSmasher"
-    elseif is_wearedevs_closure then
-        return "WeAreDevs"
     elseif get_hidden_ui then
         return "Hydrogen"
     else
@@ -398,7 +389,6 @@ local function getExecutor()
     end
 end
 
--- 窗口面板
 local Panel = setmetatable({}, {__index = Control})
 Panel.__index = Panel
 
@@ -439,7 +429,6 @@ function Panel:New(name, parent, size, position)
         Parent = self.TitleBar
     })
     
-    -- 拖拽区域覆盖整个标题栏，ZIndex较低，让圆点在上方
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
         Size = UDim2.new(1, 0, 1, 0),
@@ -451,11 +440,10 @@ function Panel:New(name, parent, size, position)
         Parent = self.TitleBar
     })
     
-    -- 标题文字右移70像素，避免与圆点重叠
     self.Title = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(1, -100, 1, 0),
-        Position = UDim2.new(15, 0, 0, 3.5),
+        Position = UDim2.new(0, 70, 0, 0),
         BackgroundTransparency = 1,
         Text = name,
         TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -465,17 +453,15 @@ function Panel:New(name, parent, size, position)
         Parent = self.TitleBar
     })
     
-    -- 圆点容器（垂直居中于标题栏，间距紧凑）
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 36, 1, 0),
-        Position = UDim2.new(0, 5, 0, 8.5),
+        Position = UDim2.new(0, 15, 0, 3.5),
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = self.TitleBar
     })
     
-    -- 透明按钮覆盖整个圆点区域，用于点击空白区域切换最小化
     self.DotAreaButton = CreateInstance("ImageButton", {
         Name = "DotAreaButton",
         Size = UDim2.new(1, 0, 1, 0),
@@ -486,7 +472,6 @@ function Panel:New(name, parent, size, position)
         Parent = self.DotContainer
     })
     
-    -- 三个圆点（放在透明按钮上方，ZIndex更高）
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 12, 0, 12),
@@ -510,7 +495,7 @@ function Panel:New(name, parent, size, position)
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 12, 0, 12),
-        Position = UDim2.new(0, 24, 0.56, -6),
+        Position = UDim2.new(0, 24, 0.5, -6),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -549,7 +534,6 @@ function Panel:New(name, parent, size, position)
     self.OriginalSize = self.Instance.Size
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
     
-    -- 最小化到圆点状态
     self.MinimizeToDots = function()
         if self.IsMinimized then return end
         
@@ -564,13 +548,12 @@ function Panel:New(name, parent, size, position)
         self.ContentArea.Visible = false
         self.CloseButton.Visible = false
         self.MinimizeButton.Visible = false
-        self.DraggableArea.Visible = true  -- 保持可拖动
+        self.DraggableArea.Visible = true
         
         self.DotContainer.Visible = true
         self.IsMinimized = true
     end
     
-    -- 从圆点恢复窗口
     self.RestoreFromDots = function()
         if not self.IsMinimized then return end
         
@@ -591,7 +574,6 @@ function Panel:New(name, parent, size, position)
         self.IsMinimized = false
     end
     
-    -- 圆点区域整体点击切换最小化
     self.DotAreaButton.MouseButton1Click:Connect(function()
         if self.IsMinimized then
             self.RestoreFromDots()
@@ -600,7 +582,6 @@ function Panel:New(name, parent, size, position)
         end
     end)
     
-    -- 关闭圆点单独处理
     self.CloseDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             input:SetConsumed(true)
@@ -608,7 +589,6 @@ function Panel:New(name, parent, size, position)
         end
     end)
     
-    -- 最小化圆点单独处理
     self.MinimizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             input:SetConsumed(true)
@@ -620,19 +600,15 @@ function Panel:New(name, parent, size, position)
         end
     end)
     
-    -- 最大化圆点（可扩展）
     self.MaximizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             input:SetConsumed(true)
-            -- 可添加最大化/还原逻辑
         end
     end)
     
-    -- 标题栏按钮
     self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
     self.CloseButton.MouseButton1Click:Connect(function() self:SetVisible(false) end)
     
-    -- 拖拽逻辑
     local dragging = false
     local dragStart
     local startPos
@@ -668,7 +644,6 @@ function Panel:New(name, parent, size, position)
     
     UserInputService.InputEnded:Connect(stopDragging)
     
-    -- 公告栏（缩小文字间距）
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
         Name = "AnnouncementBar",
@@ -704,7 +679,6 @@ function Panel:New(name, parent, size, position)
         Parent = self.Avatar
     })
     
-    -- 用户名：高度18，位置0.12
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0.6, 0, 0, 18),
@@ -719,7 +693,6 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     
-    -- 执行器：高度16，位置0.35
     self.ExecutorLabel = CreateInstance("TextLabel", {
         Name = "ExecutorLabel",
         Size = UDim2.new(0.6, 0, 0, 16),
@@ -734,7 +707,6 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     
-    -- 欢迎文本：高度14，位置0.55
     self.WelcomeText = CreateInstance("TextLabel", {
         Name = "WelcomeText",
         Size = UDim2.new(0.6, 0, 0, 14),
@@ -749,7 +721,6 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     
-    -- 选项卡区域：改为水平滚动ScrollingFrame
     self.TabBar = CreateInstance("ScrollingFrame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 32),
@@ -777,7 +748,6 @@ function Panel:New(name, parent, size, position)
         Parent = self.TabContainer
     })
     
-    -- 监听布局变化以更新CanvasSize
     self.TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
     end)
@@ -792,7 +762,6 @@ function Panel:New(name, parent, size, position)
         Parent = self.Instance
     })
     
-    -- 每个选项卡的内容容器也会有自己的UIListLayout，用于垂直自动布局
     self.Tabs = {}
     self.ActiveTab = nil
     self.TabContents = {}
@@ -844,12 +813,11 @@ function Panel:AddTab(tabName)
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
         Visible = false,
-        ScrollBarThickness = 0, -- 内容区已有滚动，这里不需要额外滚动条
+        ScrollBarThickness = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.ContentArea
     })
     
-    -- 为选项卡内容添加垂直自动布局
     local contentLayout = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 8),
@@ -910,7 +878,6 @@ function Panel:AddTab(tabName)
     return tabContent
 end
 
--- 添加分类标题
 function Panel:AddCategory(title, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     local category = Category:New("Category_" .. title, targetContent, title)
@@ -932,7 +899,6 @@ end
 function Panel:AddToggle(text, initialState, onToggle, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     
-    -- 创建一个容器来放置文本和开关，使用自动布局
     local toggleContainer = CreateInstance("Frame", {
         Name = "ToggleContainer_" .. text,
         Size = UDim2.new(1, 0, 0, 28),
