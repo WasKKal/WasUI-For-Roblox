@@ -126,6 +126,7 @@ function Button:New(name, parent, text, onClick)
     return self
 end
 
+-- 重构开关，提高ZIndex并确保点击区域不被遮挡
 local ToggleSwitch = setmetatable({}, {__index = Control})
 ToggleSwitch.__index = ToggleSwitch
 
@@ -141,7 +142,7 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
         BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or Color3.fromRGB(100, 100, 100),
         BorderSizePixel = 0,
         ClipsDescendants = true,
-        ZIndex = 2, -- 确保开关可点击
+        ZIndex = 3, -- 提高层级，确保可点击
         Parent = parent
     })
     
@@ -401,11 +402,11 @@ function Panel:New(name, parent, size, position)
         Parent = self.TitleBar
     })
     
-    -- 圆点容器固定在左上角，ZIndex高于拖拽区域
+    -- 圆点容器固定在左上角，间距紧凑，与标题文字齐平
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
-        Size = UDim2.new(0, 50, 1, 0),
-        Position = UDim2.new(0, 5, 0, 8.5),  -- 左上角，垂直居中
+        Size = UDim2.new(0, 36, 1, 0),  -- 宽度缩小为36，容纳三个间距12的圆点
+        Position = UDim2.new(0, 5, 0, 8.5),  -- 垂直居中（标题栏高26，圆点高9）
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = self.TitleBar
@@ -423,7 +424,7 @@ function Panel:New(name, parent, size, position)
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 9, 0, 9),
-        Position = UDim2.new(0, 20, 0.5, -4.5),
+        Position = UDim2.new(0, 12, 0.5, -4.5),  -- 间距12
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BorderSizePixel = 0,
         Parent = self.DotContainer
@@ -432,7 +433,7 @@ function Panel:New(name, parent, size, position)
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 9, 0, 9),
-        Position = UDim2.new(0, 40, 0.5, -4.5),
+        Position = UDim2.new(0, 24, 0.5, -4.5),  -- 间距12
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
         Parent = self.DotContainer
@@ -468,19 +469,14 @@ function Panel:New(name, parent, size, position)
     
     self.IsMinimized = false
     self.OriginalSize = self.Instance.Size
-    self.OriginalPosition = self.Instance.Position
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
-    self.MinimizedPosition = self.Instance.Position
     
     self.MinimizeToDots = function()
         if self.IsMinimized then return end
         
-        self.MinimizedPosition = self.Instance.Position
-        self.OriginalSize = self.Instance.Size
-        
         Tween(self.Instance, {
             Size = self.MinimizedSize,
-            Position = self.MinimizedPosition
+            Position = self.Instance.Position  -- 保持当前位置
         }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         
         self.Title.Visible = false
@@ -489,8 +485,8 @@ function Panel:New(name, parent, size, position)
         self.ContentArea.Visible = false
         self.CloseButton.Visible = false
         self.MinimizeButton.Visible = false
-        -- 不隐藏 DraggableArea，保证最小化后仍可拖动
-        -- self.DraggableArea.Visible = false
+        -- 不隐藏 DraggableArea，确保最小化后仍可拖动
+        self.DraggableArea.Visible = true
         
         self.DotContainer.Visible = true
         self.IsMinimized = true
@@ -501,7 +497,7 @@ function Panel:New(name, parent, size, position)
         
         Tween(self.Instance, {
             Size = self.OriginalSize,
-            Position = self.OriginalPosition   -- 使用原位置恢复
+            Position = self.Instance.Position  -- 恢复时使用当前窗口位置（可能已被拖动）
         }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         
         self.Title.Visible = true
@@ -510,7 +506,7 @@ function Panel:New(name, parent, size, position)
         self.ContentArea.Visible = true
         self.CloseButton.Visible = true
         self.MinimizeButton.Visible = true
-        self.DraggableArea.Visible = true      -- 确保拖拽区域显示
+        self.DraggableArea.Visible = true
         
         self.DotContainer.Visible = true
         self.IsMinimized = false
@@ -534,18 +530,54 @@ function Panel:New(name, parent, size, position)
     
     self.CloseDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            input:SetConsumed(true)  -- 阻止事件传递到拖拽区域
+            input:SetConsumed(true)
             self:SetVisible(false)
         end
     end)
     
-    -- 最大化圆点可选功能（留空，可自行扩展）
+    -- 最大化圆点可选功能（留空）
     self.MaximizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             input:SetConsumed(true)
             -- 可在此添加最大化/还原逻辑
         end
     end)
+    
+    -- 拖拽逻辑：只由 DraggableArea 处理，简化并避免冲突
+    local dragging = false
+    local dragStart
+    local startPos
+    
+    local function startDragging(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = self.Instance.Position
+        end
+    end
+    
+    local function stopDragging(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end
+    
+    self.DraggableArea.InputBegan:Connect(startDragging)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            local newPosition = UDim2.new(
+                startPos.X.Scale, 
+                startPos.X.Offset + delta.X, 
+                startPos.Y.Scale, 
+                startPos.Y.Offset + delta.Y
+            )
+            self.Instance.Position = newPosition
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(stopDragging)
     
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
@@ -674,50 +706,6 @@ function Panel:New(name, parent, size, position)
     self.Tabs = {}
     self.ActiveTab = nil
     self.TabContents = {}
-    
-    local dragging = false
-    local dragStart
-    local startPos
-    
-    local function startDragging(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = self.Instance.Position
-        end
-    end
-    
-    local function stopDragging(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end
-    
-    self.DraggableArea.InputBegan:Connect(startDragging)
-    self.TitleBar.InputBegan:Connect(startDragging)
-    self.DotContainer.InputBegan:Connect(startDragging)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            local newPosition = UDim2.new(
-                startPos.X.Scale, 
-                startPos.X.Offset + delta.X, 
-                startPos.Y.Scale, 
-                startPos.Y.Offset + delta.Y
-            )
-            
-            self.Instance.Position = newPosition
-            
-            if self.IsMinimized then
-                self.MinimizedPosition = newPosition
-            else
-                self.OriginalPosition = newPosition
-            end
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(stopDragging)
     
     return self
 end
