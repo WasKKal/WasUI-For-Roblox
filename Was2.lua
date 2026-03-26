@@ -10022,6 +10022,8 @@ UIPadding=(as.NewElements and 10 or 13),
 UICorner=as.ElementsRadius or(as.NewElements and 23 or 12),
 }
 
+as.Creator = aj
+
 local au=as.Size or UDim2.new(0,580,0,460)
 as.Size=UDim2.new(
 au.X.Scale,
