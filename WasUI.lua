@@ -448,7 +448,7 @@ function Panel:New(name, parent, size, position)
         Text = name,
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamSemibold,
-        TextSize = 12,
+        TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.TitleBar
     })
