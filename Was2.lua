@@ -2912,196 +2912,177 @@ registerDefaults()
 ab.Enable()
 end
 
-return ab end function a.r()
+return ab end 
+function a.r()
+    local aa = {}
 
-local aa={}
+    local ab = a.load'b'
+    local ac = ab.New local ad = ab.Tween
 
-local ab=a.load'b'
-local ac=ab.New local ad=
-ab.Tween
+    function aa.new(ae)
+        local af = {
+            Title = ae.Title or "Dialog",
+            Content = ae.Content,
+            Icon = ae.Icon,
+            IconThemed = ae.IconThemed,
+            Thumbnail = ae.Thumbnail,
+            Buttons = ae.Buttons,
+            IconSize = 22,
+        }
 
+        local ag = a.load'l'.Init(nil, ae.WindUI.ScreenGui.Popups)
+        local ah = ag.Create(true, "Popup")
 
-function aa.new(ae)
-local af={
-Title=ae.Title or"Dialog",
-Content=ae.Content,
-Icon=ae.Icon,
-IconThemed=ae.IconThemed,
-Thumbnail=ae.Thumbnail,
-Buttons=ae.Buttons,
+        local ai = 200
+        local aj = 430
+        if af.Thumbnail and af.Thumbnail.Image then
+            aj = 430 + (ai / 2)
+        end
 
-IconSize=22,
-}
+        ah.UIElements.Main.AutomaticSize = "Y"
+        ah.UIElements.Main.Size = UDim2.new(0, aj, 0, 0)
 
-local ag=a.load'l'.Init(nil,ae.WindUI.ScreenGui.Popups)
-local ah=ag.Create(true,"Popup")
+        local ak
+        if af.Icon then
+            ak = ab.Image(
+                af.Icon,
+                af.Title .. ":" .. af.Icon,
+                0,
+                ae.WindUI.Window,
+                "Popup",
+                true,
+                ae.IconThemed,
+                "PopupIcon"
+            )
+            ak.Size = UDim2.new(0, af.IconSize, 0, af.IconSize)
+            ak.LayoutOrder = -1
+        end
 
-local ai=200
+        local al = ac("TextLabel", {
+            AutomaticSize = "Y",
+            BackgroundTransparency = 1,
+            Text = af.Title,
+            TextXAlignment = "Left",
+            FontFace = Font.new(ab.Font, Enum.FontWeight.SemiBold),
+            ThemeTag = { TextColor3 = "PopupTitle" },
+            TextSize = 20,
+            TextWrapped = true,
+            Size = UDim2.new(1, ak and -af.IconSize - 14 or 0, 0, 0)
+        })
 
-local aj=430
-if af.Thumbnail and af.Thumbnail.Image then
-aj=430+(ai/2)
+        local am = ac("Frame", {
+            BackgroundTransparency = 1,
+            AutomaticSize = "XY",
+        }, {
+            ac("UIListLayout", {
+                Padding = UDim.new(0, 14),
+                FillDirection = "Horizontal",
+                VerticalAlignment = "Center"
+            }),
+            ak, al
+        })
+
+        local an = ac("Frame", {
+            AutomaticSize = "Y",
+            Size = UDim2.new(1, 0, 0, 0),
+            BackgroundTransparency = 1,
+        }, {
+            am,
+        })
+
+        local ao
+        if af.Content and af.Content ~= "" then
+            ao = ac("TextLabel", {
+                Size = UDim2.new(1, 0, 0, 0),
+                AutomaticSize = "Y",
+                FontFace = Font.new(ab.Font, Enum.FontWeight.Medium),
+                TextXAlignment = "Left",
+                Text = af.Content,
+                TextSize = 18,
+                TextTransparency = 0.2,
+                ThemeTag = { TextColor3 = "PopupContent" },
+                BackgroundTransparency = 1,
+                RichText = true,
+                TextWrapped = true,
+            })
+        end
+
+        local ap = ac("Frame", {
+            Size = UDim2.new(1, 0, 0, 42),
+            BackgroundTransparency = 1,
+        }, {
+            ac("UIListLayout", {
+                Padding = UDim.new(0, 9),
+                FillDirection = "Horizontal",
+                HorizontalAlignment = "Right"
+            })
+        })
+
+        local aq
+        if af.Thumbnail and af.Thumbnail.Image then
+            local ar
+            if af.Thumbnail.Title then
+                ar = ac("TextLabel", {
+                    Text = af.Thumbnail.Title,
+                    ThemeTag = { TextColor3 = "Text" },
+                    TextSize = 18,
+                    FontFace = Font.new(ab.Font, Enum.FontWeight.Medium),
+                    BackgroundTransparency = 1,
+                    AutomaticSize = "XY",
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.new(0.5, 0, 0.5, 0),
+                })
+            end
+            aq = ac("ImageLabel", {
+                Image = af.Thumbnail.Image,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0, ai, 1, 0),
+                Parent = ah.UIElements.Main,
+                ScaleType = "Crop"
+            }, {
+                ar,
+                ac("UICorner", { CornerRadius = UDim.new(0, 0) }),
+            })
+        end
+
+        ac("Frame", {
+            Size = UDim2.new(1, aq and -ai or 0, 1, 0),
+            Position = UDim2.new(0, aq and ai or 0, 0, 0),
+            BackgroundTransparency = 1,
+            Parent = ah.UIElements.Main
+        }, {
+            ac("Frame", {
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+            }, {
+                ac("UIListLayout", {
+                    Padding = UDim.new(0, 18),
+                    FillDirection = "Vertical",
+                }),
+                an,
+                ao,
+                ap,
+                ac("UIPadding", {
+                    PaddingTop = UDim.new(0, 16),
+                    PaddingLeft = UDim.new(0, 16),
+                    PaddingRight = UDim.new(0, 16),
+                    PaddingBottom = UDim.new(0, 16),
+                })
+            }),
+        })
+
+        local ar = a.load'j'.New
+        for as, at in next, af.Buttons do
+            ar(at.Title, at.Icon, at.Callback, at.Variant, ap, ah)
+        end
+
+        ah:Open()
+
+        return af
+    end
+
+    return aa
 end
-
-ah.UIElements.Main.AutomaticSize="Y"
-ah.UIElements.Main.Size=UDim2.new(0,aj,0,0)
-
-
-
-local ak
-
-if af.Icon then
-ak=ab.Image(
-af.Icon,
-af.Title..":"..af.Icon,
-0,
-ae.WindUI.Window,
-"Popup",
-true,
-ae.IconThemed,
-"PopupIcon"
-)
-ak.Size=UDim2.new(0,af.IconSize,0,af.IconSize)
-ak.LayoutOrder=-1
-end
-
-
-local al=ac("TextLabel",{
-AutomaticSize="Y",
-BackgroundTransparency=1,
-Text=af.Title,
-TextXAlignment="Left",
-FontFace=Font.new(ab.Font,Enum.FontWeight.SemiBold),
-ThemeTag={
-TextColor3="PopupTitle",
-},
-TextSize=20,
-TextWrapped=true,
-Size=UDim2.new(1,ak and-af.IconSize-14 or 0,0,0)
-})
-
-local am=ac("Frame",{
-BackgroundTransparency=1,
-AutomaticSize="XY",
-},{
-ac("UIListLayout",{
-Padding=UDim.new(0,14),
-FillDirection="Horizontal",
-VerticalAlignment="Center"
-}),
-ak,al
-})
-
-local an=ac("Frame",{
-AutomaticSize="Y",
-Size=UDim2.new(1,0,0,0),
-BackgroundTransparency=1,
-},{
-
-
-
-
-
-am,
-})
-
-local ao
-if af.Content and af.Content~=""then
-ao=ac("TextLabel",{
-Size=UDim2.new(1,0,0,0),
-AutomaticSize="Y",
-FontFace=Font.new(ab.Font,Enum.FontWeight.Medium),
-TextXAlignment="Left",
-Text=af.Content,
-TextSize=18,
-TextTransparency=.2,
-ThemeTag={
-TextColor3="PopupContent",
-},
-BackgroundTransparency=1,
-RichText=true,
-TextWrapped=true,
-})
-end
-
-local ap=ac("Frame",{
-Size=UDim2.new(1,0,0,42),
-BackgroundTransparency=1,
-},{
-ac("UIListLayout",{
-Padding=UDim.new(0,9),
-FillDirection="Horizontal",
-HorizontalAlignment="Right"
-})
-})
-
-local aq
-if af.Thumbnail and af.Thumbnail.Image then
-local ar
-if af.Thumbnail.Title then
-ar=ac("TextLabel",{
-Text=af.Thumbnail.Title,
-ThemeTag={
-TextColor3="Text",
-},
-TextSize=18,
-FontFace=Font.new(ab.Font,Enum.FontWeight.Medium),
-BackgroundTransparency=1,
-AutomaticSize="XY",
-AnchorPoint=Vector2.new(0.5,0.5),
-Position=UDim2.new(0.5,0,0.5,0),
-})
-end
-aq=ac("ImageLabel",{
-Image=af.Thumbnail.Image,
-BackgroundTransparency=1,
-Size=UDim2.new(0,ai,1,0),
-Parent=ah.UIElements.Main,
-ScaleType="Crop"
-},{
-ar,
-ac("UICorner",{
-CornerRadius=UDim.new(0,0),
-})
-})
-end
-
-ac("Frame",{
-
-Size=UDim2.new(1,aq and-ai or 0,1,0),
-Position=UDim2.new(0,aq and ai or 0,0,0),
-BackgroundTransparency=1,
-Parent=ah.UIElements.Main
-},{
-ac("Frame",{
-
-Size=UDim2.new(1,0,1,0),
-BackgroundTransparency=1,
-},{
-ac("UIListLayout",{
-Padding=UDim.new(0,18),
-FillDirection="Vertical",
-}),
-an,
-ao,
-ap,
-ac("UIPadding",{
-PaddingTop=UDim.new(0,16),
-PaddingLeft=UDim.new(0,16),
-PaddingRight=UDim.new(0,16),
-PaddingBottom=UDim.new(0,16),
-})
-}),
-})
-
-local ar=a.load'j'.New
-
-for as,at in next,af.Buttons do
-ar(at.Title,at.Icon,at.Callback,at.Variant,ap,ah)
-end
-
-ah:Open()
-
 
 function a.s()
     return function(aa)
