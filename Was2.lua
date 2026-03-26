@@ -9017,13 +9017,13 @@ OnChangeFunc=function(am)end
 }
 
 function am.Init(an,ao,ap,aq)
-Window=an
-WindUI=ao
-am.TabBar=ap
-am.LeftPanel=aq.LeftPanel
-am.RightPanel=aq.RightPanel
-am.ToolTipParent=an.WindUI.TooltipGui
-return am
+    Window=an
+    WindUI=ao
+    am.TabBar=ap
+    am.LeftPanel=aq.LeftPanel
+    am.RightPanel=aq.RightPanel
+    am.ToolTipParent=ao.TooltipGui
+    return am
 end
 
 function am.New(an,ao)
