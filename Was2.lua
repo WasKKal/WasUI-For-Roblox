@@ -3285,7 +3285,7 @@ function a.s()
                 TooltipText = Color3.fromHex("#1E293B"),
                 TooltipSecondary = Color3.fromHex("#7C3AED"),
                 TooltipSecondaryText = Color3.fromHex("#FFFFFF"),
-            },
+            }
         }
     end
 end
