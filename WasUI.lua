@@ -141,6 +141,7 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
         BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or Color3.fromRGB(100, 100, 100),
         BorderSizePixel = 0,
         ClipsDescendants = true,
+        ZIndex = 2, -- 确保开关可点击
         Parent = parent
     })
     
@@ -375,13 +376,15 @@ function Panel:New(name, parent, size, position)
         Parent = self.TitleBar
     })
     
+    -- 拖拽区域覆盖整个标题栏，ZIndex较低，让圆点在上方
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
-        Size = UDim2.new(1, -100, 1, 0),
-        Position = UDim2.new(0, 50, 0, 0),
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
         Text = "",
         AutoButtonColor = false,
+        ZIndex = 1,
         Parent = self.TitleBar
     })
     
@@ -398,11 +401,13 @@ function Panel:New(name, parent, size, position)
         Parent = self.TitleBar
     })
     
+    -- 圆点容器固定在左上角，ZIndex高于拖拽区域
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
-        Size = UDim2.new(0, 50, 1, 0),  -- 增加宽度使左右对称
-        Position = UDim2.new(0.5, -25, 0, 0),  -- 居中
+        Size = UDim2.new(0, 50, 1, 0),
+        Position = UDim2.new(0, 5, 0, 8.5),  -- 左上角，垂直居中
         BackgroundTransparency = 1,
+        ZIndex = 2,
         Parent = self.TitleBar
     })
     
@@ -418,7 +423,7 @@ function Panel:New(name, parent, size, position)
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 9, 0, 9),
-        Position = UDim2.new(0, 20, 0.5, -4.5),  -- 调整间距
+        Position = UDim2.new(0, 20, 0.5, -4.5),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BorderSizePixel = 0,
         Parent = self.DotContainer
@@ -427,7 +432,7 @@ function Panel:New(name, parent, size, position)
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 9, 0, 9),
-        Position = UDim2.new(0, 40, 0.5, -4.5),  -- 调整间距
+        Position = UDim2.new(0, 40, 0.5, -4.5),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
         Parent = self.DotContainer
@@ -484,7 +489,8 @@ function Panel:New(name, parent, size, position)
         self.ContentArea.Visible = false
         self.CloseButton.Visible = false
         self.MinimizeButton.Visible = false
-        self.DraggableArea.Visible = false
+        -- 不隐藏 DraggableArea，保证最小化后仍可拖动
+        -- self.DraggableArea.Visible = false
         
         self.DotContainer.Visible = true
         self.IsMinimized = true
@@ -495,7 +501,7 @@ function Panel:New(name, parent, size, position)
         
         Tween(self.Instance, {
             Size = self.OriginalSize,
-            Position = self.MinimizedPosition
+            Position = self.OriginalPosition   -- 使用原位置恢复
         }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         
         self.Title.Visible = true
@@ -504,7 +510,7 @@ function Panel:New(name, parent, size, position)
         self.ContentArea.Visible = true
         self.CloseButton.Visible = true
         self.MinimizeButton.Visible = true
-        self.DraggableArea.Visible = true
+        self.DraggableArea.Visible = true      -- 确保拖拽区域显示
         
         self.DotContainer.Visible = true
         self.IsMinimized = false
@@ -513,6 +519,7 @@ function Panel:New(name, parent, size, position)
     self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
     self.MinimizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            input:SetConsumed(true)  -- 阻止事件传递到拖拽区域
             if self.IsMinimized then
                 self.RestoreFromDots()
             else
@@ -527,7 +534,16 @@ function Panel:New(name, parent, size, position)
     
     self.CloseDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            input:SetConsumed(true)  -- 阻止事件传递到拖拽区域
             self:SetVisible(false)
+        end
+    end)
+    
+    -- 最大化圆点可选功能（留空，可自行扩展）
+    self.MaximizeDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            input:SetConsumed(true)
+            -- 可在此添加最大化/还原逻辑
         end
     end)
     
