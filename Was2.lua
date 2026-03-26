@@ -1,15 +1,7 @@
---[[
-    WindUI 修改版
-    - 紫色主题
-    - 左右分栏布局（左栏+右栏）
-    - 顶部玩家信息栏（头像、名称可点击打开用户信息窗口）
-    - 水平选项卡栏
-    - 已修复 TooltipGui 缺失问题
-]]
 local a a={cache={}, load=function(b)if not a.cache[b]then a.cache[b]={c=a[b]()}end return a.cache[b].c end}do function a.a()return{
 
 
-Primary=Color3.fromHex"#8B5CF6",  -- 紫色
+Primary=Color3.fromHex"#8B5CF6",
 White=Color3.new(1,1,1),
 Black=Color3.new(0,0,0),
 
@@ -79,7 +71,12 @@ d.Heartbeat
 
 local j="https://raw.githubusercontent.com/Footagesus/Icons/main/Main-v2.lua"
 
-local l = { Icon2 = function() return "", {} end, AddIcons = function() end, Image = function() return nil end }
+local l=loadstring(
+game.HttpGetAsync and game:HttpGetAsync(j)
+or h:GetAsync(j)
+)()
+l.SetIconsType"lucide"
+
 local m
 
 local p={
@@ -3109,93 +3106,95 @@ ah:Open()
 return af
 end
 
-function a.s()
-    return function(aa)
-        return {
-            Dark = {
-                Name = "Dark",
-                Accent = Color3.fromHex("#8B5CF6"),
-                Dialog = Color3.fromHex("#1E1A2F"),
-                Outline = Color3.fromHex("#E2E8F0"),
-                Text = Color3.fromHex("#F1F5F9"),
-                Placeholder = Color3.fromHex("#94A3B8"),
-                Background = Color3.fromHex("#0F0F1A"),
-                Button = Color3.fromHex("#3B2C5E"),
-                Icon = Color3.fromHex("#C084FC"),
-                Toggle = Color3.fromHex("#A78BFA"),
-                Slider = Color3.fromHex("#A855F7"),
-                Checkbox = Color3.fromHex("#A78BFA"),
-                PlaceholderText = Color3.fromHex("#94A3B8"),
-                WindowBackground = Color3.fromHex("#0F0F1A"),
-                WindowShadow = Color3.fromHex("#000000"),
-                WindowTopbarTitle = Color3.fromHex("#F1F5F9"),
-                WindowTopbarAuthor = Color3.fromHex("#C084FC"),
-                WindowTopbarIcon = Color3.fromHex("#C084FC"),
-                WindowTopbarButtonIcon = Color3.fromHex("#C084FC"),
-                TabBackground = Color3.fromHex("#3B2C5E"),
-                TabTitle = Color3.fromHex("#F1F5F9"),
-                TabIcon = Color3.fromHex("#C084FC"),
-                ElementBackground = Color3.fromHex("#F1F5F9"),
-                ElementTitle = Color3.fromHex("#F1F5F9"),
-                ElementDesc = Color3.fromHex("#C084FC"),
-                ElementIcon = Color3.fromHex("#C084FC"),
-                PopupBackground = Color3.fromHex("#0F0F1A"),
-                PopupBackgroundTransparency = 0,
-                PopupTitle = Color3.fromHex("#F1F5F9"),
-                PopupContent = Color3.fromHex("#94A3B8"),
-                PopupIcon = Color3.fromHex("#C084FC"),
-                DialogBackground = Color3.fromHex("#0F0F1A"),
-                DialogBackgroundTransparency = 0,
-                DialogTitle = Color3.fromHex("#F1F5F9"),
-                DialogContent = Color3.fromHex("#94A3B8"),
-                DialogIcon = Color3.fromHex("#C084FC"),
-                Tooltip = Color3.fromHex("#3B2C5E"),
-                TooltipText = Color3.fromHex("#F1F5F9"),
-                TooltipSecondary = Color3.fromHex("#8B5CF6"),
-                TooltipSecondaryText = Color3.fromHex("#F1F5F9"),
-            },
-            Light = {
-                Name = "Light",
-                Accent = Color3.fromHex("#7C3AED"),
-                Dialog = Color3.fromHex("#FFFFFF"),
-                Outline = Color3.fromHex("#CBD5E1"),
-                Text = Color3.fromHex("#1E293B"),
-                Placeholder = Color3.fromHex("#64748B"),
-                Background = Color3.fromHex("#F8FAFC"),
-                Button = Color3.fromHex("#E2E8F0"),
-                Icon = Color3.fromHex("#5B21B6"),
-                Toggle = Color3.fromHex("#8B5CF6"),
-                Slider = Color3.fromHex("#7C3AED"),
-                Checkbox = Color3.fromHex("#8B5CF6"),
-                PlaceholderText = Color3.fromHex("#64748B"),
-                WindowBackground = Color3.fromHex("#F8FAFC"),
-                WindowShadow = Color3.fromHex("#CBD5E1"),
-                WindowTopbarTitle = Color3.fromHex("#1E293B"),
-                WindowTopbarAuthor = Color3.fromHex("#5B21B6"),
-                WindowTopbarIcon = Color3.fromHex("#5B21B6"),
-                WindowTopbarButtonIcon = Color3.fromHex("#5B21B6"),
-                TabBackground = Color3.fromHex("#E2E8F0"),
-                TabTitle = Color3.fromHex("#1E293B"),
-                TabIcon = Color3.fromHex("#5B21B6"),
-                ElementBackground = Color3.fromHex("#1E293B"),
-                ElementTitle = Color3.fromHex("#1E293B"),
-                ElementDesc = Color3.fromHex("#5B21B6"),
-                ElementIcon = Color3.fromHex("#5B21B6"),
-                PopupBackground = Color3.fromHex("#FFFFFF"),
-                PopupBackgroundTransparency = 0,
-                PopupTitle = Color3.fromHex("#1E293B"),
-                PopupContent = Color3.fromHex("#64748B"),
-                PopupIcon = Color3.fromHex("#5B21B6"),
-                DialogBackground = Color3.fromHex("#FFFFFF"),
-                DialogBackgroundTransparency = 0,
-                DialogTitle = Color3.fromHex("#1E293B"),
-                DialogContent = Color3.fromHex("#64748B"),
-                DialogIcon = Color3.fromHex("#5B21B6"),
-                Tooltip = Color3.fromHex("#E2E8F0"),
-                TooltipText = Color3.fromHex("#1E293B"),
-                TooltipSecondary = Color3.fromHex("#7C3AED"),
-                TooltipSecondaryText = Color3.fromHex("#FFFFFF"),
-            },
+return aa end function a.s()
+return function(aa)
+return{
+Dark={
+Name="Dark",
+
+Accent=Color3.fromHex"#8B5CF6",
+Dialog=Color3.fromHex"#1E1A2F",
+Outline=Color3.fromHex"#E2E8F0",
+Text=Color3.fromHex"#F1F5F9",
+Placeholder=Color3.fromHex"#94A3B8",
+Background=Color3.fromHex"#0F0F1A",
+Button=Color3.fromHex"#3B2C5E",
+Icon=Color3.fromHex"#C084FC",
+Toggle=Color3.fromHex"#A78BFA",
+Slider=Color3.fromHex"#A855F7",
+Checkbox=Color3.fromHex"#A78BFA",
+PlaceholderText=Color3.fromHex"#94A3B8",
+WindowBackground=Color3.fromHex"#0F0F1A",
+WindowShadow=Color3.fromHex"#000000",
+WindowTopbarTitle=Color3.fromHex"#F1F5F9",
+WindowTopbarAuthor=Color3.fromHex"#C084FC",
+WindowTopbarIcon=Color3.fromHex"#C084FC",
+WindowTopbarButtonIcon=Color3.fromHex"#C084FC",
+TabBackground=Color3.fromHex"#3B2C5E",
+TabTitle=Color3.fromHex"#F1F5F9",
+TabIcon=Color3.fromHex"#C084FC",
+ElementBackground=Color3.fromHex"#F1F5F9",
+ElementTitle=Color3.fromHex"#F1F5F9",
+ElementDesc=Color3.fromHex"#C084FC",
+ElementIcon=Color3.fromHex"#C084FC",
+PopupBackground=Color3.fromHex"#0F0F1A",
+PopupBackgroundTransparency=0,
+PopupTitle=Color3.fromHex"#F1F5F9",
+PopupContent=Color3.fromHex"#94A3B8",
+PopupIcon=Color3.fromHex"#C084FC",
+DialogBackground=Color3.fromHex"#0F0F1A",
+DialogBackgroundTransparency=0,
+DialogTitle=Color3.fromHex"#F1F5F9",
+DialogContent=Color3.fromHex"#94A3B8",
+DialogIcon=Color3.fromHex"#C084FC",
+Tooltip=Color3.fromHex"#3B2C5E",
+TooltipText=Color3.fromHex"#F1F5F9",
+TooltipSecondary=Color3.fromHex"#8B5CF6",
+TooltipSecondaryText=Color3.fromHex"#F1F5F9",
+},
+Light={
+Name="Light",
+
+Accent=Color3.fromHex"#7C3AED",
+Dialog=Color3.fromHex"#FFFFFF",
+Outline=Color3.fromHex"#CBD5E1",
+Text=Color3.fromHex"#1E293B",
+Placeholder=Color3.fromHex"#64748B",
+Background=Color3.fromHex"#F8FAFC",
+Button=Color3.fromHex"#E2E8F0",
+Icon=Color3.fromHex"#5B21B6",
+Toggle=Color3.fromHex"#8B5CF6",
+Slider=Color3.fromHex"#7C3AED",
+Checkbox=Color3.fromHex"#8B5CF6",
+PlaceholderText=Color3.fromHex"#64748B",
+WindowBackground=Color3.fromHex"#F8FAFC",
+WindowShadow=Color3.fromHex"#CBD5E1",
+WindowTopbarTitle=Color3.fromHex"#1E293B",
+WindowTopbarAuthor=Color3.fromHex"#5B21B6",
+WindowTopbarIcon=Color3.fromHex"#5B21B6",
+WindowTopbarButtonIcon=Color3.fromHex"#5B21B6",
+TabBackground=Color3.fromHex"#E2E8F0",
+TabTitle=Color3.fromHex"#1E293B",
+TabIcon=Color3.fromHex"#5B21B6",
+ElementBackground=Color3.fromHex"#1E293B",
+ElementTitle=Color3.fromHex"#1E293B",
+ElementDesc=Color3.fromHex"#5B21B6",
+ElementIcon=Color3.fromHex"#5B21B6",
+PopupBackground=Color3.fromHex"#FFFFFF",
+PopupBackgroundTransparency=0,
+PopupTitle=Color3.fromHex"#1E293B",
+PopupContent=Color3.fromHex"#64748B",
+PopupIcon=Color3.fromHex"#5B21B6",
+DialogBackground=Color3.fromHex"#FFFFFF",
+DialogBackgroundTransparency=0,
+DialogTitle=Color3.fromHex"#1E293B",
+DialogContent=Color3.fromHex"#64748B",
+DialogIcon=Color3.fromHex"#5B21B6",
+Tooltip=Color3.fromHex"#E2E8F0",
+TooltipText=Color3.fromHex"#1E293B",
+TooltipSecondary=Color3.fromHex"#7C3AED",
+TooltipSecondaryText=Color3.fromHex"#FFFFFF",
+},
 Midnight={
 Name="Midnight",
 
@@ -8970,13 +8969,13 @@ OnChangeFunc=function(am)end
 }
 
 function am.Init(an,ao,ap,aq)
-    Window=an
-    WindUI=ao
-    am.TabBar=ap
-    am.LeftPanel=aq.LeftPanel
-    am.RightPanel=aq.RightPanel
-    am.ToolTipParent=ao.TooltipGui
-    return am
+Window=an
+WindUI=ao
+am.TabBar=ap
+am.LeftPanel=aq.LeftPanel
+am.RightPanel=aq.RightPanel
+am.ToolTipParent=ao.TooltipGui   -- 修复：使用主对象的 TooltipGui
+return am
 end
 
 function am.New(an,ao)
@@ -9975,7 +9974,7 @@ UIPadding=(as.NewElements and 10 or 13),
 UICorner=as.ElementsRadius or(as.NewElements and 23 or 12),
 }
 
-as.Creator = aj
+as.Creator = aj   -- 修复：添加 Creator 属性
 
 local au=as.Size or UDim2.new(0,580,0,460)
 as.Size=UDim2.new(
@@ -10064,13 +10063,11 @@ Active=false,
 })
 
 -- 创建 TooltipGui（修复错误的关键）
--- 创建 TooltipGui（修复错误的关键）
 local tooltipGui = ak("ScreenGui", {
     Name = "WindUI_Tooltip",
     Parent = ar.WindUI.ScreenGui.Parent,
     IgnoreGuiInset = true,
 })
--- 修复：使用 protectgui 函数（原 as 是 protectgui 的别名，但被局部变量覆盖）
 local protectGui = protectgui or (syn and syn.protect_gui) or function() end
 protectGui(tooltipGui)
 ar.WindUI.TooltipGui = tooltipGui
@@ -10379,6 +10376,15 @@ end
 function as.DisableTopbarButtons(G,H)
 end
 
+function as.EditOpenButton(p,r)
+    if as.OpenButtonMain then
+        return as.OpenButtonMain:Edit(r)
+    else
+        warn("[WindUI] OpenButtonMain is not initialized. Cannot edit open button.")
+        return nil
+    end
+end
+
 function as.Open()
     task.spawn(function()
         if as.OnOpenCallback then
@@ -10590,10 +10596,6 @@ end
 
 function as.SetCurrentConfig(p,r)
     as.CurrentConfig=r
-end
-
-function as.EditOpenButton(p,r)
-    return as.OpenButtonMain:Edit(r)
 end
 
 function as.IsResizable(v,x)
@@ -11053,127 +11055,71 @@ local function loadKeysystem()
 am.new(ay,aD,function(aE)aA=aE end)
 end
 
-local aE=(ay.Folder or"Temp").."/"..aD..".key"
+local keyFilePath = (ay.Folder or "Temp") .. "/" .. aD .. ".key"
 
 if ay.KeySystem.KeyValidator then
-if ay.KeySystem.SaveKey and isfile(aE)then
-local aF=readfile(aE)
-local b=ay.KeySystem.KeyValidator(aF)
-
-if b then
-aA=true
-else
-loadKeysystem()
-end
-else
-loadKeysystem()
-end
-elseif not ay.KeySystem.API then
-if ay.KeySystem.SaveKey and isfile(aE)then
-local aF=readfile(aE)
-local b=(type(ay.KeySystem.Key)=="table")
-and table.find(ay.KeySystem.Key,aF)
-or tostring(ay.KeySystem.Key)==tostring(aF)
-
-if b then
-aA=true
-else
-loadKeysystem()
-end
-else
-loadKeysystem()
-end
-else
-if isfile(aE)then
-local aF=readfile(aE)
-local b=false
-
-for d,f in next,ay.KeySystem.API do
-local g=aa.Services[f.Type]
-if g then
-local h={}
-for j,l in next,g.Args do
-table.insert(h,f[l])
-end
-
-local m=g.New(table.unpack(h))
-local p=m.Verify(aF)
-if p then
-b=true
-break
-end
-end
-end
-local aA = true
-if ay.KeySystem then
-    aA = false
-
-    local function loadKeysystem()
-        am.new(ay, aD, function(flag) aA = flag end)
-    end
-
-    local keyFilePath = (ay.Folder or "Temp") .. "/" .. aD .. ".key"
-
-    if ay.KeySystem.KeyValidator then
-        if ay.KeySystem.SaveKey and isfile(keyFilePath) then
-            local savedKey = readfile(keyFilePath)
-            if ay.KeySystem.KeyValidator(savedKey) then
-                aA = true
-            else
-                loadKeysystem()
-            end
-        else
-            loadKeysystem()
-        end
-    elseif not ay.KeySystem.API then
-        if ay.KeySystem.SaveKey and isfile(keyFilePath) then
-            local savedKey = readfile(keyFilePath)
-            local isValid = (type(ay.KeySystem.Key) == "table" and table.find(ay.KeySystem.Key, savedKey)) or (tostring(ay.KeySystem.Key) == tostring(savedKey))
-            if isValid then
-                aA = true
-            else
-                loadKeysystem()
-            end
+    if ay.KeySystem.SaveKey and isfile(keyFilePath) then
+        local savedKey = readfile(keyFilePath)
+        if ay.KeySystem.KeyValidator(savedKey) then
+            aA = true
         else
             loadKeysystem()
         end
     else
-        if isfile(keyFilePath) then
-            local savedKey = readfile(keyFilePath)
-            local isValid = false
-            for _, service in pairs(ay.KeySystem.API) do
-                local handler = aa.Services[service.Type]
-                if handler then
-                    local args = {}
-                    for _, arg in pairs(handler.Args) do
-                        table.insert(args, service[arg])
-                    end
-                    local instance = handler.New(table.unpack(args))
-                    if instance.Verify(savedKey) then
-                        isValid = true
-                        break
-                    end
-                end
-            end
-            aA = isValid
-            if not isValid then
-                loadKeysystem()
-            end
+        loadKeysystem()
+    end
+elseif not ay.KeySystem.API then
+    if ay.KeySystem.SaveKey and isfile(keyFilePath) then
+        local savedKey = readfile(keyFilePath)
+        local isValid = (type(ay.KeySystem.Key) == "table" and table.find(ay.KeySystem.Key, savedKey)) or (tostring(ay.KeySystem.Key) == tostring(savedKey))
+        if isValid then
+            aA = true
         else
             loadKeysystem()
         end
+    else
+        loadKeysystem()
     end
-
-    repeat task.wait() until aA
+else
+    if isfile(keyFilePath) then
+        local savedKey = readfile(keyFilePath)
+        local isValid = false
+        for _, service in pairs(ay.KeySystem.API) do
+            local handler = aa.Services[service.Type]
+            if handler then
+                local args = {}
+                for _, arg in pairs(handler.Args) do
+                    table.insert(args, service[arg])
+                end
+                local instance = handler.New(table.unpack(args))
+                if instance.Verify(savedKey) then
+                    isValid = true
+                    break
+                end
+            end
+        end
+        aA = isValid
+        if not isValid then
+            loadKeysystem()
+        end
+    else
+        loadKeysystem()
+    end
 end
 
-local aE = az(ay)
+repeat task.wait() until aA
+end
 
-aa.Transparent = ay.Transparent
-aa.Window = aE
+local aE=az(ay)
+
+aa.Transparent=ay.Transparent
+aa.Window=aE
 
 if ay.Acrylic then
-    ar.init()
+ar.init()
 end
 
 return aE
+end
+
+return aa
