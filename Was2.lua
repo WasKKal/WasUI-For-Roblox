@@ -3289,8 +3289,7 @@ function a.s()
         }
     end
 end
-
-end end function a.t()
+function a.t()
 local aa={}
 
 local ab=a.load'b'
