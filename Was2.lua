@@ -1,7 +1,15 @@
+--[[
+    WindUI 修改版
+    - 紫色主题
+    - 左右分栏布局（左栏+右栏）
+    - 顶部玩家信息栏（头像、名称可点击打开用户信息窗口）
+    - 水平选项卡栏
+    - 已修复 TooltipGui 缺失问题
+]]
 local a a={cache={}, load=function(b)if not a.cache[b]then a.cache[b]={c=a[b]()}end return a.cache[b].c end}do function a.a()return{
 
 
-Primary=Color3.fromHex"#8B5CF6",  -- 改为紫色
+Primary=Color3.fromHex"#8B5CF6",  -- 紫色
 White=Color3.new(1,1,1),
 Black=Color3.new(0,0,0),
 
@@ -10100,15 +10108,16 @@ ZIndex=999,
 Active=false,
 })
 
+-- 创建 TooltipGui（修复错误的关键）
+local tooltipGui = ak("ScreenGui", {
+    Name = "WindUI_Tooltip",
+    Parent = ar.WindUI.ScreenGui.Parent,
+    IgnoreGuiInset = true,
+})
+as(tooltipGui)
+ar.WindUI.TooltipGui = tooltipGui
 
-
-
-
-
-
-
-
-
+-- 主布局
 as.UIElements.Main=ak("Frame",{
 Size=as.Size,
 Position=as.Position,
@@ -10242,14 +10251,6 @@ SortOrder="LayoutOrder",
 })
 })
 
--- 下面继续原有代码，但需要移除旧的 SideBar 等，因为我们不再使用侧边栏
--- 实际上我们保留了旧变量定义以免报错，但不再使用
--- 为了兼容性，保留 as.UIElements.SideBar 等为空表或不可见
-
-as.UIElements.SideBar = ak("Frame",{Visible=false})
-as.UIElements.SideBarContainer = ak("Frame",{Visible=false})
-as.UIElements.MainBar = ak("Frame",{Visible=false})  -- 不再使用
-
 -- 绑定点击事件
 local nameBtn = as.UIElements.Main.Main.PlayerBar:FindFirstChild("Name")
 if nameBtn then
@@ -10295,7 +10296,6 @@ function as.Section(parent, config)
     config.Window = as
     config.WindUI = ar.WindUI
     config.UIScale = ar.WindUI.UIScale
-    -- 这里需要传递当前tab，简化处理，留空
     return a.load'V'.New(config, parent, as.Folder, ar.WindUI.UIScale, as)
 end
 
@@ -10414,14 +10414,11 @@ end
 
 -- 其他原有方法保持兼容
 function as.CreateTopbarButton(j,l,m,p,r,u,v)
-    -- 保留原有实现，但可能不再显示，因为新布局没有右侧按钮栏
-    -- 为兼容性，创建一个虚拟对象
     local dummy = ak("Frame",{Visible=false})
     return dummy
 end
 
 function as.DisableTopbarButtons(G,H)
-    -- 空实现
 end
 
 function as.Open()
@@ -10505,7 +10502,6 @@ function as.Open()
     end)
 end
 
--- 其余原有函数保留（Close, Destroy, Toggle等），但需注意适配新布局
 function as.Close(p)
     local r={}
     if as.OnCloseCallback then
@@ -10587,10 +10583,6 @@ function as.Toggle(p)
     end
 end
 
--- 其他方法（ToggleTransparency, LockAll, UnlockAll, GetLocked, GetUnlocked, GetUIScale, SetUIScale, SetToTheCenter, SetCurrentConfig, EditOpenButton, IsResizable, Dialog, Tag, etc.）保持不变，但需确保它们不会依赖已移除的控件
--- 由于篇幅，此处省略，但原样保留
--- 为保持完整性，以下将原函数直接拷贝，但注意部分可能依赖已删除的变量，需要注释或简单实现
-
 function as.ToggleTransparency(p,r)
     as.Transparent=r
     ar.WindUI.Transparent=r
@@ -10652,7 +10644,6 @@ function as.IsResizable(v,x)
 end
 
 function as.Dialog(x,B)
-    -- 简化，直接调用原Dialog实现
     local C={
         Title=B.Title or"Dialog",
         Width=B.Width or 320,
@@ -10810,7 +10801,6 @@ function as.Tag(x,B)
     return ap:New(B,as.UIElements.Main.Main.Topbar.Center)
 end
 
--- 最后，返回as
 return as
 end end end
 local aa={
@@ -11175,18 +11165,6 @@ aa.Window=aE
 if ay.Acrylic then
 ar.init()
 end
-
-
-
-
-
-
-
-
-
-
-
-
 
 return aE
 end
