@@ -456,7 +456,7 @@ function Panel:New(name, parent, size, position)
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 36, 1, 0),
-        Position = UDim2.new(0, 15, 0, 3.5),
+        Position = UDim2.new(0, 12, 0, 1.5),
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = self.TitleBar
@@ -485,7 +485,7 @@ function Panel:New(name, parent, size, position)
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 12, 0, 12),
-        Position = UDim2.new(0, 12, 0.5, -6),
+        Position = UDim2.new(0, 14, 0.5, -6),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BorderSizePixel = 0,
         ZIndex = 3,
