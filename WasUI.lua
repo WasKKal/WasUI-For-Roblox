@@ -1,6 +1,3 @@
--- WasUI Library
--- 一个轻量级、可扩展的Roblox UI框架
-
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -8,6 +5,8 @@ WasUI.__index = WasUI
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 -- 创建主配置文件夹
 local WasUI_Folder = Instance.new("Folder")
@@ -24,7 +23,10 @@ WasUI.Themes = {
         Accent = Color3.fromRGB(231, 76, 60),
         Success = Color3.fromRGB(46, 204, 113),
         Warning = Color3.fromRGB(241, 196, 15),
-        Error = Color3.fromRGB(231, 76, 60)
+        Error = Color3.fromRGB(231, 76, 60),
+        TabActive = Color3.fromRGB(189, 195, 199),
+        TabInactive = Color3.fromRGB(236, 240, 241),
+        Announcement = Color3.fromRGB(245, 245, 245)
     },
     Dark = {
         Primary = Color3.fromRGB(30, 30, 36),
@@ -34,12 +36,15 @@ WasUI.Themes = {
         Accent = Color3.fromRGB(97, 175, 239),
         Success = Color3.fromRGB(83, 227, 136),
         Warning = Color3.fromRGB(255, 213, 92),
-        Error = Color3.fromRGB(255, 123, 123)
+        Error = Color3.fromRGB(255, 123, 123),
+        TabActive = Color3.fromRGB(55, 55, 65),
+        TabInactive = Color3.fromRGB(35, 35, 45),
+        Announcement = Color3.fromRGB(40, 40, 50)
     }
 }
 
 -- 当前主题
-WasUI.CurrentTheme = WasUI.Themes.Default
+WasUI.CurrentTheme = WasUI.Themes.Dark
 
 -- 工具函数
 local function CreateInstance(className, properties)
@@ -97,23 +102,23 @@ function Control:SetVisible(visible)
     end
 end
 
--- 按钮控件
+-- 按钮控件 (缩小比例)
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 
 function Button:New(name, parent, text, onClick)
     local self = Control.New(self, name, parent)
     
-    -- 创建按钮实例
+    -- 创建按钮实例 (缩小尺寸)
     self.Instance = CreateInstance("TextButton", {
         Name = name,
-        Size = UDim2.new(0, 200, 0, 50),
-        Position = UDim2.new(0.5, -100, 0.5, -25),
+        Size = UDim2.new(0, 160, 0, 36),
+        Position = UDim2.new(0.5, -80, 0.5, -18),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         Text = text or "Button",
         TextColor3 = Color3.fromRGB(255, 255, 255),
-        Font = Enum.Font.GothamBold,
-        TextSize = 18,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
         AutoButtonColor = false,
         ClipsDescendants = true,
         Parent = parent
@@ -121,7 +126,7 @@ function Button:New(name, parent, text, onClick)
     
     -- 圆角
     local corner = CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 8),
+        CornerRadius = UDim.new(0, 6),
         Parent = self.Instance
     })
     
@@ -147,47 +152,69 @@ function Button:New(name, parent, text, onClick)
     return self
 end
 
--- 图标按钮
-function Button:WithIcon(iconId)
-    if not self.Icon then
-        self.Icon = CreateInstance("ImageLabel", {
-            Name = "Icon",
-            Size = UDim2.new(0, 24, 0, 24),
-            Position = UDim2.new(0, 10, 0.5, -12),
-            BackgroundTransparency = 1,
-            Image = iconId,
-            Parent = self.Instance
-        })
-        
-        self.Instance.TextXAlignment = Enum.TextXAlignment.Right
-        self.Instance.Text = "  " .. (self.Instance.Text or "")
-    end
-    return self
-end
+-- iOS风格开关
+local ToggleSwitch = setmetatable({}, {__index = Control})
+ToggleSwitch.__index = ToggleSwitch
 
--- 开关按钮
-function Button:AsToggle(initialState, onToggle)
+function ToggleSwitch:New(name, parent, initialState, onToggle)
+    local self = Control.New(self, name, parent)
     self.Toggled = initialState or false
     self.ToggleCallback = onToggle
     
-    if self.Toggled then
-        self.Instance.BackgroundColor3 = WasUI.CurrentTheme.Success
-    end
+    -- 开关背景
+    self.Background = CreateInstance("Frame", {
+        Name = name.."_BG",
+        Size = UDim2.new(0, 44, 0, 24),
+        Position = UDim2.new(0.5, -22, 0.5, -12),
+        BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or Color3.fromRGB(120, 120, 120),
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Parent = parent
+    })
     
-    self.Instance.MouseButton1Click:Connect(function()
-        self.Toggled = not self.Toggled
-        if self.Toggled then
-            Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-        else
-            Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
+    local bgCorner = CreateInstance("UICorner", {
+        CornerRadius = UDim.new(1, 0),
+        Parent = self.Background
+    })
+    
+    -- 开关滑块
+    self.Knob = CreateInstance("Frame", {
+        Name = name.."_Knob",
+        Size = UDim2.new(0, 20, 0, 20),
+        Position = self.Toggled and UDim2.new(1, -22, 0, 2) or UDim2.new(0, 2, 0, 2),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = 0,
+        Parent = self.Background
+    })
+    
+    local knobCorner = CreateInstance("UICorner", {
+        CornerRadius = UDim.new(1, 0),
+        Parent = self.Knob
+    })
+    
+    -- 点击事件
+    self.Background.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            self.Toggled = not self.Toggled
+            
+            if self.Toggled then
+                Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+                Tween(self.Knob, {Position = UDim2.new(1, -22, 0, 2)}, 0.2)
+            else
+                Tween(self.Background, {BackgroundColor3 = Color3.fromRGB(120, 120, 120)}, 0.2)
+                Tween(self.Knob, {Position = UDim2.new(0, 2, 0, 2)}, 0.2)
+            end
+            
+            if self.ToggleCallback then
+                self.ToggleCallback(self.Toggled)
+            end
         end
-        if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
     end)
     
     return self
 end
 
--- 标签控件
+-- 标签控件 (缩小比例)
 local Label = setmetatable({}, {__index = Control})
 Label.__index = Label
 
@@ -196,13 +223,13 @@ function Label:New(name, parent, text)
     
     self.Instance = CreateInstance("TextLabel", {
         Name = name,
-        Size = UDim2.new(0, 200, 0, 30),
-        Position = UDim2.new(0.5, -100, 0.5, -15),
+        Size = UDim2.new(0, 160, 0, 24),
+        Position = UDim2.new(0.5, -80, 0.5, -12),
         BackgroundTransparency = 1,
         Text = text or "Label",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
-        TextSize = 16,
+        TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = parent
     })
@@ -210,123 +237,106 @@ function Label:New(name, parent, text)
     return self
 end
 
--- 输入框控件
-local TextBox = setmetatable({}, {__index = Control})
-TextBox.__index = TextBox
-
-function TextBox:New(name, parent, placeholder, onTextChanged)
-    local self = Control.New(self, name, parent)
-    
-    -- 背景框
-    self.Frame = CreateInstance("Frame", {
-        Name = name,
-        Size = UDim2.new(0, 250, 0, 40),
-        Position = UDim2.new(0.5, -125, 0.5, -20),
-        BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BorderSizePixel = 0,
-        ClipsDescendants = true,
-        Parent = parent
-    })
-    
-    local corner = CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 6),
-        Parent = self.Frame
-    })
-    
-    -- 输入框
-    self.Instance = CreateInstance("TextBox", {
-        Name = "Input",
-        Size = UDim2.new(1, -20, 1, -10),
-        Position = UDim2.new(0, 10, 0, 5),
-        BackgroundTransparency = 1,
-        Text = "",
-        PlaceholderText = placeholder or "Enter text...",
-        TextColor3 = WasUI.CurrentTheme.Text,
-        PlaceholderColor3 = Color3.fromRGB(150, 150, 150),
-        Font = Enum.Font.Gotham,
-        TextSize = 16,
-        ClearTextOnFocus = false,
-        Parent = self.Frame
-    })
-    
-    -- 事件
-    if onTextChanged then
-        self.Instance:GetPropertyChangedSignal("Text"):Connect(function()
-            onTextChanged(self.Instance.Text)
-        end)
-    end
-    
-    return self
-end
-
--- 面板容器
+-- 增强版面板容器 (MacOS风格)
 local Panel = setmetatable({}, {__index = Control})
 Panel.__index = Panel
 
 function Panel:New(name, parent, size, position)
     local self = Control.New(self, name, parent)
     
+    -- 主窗口
     self.Instance = CreateInstance("Frame", {
         Name = name,
-        Size = size or UDim2.new(0, 300, 0, 200),
-        Position = position or UDim2.new(0.5, -150, 0.5, -100),
+        Size = size or UDim2.new(0, 500, 0, 400),
+        Position = position or UDim2.new(0.5, -250, 0.5, -200),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BorderSizePixel = 0,
+        ClipsDescendants = true,
         Parent = parent
     })
     
+    -- 增强圆角
     local corner = CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 8),
+        CornerRadius = UDim.new(0, 12),
         Parent = self.Instance
     })
     
-    -- 标题栏
+    -- 标题栏 (MacOS风格)
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
-        Size = UDim2.new(1, 0, 0, 40),
+        Size = UDim2.new(1, 0, 0, 32),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BorderSizePixel = 0,
         Parent = self.Instance
     })
     
-    local titleCorner = CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 8),
-        Parent = self.TitleBar
-    })
-    
-    -- 修复圆角
-    local bottomFix = CreateInstance("Frame", {
-        Name = "BottomFix",
-        Size = UDim2.new(1, 0, 0, 8),
-        Position = UDim2.new(0, 0, 1, -8),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BorderSizePixel = 0,
-        Parent = self.TitleBar
-    })
-    
+    -- 标题文本
     self.Title = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(1, -40, 1, 0),
-        Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2.new(1, -80, 1, 0),
+        Position = UDim2.new(0, 70, 0, 0),
         BackgroundTransparency = 1,
         Text = name,
         TextColor3 = Color3.fromRGB(255, 255, 255),
-        Font = Enum.Font.GothamBold,
-        TextSize = 18,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.TitleBar
     })
     
+    -- MacOS操作点 (装饰用)
+    local dotContainer = CreateInstance("Frame", {
+        Name = "Dots",
+        Size = UDim2.new(0, 60, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = self.TitleBar
+    })
+    
+    local closeDot = CreateInstance("Frame", {
+        Name = "Close",
+        Size = UDim2.new(0, 12, 0, 12),
+        Position = UDim2.new(0, 0, 0.5, -6),
+        BackgroundColor3 = Color3.fromRGB(255, 95, 87),
+        BorderSizePixel = 0,
+        Parent = dotContainer
+    })
+    
+    local minimizeDot = CreateInstance("Frame", {
+        Name = "Minimize",
+        Size = UDim2.new(0, 12, 0, 12),
+        Position = UDim2.new(0, 20, 0.5, -6),
+        BackgroundColor3 = Color3.fromRGB(255, 189, 46),
+        BorderSizePixel = 0,
+        Parent = dotContainer
+    })
+    
+    local maximizeDot = CreateInstance("Frame", {
+        Name = "Maximize",
+        Size = UDim2.new(0, 12, 0, 12),
+        Position = UDim2.new(0, 40, 0.5, -6),
+        BackgroundColor3 = Color3.fromRGB(39, 201, 63),
+        BorderSizePixel = 0,
+        Parent = dotContainer
+    })
+    
+    for _, dot in ipairs({closeDot, minimizeDot, maximizeDot}) do
+        CreateInstance("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = dot
+        })
+    end
+    
     -- 关闭按钮
     self.CloseButton = CreateInstance("TextButton", {
         Name = "CloseButton",
-        Size = UDim2.new(0, 30, 0, 30),
-        Position = UDim2.new(1, -35, 0, 5),
+        Size = UDim2.new(0, 24, 0, 24),
+        Position = UDim2.new(1, -30, 0, 4),
         BackgroundTransparency = 1,
         Text = "×",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamBold,
-        TextSize = 24,
+        TextSize = 18,
         Parent = self.TitleBar
     })
     
@@ -334,22 +344,264 @@ function Panel:New(name, parent, size, position)
         self:SetVisible(false)
     end)
     
+    -- 公告栏
+    self.AnnouncementBar = CreateInstance("Frame", {
+        Name = "AnnouncementBar",
+        Size = UDim2.new(1, 0, 0, 70),
+        Position = UDim2.new(0, 0, 0, 32),
+        BackgroundColor3 = WasUI.CurrentTheme.Announcement,
+        BorderSizePixel = 0,
+        Parent = self.Instance
+    })
+    
+    -- 玩家头像
+    local player = Players.LocalPlayer
+    local headshot = player:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
+    
+    self.Avatar = CreateInstance("ImageLabel", {
+        Name = "Avatar",
+        Size = UDim2.new(0, 48, 0, 48),
+        Position = UDim2.new(0, 12, 0.5, -24),
+        BackgroundColor3 = Color3.fromRGB(200, 200, 200),
+        Image = headshot,
+        BorderSizePixel = 0,
+        Parent = self.AnnouncementBar
+    })
+    
+    local avatarCorner = CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = self.Avatar
+    })
+    
+    -- 玩家名
+    self.Username = CreateInstance("TextLabel", {
+        Name = "Username",
+        Size = UDim2.new(0, 200, 0, 24),
+        Position = UDim2.new(0, 68, 0.3, 0),
+        BackgroundTransparency = 1,
+        Text = player.Name,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 16,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.AnnouncementBar
+    })
+    
+    -- 欢迎语
+    self.WelcomeText = CreateInstance("TextLabel", {
+        Name = "WelcomeText",
+        Size = UDim2.new(0, 200, 0, 20),
+        Position = UDim2.new(0, 68, 0.7, 0),
+        BackgroundTransparency = 1,
+        Text = "欢迎使用 WasUI 库",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.AnnouncementBar
+    })
+    
+    -- 选项卡区域
+    self.TabBar = CreateInstance("Frame", {
+        Name = "TabBar",
+        Size = UDim2.new(1, 0, 0, 36),
+        Position = UDim2.new(0, 0, 0, 102),
+        BackgroundColor3 = WasUI.CurrentTheme.TabInactive,
+        BorderSizePixel = 0,
+        Parent = self.Instance
+    })
+    
+    self.TabContainer = CreateInstance("Frame", {
+        Name = "TabContainer",
+        Size = UDim2.new(1, -20, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = self.TabBar
+    })
+    
+    self.TabLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 5),
+        Parent = self.TabContainer
+    })
+    
     -- 内容区域
-    self.Content = CreateInstance("Frame", {
-        Name = "Content",
-        Size = UDim2.new(1, 0, 1, -40),
-        Position = UDim2.new(0, 0, 0, 40),
+    self.ContentArea = CreateInstance("Frame", {
+        Name = "ContentArea",
+        Size = UDim2.new(1, 0, 1, -138),
+        Position = UDim2.new(0, 0, 0, 138),
         BackgroundTransparency = 1,
         Parent = self.Instance
     })
     
+    -- 页面容器
+    self.PageContainer = CreateInstance("Frame", {
+        Name = "PageContainer",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Parent = self.ContentArea
+    })
+    
+    -- 调整大小手柄 (右下角弧形)
+    self.ResizeHandle = CreateInstance("TextButton", {
+        Name = "ResizeHandle",
+        Size = UDim2.new(0, 20, 0, 20),
+        Position = UDim2.new(1, -20, 1, -20),
+        BackgroundColor3 = Color3.fromRGB(100, 100, 100),
+        Text = "",
+        AutoButtonColor = false,
+        Parent = self.Instance
+    })
+    
+    local resizeCorner = CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 10),
+        Parent = self.ResizeHandle
+    })
+    
+    -- 拖动功能
+    local dragging = false
+    local dragStart
+    local startPos
+    
+    self.TitleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = self.Instance.Position
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            self.Instance.Position = UDim2.new(
+                startPos.X.Scale, 
+                startPos.X.Offset + delta.X, 
+                startPos.Y.Scale, 
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    -- 调整大小功能
+    local resizing = false
+    local resizeStart
+    local startSize
+    
+    self.ResizeHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            resizing = true
+            resizeStart = input.Position
+            startSize = self.Instance.Size
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if resizing and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - resizeStart
+            local newWidth = math.max(300, startSize.X.Offset + delta.X)
+            local newHeight = math.max(200, startSize.Y.Offset + delta.Y)
+            
+            self.Instance.Size = UDim2.new(0, newWidth, 0, newHeight)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            resizing = false
+        end
+    end)
+    
     return self
 end
 
--- 向面板添加控件
-function Panel:AddToContent(control)
-    control.Parent = self.Content
+-- 添加选项卡
+function Panel:AddTab(name, iconId)
+    local tab = {}
+    
+    -- 创建选项卡按钮
+    tab.Button = CreateInstance("TextButton", {
+        Name = name.."Tab",
+        Size = UDim2.new(0, 80, 1, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.TabInactive,
+        Text = name,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        AutoButtonColor = false,
+        Parent = self.TabContainer
+    })
+    
+    local tabCorner = CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 6),
+        Parent = tab.Button
+    })
+    
+    -- 创建页面
+    tab.Page = CreateInstance("ScrollingFrame", {
+        Name = name.."Page",
+        Size = UDim2.new(1, 0, 1, 0),
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 4,
+        Visible = false,
+        Parent = self.PageContainer
+    })
+    
+    local pageLayout = CreateInstance("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 8),
+        Parent = tab.Page
+    })
+    
+    -- 初始激活第一个选项卡
+    if #self.TabContainer:GetChildren() == 2 then -- 第一个选项卡
+        tab.Button.BackgroundColor3 = WasUI.CurrentTheme.TabActive
+        tab.Page.Visible = true
+    end
+    
+    -- 选项卡点击事件
+    tab.Button.MouseButton1Click:Connect(function()
+        -- 隐藏所有页面
+        for _, child in ipairs(self.PageContainer:GetChildren()) do
+            if child:IsA("ScrollingFrame") then
+                child.Visible = false
+            end
+        end
+        
+        -- 重置所有选项卡颜色
+        for _, child in ipairs(self.TabContainer:GetChildren()) do
+            if child:IsA("TextButton") then
+                child.BackgroundColor3 = WasUI.CurrentTheme.TabInactive
+            end
+        end
+        
+        -- 激活当前选项卡
+        tab.Button.BackgroundColor3 = WasUI.CurrentTheme.TabActive
+        tab.Page.Visible = true
+    end)
+    
+    return tab
+end
+
+-- 向页面添加控件
+function Panel:AddToPage(page, control)
+    control.Parent = page
+    control.Instance.LayoutOrder = #page:GetChildren()
     return control
+end
+
+-- 设置欢迎文本
+function Panel:SetWelcomeText(text)
+    self.WelcomeText.Text = text
 end
 
 -- 库主函数
@@ -373,14 +625,12 @@ function WasUI:SaveConfig(key, data)
             Parent = WasUI_Folder
         })
     end
-    -- 实际项目中应使用HttpService:JSONEncode(data)
     configValue.Value = tostring(data)
 end
 
 function WasUI:LoadConfig(key, default)
     local configValue = WasUI_Folder:FindFirstChild(key)
     if configValue and configValue.Value ~= "" then
-        -- 实际项目中应使用HttpService:JSONDecode(configValue.Value)
         return configValue.Value
     end
     return default
@@ -397,11 +647,8 @@ return {
     CreateLabel = function(parent, text)
         return Label:New("Label", parent, text)
     end,
-    CreateTextBox = function(parent, placeholder, onTextChanged)
-        return TextBox:New("TextBox", parent, placeholder, onTextChanged)
-    end,
-    CreatePanel = function(parent, size, position)
-        return Panel:New("Panel", parent, size, position)
+    CreateToggle = function(parent, initialState, onToggle)
+        return ToggleSwitch:New("Toggle", parent, initialState, onToggle)
     end,
     SaveConfig = function(key, data)
         WasUI:SaveConfig(key, data)
