@@ -79,12 +79,7 @@ d.Heartbeat
 
 local j="https://raw.githubusercontent.com/Footagesus/Icons/main/Main-v2.lua"
 
-local l=loadstring(
-game.HttpGetAsync and game:HttpGetAsync(j)
-or h:GetAsync(j)
-)()
-l.SetIconsType"lucide"
-
+local l = { Icon2 = function() return "", {} end, AddIcons = function() end, Image = function() return nil end }
 local m
 
 local p={
