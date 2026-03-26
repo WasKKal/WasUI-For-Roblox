@@ -3103,102 +3103,6 @@ end
 ah:Open()
 
 
-return af
-end
-
-return aa end function a.s()
-return function(aa)
-return{
-Dark={
-Name="Dark",
-
-Accent=Color3.fromHex"#8B5CF6",
-Dialog=Color3.fromHex"#1E1A2F",
-Outline=Color3.fromHex"#E2E8F0",
-Text=Color3.fromHex"#F1F5F9",
-Placeholder=Color3.fromHex"#94A3B8",
-Background=Color3.fromHex"#0F0F1A",
-Button=Color3.fromHex"#3B2C5E",
-Icon=Color3.fromHex"#C084FC",
-Toggle=Color3.fromHex"#A78BFA",
-Slider=Color3.fromHex"#A855F7",
-Checkbox=Color3.fromHex"#A78BFA",
-PlaceholderText=Color3.fromHex"#94A3B8",
-WindowBackground=Color3.fromHex"#0F0F1A",
-WindowShadow=Color3.fromHex"#000000",
-WindowTopbarTitle=Color3.fromHex"#F1F5F9",
-WindowTopbarAuthor=Color3.fromHex"#C084FC",
-WindowTopbarIcon=Color3.fromHex"#C084FC",
-WindowTopbarButtonIcon=Color3.fromHex"#C084FC",
-TabBackground=Color3.fromHex"#3B2C5E",
-TabTitle=Color3.fromHex"#F1F5F9",
-TabIcon=Color3.fromHex"#C084FC",
-ElementBackground=Color3.fromHex"#F1F5F9",
-ElementTitle=Color3.fromHex"#F1F5F9",
-ElementDesc=Color3.fromHex"#C084FC",
-ElementIcon=Color3.fromHex"#C084FC",
-PopupBackground=Color3.fromHex"#0F0F1A",
-PopupBackgroundTransparency=0,
-PopupTitle=Color3.fromHex"#F1F5F9",
-PopupContent=Color3.fromHex"#94A3B8",
-PopupIcon=Color3.fromHex"#C084FC",
-DialogBackground=Color3.fromHex"#0F0F1A",
-DialogBackgroundTransparency=0,
-DialogTitle=Color3.fromHex"#F1F5F9",
-DialogContent=Color3.fromHex"#94A3B8",
-DialogIcon=Color3.fromHex"#C084FC",
-Tooltip=Color3.fromHex"#3B2C5E",
-TooltipText=Color3.fromHex"#F1F5F9",
-TooltipSecondary=Color3.fromHex"#8B5CF6",
-TooltipSecondaryText=Color3.fromHex"#F1F5F9",
-},
-Light={
-Name="Light",
-
-Accent=Color3.fromHex"#7C3AED",
-Dialog=Color3.fromHex"#FFFFFF",
-Outline=Color3.fromHex"#CBD5E1",
-Text=Color3.fromHex"#1E293B",
-Placeholder=Color3.fromHex"#64748B",
-Background=Color3.fromHex"#F8FAFC",
-Button=Color3.fromHex"#E2E8F0",
-Icon=Color3.fromHex"#5B21B6",
-Toggle=Color3.fromHex"#8B5CF6",
-Slider=Color3.fromHex"#7C3AED",
-Checkbox=Color3.fromHex"#8B5CF6",
-PlaceholderText=Color3.fromHex"#64748B",
-WindowBackground=Color3.fromHex"#F8FAFC",
-WindowShadow=Color3.fromHex"#CBD5E1",
-WindowTopbarTitle=Color3.fromHex"#1E293B",
-WindowTopbarAuthor=Color3.fromHex"#5B21B6",
-WindowTopbarIcon=Color3.fromHex"#5B21B6",
-WindowTopbarButtonIcon=Color3.fromHex"#5B21B6",
-TabBackground=Color3.fromHex"#E2E8F0",
-TabTitle=Color3.fromHex"#1E293B",
-TabIcon=Color3.fromHex"#5B21B6",
-ElementBackground=Color3.fromHex"#1E293B",
-ElementTitle=Color3.fromHex"#1E293B",
-ElementDesc=Color3.fromHex"#5B21B6",
-ElementIcon=Color3.fromHex"#5B21B6",
-PopupBackground=Color3.fromHex"#FFFFFF",
-PopupBackgroundTransparency=0,
-PopupTitle=Color3.fromHex"#1E293B",
-PopupContent=Color3.fromHex"#64748B",
-PopupIcon=Color3.fromHex"#5B21B6",
-DialogBackground=Color3.fromHex"#FFFFFF",
-DialogBackgroundTransparency=0,
-DialogTitle=Color3.fromHex"#1E293B",
-DialogContent=Color3.fromHex"#64748B",
-DialogIcon=Color3.fromHex"#5B21B6",
-Tooltip=Color3.fromHex"#E2E8F0",
-TooltipText=Color3.fromHex"#1E293B",
-TooltipSecondary=Color3.fromHex"#7C3AED",
-TooltipSecondaryText=Color3.fromHex"#FFFFFF",
-},
-}
-end end
-return af
-end
 function a.s()
     return function(aa)
         return {
@@ -3285,17 +3189,17 @@ function a.s()
                 TooltipText = Color3.fromHex("#1E293B"),
                 TooltipSecondary = Color3.fromHex("#7C3AED"),
                 TooltipSecondaryText = Color3.fromHex("#FFFFFF"),
-            }
+            },
         }
     end
 end
+
 function a.t()
 local aa={}
 
 local ab=a.load'b'
 local ac=ab.New local ad=
 ab.Tween
-
 
 function aa.New(ae,af,ag,ah,ai)
 local aj=ai or 10
