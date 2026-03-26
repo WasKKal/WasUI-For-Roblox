@@ -86,6 +86,7 @@ function Control:SetVisible(visible)
     end
 end
 
+-- 按钮控件
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 
@@ -126,7 +127,7 @@ function Button:New(name, parent, text, onClick)
     return self
 end
 
--- 重构开关，提高ZIndex并确保点击区域不被遮挡
+-- 重做开关控件（使用 ImageButton 作为背景，更稳定）
 local ToggleSwitch = setmetatable({}, {__index = Control})
 ToggleSwitch.__index = ToggleSwitch
 
@@ -134,50 +135,48 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
     local self = Control.New(self, name, parent)
     self.Toggled = initialState or false
     self.ToggleCallback = onToggle
-    
-    self.Background = CreateInstance("Frame", {
+
+    -- 使用 ImageButton 作为开关背景，确保可点击区域足够大
+    self.Background = CreateInstance("ImageButton", {
         Name = name .. "_BG",
         Size = UDim2.new(0, 36, 0, 18),
         Position = UDim2.new(0.5, -18, 0.5, -9),
         BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or Color3.fromRGB(100, 100, 100),
+        Image = "",
         BorderSizePixel = 0,
-        ClipsDescendants = true,
-        ZIndex = 3, -- 提高层级，确保可点击
+        AutoButtonColor = false,  -- 禁用自动颜色变化
+        ZIndex = 3,
         Parent = parent
     })
-    
     local bgCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Background})
-    
+
     self.Knob = CreateInstance("Frame", {
         Name = name .. "_Knob",
         Size = UDim2.new(0, 16, 0, 16),
         Position = self.Toggled and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
         BorderSizePixel = 0,
+        ZIndex = 4,
         Parent = self.Background
     })
-    
     local knobCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Knob})
-    
-    self.Background.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            self.Toggled = not self.Toggled
-            
-            if self.Toggled then
-                Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-                Tween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.2)
-            else
-                Tween(self.Background, {BackgroundColor3 = Color3.fromRGB(100, 100, 100)}, 0.2)
-                Tween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.2)
-            end
-            
-            if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
+
+    self.Background.MouseButton1Click:Connect(function()
+        self.Toggled = not self.Toggled
+        if self.Toggled then
+            Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+            Tween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.2)
+        else
+            Tween(self.Background, {BackgroundColor3 = Color3.fromRGB(100, 100, 100)}, 0.2)
+            Tween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.2)
         end
+        if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
     end)
-    
+
     return self
 end
 
+-- 标签控件
 local Label = setmetatable({}, {__index = Control})
 Label.__index = Label
 
@@ -337,6 +336,7 @@ function WasUI:ProcessNotificationQueue()
     end)
 end
 
+-- 窗口面板
 local Panel = setmetatable({}, {__index = Control})
 Panel.__index = Panel
 
@@ -402,40 +402,55 @@ function Panel:New(name, parent, size, position)
         Parent = self.TitleBar
     })
     
-    -- 圆点容器固定在左上角，间距紧凑，与标题文字齐平
+    -- 圆点容器（紧凑排列，上移5px与标题文字齐平）
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
-        Size = UDim2.new(0, 36, 1, 0),  -- 宽度缩小为36，容纳三个间距12的圆点
-        Position = UDim2.new(0, 5, 0, 8.5),  -- 垂直居中（标题栏高26，圆点高9）
+        Size = UDim2.new(0, 36, 1, 0),  -- 宽36，高填满
+        Position = UDim2.new(0, 5, 0, 3.5),  -- 上移5px（原8.5改为3.5）
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = self.TitleBar
     })
     
+    -- 透明按钮覆盖整个圆点区域，用于点击空白区域切换最小化
+    self.DotAreaButton = CreateInstance("ImageButton", {
+        Name = "DotAreaButton",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Image = "",
+        AutoButtonColor = false,
+        ZIndex = 2,
+        Parent = self.DotContainer
+    })
+    
+    -- 三个圆点（放在透明按钮上方，ZIndex更高）
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 9, 0, 9),
         Position = UDim2.new(0, 0, 0.5, -4.5),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BorderSizePixel = 0,
+        ZIndex = 3,
         Parent = self.DotContainer
     })
     
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 9, 0, 9),
-        Position = UDim2.new(0, 12, 0.5, -4.5),  -- 间距12
+        Position = UDim2.new(0, 12, 0.5, -4.5),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BorderSizePixel = 0,
+        ZIndex = 3,
         Parent = self.DotContainer
     })
     
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 9, 0, 9),
-        Position = UDim2.new(0, 24, 0.5, -4.5),  -- 间距12
+        Position = UDim2.new(0, 24, 0.5, -4.5),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
+        ZIndex = 3,
         Parent = self.DotContainer
     })
     
@@ -471,6 +486,7 @@ function Panel:New(name, parent, size, position)
     self.OriginalSize = self.Instance.Size
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
     
+    -- 最小化到圆点状态
     self.MinimizeToDots = function()
         if self.IsMinimized then return end
         
@@ -485,19 +501,20 @@ function Panel:New(name, parent, size, position)
         self.ContentArea.Visible = false
         self.CloseButton.Visible = false
         self.MinimizeButton.Visible = false
-        -- 不隐藏 DraggableArea，确保最小化后仍可拖动
+        -- 不隐藏 DraggableArea，保证最小化后仍可拖动
         self.DraggableArea.Visible = true
         
         self.DotContainer.Visible = true
         self.IsMinimized = true
     end
     
+    -- 从圆点恢复窗口
     self.RestoreFromDots = function()
         if not self.IsMinimized then return end
         
         Tween(self.Instance, {
             Size = self.OriginalSize,
-            Position = self.Instance.Position  -- 恢复时使用当前窗口位置（可能已被拖动）
+            Position = self.Instance.Position  -- 使用当前窗口位置
         }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         
         self.Title.Visible = true
@@ -512,10 +529,27 @@ function Panel:New(name, parent, size, position)
         self.IsMinimized = false
     end
     
-    self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
+    -- 圆点区域整体点击切换最小化（通过透明按钮实现）
+    self.DotAreaButton.MouseButton1Click:Connect(function()
+        if self.IsMinimized then
+            self.RestoreFromDots()
+        else
+            self.MinimizeToDots()
+        end
+    end)
+    
+    -- 关闭圆点单独处理
+    self.CloseDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            input:SetConsumed(true)
+            self:SetVisible(false)
+        end
+    end)
+    
+    -- 最小化圆点单独处理（防止与整体按钮重复触发）
     self.MinimizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            input:SetConsumed(true)  -- 阻止事件传递到拖拽区域
+            input:SetConsumed(true)
             if self.IsMinimized then
                 self.RestoreFromDots()
             else
@@ -524,24 +558,17 @@ function Panel:New(name, parent, size, position)
         end
     end)
     
-    self.CloseButton.MouseButton1Click:Connect(function() 
-        self:SetVisible(false) 
-    end)
-    
-    self.CloseDot.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            input:SetConsumed(true)
-            self:SetVisible(false)
-        end
-    end)
-    
-    -- 最大化圆点可选功能（留空）
+    -- 最大化圆点（可扩展功能）
     self.MaximizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             input:SetConsumed(true)
-            -- 可在此添加最大化/还原逻辑
+            -- 这里可以添加最大化/还原逻辑，例如切换全屏
         end
     end)
+    
+    -- 标题栏按钮（备用）
+    self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
+    self.CloseButton.MouseButton1Click:Connect(function() self:SetVisible(false) end)
     
     -- 拖拽逻辑：只由 DraggableArea 处理，简化并避免冲突
     local dragging = false
@@ -579,6 +606,7 @@ function Panel:New(name, parent, size, position)
     
     UserInputService.InputEnded:Connect(stopDragging)
     
+    -- 窗口内容区域
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
         Name = "AnnouncementBar",
