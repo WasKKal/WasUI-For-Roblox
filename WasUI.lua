@@ -41,11 +41,7 @@ WasUI.CurrentTheme = WasUI.Themes.Dark
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
     for prop, value in pairs(properties) do
-        if prop == "Name" and type(value) == "table" then
-            instance.Name = tostring(value)
-        else
-            instance[prop] = value
-        end
+        instance[prop] = value
     end
     return instance
 end
@@ -96,7 +92,7 @@ Button.__index = Button
 function Button:New(name, parent, text, onClick)
     local self = Control.New(self, name, parent)
     self.Instance = CreateInstance("TextButton", {
-        Name = tostring(name),
+        Name = name,
         Size = UDim2.new(0, 120, 0, 28),
         Position = UDim2.new(0.5, -60, 0.5, -14),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
@@ -104,46 +100,26 @@ function Button:New(name, parent, text, onClick)
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
-        TextScaled = true,
         AutoButtonColor = false,
-        ClipsDescendants = true,
         Parent = parent
     })
     
     local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = self.Instance})
     
-    local textLabel = CreateInstance("TextLabel", {
-        Name = "ButtonText",
-        Size = UDim2.new(0.9, 0, 0.8, 0),
-        Position = UDim2.new(0.05, 0, 0.1, 0),
-        BackgroundTransparency = 1,
-        Text = text or "按钮",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 12,
-        TextScaled = true,
-        TextWrapped = true,
-        Parent = self.Instance
-    })
-    
     self.Instance.MouseEnter:Connect(function() 
-        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2) 
-        Tween(textLabel, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.2)
+        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
     end)
     
     self.Instance.MouseLeave:Connect(function() 
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
-        Tween(textLabel, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.2)
     end)
     
     self.Instance.MouseButton1Down:Connect(function() 
-        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1) 
-        Tween(textLabel, {TextColor3 = Color3.fromRGB(240, 240, 240)}, 0.1)
+        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
     end)
     
     self.Instance.MouseButton1Up:Connect(function()
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
-        Tween(textLabel, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.1)
         if onClick then onClick() end
     end)
     
@@ -159,7 +135,7 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
     self.ToggleCallback = onToggle
     
     self.Background = CreateInstance("Frame", {
-        Name = tostring(name) .. "_BG",
+        Name = name .. "_BG",
         Size = UDim2.new(0, 36, 0, 18),
         Position = UDim2.new(0.5, -18, 0.5, -9),
         BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or Color3.fromRGB(100, 100, 100),
@@ -171,7 +147,7 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
     local bgCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Background})
     
     self.Knob = CreateInstance("Frame", {
-        Name = tostring(name) .. "_Knob",
+        Name = name .. "_Knob",
         Size = UDim2.new(0, 16, 0, 16),
         Position = self.Toggled and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -206,7 +182,7 @@ Label.__index = Label
 function Label:New(name, parent, text)
     local self = Control.New(self, name, parent)
     self.Instance = CreateInstance("TextLabel", {
-        Name = tostring(name),
+        Name = name,
         Size = UDim2.new(0.9, 0, 0, 20),
         Position = UDim2.new(0.05, 0, 0, 0),
         BackgroundTransparency = 1,
@@ -231,7 +207,7 @@ function Panel:New(name, parent, size, position)
     local windowHeight = 320
     
     self.Instance = CreateInstance("Frame", {
-        Name = tostring(name),
+        Name = name,
         Size = size or UDim2.new(0, windowWidth, 0, windowHeight),
         Position = position or UDim2.new(0.5, -windowWidth/2, 0.5, -windowHeight/2),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
@@ -243,7 +219,6 @@ function Panel:New(name, parent, size, position)
     local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Instance})
     
     local stroke = CreateInstance("UIStroke", {
-        Name = "Stroke",
         Color = Color3.fromRGB(60, 60, 65),
         Thickness = 1,
         Parent = self.Instance
@@ -277,7 +252,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(1, -100, 1, 0),
         Position = UDim2.new(0, 50, 0, 0),
         BackgroundTransparency = 1,
-        Text = tostring(name),
+        Text = name,
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
@@ -329,10 +304,10 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0, 22, 0, 22),
         Position = UDim2.new(1, -54, 0, 2),
         BackgroundTransparency = 1,
-        Text = "_",
+        Text = "-",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamBold,
-        TextSize = 16,
+        TextSize = 18,
         Parent = self.TitleBar
     })
     
@@ -348,15 +323,44 @@ function Panel:New(name, parent, size, position)
         Parent = self.TitleBar
     })
     
-    self.MinimizeButton.MouseButton1Click:Connect(function()
-        self:MinimizeWindow()
-    end)
+    local isMinimized = false
+    local originalSize = self.Instance.Size
+    local originalPosition = self.Instance.Position
+    
+    local function MinimizeWindow()
+        if isMinimized then return end
+        
+        Tween(self.Instance, {
+            Size = UDim2.new(0, 60, 0, 26),
+            Position = UDim2.new(
+                originalPosition.X.Scale,
+                originalPosition.X.Offset + originalSize.X.Offset - 60,
+                originalPosition.Y.Scale,
+                originalPosition.Y.Offset + originalSize.Y.Offset - 26
+            )
+        }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        
+        isMinimized = true
+    end
+    
+    local function RestoreWindow()
+        if not isMinimized then return end
+        
+        Tween(self.Instance, {
+            Size = originalSize,
+            Position = originalPosition
+        }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        
+        isMinimized = false
+    end
+    
+    self.MinimizeButton.MouseButton1Click:Connect(MinimizeWindow)
     
     self.CloseButton.MouseButton1Click:Connect(function() 
         self:SetVisible(false) 
     end)
     
-    local announcementHeight = 85
+    local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
         Name = "AnnouncementBar",
         Size = UDim2.new(1, 0, 0, announcementHeight),
@@ -377,7 +381,7 @@ function Panel:New(name, parent, size, position)
     self.Avatar = CreateInstance("ImageLabel", {
         Name = "Avatar",
         Size = UDim2.new(0, 48, 0, 48),
-        Position = UDim2.new(0, 10, 0.5, -24),
+        Position = UDim2.new(0, 10, 0.2, 0),
         BackgroundColor3 = Color3.fromRGB(60, 60, 65),
         Image = headshot,
         BorderSizePixel = 0,
@@ -394,8 +398,8 @@ function Panel:New(name, parent, size, position)
     
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
-        Size = UDim2.new(0.6, 0, 0, 22),
-        Position = UDim2.new(0, 68, 0.2, 0),
+        Size = UDim2.new(0.6, 0, 0, 20),
+        Position = UDim2.new(0, 68, 0.15, 0),
         BackgroundTransparency = 1,
         Text = "玩家: " .. player.Name,
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -408,8 +412,8 @@ function Panel:New(name, parent, size, position)
     
     self.ExecutorLabel = CreateInstance("TextLabel", {
         Name = "ExecutorLabel",
-        Size = UDim2.new(0.6, 0, 0, 20),
-        Position = UDim2.new(0, 68, 0.5, 0),
+        Size = UDim2.new(0.6, 0, 0, 18),
+        Position = UDim2.new(0, 68, 0.45, 0),
         BackgroundTransparency = 1,
         Text = "您的执行器为: Synapse X",
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -422,8 +426,8 @@ function Panel:New(name, parent, size, position)
     
     self.WelcomeText = CreateInstance("TextLabel", {
         Name = "WelcomeText",
-        Size = UDim2.new(0.6, 0, 0, 18),
-        Position = UDim2.new(0, 68, 0.8, 0),
+        Size = UDim2.new(0.6, 0, 0, 16),
+        Position = UDim2.new(0, 68, 0.75, 0),
         BackgroundTransparency = 1,
         Text = "欢迎使用 WasUI 库",
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -466,6 +470,14 @@ function Panel:New(name, parent, size, position)
         end
     end)
     
+    self.TitleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = self.Instance.Position
+        end
+    end)
+    
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragStart
@@ -484,6 +496,9 @@ function Panel:New(name, parent, size, position)
         end
     end)
     
+    self.MinimizeWindow = MinimizeWindow
+    self.RestoreWindow = RestoreWindow
+    
     return self
 end
 
@@ -497,40 +512,6 @@ end
 
 function Panel:SetUsername(text)
     self.Username.Text = "玩家: " .. tostring(text)
-end
-
-function Panel:MinimizeWindow()
-    local originalSize = self.Instance.Size
-    local originalPosition = self.Instance.Position
-    
-    Tween(self.Instance, {
-        Size = UDim2.new(0, 60, 0, 26),
-        Position = UDim2.new(
-            originalPosition.X.Scale,
-            originalPosition.X.Offset + originalSize.X.Offset - 60,
-            originalPosition.Y.Scale,
-            originalPosition.Y.Offset + originalSize.Y.Offset - 26
-        )
-    }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-    
-    Tween(self.ContentArea, {BackgroundTransparency = 1}, 0.3)
-    Tween(self.AnnouncementBar, {BackgroundTransparency = 1}, 0.3)
-    
-    self.IsMinimized = true
-end
-
-function Panel:RestoreWindow()
-    if not self.OriginalSize then return end
-    
-    Tween(self.Instance, {
-        Size = self.OriginalSize,
-        Position = self.OriginalPosition
-    }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-    
-    Tween(self.ContentArea, {BackgroundTransparency = 0}, 0.3)
-    Tween(self.AnnouncementBar, {BackgroundTransparency = 0.1}, 0.3)
-    
-    self.IsMinimized = false
 end
 
 function Panel:AddButton(text, onClick)
@@ -592,8 +573,6 @@ function WasUI:CreateWindow(title, size, position, displayOrder)
     })
     
     local window = Panel:New(tostring(title), screenGui, size, position)
-    window.OriginalSize = window.Instance.Size
-    window.OriginalPosition = window.Instance.Position
     
     return window
 end
