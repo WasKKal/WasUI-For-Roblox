@@ -400,8 +400,8 @@ function Panel:New(name, parent, size, position)
     
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
-        Size = UDim2.new(0, 45, 1, 0),
-        Position = UDim2.new(0, 6, 0, 0),
+        Size = UDim2.new(0, 50, 1, 0),  -- 增加宽度使左右对称
+        Position = UDim2.new(0.5, -25, 0, 0),  -- 居中
         BackgroundTransparency = 1,
         Parent = self.TitleBar
     })
@@ -418,7 +418,7 @@ function Panel:New(name, parent, size, position)
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 9, 0, 9),
-        Position = UDim2.new(0, 15, 0.5, -4.5),
+        Position = UDim2.new(0, 20, 0.5, -4.5),  -- 调整间距
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BorderSizePixel = 0,
         Parent = self.DotContainer
@@ -427,7 +427,7 @@ function Panel:New(name, parent, size, position)
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 9, 0, 9),
-        Position = UDim2.new(0, 30, 0.5, -4.5),
+        Position = UDim2.new(0, 40, 0.5, -4.5),  -- 调整间距
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
         Parent = self.DotContainer
@@ -467,7 +467,7 @@ function Panel:New(name, parent, size, position)
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
     self.MinimizedPosition = self.Instance.Position
     
-    local function MinimizeToDots()
+    self.MinimizeToDots = function()
         if self.IsMinimized then return end
         
         self.MinimizedPosition = self.Instance.Position
@@ -487,12 +487,10 @@ function Panel:New(name, parent, size, position)
         self.DraggableArea.Visible = false
         
         self.DotContainer.Visible = true
-        self.DotContainer.Size = UDim2.new(0, 45, 1, 0)
-        self.DotContainer.Position = UDim2.new(0, 6, 0, 0)
         self.IsMinimized = true
     end
     
-    local function RestoreFromDots()
+    self.RestoreFromDots = function()
         if not self.IsMinimized then return end
         
         Tween(self.Instance, {
@@ -510,17 +508,15 @@ function Panel:New(name, parent, size, position)
         
         self.DotContainer.Visible = true
         self.IsMinimized = false
-        
-        self.OriginalPosition = self.Instance.Position
     end
     
-    self.MinimizeButton.MouseButton1Click:Connect(MinimizeToDots)
+    self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
     self.MinimizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             if self.IsMinimized then
-                RestoreFromDots()
+                self.RestoreFromDots()
             else
-                MinimizeToDots()
+                self.MinimizeToDots()
             end
         end
     end)
@@ -696,15 +692,16 @@ function Panel:New(name, parent, size, position)
             )
             
             self.Instance.Position = newPosition
-            self.OriginalPosition = newPosition
-            self.MinimizedPosition = newPosition
+            
+            if self.IsMinimized then
+                self.MinimizedPosition = newPosition
+            else
+                self.OriginalPosition = newPosition
+            end
         end
     end)
     
     UserInputService.InputEnded:Connect(stopDragging)
-    
-    self.MinimizeWindow = MinimizeToDots
-    self.RestoreWindow = RestoreFromDots
     
     return self
 end
@@ -852,6 +849,18 @@ function Panel:AddToggle(text, initialState, onToggle, tabName)
     toggleSwitch.Background.Position = UDim2.new(1, -40, 0.5, -9)
     
     return toggleSwitch
+end
+
+function Panel:MinimizeWindow()
+    if self.MinimizeToDots then
+        self.MinimizeToDots()
+    end
+end
+
+function Panel:RestoreWindow()
+    if self.RestoreFromDots then
+        self.RestoreFromDots()
+    end
 end
 
 function WasUI:CreateWindow(title, size, position, displayOrder)
