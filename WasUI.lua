@@ -201,7 +201,7 @@ local Panel = setmetatable({}, {__index = Control})
 Panel.__index = Panel
 
 function Panel:New(name, parent, size, position)
-    local self = Control.New(self, name, parent)
+    local self = setmetatable({}, Panel)
     
     local windowWidth = 400
     local windowHeight = 350
@@ -326,23 +326,26 @@ function Panel:New(name, parent, size, position)
     self.IsMinimized = false
     self.OriginalSize = self.Instance.Size
     self.OriginalPosition = self.Instance.Position
+    self.MinimizedSize = UDim2.new(0, 60, 0, 26)
     
     local function MinimizeToDots()
         if self.IsMinimized then return end
         
-        local currentPosition = self.Instance.Position
-        local targetSize = UDim2.new(0, 60, 0, 26)
-        local targetPosition = UDim2.new(
-            currentPosition.X.Scale + (self.OriginalSize.X.Offset - targetSize.X.Offset) / 1000,
-            currentPosition.X.Offset + (self.OriginalSize.X.Offset - targetSize.X.Offset),
-            currentPosition.Y.Scale + (self.OriginalSize.Y.Offset - targetSize.Y.Offset) / 1000,
-            currentPosition.Y.Offset + (self.OriginalSize.Y.Offset - targetSize.Y.Offset)
-        )
+        local screenSize = workspace.CurrentCamera.ViewportSize
+        local currentPos = self.Instance.Position
+        local currentSize = self.Instance.Size
+        
+        local targetX = currentPos.X.Offset + (currentSize.X.Offset - self.MinimizedSize.X.Offset)
+        local targetY = currentPos.Y.Offset + (currentSize.Y.Offset - self.MinimizedSize.Y.Offset)
+        
+        targetX = math.clamp(targetX, 0, screenSize.X - self.MinimizedSize.X.Offset)
+        targetY = math.clamp(targetY, 0, screenSize.Y - self.MinimizedSize.Y.Offset)
+        
+        local targetPosition = UDim2.new(0, targetX, 0, targetY)
         
         Tween(self.Instance, {
-            Size = targetSize,
-            Position = targetPosition,
-            BackgroundTransparency = 0
+            Size = self.MinimizedSize,
+            Position = targetPosition
         }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         
         self.Title.Visible = false
@@ -361,8 +364,7 @@ function Panel:New(name, parent, size, position)
         
         Tween(self.Instance, {
             Size = self.OriginalSize,
-            Position = self.OriginalPosition,
-            BackgroundTransparency = 0
+            Position = self.OriginalPosition
         }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         
         self.Title.Visible = true
@@ -477,10 +479,11 @@ function Panel:New(name, parent, size, position)
     
     self.TabBar = CreateInstance("Frame", {
         Name = "TabBar",
-        Size = UDim2.new(1, 0, 0, 30),
+        Size = UDim2.new(1, 0, 0, 32),
         Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
-        BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BorderSizePixel = 0,
+        BackgroundColor3 = Color3.fromRGB(35, 35, 40),
+        BorderSizePixel = 1,
+        BorderColor3 = Color3.fromRGB(60, 60, 65),
         Parent = self.Instance
     })
     
@@ -502,8 +505,8 @@ function Panel:New(name, parent, size, position)
     
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
-        Size = UDim2.new(1, -10, 1, -announcementHeight - 30 - 36),
-        Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 30),
+        Size = UDim2.new(1, -10, 1, -announcementHeight - 32 - 31),
+        Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 32),
         BackgroundTransparency = 1,
         ScrollBarThickness = 4,
         CanvasSize = UDim2.new(0, 0, 0, 0),
@@ -528,21 +531,17 @@ function Panel:New(name, parent, size, position)
     local dragStart
     local startPos
     
-    self.DraggableArea.InputBegan:Connect(function(input)
+    local function startDragging(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
             startPos = self.Instance.Position
         end
-    end)
+    end
     
-    self.TitleBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = self.Instance.Position
-        end
-    end)
+    self.DraggableArea.InputBegan:Connect(startDragging)
+    self.TitleBar.InputBegan:Connect(startDragging)
+    self.DotContainer.InputBegan:Connect(startDragging)
     
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -569,21 +568,46 @@ function Panel:New(name, parent, size, position)
     return self
 end
 
+function Panel:SetWelcomeText(text)
+    if self.WelcomeText then
+        self.WelcomeText.Text = tostring(text)
+    end
+end
+
+function Panel:SetExecutorText(text)
+    if self.ExecutorLabel then
+        self.ExecutorLabel.Text = "您的执行器为: " .. tostring(text)
+    end
+end
+
+function Panel:SetUsername(text)
+    if self.Username then
+        self.Username.Text = "玩家: " .. tostring(text)
+    end
+end
+
 function Panel:AddTab(tabName)
     local tabButton = CreateInstance("TextButton", {
         Name = tabName .. "Tab",
-        Size = UDim2.new(0, 70, 1, 0),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.8,
+        Size = UDim2.new(0, 70, 1, -4),
+        Position = UDim2.new(0, 0, 0, 2),
+        BackgroundColor3 = Color3.fromRGB(45, 45, 50),
+        BackgroundTransparency = 0.7,
         Text = tabName,
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 12,
+        TextColor3 = Color3.fromRGB(180, 180, 180),
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
         AutoButtonColor = false,
         Parent = self.TabContainer
     })
     
     local tabCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tabButton})
+    
+    local tabBorder = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(60, 60, 65),
+        Thickness = 1,
+        Parent = tabButton
+    })
     
     local tabContent = CreateInstance("Frame", {
         Name = tabName .. "Content",
@@ -593,13 +617,28 @@ function Panel:AddTab(tabName)
         Parent = self.ContentArea
     })
     
+    tabButton.Size = UDim2.new(0, 0, 1, -4)
+    tabButton.Visible = false
+    
+    task.spawn(function()
+        tabButton.Visible = true
+        Tween(tabButton, {Size = UDim2.new(0, 70, 1, -4)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    end)
+    
     tabButton.MouseButton1Click:Connect(function()
         for _, tab in pairs(self.Tabs) do
             if tab.Button == tabButton then
-                Tween(tab.Button, {BackgroundTransparency = 0.2}, 0.2)
+                tabButton.BackgroundTransparency = 0
+                tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+                Tween(tabButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
+                Tween(tabButton, {Size = UDim2.new(0, 75, 1, -4)}, 0.15)
+                task.wait(0.05)
+                Tween(tabButton, {Size = UDim2.new(0, 70, 1, -4)}, 0.1)
                 tab.Content.Visible = true
             else
-                Tween(tab.Button, {BackgroundTransparency = 0.8}, 0.2)
+                tab.Button.BackgroundTransparency = 0.7
+                tab.Button.TextColor3 = Color3.fromRGB(180, 180, 180)
+                Tween(tab.Button, {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}, 0.2)
                 tab.Content.Visible = false
             end
         end
@@ -613,45 +652,38 @@ function Panel:AddTab(tabName)
     }
     
     table.insert(self.Tabs, tab)
+    self.TabContents[tabName] = tabContent
     
     if #self.Tabs == 1 then
-        tabButton.BackgroundTransparency = 0.2
-        tabContent.Visible = true
-        self.ActiveTab = tabName
+        task.spawn(function()
+            tabButton.BackgroundTransparency = 0
+            tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            tabButton.BackgroundColor3 = WasUI.CurrentTheme.Primary
+            tabContent.Visible = true
+            self.ActiveTab = tabName
+        end)
     end
     
     return tabContent
 end
 
-function Panel:SetWelcomeText(text)
-    self.WelcomeText.Text = tostring(text)
-end
-
-function Panel:SetExecutorText(text)
-    self.ExecutorLabel.Text = "您的执行器为: " .. tostring(text)
-end
-
-function Panel:SetUsername(text)
-    self.Username.Text = "玩家: " .. tostring(text)
-end
-
-function Panel:AddButton(text, onClick, tabContent)
-    local targetContent = tabContent or (self.ActiveTab and self.TabContents[self.ActiveTab]) or self.ContentArea
+function Panel:AddButton(text, onClick, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     local button = Button:New("Button_" .. text, targetContent, text, onClick)
     button.Instance.Size = UDim2.new(0.9, 0, 0, 28)
     button.Instance.Position = UDim2.new(0.05, 0, 0, #targetContent:GetChildren() * 34)
     return button
 end
 
-function Panel:AddLabel(text, tabContent)
-    local targetContent = tabContent or (self.ActiveTab and self.TabContents[self.ActiveTab]) or self.ContentArea
+function Panel:AddLabel(text, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     local label = Label:New("Label_" .. text, targetContent, text)
     label.Instance.Position = UDim2.new(0.05, 0, 0, #targetContent:GetChildren() * 24)
     return label
 end
 
-function Panel:AddToggle(text, initialState, onToggle, tabContent)
-    local targetContent = tabContent or (self.ActiveTab and self.TabContents[self.ActiveTab]) or self.ContentArea
+function Panel:AddToggle(text, initialState, onToggle, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     
     local toggleContainer = CreateInstance("Frame", {
         Name = "ToggleContainer_" .. text,
