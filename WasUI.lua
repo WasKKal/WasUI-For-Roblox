@@ -47,7 +47,11 @@ WasUI.CurrentTheme = WasUI.Themes.Dark
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
     for prop, value in pairs(properties) do
-        instance[prop] = value
+        if prop == "Name" and type(value) == "table" then
+            instance.Name = tostring(value)
+        else
+            instance[prop] = value
+        end
     end
     return instance
 end
@@ -98,7 +102,7 @@ Button.__index = Button
 function Button:New(name, parent, text, onClick)
     local self = Control.New(self, name, parent)
     self.Instance = CreateInstance("TextButton", {
-        Name = name,
+        Name = tostring(name),
         Size = UDim2.new(0, 160, 0, 36),
         Position = UDim2.new(0.5, -80, 0.5, -18),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
@@ -129,7 +133,7 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
     self.Toggled = initialState or false
     self.ToggleCallback = onToggle
     self.Background = CreateInstance("Frame", {
-        Name = name.."_BG",
+        Name = tostring(name) .. "_BG",
         Size = UDim2.new(0, 44, 0, 24),
         Position = UDim2.new(0.5, -22, 0.5, -12),
         BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or Color3.fromRGB(120, 120, 120),
@@ -139,7 +143,7 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
     })
     local bgCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Background})
     self.Knob = CreateInstance("Frame", {
-        Name = name.."_Knob",
+        Name = tostring(name) .. "_Knob",
         Size = UDim2.new(0, 20, 0, 20),
         Position = self.Toggled and UDim2.new(1, -22, 0, 2) or UDim2.new(0, 2, 0, 2),
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -169,7 +173,7 @@ Label.__index = Label
 function Label:New(name, parent, text)
     local self = Control.New(self, name, parent)
     self.Instance = CreateInstance("TextLabel", {
-        Name = name,
+        Name = tostring(name),
         Size = UDim2.new(0, 160, 0, 24),
         Position = UDim2.new(0.5, -80, 0.5, -12),
         BackgroundTransparency = 1,
@@ -189,7 +193,7 @@ Panel.__index = Panel
 function Panel:New(name, parent, size, position)
     local self = Control.New(self, name, parent)
     self.Instance = CreateInstance("Frame", {
-        Name = name,
+        Name = tostring(name),
         Size = size or UDim2.new(0, 500, 0, 400),
         Position = position or UDim2.new(0.5, -250, 0.5, -200),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
@@ -210,7 +214,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(1, -80, 1, 0),
         Position = UDim2.new(0, 70, 0, 0),
         BackgroundTransparency = 1,
-        Text = name,
+        Text = tostring(name),
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamSemibold,
         TextSize = 14,
@@ -398,10 +402,10 @@ end
 function Panel:AddTab(name, iconId)
     local tab = {}
     tab.Button = CreateInstance("TextButton", {
-        Name = name.."Tab",
+        Name = tostring(name) .. "Tab",
         Size = UDim2.new(0, 80, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.TabInactive,
-        Text = name,
+        Text = tostring(name),
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -410,7 +414,7 @@ function Panel:AddTab(name, iconId)
     })
     local tabCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tab.Button})
     tab.Page = CreateInstance("ScrollingFrame", {
-        Name = name.."Page",
+        Name = tostring(name) .. "Page",
         Size = UDim2.new(1, 0, 1, 0),
         CanvasSize = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
@@ -447,7 +451,7 @@ function Panel:AddToPage(page, control)
 end
 
 function Panel:SetWelcomeText(text)
-    self.WelcomeText.Text = text
+    self.WelcomeText.Text = tostring(text)
 end
 
 function WasUI:CreateWindow(title, size, position, displayOrder)
@@ -458,20 +462,25 @@ function WasUI:CreateWindow(title, size, position, displayOrder)
         DisplayOrder = displayOrder,
         Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
     })
-    local window = Panel:New(title, screenGui, size, position)
+    local window = Panel:New(tostring(title), screenGui, size, position)
     return window
 end
 
 function WasUI:SaveConfig(key, data)
-    local configValue = WasUI_Folder:FindFirstChild(key)
+    local keyStr = tostring(key)
+    local configValue = WasUI_Folder:FindFirstChild(keyStr)
     if not configValue then
-        configValue = CreateInstance("StringValue", {Name = key, Parent = WasUI_Folder})
+        configValue = CreateInstance("StringValue", {
+            Name = keyStr,
+            Parent = WasUI_Folder
+        })
     end
     configValue.Value = tostring(data)
 end
 
 function WasUI:LoadConfig(key, default)
-    local configValue = WasUI_Folder:FindFirstChild(key)
+    local keyStr = tostring(key)
+    local configValue = WasUI_Folder:FindFirstChild(keyStr)
     if configValue and configValue.Value ~= "" then return configValue.Value end
     return default
 end
