@@ -197,6 +197,144 @@ function Label:New(name, parent, text)
     return self
 end
 
+-- 彩虹文字系统
+WasUI.RainbowTexts = {}
+local rainbowConnections = {}
+
+local function CreateRainbowText(text, position)
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "RainbowText_" .. text,
+        ResetOnSpawn = false,
+        DisplayOrder = 100,
+        Parent = game:GetService("CoreGui")
+    })
+    
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "RainbowText",
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = position or UDim2.new(1, -10, 0, 10),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = Color3.fromRGB(255, 0, 0),
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        TextStrokeTransparency = 0.5,
+        TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+        Parent = screenGui
+    })
+    
+    Tween(textLabel, {Size = UDim2.new(0, 200, 0, 30)}, 0.3)
+    
+    local rainbowSpeed = 2
+    local time = 0
+    
+    local connection = RunService.Heartbeat:Connect(function(deltaTime)
+        time = time + deltaTime * rainbowSpeed
+        local r = (math.sin(time) + 1) / 2
+        local g = (math.sin(time + math.pi/3) + 1) / 2
+        local b = (math.sin(time + 2*math.pi/3) + 1) / 2
+        textLabel.TextColor3 = Color3.new(r, g, b)
+    end)
+    
+    WasUI.RainbowTexts[text] = screenGui
+    rainbowConnections[text] = connection
+    
+    return screenGui
+end
+
+local function RemoveRainbowText(text)
+    if WasUI.RainbowTexts[text] then
+        WasUI.RainbowTexts[text]:Destroy()
+        WasUI.RainbowTexts[text] = nil
+    end
+    if rainbowConnections[text] then
+        rainbowConnections[text]:Disconnect()
+        rainbowConnections[text] = nil
+    end
+end
+
+-- 通知系统
+WasUI.Notifications = {}
+WasUI.NotificationQueue = {}
+
+function WasUI:Notify(options)
+    local config = {
+        Content = options.Content or "通知",
+        Duration = options.Duration or 3,
+        Type = options.Type or "Info"
+    }
+    
+    table.insert(WasUI.NotificationQueue, config)
+    
+    if not WasUI.NotificationProcessing then
+        WasUI.NotificationProcessing = true
+        WasUI:ProcessNotificationQueue()
+    end
+end
+
+function WasUI:ProcessNotificationQueue()
+    if #WasUI.NotificationQueue == 0 then
+        WasUI.NotificationProcessing = false
+        return
+    end
+    
+    local config = table.remove(WasUI.NotificationQueue, 1)
+    
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "WasUI_Notification",
+        ResetOnSpawn = false,
+        DisplayOrder = 999,
+        Parent = playerGui
+    })
+    
+    local notificationFrame = CreateInstance("Frame", {
+        Name = "Notification",
+        Size = UDim2.new(0, 300, 0, 40),
+        Position = UDim2.new(0.5, -150, 0, -50),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 35),
+        BackgroundTransparency = 0.3,
+        Parent = screenGui
+    })
+    
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = notificationFrame})
+    
+    local stroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(60, 60, 65),
+        Thickness = 2,
+        Parent = notificationFrame
+    })
+    
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "Content",
+        Size = UDim2.new(0.9, 0, 0.8, 0),
+        Position = UDim2.new(0.05, 0, 0.1, 0),
+        BackgroundTransparency = 1,
+        Text = config.Content,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        TextWrapped = true,
+        Parent = notificationFrame
+    })
+    
+    local slideDown = Tween(notificationFrame, {Position = UDim2.new(0.5, -150, 0, 20)}, 0.3)
+    slideDown.Completed:Wait()
+    
+    wait(config.Duration)
+    
+    local fadeOut = Tween(notificationFrame, {BackgroundTransparency = 1}, 0.5)
+    Tween(textLabel, {TextTransparency = 1}, 0.5)
+    Tween(stroke, {Transparency = 1}, 0.5)
+    
+    fadeOut.Completed:Connect(function()
+        screenGui:Destroy()
+        wait(0.5)
+        WasUI:ProcessNotificationQueue()
+    end)
+end
+
 local Panel = setmetatable({}, {__index = Control})
 Panel.__index = Panel
 
@@ -327,25 +465,17 @@ function Panel:New(name, parent, size, position)
     self.OriginalSize = self.Instance.Size
     self.OriginalPosition = self.Instance.Position
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
+    self.MinimizedPosition = self.Instance.Position
     
     local function MinimizeToDots()
         if self.IsMinimized then return end
         
-        local screenSize = workspace.CurrentCamera.ViewportSize
-        local currentPos = self.Instance.Position
-        local currentSize = self.Instance.Size
-        
-        local targetX = currentPos.X.Offset + (currentSize.X.Offset - self.MinimizedSize.X.Offset)
-        local targetY = currentPos.Y.Offset + (currentSize.Y.Offset - self.MinimizedSize.Y.Offset)
-        
-        targetX = math.clamp(targetX, 0, screenSize.X - self.MinimizedSize.X.Offset)
-        targetY = math.clamp(targetY, 0, screenSize.Y - self.MinimizedSize.Y.Offset)
-        
-        local targetPosition = UDim2.new(0, targetX, 0, targetY)
+        self.MinimizedPosition = self.Instance.Position
+        self.OriginalSize = self.Instance.Size
         
         Tween(self.Instance, {
             Size = self.MinimizedSize,
-            Position = targetPosition
+            Position = self.MinimizedPosition
         }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         
         self.Title.Visible = false
@@ -354,8 +484,11 @@ function Panel:New(name, parent, size, position)
         self.ContentArea.Visible = false
         self.CloseButton.Visible = false
         self.MinimizeButton.Visible = false
+        self.DraggableArea.Visible = false
         
         self.DotContainer.Visible = true
+        self.DotContainer.Size = UDim2.new(0, 45, 1, 0)
+        self.DotContainer.Position = UDim2.new(0, 6, 0, 0)
         self.IsMinimized = true
     end
     
@@ -364,7 +497,7 @@ function Panel:New(name, parent, size, position)
         
         Tween(self.Instance, {
             Size = self.OriginalSize,
-            Position = self.OriginalPosition
+            Position = self.MinimizedPosition
         }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         
         self.Title.Visible = true
@@ -373,9 +506,12 @@ function Panel:New(name, parent, size, position)
         self.ContentArea.Visible = true
         self.CloseButton.Visible = true
         self.MinimizeButton.Visible = true
+        self.DraggableArea.Visible = true
         
         self.DotContainer.Visible = true
         self.IsMinimized = false
+        
+        self.OriginalPosition = self.Instance.Position
     end
     
     self.MinimizeButton.MouseButton1Click:Connect(MinimizeToDots)
@@ -539,6 +675,12 @@ function Panel:New(name, parent, size, position)
         end
     end
     
+    local function stopDragging(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end
+    
     self.DraggableArea.InputBegan:Connect(startDragging)
     self.TitleBar.InputBegan:Connect(startDragging)
     self.DotContainer.InputBegan:Connect(startDragging)
@@ -546,21 +688,20 @@ function Panel:New(name, parent, size, position)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragStart
-            self.Instance.Position = UDim2.new(
+            local newPosition = UDim2.new(
                 startPos.X.Scale, 
                 startPos.X.Offset + delta.X, 
                 startPos.Y.Scale, 
                 startPos.Y.Offset + delta.Y
             )
-            self.OriginalPosition = self.Instance.Position
+            
+            self.Instance.Position = newPosition
+            self.OriginalPosition = newPosition
+            self.MinimizedPosition = newPosition
         end
     end)
     
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
+    UserInputService.InputEnded:Connect(stopDragging)
     
     self.MinimizeWindow = MinimizeToDots
     self.RestoreWindow = RestoreFromDots
@@ -716,11 +857,7 @@ end
 function WasUI:CreateWindow(title, size, position, displayOrder)
     displayOrder = displayOrder or WasUI.DefaultDisplayOrder
     
-    local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
-    if not playerGui then
-        playerGui = Instance.new("PlayerGui")
-        playerGui.Parent = Players.LocalPlayer
-    end
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
     
     local screenGui = CreateInstance("ScreenGui", {
         Name = "WasUI_Window",
@@ -759,6 +896,14 @@ function WasUI.SetDisplayOrder(order)
     WasUI.DefaultDisplayOrder = order
 end
 
+function WasUI.CreateRainbowText(text, position)
+    return CreateRainbowText(text, position)
+end
+
+function WasUI.RemoveRainbowText(text)
+    RemoveRainbowText(text)
+end
+
 return {
     CreateWindow = function(title, size, position, displayOrder)
         return WasUI:CreateWindow(title, size, position, displayOrder)
@@ -774,5 +919,10 @@ return {
     LoadConfig = function(key, default)
         return WasUI:LoadConfig(key, default)
     end,
-    SetDisplayOrder = WasUI.SetDisplayOrder
+    SetDisplayOrder = WasUI.SetDisplayOrder,
+    Notify = function(options)
+        WasUI:Notify(options)
+    end,
+    CreateRainbowText = WasUI.CreateRainbowText,
+    RemoveRainbowText = WasUI.RemoveRainbowText
 }
