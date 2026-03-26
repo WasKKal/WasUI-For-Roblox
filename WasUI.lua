@@ -204,7 +204,7 @@ function Panel:New(name, parent, size, position)
     local self = Control.New(self, name, parent)
     
     local windowWidth = 400
-    local windowHeight = 320
+    local windowHeight = 350
     
     self.Instance = CreateInstance("Frame", {
         Name = name,
@@ -260,42 +260,42 @@ function Panel:New(name, parent, size, position)
         Parent = self.TitleBar
     })
     
-    local dotContainer = CreateInstance("Frame", {
-        Name = "Dots",
+    self.DotContainer = CreateInstance("Frame", {
+        Name = "DotContainer",
         Size = UDim2.new(0, 45, 1, 0),
         Position = UDim2.new(0, 6, 0, 0),
         BackgroundTransparency = 1,
         Parent = self.TitleBar
     })
     
-    local closeDot = CreateInstance("Frame", {
+    self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 9, 0, 9),
         Position = UDim2.new(0, 0, 0.5, -4.5),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BorderSizePixel = 0,
-        Parent = dotContainer
+        Parent = self.DotContainer
     })
     
-    local minimizeDot = CreateInstance("Frame", {
+    self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 9, 0, 9),
         Position = UDim2.new(0, 15, 0.5, -4.5),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BorderSizePixel = 0,
-        Parent = dotContainer
+        Parent = self.DotContainer
     })
     
-    local maximizeDot = CreateInstance("Frame", {
+    self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 9, 0, 9),
         Position = UDim2.new(0, 30, 0.5, -4.5),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
-        Parent = dotContainer
+        Parent = self.DotContainer
     })
     
-    for _, dot in ipairs({closeDot, minimizeDot, maximizeDot}) do
+    for _, dot in ipairs({self.CloseDot, self.MinimizeDot, self.MaximizeDot}) do
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
     
@@ -323,41 +323,78 @@ function Panel:New(name, parent, size, position)
         Parent = self.TitleBar
     })
     
-    local isMinimized = false
-    local originalSize = self.Instance.Size
-    local originalPosition = self.Instance.Position
+    self.IsMinimized = false
+    self.OriginalSize = self.Instance.Size
+    self.OriginalPosition = self.Instance.Position
     
-    local function MinimizeWindow()
-        if isMinimized then return end
+    local function MinimizeToDots()
+        if self.IsMinimized then return end
+        
+        local currentPosition = self.Instance.Position
+        local targetSize = UDim2.new(0, 60, 0, 26)
+        local targetPosition = UDim2.new(
+            currentPosition.X.Scale + (self.OriginalSize.X.Offset - targetSize.X.Offset) / 1000,
+            currentPosition.X.Offset + (self.OriginalSize.X.Offset - targetSize.X.Offset),
+            currentPosition.Y.Scale + (self.OriginalSize.Y.Offset - targetSize.Y.Offset) / 1000,
+            currentPosition.Y.Offset + (self.OriginalSize.Y.Offset - targetSize.Y.Offset)
+        )
         
         Tween(self.Instance, {
-            Size = UDim2.new(0, 60, 0, 26),
-            Position = UDim2.new(
-                originalPosition.X.Scale,
-                originalPosition.X.Offset + originalSize.X.Offset - 60,
-                originalPosition.Y.Scale,
-                originalPosition.Y.Offset + originalSize.Y.Offset - 26
-            )
+            Size = targetSize,
+            Position = targetPosition,
+            BackgroundTransparency = 0
         }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         
-        isMinimized = true
+        self.Title.Visible = false
+        self.AnnouncementBar.Visible = false
+        self.TabBar.Visible = false
+        self.ContentArea.Visible = false
+        self.CloseButton.Visible = false
+        self.MinimizeButton.Visible = false
+        
+        self.DotContainer.Visible = true
+        self.IsMinimized = true
     end
     
-    local function RestoreWindow()
-        if not isMinimized then return end
+    local function RestoreFromDots()
+        if not self.IsMinimized then return end
         
         Tween(self.Instance, {
-            Size = originalSize,
-            Position = originalPosition
+            Size = self.OriginalSize,
+            Position = self.OriginalPosition,
+            BackgroundTransparency = 0
         }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         
-        isMinimized = false
+        self.Title.Visible = true
+        self.AnnouncementBar.Visible = true
+        self.TabBar.Visible = true
+        self.ContentArea.Visible = true
+        self.CloseButton.Visible = true
+        self.MinimizeButton.Visible = true
+        
+        self.DotContainer.Visible = true
+        self.IsMinimized = false
     end
     
-    self.MinimizeButton.MouseButton1Click:Connect(MinimizeWindow)
+    self.MinimizeButton.MouseButton1Click:Connect(MinimizeToDots)
+    self.MinimizeDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            if self.IsMinimized then
+                RestoreFromDots()
+            else
+                MinimizeToDots()
+            end
+        end
+    end)
     
     self.CloseButton.MouseButton1Click:Connect(function() 
         self:SetVisible(false) 
+    end)
+    
+    self.CloseDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            self:SetVisible(false)
+        end
     end)
     
     local announcementHeight = 80
@@ -438,10 +475,35 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     
+    self.TabBar = CreateInstance("Frame", {
+        Name = "TabBar",
+        Size = UDim2.new(1, 0, 0, 30),
+        Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BorderSizePixel = 0,
+        Parent = self.Instance
+    })
+    
+    self.TabContainer = CreateInstance("Frame", {
+        Name = "TabContainer",
+        Size = UDim2.new(1, -10, 1, 0),
+        Position = UDim2.new(0, 5, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = self.TabBar
+    })
+    
+    self.TabLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 5),
+        Parent = self.TabContainer
+    })
+    
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
-        Size = UDim2.new(1, -10, 1, -announcementHeight - 36),
-        Position = UDim2.new(0, 5, 0, announcementHeight + 31),
+        Size = UDim2.new(1, -10, 1, -announcementHeight - 30 - 36),
+        Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 30),
         BackgroundTransparency = 1,
         ScrollBarThickness = 4,
         CanvasSize = UDim2.new(0, 0, 0, 0),
@@ -450,13 +512,17 @@ function Panel:New(name, parent, size, position)
     
     local contentLayout = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 6),
+        Padding = UDim.new(0, 8),
         Parent = self.ContentArea
     })
     
     contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y)
     end)
+    
+    self.Tabs = {}
+    self.ActiveTab = nil
+    self.TabContents = {}
     
     local dragging = false
     local dragStart
@@ -487,6 +553,7 @@ function Panel:New(name, parent, size, position)
                 startPos.Y.Scale, 
                 startPos.Y.Offset + delta.Y
             )
+            self.OriginalPosition = self.Instance.Position
         end
     end)
     
@@ -496,10 +563,64 @@ function Panel:New(name, parent, size, position)
         end
     end)
     
-    self.MinimizeWindow = MinimizeWindow
-    self.RestoreWindow = RestoreWindow
+    self.MinimizeWindow = MinimizeToDots
+    self.RestoreWindow = RestoreFromDots
     
     return self
+end
+
+function Panel:AddTab(tabName)
+    local tabButton = CreateInstance("TextButton", {
+        Name = tabName .. "Tab",
+        Size = UDim2.new(0, 70, 1, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.8,
+        Text = tabName,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 12,
+        AutoButtonColor = false,
+        Parent = self.TabContainer
+    })
+    
+    local tabCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tabButton})
+    
+    local tabContent = CreateInstance("Frame", {
+        Name = tabName .. "Content",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Visible = false,
+        Parent = self.ContentArea
+    })
+    
+    tabButton.MouseButton1Click:Connect(function()
+        for _, tab in pairs(self.Tabs) do
+            if tab.Button == tabButton then
+                Tween(tab.Button, {BackgroundTransparency = 0.2}, 0.2)
+                tab.Content.Visible = true
+            else
+                Tween(tab.Button, {BackgroundTransparency = 0.8}, 0.2)
+                tab.Content.Visible = false
+            end
+        end
+        self.ActiveTab = tabName
+    end)
+    
+    local tab = {
+        Name = tabName,
+        Button = tabButton,
+        Content = tabContent
+    }
+    
+    table.insert(self.Tabs, tab)
+    
+    if #self.Tabs == 1 then
+        tabButton.BackgroundTransparency = 0.2
+        tabContent.Visible = true
+        self.ActiveTab = tabName
+    end
+    
+    return tabContent
 end
 
 function Panel:SetWelcomeText(text)
@@ -514,26 +635,30 @@ function Panel:SetUsername(text)
     self.Username.Text = "玩家: " .. tostring(text)
 end
 
-function Panel:AddButton(text, onClick)
-    local button = Button:New("Button_" .. text, self.ContentArea, text, onClick)
+function Panel:AddButton(text, onClick, tabContent)
+    local targetContent = tabContent or (self.ActiveTab and self.TabContents[self.ActiveTab]) or self.ContentArea
+    local button = Button:New("Button_" .. text, targetContent, text, onClick)
     button.Instance.Size = UDim2.new(0.9, 0, 0, 28)
-    button.Instance.Position = UDim2.new(0.05, 0, 0, #self.ContentArea:GetChildren() * 34)
+    button.Instance.Position = UDim2.new(0.05, 0, 0, #targetContent:GetChildren() * 34)
     return button
 end
 
-function Panel:AddLabel(text)
-    local label = Label:New("Label_" .. text, self.ContentArea, text)
-    label.Instance.Position = UDim2.new(0.05, 0, 0, #self.ContentArea:GetChildren() * 24)
+function Panel:AddLabel(text, tabContent)
+    local targetContent = tabContent or (self.ActiveTab and self.TabContents[self.ActiveTab]) or self.ContentArea
+    local label = Label:New("Label_" .. text, targetContent, text)
+    label.Instance.Position = UDim2.new(0.05, 0, 0, #targetContent:GetChildren() * 24)
     return label
 end
 
-function Panel:AddToggle(text, initialState, onToggle)
+function Panel:AddToggle(text, initialState, onToggle, tabContent)
+    local targetContent = tabContent or (self.ActiveTab and self.TabContents[self.ActiveTab]) or self.ContentArea
+    
     local toggleContainer = CreateInstance("Frame", {
         Name = "ToggleContainer_" .. text,
         Size = UDim2.new(0.9, 0, 0, 28),
-        Position = UDim2.new(0.05, 0, 0, #self.ContentArea:GetChildren() * 34),
+        Position = UDim2.new(0.05, 0, 0, #targetContent:GetChildren() * 34),
         BackgroundTransparency = 1,
-        Parent = self.ContentArea
+        Parent = targetContent
     })
     
     local toggleLabel = CreateInstance("TextLabel", {
