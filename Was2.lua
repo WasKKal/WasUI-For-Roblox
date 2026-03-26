@@ -11104,27 +11104,76 @@ break
 end
 end
 end
+local aA = true
+if ay.KeySystem then
+    aA = false
 
-aA=b
-if not b then loadKeysystem()end
-else
-loadKeysystem()
+    local function loadKeysystem()
+        am.new(ay, aD, function(flag) aA = flag end)
+    end
+
+    local keyFilePath = (ay.Folder or "Temp") .. "/" .. aD .. ".key"
+
+    if ay.KeySystem.KeyValidator then
+        if ay.KeySystem.SaveKey and isfile(keyFilePath) then
+            local savedKey = readfile(keyFilePath)
+            if ay.KeySystem.KeyValidator(savedKey) then
+                aA = true
+            else
+                loadKeysystem()
+            end
+        else
+            loadKeysystem()
+        end
+    elseif not ay.KeySystem.API then
+        if ay.KeySystem.SaveKey and isfile(keyFilePath) then
+            local savedKey = readfile(keyFilePath)
+            local isValid = (type(ay.KeySystem.Key) == "table" and table.find(ay.KeySystem.Key, savedKey)) or (tostring(ay.KeySystem.Key) == tostring(savedKey))
+            if isValid then
+                aA = true
+            else
+                loadKeysystem()
+            end
+        else
+            loadKeysystem()
+        end
+    else
+        if isfile(keyFilePath) then
+            local savedKey = readfile(keyFilePath)
+            local isValid = false
+            for _, service in pairs(ay.KeySystem.API) do
+                local handler = aa.Services[service.Type]
+                if handler then
+                    local args = {}
+                    for _, arg in pairs(handler.Args) do
+                        table.insert(args, service[arg])
+                    end
+                    local instance = handler.New(table.unpack(args))
+                    if instance.Verify(savedKey) then
+                        isValid = true
+                        break
+                    end
+                end
+            end
+            aA = isValid
+            if not isValid then
+                loadKeysystem()
+            end
+        else
+            loadKeysystem()
+        end
+    end
+
+    repeat task.wait() until aA
 end
-end
 
-repeat task.wait()until aA
-end
+local aE = az(ay)
 
-local aE=az(ay)
-
-aa.Transparent=ay.Transparent
-aa.Window=aE
+aa.Transparent = ay.Transparent
+aa.Window = aE
 
 if ay.Acrylic then
-ar.init()
+    ar.init()
 end
 
 return aE
-end
-
-return aa
