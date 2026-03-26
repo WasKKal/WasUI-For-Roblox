@@ -3127,11 +3127,6 @@ function a.s()
                 TooltipText = Color3.fromHex("#F1F5F9"),
                 TooltipSecondary = Color3.fromHex("#8B5CF6"),
                 TooltipSecondaryText = Color3.fromHex("#F1F5F9"),
-                -- 额外补充可能缺失的（从原版 WindUI 中常用）
-                Outline2 = Color3.fromHex("#3B2C5E"),
-                Background2 = Color3.fromHex("#1E1A2F"),
-                Hover = Color3.fromHex("#C084FC"),
-                HoverText = Color3.fromHex("#F1F5F9"),
             },
             Light = {
                 Name = "Light",
@@ -3174,11 +3169,6 @@ function a.s()
                 TooltipText = Color3.fromHex("#1E293B"),
                 TooltipSecondary = Color3.fromHex("#7C3AED"),
                 TooltipSecondaryText = Color3.fromHex("#FFFFFF"),
-                -- 补充
-                Outline2 = Color3.fromHex("#CBD5E1"),
-                Background2 = Color3.fromHex("#F1F5F9"),
-                Hover = Color3.fromHex("#5B21B6"),
-                HoverText = Color3.fromHex("#FFFFFF"),
             },
         }
     end
