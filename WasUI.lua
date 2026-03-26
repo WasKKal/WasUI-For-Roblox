@@ -455,7 +455,7 @@ function Panel:New(name, parent, size, position)
     self.Title = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(1, -100, 1, 0),
-        Position = UDim2.new(0, 70, 0, 0),
+        Position = UDim2.new(15, 0, 0, 3.5),
         BackgroundTransparency = 1,
         Text = name,
         TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -489,8 +489,8 @@ function Panel:New(name, parent, size, position)
     -- 三个圆点（放在透明按钮上方，ZIndex更高）
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
-        Size = UDim2.new(0, 9, 0, 9),
-        Position = UDim2.new(0, 0, 0.5, -4.5),
+        Size = UDim2.new(0, 12, 0, 12),
+        Position = UDim2.new(0, 0, 0.5, -6),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -499,8 +499,8 @@ function Panel:New(name, parent, size, position)
     
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
-        Size = UDim2.new(0, 9, 0, 9),
-        Position = UDim2.new(0, 12, 0.5, -4.5),
+        Size = UDim2.new(0, 12, 0, 12),
+        Position = UDim2.new(0, 12, 0.5, -6),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -509,8 +509,8 @@ function Panel:New(name, parent, size, position)
     
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
-        Size = UDim2.new(0, 9, 0, 9),
-        Position = UDim2.new(0, 24, 0.5, -4.5),
+        Size = UDim2.new(0, 12, 0, 12),
+        Position = UDim2.new(0, 24, 0.56, -6),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
         ZIndex = 3,
