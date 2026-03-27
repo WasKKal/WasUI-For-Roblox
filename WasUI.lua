@@ -64,6 +64,7 @@ WasUI.Themes = {
     }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
+WasUI.Objects = {}
 
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
@@ -141,6 +142,7 @@ function Button:New(name, parent, text, onClick)
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
         if onClick then onClick() end
     end)
+    table.insert(WasUI.Objects, {Object = self.Instance, Type = "Button"})
     return self
 end
 
@@ -183,6 +185,8 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
         end
         if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
     end)
+    table.insert(WasUI.Objects, {Object = self.Background, Type = "Toggle"})
+    table.insert(WasUI.Objects, {Object = self.Knob, Type = "ToggleKnob"})
     return self
 end
 
@@ -202,6 +206,7 @@ function Label:New(name, parent, text)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = parent
     })
+    table.insert(WasUI.Objects, {Object = self.Instance, Type = "Label"})
     return self
 end
 
@@ -237,6 +242,9 @@ function Category:New(name, parent, title)
         BorderSizePixel = 0,
         Parent = self.Instance
     })
+    table.insert(WasUI.Objects, {Object = self.Instance, Type = "Category"})
+    table.insert(WasUI.Objects, {Object = titleLabel, Type = "Label"})
+    table.insert(WasUI.Objects, {Object = line, Type = "Line"})
     return self
 end
 
@@ -342,6 +350,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
                 self.Callback(option)
             end
         end)
+        table.insert(WasUI.Objects, {Object = optionButton, Type = "DropdownOption"})
     end
 
     function self:OpenDropdown()
@@ -393,6 +402,11 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
     end)
 
     self.Instance = self.Container
+    table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
+    table.insert(WasUI.Objects, {Object = self.TitleLabel, Type = "Label"})
+    table.insert(WasUI.Objects, {Object = self.DropdownButton, Type = "Button"})
+    table.insert(WasUI.Objects, {Object = arrowIcon, Type = "Icon"})
+    table.insert(WasUI.Objects, {Object = self.OptionsContainer, Type = "DropdownContainer"})
     return self
 end
 
@@ -506,6 +520,11 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     end)
     self.Instance = self.Container
     updateSlider(self.CurrentValue)
+    table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
+    table.insert(WasUI.Objects, {Object = self.TitleLabel, Type = "Label"})
+    table.insert(WasUI.Objects, {Object = self.ValueLabel, Type = "Label"})
+    table.insert(WasUI.Objects, {Object = self.SliderTrack, Type = "SliderTrack"})
+    table.insert(WasUI.Objects, {Object = self.SliderFill, Type = "SliderFill"})
     return self
 end
 
@@ -1145,6 +1164,11 @@ function Panel:New(name, parent, size, position)
             self:UpdateSnowflakes()
         end
     end)
+    table.insert(WasUI.Objects, {Object = self.Instance, Type = "Window"})
+    table.insert(WasUI.Objects, {Object = self.TitleBar, Type = "TitleBar"})
+    table.insert(WasUI.Objects, {Object = self.AnnouncementBar, Type = "AnnouncementBar"})
+    table.insert(WasUI.Objects, {Object = self.TabBar, Type = "TabBar"})
+    table.insert(WasUI.Objects, {Object = self.ContentArea, Type = "ContentArea"})
     return self
 end
 
@@ -1232,6 +1256,8 @@ function Panel:AddTab(tabName)
         tabContent.Visible = true
     end
     self.TabLayout.PaddingLeft = UDim.new(0, 2.5)
+    table.insert(WasUI.Objects, {Object = tabButton, Type = "TabButton"})
+    table.insert(WasUI.Objects, {Object = underline, Type = "TabUnderline"})
     return tabContent
 end
 
@@ -1248,6 +1274,7 @@ function Panel:AddTitle(text, tabName)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = targetContent
     })
+    table.insert(WasUI.Objects, {Object = titleLabel, Type = "Label"})
     return titleLabel
 end
 
@@ -1283,6 +1310,8 @@ function Panel:AddToggle(text, initialState, onToggle, tabName)
         Parent = toggleContainer
     })
     local toggleSwitch = ToggleSwitch:New("Toggle", toggleContainer, initialState, onToggle)
+    table.insert(WasUI.Objects, {Object = toggleContainer, Type = "ToggleContainer"})
+    table.insert(WasUI.Objects, {Object = toggleLabel, Type = "Label"})
     return toggleSwitch
 end
 
@@ -1291,6 +1320,7 @@ function Panel:AddDropdown(title, options, defaultValue, callback, tabName)
     local dropdown = Dropdown:New("Dropdown_" .. title, targetContent, title, options, defaultValue, callback)
     return dropdown
 end
+
 function Panel:AddSlider(title, min, max, defaultValue, callback, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     local slider = Slider:New("Slider_" .. title, targetContent, title, min, max, defaultValue, callback)
@@ -1322,9 +1352,27 @@ end
 function WasUI:SetTheme(themeName)
     if self.Themes[themeName] then
         self.CurrentTheme = self.Themes[themeName]
-        -- 切换主题时同步更新所有UI元素样式
-        for _, obj in pairs(self.Objects) do
-            self.UpdateTheme(obj.Object, true)
+        -- 主题切换时同步更新所有UI元素样式
+        for _, objData in ipairs(WasUI.Objects) do
+            local obj = objData.Object
+            local objType = objData.Type
+            if obj and obj.Parent then
+                if objType == "Button" then
+                    Tween(obj, {BackgroundColor3 = self.CurrentTheme.Primary}, 0.2)
+                elseif objType == "TabButton" then
+                    Tween(obj, {BackgroundColor3 = self.CurrentTheme.TabButton}, 0.2)
+                elseif objType == "Label" then
+                    obj.TextColor3 = self.CurrentTheme.Text
+                elseif objType == "Toggle" then
+                    local isToggled = obj.Name:find("_BG") and obj.Parent.Toggled or false
+                    obj.BackgroundColor3 = isToggled and self.CurrentTheme.Success or Color3.fromRGB(200, 200, 200)
+                elseif objType == "SliderFill" then
+                    obj.BackgroundColor3 = self.CurrentTheme.Primary
+                elseif objType == "DropdownButton" then
+                    obj.BackgroundColor3 = self.CurrentTheme.Input
+                    obj.TextColor3 = self.CurrentTheme.Text
+                end
+            end
         end
     end
 end
@@ -1376,8 +1424,8 @@ function WasUI:IsSnowfallEnabled()
     return false
 end
 
-function WasUI:UpdateAllTheme()
-    self.UpdateTheme(nil, true)
+function WasUI:RefreshTheme()
+    self:SetTheme(self.CurrentTheme == self.Themes.Dark and "Dark" or "Light")
 end
 
 _G.WasUIModule = WasUI
