@@ -877,7 +877,6 @@ function Panel:AddTab(tabName)
     
     return tabContent
 end
-
 function Panel:AddCategory(title, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     
