@@ -495,7 +495,7 @@ function Panel:New(name, parent, size, position)
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 12, 0, 12),
-        Position = UDim2.new(0, 24, 0.5, -6),
+        Position = UDim2.new(0, 28, 0.5, -6),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
         ZIndex = 3,
