@@ -19,7 +19,6 @@ local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
 WasUI_Folder.Parent = ReplicatedStorage
 
--- 主题配置（保留原配色，确保Dark模式紫色正常）
 WasUI.Themes = {
     Default = {
         Primary = Color3.fromRGB(106, 17, 203),
@@ -32,7 +31,8 @@ WasUI.Themes = {
         Error = Color3.fromRGB(231, 76, 60),
         Section = Color3.fromRGB(230, 235, 240),
         Input = Color3.fromRGB(250, 250, 252),
-        TabBorder = Color3.fromRGB(220, 220, 220)
+        TabBorder = Color3.fromRGB(220, 220, 220),
+        TabButton = Color3.fromRGB(255,255,255)
     },
     Dark = {
         Primary = Color3.fromRGB(106, 17, 203),
@@ -240,7 +240,6 @@ function Category:New(name, parent, title)
     return self
 end
 
--- 模仿参考文档下拉菜单逻辑：增加展开动画、点击外部关闭、hover效果
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback)
@@ -281,20 +280,17 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Parent = self.Container
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.DropdownButton})
-    
-    -- 下拉箭头图标
     local arrowIcon = CreateInstance("ImageLabel", {
         Name = "ArrowIcon",
         Size = UDim2.new(0, 12, 0, 12),
         Position = UDim2.new(1, -10, 0.5, -6),
         BackgroundTransparency = 1,
-        Image = "rbxassetid://12187365364", -- 通用箭头图标
+        Image = "rbxassetid://12187365364",
         ImageRectOffset = Vector2.new(0, 0),
         ImageRectSize = Vector2.new(24, 24),
         ImageColor3 = WasUI.CurrentTheme.Text,
         Parent = self.DropdownButton
     })
-
     self.Options = options or {}
     self.SelectedValue = defaultValue
     self.Callback = callback
@@ -317,8 +313,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Padding = UDim.new(0, 1),
         Parent = self.OptionsContainer
     })
-
-    -- 生成选项按钮（增加hover动画）
     for i, option in ipairs(self.Options) do
         local optionButton = CreateInstance("TextButton", {
             Name = "Option_" .. option,
@@ -350,7 +344,46 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         end)
     end
 
-    -- 按钮点击逻辑（展开/关闭）
+    function self:OpenDropdown()
+        if self.IsOpen or #self.Options == 0 then return end
+        self.OptionsContainer.Visible = true
+        local maxHeight = math.min(#self.Options * 25, 150)
+        Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, maxHeight)}, 0.3)
+        Tween(self.DropdownButton.ArrowIcon, {Rotation = 180}, 0.2)
+        self.IsOpen = true
+        local function closeIfClickedOutside(input, gameProcessed)
+            if gameProcessed then return end
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                local mousePos = input.Position
+                local absolutePos = self.OptionsContainer.AbsolutePosition
+                local absoluteSize = self.OptionsContainer.AbsoluteSize
+                local buttonPos = self.DropdownButton.AbsolutePosition
+                local buttonSize = self.DropdownButton.AbsoluteSize
+                local inButton = mousePos.X >= buttonPos.X and mousePos.X <= buttonPos.X + buttonSize.X and
+                                 mousePos.Y >= buttonPos.Y and mousePos.Y <= buttonPos.Y + buttonSize.Y
+                local inOptions = mousePos.X >= absolutePos.X and mousePos.X <= absolutePos.X + absoluteSize.X and
+                                  mousePos.Y >= absolutePos.Y and mousePos.Y <= absolutePos.Y + absoluteSize.Y
+                if not inButton and not inOptions then
+                    self:CloseDropdown()
+                end
+            end
+        end
+        self.CloseConnection = UserInputService.InputBegan:Connect(closeIfClickedOutside)
+    end
+
+    function self:CloseDropdown()
+        if not self.IsOpen then return end
+        Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, 0)}, 0.2)
+        Tween(self.DropdownButton.ArrowIcon, {Rotation = 0}, 0.2)
+        task.wait(0.2)
+        self.OptionsContainer.Visible = false
+        self.IsOpen = false
+        if self.CloseConnection then
+            self.CloseConnection:Disconnect()
+            self.CloseConnection = nil
+        end
+    end
+
     self.DropdownButton.MouseButton1Click:Connect(function()
         if self.IsOpen then
             self:CloseDropdown()
@@ -361,52 +394,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
 
     self.Instance = self.Container
     return self
-end
-
--- 展开下拉菜单（动画+外部点击关闭）
-function Dropdown:OpenDropdown()
-    if self.IsOpen or #self.Options == 0 then return end
-    self.OptionsContainer.Visible = true
-    local maxHeight = math.min(#self.Options * 25, 150)
-    Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, maxHeight)}, 0.3)
-    -- 箭头旋转动画
-    Tween(self.DropdownButton.ArrowIcon, {Rotation = 180}, 0.2)
-    self.IsOpen = true
-
-    -- 点击外部关闭
-    local function closeIfClickedOutside(input, gameProcessed)
-        if gameProcessed then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local mousePos = input.Position
-            local absolutePos = self.OptionsContainer.AbsolutePosition
-            local absoluteSize = self.OptionsContainer.AbsoluteSize
-            local buttonPos = self.DropdownButton.AbsolutePosition
-            local buttonSize = self.DropdownButton.AbsoluteSize
-            local inButton = mousePos.X >= buttonPos.X and mousePos.X <= buttonPos.X + buttonSize.X and
-                             mousePos.Y >= buttonPos.Y and mousePos.Y <= buttonPos.Y + buttonSize.Y
-            local inOptions = mousePos.X >= absolutePos.X and mousePos.X <= absolutePos.X + absoluteSize.X and
-                              mousePos.Y >= absolutePos.Y and mousePos.Y <= absolutePos.Y + absoluteSize.Y
-            if not inButton and not inOptions then
-                self:CloseDropdown()
-            end
-        end
-    end
-    self.CloseConnection = UserInputService.InputBegan:Connect(closeIfClickedOutside)
-end
-
--- 关闭下拉菜单（动画）
-function Dropdown:CloseDropdown()
-    if not self.IsOpen then return end
-    Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, 0)}, 0.2)
-    -- 箭头复位动画
-    Tween(self.DropdownButton.ArrowIcon, {Rotation = 0}, 0.2)
-    task.wait(0.2)
-    self.OptionsContainer.Visible = false
-    self.IsOpen = false
-    if self.CloseConnection then
-        self.CloseConnection:Disconnect()
-        self.CloseConnection = nil
-    end
 end
 
 function Dropdown:GetValue()
@@ -456,8 +443,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.SliderTrack = CreateInstance("TextButton", {
         Name = "SliderTrack",
-        Size = UDim2.new(1, 0, 0, 6),
-        Position = UDim2.new(0, 0, 0, 30),
+        Size = UDim2.new(0.94, 0, 0, 8),
+        Position = UDim2.new(0.03, 0, 0, 30),
         BackgroundColor3 = Color3.fromRGB(220, 220, 220),
         BorderSizePixel = 0,
         Text = "",
@@ -699,9 +686,7 @@ function Panel:New(name, parent, size, position)
         ClipsDescendants = true,
         Parent = parent
     })
-    -- 标题栏外围保留完整圆角（关键修复：移除原顶部半圆角限制）
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
-
     self.BorderEffect = CreateInstance("Frame", {
         Name = "BorderEffect",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
@@ -740,7 +725,6 @@ function Panel:New(name, parent, size, position)
         local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
         borderStroke.Color = Color3.new(r, g, b)
     end)
-
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
         Size = UDim2.new(1, 0, 0, 26),
@@ -749,12 +733,10 @@ function Panel:New(name, parent, size, position)
         BorderSizePixel = 0,
         Parent = self.Instance
     })
-    -- 标题栏内部圆角与外围一致（完整圆角，无顶部限制）
     CreateInstance("UICorner", {
         CornerRadius = UDim.new(0, 10),
         Parent = self.TitleBar
     })
-
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
         Size = UDim2.new(1, 0, 1, 0),
@@ -765,7 +747,6 @@ function Panel:New(name, parent, size, position)
         ZIndex = 1,
         Parent = self.TitleBar
     })
-
     self.Title = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(1, -100, 1, 0),
@@ -778,7 +759,6 @@ function Panel:New(name, parent, size, position)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.TitleBar
     })
-
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 36, 1, 0),
@@ -787,7 +767,6 @@ function Panel:New(name, parent, size, position)
         ZIndex = 2,
         Parent = self.TitleBar
     })
-
     self.DotAreaButton = CreateInstance("ImageButton", {
         Name = "DotAreaButton",
         Size = UDim2.new(1, 0, 1, 0),
@@ -797,7 +776,6 @@ function Panel:New(name, parent, size, position)
         ZIndex = 2,
         Parent = self.DotContainer
     })
-
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 12, 0, 12),
@@ -807,7 +785,6 @@ function Panel:New(name, parent, size, position)
         ZIndex = 3,
         Parent = self.DotContainer
     })
-
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 12, 0, 12),
@@ -817,7 +794,6 @@ function Panel:New(name, parent, size, position)
         ZIndex = 3,
         Parent = self.DotContainer
     })
-
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 12, 0, 12),
@@ -827,11 +803,9 @@ function Panel:New(name, parent, size, position)
         ZIndex = 3,
         Parent = self.DotContainer
     })
-
     for _, dot in ipairs({self.CloseDot, self.MinimizeDot, self.MaximizeDot}) do
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
-
     self.MinimizeButton = CreateInstance("TextButton", {
         Name = "MinimizeButton",
         Size = UDim2.new(0, 22, 0, 22),
@@ -843,7 +817,6 @@ function Panel:New(name, parent, size, position)
         TextSize = 18,
         Parent = self.TitleBar
     })
-
     self.CloseButton = CreateInstance("TextButton", {
         Name = "CloseButton",
         Size = UDim2.new(0, 22, 0, 22),
@@ -855,11 +828,9 @@ function Panel:New(name, parent, size, position)
         TextSize = 16,
         Parent = self.TitleBar
     })
-
     self.IsMinimized = false
     self.OriginalSize = self.Instance.Size
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
-
     self.MinimizeToDots = function()
         if self.IsMinimized then return end
         Tween(self.Instance, {
@@ -887,7 +858,6 @@ function Panel:New(name, parent, size, position)
         end
         self.SnowFlakes = {}
     end
-
     self.RestoreFromDots = function()
         if not self.IsMinimized then return end
         Tween(self.Instance, {
@@ -913,39 +883,34 @@ function Panel:New(name, parent, size, position)
         end
         self.IsMinimized = false
     end
-
     self.DotAreaButton.MouseButton1Click:Connect(function()
         if self.IsMinimized then
-            self.RestoreFromDots()
+            self:RestoreFromDots()
         else
-            self.MinimizeToDots()
+            self:MinimizeToDots()
         end
     end)
-
     self.CloseDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             input:SetConsumed(true)
             self:SetVisible(false)
         end
     end)
-
     self.MinimizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             input:SetConsumed(true)
             if self.IsMinimized then
-                self.RestoreFromDots()
+                self:RestoreFromDots()
             else
-                self.MinimizeToDots()
+                self:MinimizeToDots()
             end
         end
     end)
-
     self.MaximizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             input:SetConsumed(true)
         end
     end)
-
     self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
     self.CloseButton.MouseButton1Click:Connect(function() 
         if self.SnowConnection then
@@ -967,7 +932,6 @@ function Panel:New(name, parent, size, position)
         end
         self:SetVisible(false) 
     end)
-
     local dragging = false
     local dragStart
     local startPos
@@ -983,7 +947,6 @@ function Panel:New(name, parent, size, position)
             dragging = false
         end
     end
-
     self.DraggableArea.InputBegan:Connect(startDragging)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -998,7 +961,6 @@ function Panel:New(name, parent, size, position)
         end
     end)
     UserInputService.InputEnded:Connect(stopDragging)
-
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
         Name = "AnnouncementBar",
@@ -1009,7 +971,6 @@ function Panel:New(name, parent, size, position)
         BorderSizePixel = 0,
         Parent = self.Instance
     })
-
     local player = Players.LocalPlayer
     local headshot = Players:GetUserThumbnailAsync(
         player.UserId, 
@@ -1032,50 +993,48 @@ function Panel:New(name, parent, size, position)
         Thickness = 1,
         Parent = self.Avatar
     })
-
     self.Avatar.MouseButton1Down:Connect(function()
         Tween(self.Avatar, {Size = UDim2.new(0, 44, 0, 44)}, 0.1)
     end)
     self.Avatar.MouseButton1Up:Connect(function()
         Tween(self.Avatar, {Size = UDim2.new(0, 48, 0, 48)}, 0.1)
     end)
-
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0.6, 0, 0, 18),
-        Position = UDim2.new(0, 68, 0.12, 0),
+        Position = UDim2.new(0, 62, 0.12, 0),
         BackgroundTransparency = 1,
         Text = "玩家: " .. player.Name,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
-
     self.ExecutorLabel = CreateInstance("TextLabel", {
         Name = "ExecutorLabel",
         Size = UDim2.new(0.6, 0, 0, 16),
-        Position = UDim2.new(0, 68, 0.35, 0),
+        Position = UDim2.new(0, 62, 0.35, 0),
         BackgroundTransparency = 1,
         Text = "执行器: "..getExecutor(),
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
-
     self.WelcomeLabel = CreateInstance("TextLabel", {
         Name = "WelcomeLabel",
         Size = UDim2.new(0.6, 0, 0, 14),
-        Position = UDim2.new(0, 68, 0.55, 0),
+        Position = UDim2.new(0, 62, 0.55, 0),
         BackgroundTransparency = 1,
         Text = "欢迎使用WasUI",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
-
     self.SnowContainer = CreateInstance("Frame", {
         Name = "SnowContainer",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1085,7 +1044,6 @@ function Panel:New(name, parent, size, position)
         ZIndex = 100,
         Parent = self.Instance
     })
-
     self.TabBar = CreateInstance("ScrollingFrame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 24),
@@ -1111,7 +1069,6 @@ function Panel:New(name, parent, size, position)
         BorderSizePixel = 0,
         Parent = self.TabBar
     })
-
     self.TabContainer = CreateInstance("Frame", {
         Name = "TabContainer",
         Size = UDim2.new(1, 0, 0, 24),
@@ -1119,7 +1076,6 @@ function Panel:New(name, parent, size, position)
         BackgroundTransparency = 1,
         Parent = self.TabBar
     })
-
     self.TabLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
@@ -1130,7 +1086,6 @@ function Panel:New(name, parent, size, position)
     self.TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
     end)
-
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
         Size = UDim2.new(1, -10, 1, -announcementHeight - 28 - 31),
@@ -1140,13 +1095,11 @@ function Panel:New(name, parent, size, position)
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
     })
-
     self.Tabs = {}
     self.ActiveTab = nil
     self.TabContents = {}
     self.SnowFlakes = {}
     self.SnowEnabled = true
-
     function self:CreateSnowflake()
         local size = math.random(3, 8)
         local snowflake = CreateInstance("Frame", {
@@ -1166,13 +1119,11 @@ function Panel:New(name, parent, size, position)
             Offset = math.random()*math.pi*2
         }
     end
-
     function self:SpawnSnowflakes()
         if #self.SnowFlakes < 30 and self.Instance.Visible then
             table.insert(self.SnowFlakes, self:CreateSnowflake())
         end
     end
-
     function self:UpdateSnowflakes()
         for i = #self.SnowFlakes, 1, -1 do
             local flake = self.SnowFlakes[i]
@@ -1188,14 +1139,12 @@ function Panel:New(name, parent, size, position)
             end
         end
     end
-
     self.SnowConnection = RunService.Heartbeat:Connect(function()
         if self.SnowContainer.Visible then
             self:SpawnSnowflakes()
             self:UpdateSnowflakes()
         end
     end)
-
     return self
 end
 
@@ -1227,6 +1176,7 @@ function Panel:AddTab(tabName)
         AnchorPoint = Vector2.new(0.5, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 1,
+        ZIndex = 5,
         Parent = tabButton
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 1), Parent = underline})
@@ -1253,7 +1203,7 @@ function Panel:AddTab(tabName)
             tab.Button.TextColor3 = Color3.fromRGB(100, 100, 105)
             Tween(tab.Button, {BackgroundColor3 = WasUI.CurrentTheme.TabButton}, 0.2)
             if tab.Underline then
-                Tween(tab.Underline, {BackgroundTransparency = 1}, 0.2)
+                Tween(tab.Underline, {Size = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1}, 0.2)
             end
             tab.Content.Visible = false
         end
@@ -1280,6 +1230,7 @@ function Panel:AddTab(tabName)
         underline.BackgroundTransparency = 0
         tabContent.Visible = true
     end
+    self.TabLayout.PaddingLeft = UDim.new(0, 2.5)
     return tabContent
 end
 
