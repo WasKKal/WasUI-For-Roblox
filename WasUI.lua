@@ -38,135 +38,6 @@ WasUI.Themes = {
 
 WasUI.CurrentTheme = WasUI.Themes.Dark
 
-local SnowModule = {}
-local SnowFolder
-local SnowEnabled = true
-local SnowConnections = {}
-local ActiveSnowflakes = {}
-
-local SnowSettings = {
-    Speed = 4,
-    Density = 60,
-    Size = Vector2.new(0.8, 0.8),
-    Lifetime = 8,
-    WindX = 0.5
-}
-
-local function CreateSnowflake()
-    local snow = Instance.new("Part")
-    snow.Name = "Snowflake"
-    snow.Size = Vector3.new(SnowSettings.Size.X, 0.1, SnowSettings.Size.Y)
-    snow.Anchored = true
-    snow.CanCollide = false
-    snow.Transparency = 0.2
-    snow.BrickColor = BrickColor.new("White")
-    snow.Material = Enum.Material.SmoothPlastic
-    snow.Parent = SnowFolder
-
-    local billboard = Instance.new("BillboardGui")
-    billboard.Size = UDim2.new(0, 20, 0, 20)
-    billboard.AlwaysOnTop = true
-    billboard.Parent = snow
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = Color3.new(1, 1, 1)
-    frame.BackgroundTransparency = 0.1
-    frame.BorderSizePixel = 0
-    frame.Parent = billboard
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(1, 0)
-    corner.Parent = frame
-
-    return snow
-end
-
-local function SpawnSnowflake()
-    local Camera = workspace.CurrentCamera
-    if not Camera then return end
-    
-    local camCFrame = Camera.CFrame
-    local spawnX = math.random(-50, 50) + camCFrame.X
-    local spawnZ = math.random(-50, 50) + camCFrame.Z
-    local spawnY = camCFrame.Y + 30
-
-    local snowflake = CreateSnowflake()
-    snowflake.CFrame = CFrame.new(spawnX, spawnY, spawnZ)
-    table.insert(ActiveSnowflakes, snowflake)
-
-    local tweenInfo = TweenInfo.new(
-        SnowSettings.Lifetime,
-        Enum.EasingStyle.Linear,
-        Enum.EasingDirection.InOut,
-        0,
-        false,
-        0
-    )
-
-    local endPos = Vector3.new(
-        spawnX + (math.random() * SnowSettings.WindX * 20),
-        camCFrame.Y - 20,
-        spawnZ + (math.random() * SnowSettings.WindX * 10)
-    )
-
-    local tween = TweenService:Create(snowflake, tweenInfo, {CFrame = CFrame.new(endPos)})
-    tween:Play()
-
-    task.delay(SnowSettings.Lifetime, function()
-        if snowflake:IsDescendantOf(game) then
-            snowflake:Destroy()
-            for i, v in ipairs(ActiveSnowflakes) do
-                if v == snowflake then
-                    table.remove(ActiveSnowflakes, i)
-                    break
-                end
-            end
-        end
-    end)
-end
-
-local function SnowLoop()
-    if #ActiveSnowflakes < SnowSettings.Density then
-        for i = 1, math.floor(SnowSettings.Density / 10) do
-            task.spawn(SpawnSnowflake)
-        end
-    end
-end
-
-function SnowModule:ToggleSnow(enabled)
-    SnowEnabled = enabled
-    if SnowEnabled then
-        SnowConnections[1] = RunService.RenderStepped:Connect(SnowLoop)
-    else
-        for _, conn in pairs(SnowConnections) do
-            conn:Disconnect()
-        end
-        SnowConnections = {}
-        for _, snow in pairs(ActiveSnowflakes) do
-            if snow:IsDescendantOf(game) then
-                snow:Destroy()
-            end
-        end
-        ActiveSnowflakes = {}
-    end
-end
-
-function SnowModule:Destroy()
-    self:ToggleSnow(false)
-    if SnowFolder then
-        SnowFolder:Destroy()
-    end
-end
-
-function WasUI:ToggleSnowfall(enabled)
-    SnowModule:ToggleSnow(enabled)
-end
-
-function WasUI:IsSnowfallEnabled()
-    return SnowEnabled
-end
-
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
     for prop, value in pairs(properties) do
@@ -182,28 +53,6 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     local tween = TweenService:Create(instance, tweenInfo, properties)
     tween:Play()
     return tween
-end
-
-local function getExecutor()
-    if syn then
-        return "Synapse X"
-    elseif krnl then
-        return "Krnl"
-    elseif script_context and script_context.getexecutorname then
-        return script_context.getexecutorname()
-    elseif identifyexecutor then
-        return identifyexecutor()
-    elseif getexecutorname then
-        return getexecutorname()
-    elseif is_sirhurt_closure then
-        return "Sirhurt"
-    elseif pebc_execute then
-        return "ProtoSmasher"
-    elseif get_hidden_ui then
-        return "Hydrogen"
-    else
-        return "未知执行器"
-    end
 end
 
 local Control = {}
@@ -322,6 +171,238 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
 
     return self
 end
+
+local Label = setmetatable({}, {__index = Control})
+Label.__index = Label
+
+function Label:New(name, parent, text)
+    local self = Control.New(self, name, parent)
+    self.Instance = CreateInstance("TextLabel", {
+        Name = name,
+        Size = UDim2.new(1, 0, 0, 20),
+        BackgroundTransparency = 1,
+        Text = text or "标签",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = parent
+    })
+    return self
+end
+
+local Category = setmetatable({}, {__index = Control})
+Category.__index = Category
+
+function Category:New(name, parent, title)
+    local self = Control.New(self, name, parent)
+    self.Instance = CreateInstance("Frame", {
+        Name = name,
+        Size = UDim2.new(1, 0, 0, 32),
+        BackgroundTransparency = 1,
+        Parent = parent
+    })
+    
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(0.9, 0, 1, 0),
+        Position = UDim2.new(0.05, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = WasUI.CurrentTheme.Primary,
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Parent = self.Instance
+    })
+    
+    local line = CreateInstance("Frame", {
+        Name = "Line",
+        Size = UDim2.new(0.9, 0, 0, 1),
+        Position = UDim2.new(0.05, 0, 1, -2),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.5,
+        BorderSizePixel = 0,
+        Parent = self.Instance
+    })
+    
+    return self
+end
+
+WasUI.RainbowTexts = {}
+local rainbowConnections = {}
+
+local function CreateRainbowText(text, position)
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "RainbowText_" .. text,
+        ResetOnSpawn = false,
+        DisplayOrder = 100,
+        Parent = game:GetService("CoreGui")
+    })
+    
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "RainbowText",
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = position or UDim2.new(1, -10, 0, 10),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = Color3.fromRGB(255, 0, 0),
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        TextStrokeTransparency = 0.5,
+        TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+        Parent = screenGui
+    })
+    
+    Tween(textLabel, {Size = UDim2.new(0, 200, 0, 30)}, 0.3)
+    
+    local rainbowSpeed = 2
+    local time = 0
+    
+    local connection = RunService.Heartbeat:Connect(function(deltaTime)
+        time = time + deltaTime * rainbowSpeed
+        local r = (math.sin(time) + 1) / 2
+        local g = (math.sin(time + math.pi/3) + 1) / 2
+        local b = (math.sin(time + 2*math.pi/3) + 1) / 2
+        textLabel.TextColor3 = Color3.new(r, g, b)
+    end)
+    
+    WasUI.RainbowTexts[text] = screenGui
+    rainbowConnections[text] = connection
+    
+    return screenGui
+end
+
+local function RemoveRainbowText(text)
+    if WasUI.RainbowTexts[text] then
+        WasUI.RainbowTexts[text]:Destroy()
+        WasUI.RainbowTexts[text] = nil
+    end
+    if rainbowConnections[text] then
+        rainbowConnections[text]:Disconnect()
+        rainbowConnections[text] = nil
+    end
+end
+
+WasUI.Notifications = {}
+WasUI.NotificationQueue = {}
+WasUI.NotificationActive = false
+WasUI.NotificationBlocked = false
+
+function WasUI:Notify(options)
+    if WasUI.NotificationActive or WasUI.NotificationBlocked then
+        return
+    end
+    
+    local config = {
+        Content = options.Content or "通知",
+        Duration = options.Duration or 3,
+        Type = options.Type or "Info"
+    }
+    
+    table.insert(WasUI.NotificationQueue, config)
+    
+    if not WasUI.NotificationProcessing then
+        WasUI.NotificationProcessing = true
+        WasUI:ProcessNotificationQueue()
+    end
+end
+
+function WasUI:ProcessNotificationQueue()
+    if #WasUI.NotificationQueue == 0 then
+        WasUI.NotificationProcessing = false
+        WasUI.NotificationActive = false
+        return
+    end
+    
+    local config = table.remove(WasUI.NotificationQueue, 1)
+    WasUI.NotificationActive = true
+    WasUI.NotificationBlocked = true
+    
+    task.delay(0.1, function()
+        WasUI.NotificationBlocked = false
+    end)
+    
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "WasUI_Notification",
+        ResetOnSpawn = false,
+        DisplayOrder = 999,
+        Parent = playerGui
+    })
+    
+    local notificationFrame = CreateInstance("Frame", {
+        Name = "Notification",
+        Size = UDim2.new(0, 300, 0, 40),
+        Position = UDim2.new(0.5, -150, 0, -50),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 35),
+        BackgroundTransparency = 0.3,
+        Parent = screenGui
+    })
+    
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = notificationFrame})
+    
+    local stroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(60, 60, 65),
+        Thickness = 2,
+        Parent = notificationFrame
+    })
+    
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "Content",
+        Size = UDim2.new(0.9, 0, 0.8, 0),
+        Position = UDim2.new(0.05, 0, 0.1, 0),
+        BackgroundTransparency = 1,
+        Text = config.Content,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        TextWrapped = true,
+        Parent = notificationFrame
+    })
+    
+    local slideDown = Tween(notificationFrame, {Position = UDim2.new(0.5, -150, 0, 20)}, 0.3)
+    slideDown.Completed:Wait()
+    
+    wait(config.Duration)
+    
+    local fadeOut = Tween(notificationFrame, {BackgroundTransparency = 1}, 0.5)
+    Tween(textLabel, {TextTransparency = 1}, 0.5)
+    Tween(stroke, {Transparency = 1}, 0.5)
+    
+    fadeOut.Completed:Connect(function()
+        screenGui:Destroy()
+        WasUI.NotificationActive = false
+        wait(0.5)
+        WasUI:ProcessNotificationQueue()
+    end)
+end
+
+local function getExecutor()
+    if syn then
+        return "Synapse X"
+    elseif krnl then
+        return "Krnl"
+    elseif script_context and script_context.getexecutorname then
+        return script_context.getexecutorname()
+    elseif identifyexecutor then
+        return identifyexecutor()
+    elseif getexecutorname then
+        return getexecutorname()
+    elseif is_sirhurt_closure then
+        return "Sirhurt"
+    elseif pebc_execute then
+        return "ProtoSmasher"
+    elseif get_hidden_ui then
+        return "Hydrogen"
+    else
+        return "未知执行器"
+    end
+end
+
 local Panel = setmetatable({}, {__index = Control})
 Panel.__index = Panel
 
