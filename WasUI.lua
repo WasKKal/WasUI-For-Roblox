@@ -37,6 +37,7 @@ WasUI.Themes = {
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
 WasUI.Objects = {}
+WasUI.ActiveRainbowTexts = {}
 
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
@@ -53,6 +54,51 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     local tween = TweenService:Create(instance, tweenInfo, properties)
     tween:Play()
     return tween
+end
+
+local function CreateRainbowTextForFeature(featureName)
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "FeatureRainbowText_" .. featureName,
+        ResetOnSpawn = false,
+        DisplayOrder = 100,
+        Parent = game:GetService("CoreGui")
+    })
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "RainbowText",
+        Size = UDim2.new(0, 180, 0, 24),
+        Position = UDim2.new(1, -190, 0, 10),
+        BackgroundTransparency = 1,
+        Text = featureName,
+        TextColor3 = Color3.fromRGB(255, 0, 0),
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        TextStrokeTransparency = 0.5,
+        TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+        Parent = screenGui
+    })
+    local rainbowSpeed = 4
+    local time = 0
+    local connection = RunService.Heartbeat:Connect(function(deltaTime)
+        time = time + deltaTime * rainbowSpeed
+        local r = (math.sin(time) + 1) / 2
+        local g = (math.sin(time + math.pi/3) + 1) / 2
+        local b = (math.sin(time + 2*math.pi/3) + 1) / 2
+        textLabel.TextColor3 = Color3.new(r, g, b)
+    end)
+    WasUI.ActiveRainbowTexts[featureName] = {
+        ScreenGui = screenGui,
+        Connection = connection
+    }
+end
+
+local function DestroyRainbowTextForFeature(featureName)
+    local data = WasUI.ActiveRainbowTexts[featureName]
+    if data then
+        if data.ScreenGui then data.ScreenGui:Destroy() end
+        if data.Connection then data.Connection:Disconnect() end
+        WasUI.ActiveRainbowTexts[featureName] = nil
+    end
 end
 
 local Control = {}
@@ -100,7 +146,6 @@ function Button:New(name, parent, text, onClick)
         AutoButtonColor = false,
         Parent = parent
     })
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Instance})
     self.Instance.MouseEnter:Connect(function() 
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
     end)
@@ -120,10 +165,11 @@ end
 
 local ToggleSwitch = setmetatable({}, {__index = Control})
 ToggleSwitch.__index = ToggleSwitch
-function ToggleSwitch:New(name, parent, initialState, onToggle)
+function ToggleSwitch:New(name, parent, initialState, onToggle, featureName)
     local self = Control.New(self, name, parent)
     self.Toggled = initialState or false
     self.ToggleCallback = onToggle
+    self.FeatureName = featureName or name
     self.Background = CreateInstance("ImageButton", {
         Name = name .. "_BG",
         Size = UDim2.new(0, 36, 0, 18),
@@ -146,14 +192,19 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
         Parent = self.Background
     })
     local knobCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Knob})
+    if self.Toggled then
+        CreateRainbowTextForFeature(self.FeatureName)
+    end
     self.Background.MouseButton1Click:Connect(function()
         self.Toggled = not self.Toggled
         if self.Toggled then
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
             Tween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.2)
+            CreateRainbowTextForFeature(self.FeatureName)
         else
             Tween(self.Background, {BackgroundColor3 = Color3.fromRGB(200, 200, 200)}, 0.2)
             Tween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.2)
+            DestroyRainbowTextForFeature(self.FeatureName)
         end
         if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
     end)
@@ -284,8 +335,8 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         BorderSizePixel = 1,
         ClipsDescendants = true,
         Visible = false,
-        ZIndex = 999,
-        Parent = self.Container
+        ZIndex = 9999,
+        Parent = parent.Parent.Parent
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = self.OptionsContainer})
     self.OptionsListLayout = CreateInstance("UIListLayout", {
@@ -305,7 +356,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             TextSize = 12,
             AutoButtonColor = false,
             LayoutOrder = i,
-            ZIndex = 1000,
+            ZIndex = 10000,
             Parent = self.OptionsContainer
         })
         optionButton.MouseEnter:Connect(function()
@@ -327,9 +378,13 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
 
     function self:OpenDropdown()
         if self.IsOpen or #self.Options == 0 then return end
+        local buttonPos = self.DropdownButton.AbsolutePosition
+        local buttonSize = self.DropdownButton.AbsoluteSize
+        self.OptionsContainer.Position = UDim2.new(0, buttonPos.X, 0, buttonPos.Y + buttonSize.Y)
+        self.OptionsContainer.Size = UDim2.new(0, buttonSize.X, 0, 0)
         self.OptionsContainer.Visible = true
         local maxHeight = math.min(#self.Options * 25, 150)
-        Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, maxHeight)}, 0.3)
+        Tween(self.OptionsContainer, {Size = UDim2.new(0, buttonSize.X, 0, maxHeight)}, 0.3)
         Tween(self.DropdownButton.ArrowIcon, {Rotation = 180}, 0.2)
         self.IsOpen = true
         local function closeIfClickedOutside(input, gameProcessed)
@@ -354,7 +409,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
 
     function self:CloseDropdown()
         if not self.IsOpen then return end
-        Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, 0)}, 0.2)
+        Tween(self.OptionsContainer, {Size = UDim2.new(0, self.OptionsContainer.AbsoluteSize.X, 0, 0)}, 0.2)
         Tween(self.DropdownButton.ArrowIcon, {Rotation = 0}, 0.2)
         task.wait(0.2)
         self.OptionsContainer.Visible = false
@@ -680,90 +735,43 @@ function Panel:New(name, parent, size, position)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
     
-    local borderSegments = {}
-    local segmentCount = 12
-    local cornerRadius = 10
-    local borderThickness = 2
-    local function createBorderSegment(startAngle, endAngle, zIndex)
-        local segment = CreateInstance("Frame", {
-            Name = "BorderSegment",
-            BackgroundColor3 = Color3.fromRGB(255, 0, 0),
-            BorderSizePixel = 0,
-            ZIndex = zIndex,
-            Parent = self.Instance.Parent
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = segment})
-        table.insert(borderSegments, segment)
-        return segment
+    self.BorderEffect = CreateInstance("Frame", {
+        Name = "BorderEffect",
+        Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
+        Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
+        AnchorPoint = Vector2.new(0, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = -1,
+        Parent = self.Instance.Parent
+    })
+    local borderCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderEffect})
+    local borderStroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 0, 0),
+        Thickness = 2,
+        Parent = self.BorderEffect
+    })
+    local function updateBorder()
+        if not self.Instance or not self.BorderEffect then return end
+        self.BorderEffect.Position = UDim2.new(
+            0, self.Instance.AbsolutePosition.X - 2,
+            0, self.Instance.AbsolutePosition.Y - 2
+        )
+        self.BorderEffect.Size = UDim2.new(
+            0, self.Instance.AbsoluteSize.X + 4,
+            0, self.Instance.AbsoluteSize.Y + 4
+        )
     end
-    
-    createBorderSegment(0, math.pi/2, 1)
-    createBorderSegment(math.pi/2, math.pi, 2)
-    createBorderSegment(math.pi, 3*math.pi/2, 3)
-    createBorderSegment(3*math.pi/2, 2*math.pi, 4)
-    
-    for i = 5, segmentCount do
-        createBorderSegment(0, 2*math.pi/segmentCount, i)
-    end
-    
-    local function updateBorderSegments()
-        local absPos = self.Instance.AbsolutePosition
-        local absSize = self.Instance.AbsoluteSize
-        local halfThickness = borderThickness/2
-        local segmentsPerSide = segmentCount/4
-        
-        for i, segment in ipairs(borderSegments) do
-            if i == 1 then
-                segment.Size = UDim2.new(0, absSize.X - cornerRadius*2, 0, borderThickness)
-                segment.Position = UDim2.new(0, absPos.X + cornerRadius, 0, absPos.Y - halfThickness)
-            elseif i == 2 then
-                segment.Size = UDim2.new(0, absSize.Y - cornerRadius*2, 0, borderThickness)
-                segment.Position = UDim2.new(0, absPos.X + absSize.X - halfThickness, 0, absPos.Y + cornerRadius)
-                segment.Rotation = 90
-            elseif i == 3 then
-                segment.Size = UDim2.new(0, absSize.X - cornerRadius*2, 0, borderThickness)
-                segment.Position = UDim2.new(0, absPos.X + cornerRadius, 0, absPos.Y + absSize.Y - halfThickness)
-            elseif i == 4 then
-                segment.Size = UDim2.new(0, absSize.Y - cornerRadius*2, 0, borderThickness)
-                segment.Position = UDim2.new(0, absPos.X - halfThickness, 0, absPos.Y + cornerRadius)
-                segment.Rotation = 90
-            else
-                local side = math.floor((i-5)/segmentsPerSide)
-                local sideSegment = (i-5)%segmentsPerSide
-                local segmentLength = (absSize.X - cornerRadius*2)/segmentsPerSide
-                if side == 0 then
-                    segment.Size = UDim2.new(0, segmentLength, 0, borderThickness)
-                    segment.Position = UDim2.new(0, absPos.X + cornerRadius + sideSegment*segmentLength, 0, absPos.Y - halfThickness)
-                elseif side == 1 then
-                    segment.Size = UDim2.new(0, segmentLength, 0, borderThickness)
-                    segment.Position = UDim2.new(0, absPos.X + absSize.X - halfThickness, 0, absPos.Y + cornerRadius + sideSegment*segmentLength)
-                    segment.Rotation = 90
-                elseif side == 2 then
-                    segment.Size = UDim2.new(0, segmentLength, 0, borderThickness)
-                    segment.Position = UDim2.new(0, absPos.X + cornerRadius + sideSegment*segmentLength, 0, absPos.Y + absSize.Y - halfThickness)
-                elseif side == 3 then
-                    segment.Size = UDim2.new(0, segmentLength, 0, borderThickness)
-                    segment.Position = UDim2.new(0, absPos.X - halfThickness, 0, absPos.Y + cornerRadius + sideSegment*segmentLength)
-                    segment.Rotation = 90
-                end
-            end
-        end
-    end
-    
-    updateBorderSegments()
-    self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorderSegments)
-    self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorderSegments)
-    
+    self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
+    self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
+    updateBorder()
     local borderTime = 0
-    RunService.Heartbeat:Connect(function(deltaTime)
-        borderTime = borderTime + deltaTime * 8
-        for i, segment in ipairs(borderSegments) do
-            local segmentTime = borderTime + (i/segmentCount)*2*math.pi
-            local r = (math.sin(segmentTime) + 1)/2
-            local g = (math.sin(segmentTime + math.pi/3) + 1)/2
-            local b = (math.sin(segmentTime + 2*math.pi/3) + 1)/2
-            Tween(segment, {BackgroundColor3 = Color3.new(r, g, b)}, 0.1)
-        end
+    self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        borderTime = borderTime + deltaTime * 4
+        local r = (math.sin(borderTime) + 1) / 2
+        local g = (math.sin(borderTime + math.pi/3) + 1) / 2
+        local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
+        borderStroke.Color = Color3.new(r, g, b)
     end)
     
     self.TitleBar = CreateInstance("Frame", {
@@ -793,8 +801,8 @@ function Panel:New(name, parent, size, position)
     
     self.Title = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(1, -100, 1, 0),
-        Position = UDim2.new(0, 70, 0, 0),
+        Size = UDim2.new(1, -120, 1, 0),
+        Position = UDim2.new(0, 50, 0, 0),
         BackgroundTransparency = 1,
         Text = name,
         TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -806,8 +814,8 @@ function Panel:New(name, parent, size, position)
     
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
-        Size = UDim2.new(0, 36, 1, 0),
-        Position = UDim2.new(0, 10.5, 0, 1.3),
+        Size = UDim2.new(0, 28, 1, 0),
+        Position = UDim2.new(0, 8, 0, 1.3),
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = self.TitleBar
@@ -825,8 +833,8 @@ function Panel:New(name, parent, size, position)
     
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
-        Size = UDim2.new(0, 12, 0, 12),
-        Position = UDim2.new(0, 0, 0.5, -6),
+        Size = UDim2.new(0, 10, 0, 10),
+        Position = UDim2.new(0, 0, 0.5, -5),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -835,8 +843,8 @@ function Panel:New(name, parent, size, position)
     
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
-        Size = UDim2.new(0, 12, 0, 12),
-        Position = UDim2.new(0, 14, 0.5, -6),
+        Size = UDim2.new(0, 10, 0, 10),
+        Position = UDim2.new(0, 11, 0.5, -5),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -845,8 +853,8 @@ function Panel:New(name, parent, size, position)
     
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
-        Size = UDim2.new(0, 12, 0, 12),
-        Position = UDim2.new(0, 28, 0.5, -6),
+        Size = UDim2.new(0, 10, 0, 10),
+        Position = UDim2.new(0, 22, 0.5, -5),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -983,15 +991,24 @@ function Panel:New(name, parent, size, position)
             end
         end
         self.SnowFlakes = {}
-        for _, segment in ipairs(borderSegments) do
-            segment:Destroy()
+        if self.BorderConnection then
+            self.BorderConnection:Disconnect()
+            self.BorderConnection = nil
         end
+        if self.BorderEffect then
+            self.BorderEffect:Destroy()
+        end
+        for _, data in pairs(WasUI.ActiveRainbowTexts) do
+            if data.ScreenGui then data.ScreenGui:Destroy() end
+            if data.Connection then data.Connection:Disconnect() end
+        end
+        WasUI.ActiveRainbowTexts = {}
         self:SetVisible(false) 
     end)
     
     local dragging = false
-    local dragStart
-    local startPos
+    local dragStart = Vector2.new()
+    local startPos = UDim2.new()
     local function startDragging(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
@@ -999,10 +1016,8 @@ function Panel:New(name, parent, size, position)
             startPos = self.Instance.Position
         end
     end
-    local function stopDragging(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
+    local function stopDragging()
+        dragging = false
     end
     
     self.DraggableArea.InputBegan:Connect(startDragging)
@@ -1018,7 +1033,11 @@ function Panel:New(name, parent, size, position)
             self.Instance.Position = newPosition
         end
     end)
-    UserInputService.InputEnded:Connect(stopDragging)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            stopDragging()
+        end
+    end)
     
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
@@ -1150,7 +1169,7 @@ function Panel:New(name, parent, size, position)
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 2.5),
+        Padding = UDim.new(0, 0),
         Parent = self.TabContainer
     })
     
@@ -1252,7 +1271,6 @@ function Panel:AddTab(tabName)
         AutoButtonColor = false,
         Parent = self.TabContainer
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tabButton})
     local underline = CreateInstance("Frame", {
         Name = "Underline",
         Size = UDim2.new(0, 0, 0, 2),
@@ -1283,19 +1301,15 @@ function Panel:AddTab(tabName)
     end)
     tabButton.MouseButton1Click:Connect(function()
         for _, tab in pairs(self.Tabs) do
-            tab.Button.BackgroundTransparency = 0.7
-            tab.Button.TextColor3 = Color3.fromRGB(100, 100, 105)
-            Tween(tab.Button, {BackgroundColor3 = WasUI.CurrentTheme.TabButton}, 0.2)
+            Tween(tab.Button, {BackgroundTransparency = 0.7, TextColor3 = Color3.fromRGB(100, 100, 105), BackgroundColor3 = WasUI.CurrentTheme.TabButton}, 0.3, Enum.EasingStyle.Cubic)
             if tab.Underline then
-                Tween(tab.Underline, {Size = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1}, 0.2)
+                Tween(tab.Underline, {Size = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1}, 0.3, Enum.EasingStyle.Cubic)
             end
-            tab.Content.Visible = false
+            Tween(tab.Content, {Visible = false, Transparency = 1}, 0.2)
         end
-        tabButton.BackgroundTransparency = 0
-        tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        Tween(tabButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
-        Tween(underline, {Size = UDim2.new(0.8, 0, 0, 2), BackgroundTransparency = 0}, 0.2)
-        tabContent.Visible = true
+        Tween(tabButton, {BackgroundTransparency = 0, TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.3, Enum.EasingStyle.Cubic)
+        Tween(underline, {Size = UDim2.new(0.8, 0, 0, 2), BackgroundTransparency = 0}, 0.3, Enum.EasingStyle.Cubic)
+        Tween(tabContent, {Visible = true, Transparency = 0}, 0.3)
         self.ActiveTab = tabName
     end)
     local tab = {
@@ -1367,7 +1381,7 @@ function Panel:AddToggle(text, initialState, onToggle, tabName)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = toggleContainer
     })
-    local toggleSwitch = ToggleSwitch:New("Toggle", toggleContainer, initialState, onToggle)
+    local toggleSwitch = ToggleSwitch:New("Toggle", toggleContainer, initialState, onToggle, text)
     table.insert(WasUI.Objects, {Object = toggleContainer, Type = "ToggleContainer"})
     table.insert(WasUI.Objects, {Object = toggleLabel, Type = "Label"})
     return toggleSwitch
