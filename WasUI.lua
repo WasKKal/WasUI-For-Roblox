@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 
 if _G.WasUILoaded then
     warn("WasUI 已加载，跳过重复加载")
@@ -1037,7 +1038,7 @@ function Panel:New(name, parent, size, position)
                 Name = "CloseDialog",
                 ResetOnSpawn = false,
                 DisplayOrder = 1000,
-                Parent = game:GetService("CoreGui")
+                Parent = self.Instance
             })
             local overlay = CreateInstance("Frame", {
                 Name = "Overlay",
@@ -1045,12 +1046,13 @@ function Panel:New(name, parent, size, position)
                 BackgroundColor3 = Color3.fromRGB(0, 0, 0),
                 BackgroundTransparency = 0.5,
                 Visible = true,
-                Parent = dialogGui
+                Parent = dialogGui,
+                Active = true
             })
             local dialogFrame = CreateInstance("Frame", {
                 Name = "Dialog",
-                Size = UDim2.new(0, 300, 0, 150),
-                Position = UDim2.new(0.5, -150, 0.5, -75),
+                Size = UDim2.new(0, 280, 0, 140),
+                Position = UDim2.new(0.5, -140, 0.5, -70),
                 BackgroundColor3 = WasUI.CurrentTheme.Background,
                 BackgroundTransparency = 1,
                 BorderSizePixel = 0,
@@ -1070,29 +1072,36 @@ function Panel:New(name, parent, size, position)
                 TextYAlignment = Enum.TextYAlignment.Center,
                 Parent = dialogFrame
             })
+            local buttonContainer = CreateInstance("Frame", {
+                Name = "ButtonContainer",
+                Size = UDim2.new(1, -20, 0, 40),
+                Position = UDim2.new(0, 10, 1, -50),
+                BackgroundTransparency = 1,
+                Parent = dialogFrame
+            })
             local confirmButton = CreateInstance("TextButton", {
                 Name = "Confirm",
                 Size = UDim2.new(0, 100, 0, 32),
-                Position = UDim2.new(0.5, -110, 1, -50),
+                Position = UDim2.new(1, -110, 0.5, -16),
                 BackgroundColor3 = WasUI.CurrentTheme.Section,
                 Text = "确认关闭",
                 TextColor3 = Color3.fromRGB(255, 100, 100),
                 Font = Enum.Font.GothamSemibold,
                 TextSize = 14,
                 AutoButtonColor = false,
-                Parent = dialogFrame
+                Parent = buttonContainer
             })
             local cancelButton = CreateInstance("TextButton", {
                 Name = "Cancel",
                 Size = UDim2.new(0, 100, 0, 32),
-                Position = UDim2.new(0.5, 10, 1, -50),
+                Position = UDim2.new(1, 10, 0.5, -16),
                 BackgroundColor3 = WasUI.CurrentTheme.Section,
                 Text = "取消",
                 TextColor3 = Color3.fromRGB(255, 255, 255),
                 Font = Enum.Font.GothamSemibold,
                 TextSize = 14,
                 AutoButtonColor = false,
-                Parent = dialogFrame
+                Parent = buttonContainer
             })
             for _, btn in ipairs({confirmButton, cancelButton}) do
                 CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = btn})
@@ -1136,6 +1145,11 @@ function Panel:New(name, parent, size, position)
                 Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
                 task.wait(0.2)
                 dialogGui:Destroy()
+            end)
+            overlay.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    input:SetConsumed(true)
+                end
             end)
         end
         showCloseDialog()
@@ -1186,17 +1200,22 @@ function Panel:New(name, parent, size, position)
     })
     
     local player = Players.LocalPlayer
-    local headshot = Players:GetUserThumbnailAsync(
-        player.UserId, 
-        Enum.ThumbnailType.HeadShot, 
-        Enum.ThumbnailSize.Size60x60
-    )
+    local function loadAvatar()
+        local headshot = Players:GetUserThumbnailAsync(
+            player.UserId, 
+            Enum.ThumbnailType.HeadShot, 
+            Enum.ThumbnailSize.Size60x60
+        )
+        if self.Avatar then
+            self.Avatar.Image = headshot
+        end
+    end
     self.Avatar = CreateInstance("ImageButton", {
         Name = "Avatar",
         Size = UDim2.new(0, 48, 0, 48),
         Position = UDim2.new(0, 10, 0.15, 0),
         BackgroundColor3 = Color3.fromRGB(240, 240, 245),
-        Image = headshot,
+        Image = "",
         BorderSizePixel = 0,
         AutoButtonColor = false,
         Parent = self.AnnouncementBar
@@ -1207,6 +1226,7 @@ function Panel:New(name, parent, size, position)
         Thickness = 1,
         Parent = self.Avatar
     })
+    loadAvatar()
     
     self.Avatar.MouseButton1Down:Connect(function()
         Tween(self.Avatar, {Size = UDim2.new(0, 44, 0, 44)}, 0.1)
