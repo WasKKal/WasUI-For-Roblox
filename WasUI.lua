@@ -919,10 +919,15 @@ function Panel:New(name, parent, size, position)
     
     return self
 end
-
 function Panel:SetUsername(text)
     if self.Username then
         self.Username.Text = "玩家: " .. tostring(text)
+    end
+end
+
+function Panel:SetWelcomeText(text)
+    if self.WelcomeLabel then
+        self.WelcomeLabel.Text = tostring(text)
     end
 end
 
@@ -1165,6 +1170,14 @@ end
 
 function WasUI.RemoveRainbowText(text)
     RemoveRainbowText(text)
+end
+
+function WasUI:ToggleSnowfall(enabled)
+    SnowModule:ToggleSnow(enabled)
+end
+
+function WasUI:IsSnowfallEnabled()
+    return SnowEnabled
 end
 
 return {
