@@ -38,6 +38,135 @@ WasUI.Themes = {
 
 WasUI.CurrentTheme = WasUI.Themes.Dark
 
+local SnowModule = {}
+local SnowFolder
+local SnowEnabled = true
+local SnowConnections = {}
+local ActiveSnowflakes = {}
+
+local SnowSettings = {
+    Speed = 4,
+    Density = 60,
+    Size = Vector2.new(0.8, 0.8),
+    Lifetime = 8,
+    WindX = 0.5
+}
+
+local function CreateSnowflake()
+    local snow = Instance.new("Part")
+    snow.Name = "Snowflake"
+    snow.Size = Vector3.new(SnowSettings.Size.X, 0.1, SnowSettings.Size.Y)
+    snow.Anchored = true
+    snow.CanCollide = false
+    snow.Transparency = 0.2
+    snow.BrickColor = BrickColor.new("White")
+    snow.Material = Enum.Material.SmoothPlastic
+    snow.Parent = SnowFolder
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 20, 0, 20)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = snow
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.new(1, 1, 1)
+    frame.BackgroundTransparency = 0.1
+    frame.BorderSizePixel = 0
+    frame.Parent = billboard
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = frame
+
+    return snow
+end
+
+local function SpawnSnowflake()
+    local Camera = workspace.CurrentCamera
+    if not Camera then return end
+    
+    local camCFrame = Camera.CFrame
+    local spawnX = math.random(-50, 50) + camCFrame.X
+    local spawnZ = math.random(-50, 50) + camCFrame.Z
+    local spawnY = camCFrame.Y + 30
+
+    local snowflake = CreateSnowflake()
+    snowflake.CFrame = CFrame.new(spawnX, spawnY, spawnZ)
+    table.insert(ActiveSnowflakes, snowflake)
+
+    local tweenInfo = TweenInfo.new(
+        SnowSettings.Lifetime,
+        Enum.EasingStyle.Linear,
+        Enum.EasingDirection.InOut,
+        0,
+        false,
+        0
+    )
+
+    local endPos = Vector3.new(
+        spawnX + (math.random() * SnowSettings.WindX * 20),
+        camCFrame.Y - 20,
+        spawnZ + (math.random() * SnowSettings.WindX * 10)
+    )
+
+    local tween = TweenService:Create(snowflake, tweenInfo, {CFrame = CFrame.new(endPos)})
+    tween:Play()
+
+    task.delay(SnowSettings.Lifetime, function()
+        if snowflake:IsDescendantOf(game) then
+            snowflake:Destroy()
+            for i, v in ipairs(ActiveSnowflakes) do
+                if v == snowflake then
+                    table.remove(ActiveSnowflakes, i)
+                    break
+                end
+            end
+        end
+    end)
+end
+
+local function SnowLoop()
+    if #ActiveSnowflakes < SnowSettings.Density then
+        for i = 1, math.floor(SnowSettings.Density / 10) do
+            task.spawn(SpawnSnowflake)
+        end
+    end
+end
+
+function SnowModule:ToggleSnow(enabled)
+    SnowEnabled = enabled
+    if SnowEnabled then
+        SnowConnections[1] = RunService.RenderStepped:Connect(SnowLoop)
+    else
+        for _, conn in pairs(SnowConnections) do
+            conn:Disconnect()
+        end
+        SnowConnections = {}
+        for _, snow in pairs(ActiveSnowflakes) do
+            if snow:IsDescendantOf(game) then
+                snow:Destroy()
+            end
+        end
+        ActiveSnowflakes = {}
+    end
+end
+
+function SnowModule:Destroy()
+    self:ToggleSnow(false)
+    if SnowFolder then
+        SnowFolder:Destroy()
+    end
+end
+
+function WasUI:ToggleSnowfall(enabled)
+    SnowModule:ToggleSnow(enabled)
+end
+
+function WasUI:IsSnowfallEnabled()
+    return SnowEnabled
+end
+
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
     for prop, value in pairs(properties) do
@@ -53,6 +182,28 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     local tween = TweenService:Create(instance, tweenInfo, properties)
     tween:Play()
     return tween
+end
+
+local function getExecutor()
+    if syn then
+        return "Synapse X"
+    elseif krnl then
+        return "Krnl"
+    elseif script_context and script_context.getexecutorname then
+        return script_context.getexecutorname()
+    elseif identifyexecutor then
+        return identifyexecutor()
+    elseif getexecutorname then
+        return getexecutorname()
+    elseif is_sirhurt_closure then
+        return "Sirhurt"
+    elseif pebc_execute then
+        return "ProtoSmasher"
+    elseif get_hidden_ui then
+        return "Hydrogen"
+    else
+        return "未知执行器"
+    end
 end
 
 local Control = {}
@@ -289,8 +440,14 @@ end
 
 WasUI.Notifications = {}
 WasUI.NotificationQueue = {}
+WasUI.NotificationActive = false
+WasUI.NotificationBlocked = false
 
 function WasUI:Notify(options)
+    if WasUI.NotificationActive or WasUI.NotificationBlocked then
+        return
+    end
+    
     local config = {
         Content = options.Content or "通知",
         Duration = options.Duration or 3,
@@ -308,10 +465,17 @@ end
 function WasUI:ProcessNotificationQueue()
     if #WasUI.NotificationQueue == 0 then
         WasUI.NotificationProcessing = false
+        WasUI.NotificationActive = false
         return
     end
     
     local config = table.remove(WasUI.NotificationQueue, 1)
+    WasUI.NotificationActive = true
+    WasUI.NotificationBlocked = true
+    
+    task.delay(0.1, function()
+        WasUI.NotificationBlocked = false
+    end)
     
     local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
     local screenGui = CreateInstance("ScreenGui", {
@@ -362,37 +526,21 @@ function WasUI:ProcessNotificationQueue()
     
     fadeOut.Completed:Connect(function()
         screenGui:Destroy()
+        WasUI.NotificationActive = false
         wait(0.5)
         WasUI:ProcessNotificationQueue()
     end)
-end
-
-local function getExecutor()
-    if syn then
-        return "Synapse X"
-    elseif krnl then
-        return "Krnl"
-    elseif script_context and script_context.getexecutorname then
-        return script_context.getexecutorname()
-    elseif identifyexecutor then
-        return identifyexecutor()
-    elseif getexecutorname then
-        return getexecutorname()
-    elseif is_sirhurt_closure then
-        return "Sirhurt"
-    elseif pebc_execute then
-        return "ProtoSmasher"
-    elseif get_hidden_ui then
-        return "Hydrogen"
-    else
-        return "未知执行器"
-    end
 end
 
 local Panel = setmetatable({}, {__index = Control})
 Panel.__index = Panel
 
 function Panel:New(name, parent, size, position)
+    SnowFolder = Instance.new("Folder")
+    SnowFolder.Name = "SnowEffects"
+    SnowFolder.Parent = workspace
+    SnowModule:ToggleSnow(true)
+    
     local self = setmetatable({}, Panel)
     
     local windowWidth = 400
@@ -607,7 +755,10 @@ function Panel:New(name, parent, size, position)
     end)
     
     self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
-    self.CloseButton.MouseButton1Click:Connect(function() self:SetVisible(false) end)
+    self.CloseButton.MouseButton1Click:Connect(function() 
+        SnowModule:Destroy()
+        self:SetVisible(false) 
+    end)
     
     local dragging = false
     local dragStart
@@ -665,7 +816,7 @@ function Panel:New(name, parent, size, position)
     self.Avatar = CreateInstance("ImageLabel", {
         Name = "Avatar",
         Size = UDim2.new(0, 48, 0, 48),
-        Position = UDim2.new(0, 10, 0.2, 0),
+        Position = UDim2.new(0, 10, 0.15, 0),
         BackgroundColor3 = Color3.fromRGB(60, 60, 65),
         Image = headshot,
         BorderSizePixel = 0,
@@ -712,7 +863,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 14),
         Position = UDim2.new(0, 68, 0.55, 0),
         BackgroundTransparency = 1,
-        Text = "欢迎使用 WasUI 库",
+        Text = "欢迎使用WasUI",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 11,
@@ -769,27 +920,9 @@ function Panel:New(name, parent, size, position)
     return self
 end
 
-function Panel:SetWelcomeText(text)
-    if self.SubtitleLabel then
-        self.SubtitleLabel.Text = tostring(text)
-    end
-end
-
-function Panel:SetExecutorText(text)
-    if self.ExecutorLabel then
-        self.ExecutorLabel.Text = "您的执行器为: " .. tostring(text)
-    end
-end
-
 function Panel:SetUsername(text)
     if self.Username then
         self.Username.Text = "玩家: " .. tostring(text)
-    end
-end
-
-function Panel:SetSubtitleText(text)
-    if self.SubtitleLabel then
-        self.SubtitleLabel.Text = tostring(text)
     end
 end
 
@@ -1054,5 +1187,11 @@ return {
         WasUI:Notify(options)
     end,
     CreateRainbowText = WasUI.CreateRainbowText,
-    RemoveRainbowText = WasUI.RemoveRainbowText
+    RemoveRainbowText = WasUI.RemoveRainbowText,
+    ToggleSnowfall = function(enabled)
+        WasUI:ToggleSnowfall(enabled)
+    end,
+    IsSnowfallEnabled = function()
+        return WasUI:IsSnowfallEnabled()
+    end
 }
