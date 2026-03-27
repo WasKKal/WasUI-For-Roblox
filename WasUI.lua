@@ -25,7 +25,8 @@ WasUI.Themes = {
         Warning = Color3.fromRGB(241, 196, 15),
         Error = Color3.fromRGB(231, 76, 60),
         Section = Color3.fromRGB(230, 235, 240),
-        Input = Color3.fromRGB(250, 250, 252)
+        Input = Color3.fromRGB(250, 250, 252),
+        TabBorder = Color3.fromRGB(220, 220, 220)
     },
     Dark = {
         Primary = Color3.fromRGB(106, 17, 203),
@@ -37,7 +38,9 @@ WasUI.Themes = {
         Warning = Color3.fromRGB(255, 213, 92),
         Error = Color3.fromRGB(255, 123, 123),
         Section = Color3.fromRGB(35, 35, 40),
-        Input = Color3.fromRGB(45, 45, 50)
+        Input = Color3.fromRGB(45, 45, 50),
+        TabBorder = Color3.fromRGB(40, 40, 40),
+        TabButton = Color3.fromRGB(0, 0, 0) -- Dark主题选项卡按钮黑色
     },
     Light = {
         Primary = Color3.fromRGB(76, 175, 80),
@@ -49,7 +52,9 @@ WasUI.Themes = {
         Warning = Color3.fromRGB(249, 171, 0),
         Error = Color3.fromRGB(219, 68, 55),
         Section = Color3.fromRGB(248, 249, 250),
-        Input = Color3.fromRGB(241, 243, 244)
+        Input = Color3.fromRGB(241, 243, 244),
+        TabBorder = Color3.fromRGB(220, 220, 220),
+        TabButton = Color3.fromRGB(255, 255, 255) -- Light主题选项卡按钮白色
     }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
@@ -637,11 +642,12 @@ function Panel:New(name, parent, size, position)
         Parent = parent
     })
     local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
+    -- 彩虹边框（修复偏移）
     self.BorderEffect = CreateInstance("Frame", {
         Name = "BorderEffect",
-        Size = UDim2.new(1, 4, 1, 4),
-        Position = self.Instance.Position,
-        AnchorPoint = Vector2.new(0.5, 0.5),
+        Size = UDim2.new(0, self.Instance.Size.X.Offset + 4, 0, self.Instance.Size.Y.Offset + 4),
+        Position = UDim2.new(0, self.Instance.Position.X.Offset - 2, 0, self.Instance.Position.Y.Offset - 2),
+        AnchorPoint = Vector2.new(0, 0),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ZIndex = -1,
@@ -654,10 +660,16 @@ function Panel:New(name, parent, size, position)
         Parent = self.BorderEffect
     })
     self.Instance:GetPropertyChangedSignal("Position"):Connect(function()
-        self.BorderEffect.Position = self.Instance.Position
+        self.BorderEffect.Position = UDim2.new(
+            0, self.Instance.Position.X.Offset - 2,
+            0, self.Instance.Position.Y.Offset - 2
+        )
     end)
     self.Instance:GetPropertyChangedSignal("Size"):Connect(function()
-        self.BorderEffect.Size = UDim2.new(self.Instance.Size.X.Scale, self.Instance.Size.X.Offset + 4, self.Instance.Size.Y.Scale, self.Instance.Size.Y.Offset + 4)
+        self.BorderEffect.Size = UDim2.new(
+            0, self.Instance.Size.X.Offset + 4,
+            0, self.Instance.Size.Y.Offset + 4
+        )
     end)
     local borderTime = 0
     self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
@@ -989,6 +1001,7 @@ function Panel:New(name, parent, size, position)
         ZIndex = 100,
         Parent = self.Instance
     })
+    -- 选项卡栏（添加上下边框+左移5px）
     self.TabBar = CreateInstance("ScrollingFrame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 24),
@@ -1001,10 +1014,28 @@ function Panel:New(name, parent, size, position)
         ScrollingDirection = Enum.ScrollingDirection.X,
         Parent = self.Instance
     })
+    -- 选项卡栏上边框
+    CreateInstance("Frame", {
+        Name = "TabTopBorder",
+        Size = UDim2.new(1, 0, 0, 1),
+        BackgroundColor3 = WasUI.CurrentTheme.TabBorder,
+        BorderSizePixel = 0,
+        Parent = self.TabBar
+    })
+    -- 选项卡栏下边框
+    CreateInstance("Frame", {
+        Name = "TabBottomBorder",
+        Size = UDim2.new(1, 0, 0, 1),
+        Position = UDim2.new(0, 0, 1, -1),
+        BackgroundColor3 = WasUI.CurrentTheme.TabBorder,
+        BorderSizePixel = 0,
+        Parent = self.TabBar
+    })
+    -- 选项卡容器（左移5px：原右移10px → 现在-5px，整体左移15px，相对于原始位置左移5px）
     self.TabContainer = CreateInstance("Frame", {
         Name = "TabContainer",
         Size = UDim2.new(1, 0, 0, 24),
-        Position = UDim2.new(0, 10, 0, 0),
+        Position = UDim2.new(0, -5, 0, 0),
         BackgroundTransparency = 1,
         Parent = self.TabBar
     })
@@ -1113,10 +1144,12 @@ function Panel:AddCategory(title, tabName)
     return category
 end
 function Panel:AddTab(tabName)
+    -- 按主题设置选项卡按钮颜色：Dark黑色，Light白色
+    local tabButtonBg = WasUI.CurrentTheme.TabButton
     local tabButton = CreateInstance("TextButton", {
         Name = tabName .. "Tab",
         Size = UDim2.new(0, 70, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(200, 200, 205),
+        BackgroundColor3 = tabButtonBg,
         BackgroundTransparency = 0.7,
         Text = tabName,
         TextColor3 = Color3.fromRGB(100, 100, 105),
@@ -1217,7 +1250,7 @@ function Panel:AddTab(tabName)
             else
                 tab.Button.BackgroundTransparency = 0.7
                 tab.Button.TextColor3 = Color3.fromRGB(100, 100, 105)
-                Tween(tab.Button, {BackgroundColor3 = Color3.fromRGB(200, 200, 205)}, 0.2)
+                Tween(tab.Button, {BackgroundColor3 = WasUI.CurrentTheme.TabButton}, 0.2)
                 if tab.Button:FindFirstChild("Underline") then
                     local otherUnderline = tab.Button:FindFirstChild("Underline")
                     Tween(otherUnderline, {BackgroundTransparency = 1}, 0.2)
@@ -1295,65 +1328,66 @@ function Panel:AddToggle(text, initialState, onToggle, tabName)
         Name = "ToggleLabel",
         Size = UDim2.new(0.7, 0, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
-        BackgroundTransparency = 1,Text = text,
-TextColor3 = WasUI.CurrentTheme.Text,
-Font = Enum.Font.Gotham,
-TextSize = 12,
-TextXAlignment = Enum.TextXAlignment.Left,
-TextWrapped = true,
-Parent = toggleContainer
-})
-local toggleSwitch = ToggleSwitch:New("Toggle", toggleContainer, initialState, onToggle)
-return toggleSwitch
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextWrapped = true,
+        Parent = toggleContainer
+    })
+    local toggleSwitch = ToggleSwitch:New("Toggle", toggleContainer, initialState, onToggle)
+    return toggleSwitch
 end
 function Panel:AddDropdown(title, options, defaultValue, callback, tabName)
-local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-if not targetContent then
-return nil
-end
-local dropdown = Dropdown:New("Dropdown_" .. title, targetContent, title, options, defaultValue, callback)
-return dropdown
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    if not targetContent then
+        return nil
+    end
+    local dropdown = Dropdown:New("Dropdown_" .. title, targetContent, title, options, defaultValue, callback)
+    return dropdown
 end
 function Panel:AddSlider(title, min, max, defaultValue, callback, tabName)
-local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-if not targetContent then
-return nil
-end
-local slider = Slider:New("Slider_" .. title, targetContent, title, min, max, defaultValue, callback)
-return slider
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    if not targetContent then
+        return nil
+    end
+    local slider = Slider:New("Slider_" .. title, targetContent, title, min, max, defaultValue, callback)
+    return slider
 end
 function Panel:MinimizeWindow()
-if self.MinimizeToDots then
-self.MinimizeToDots()
-end
+    if self.MinimizeToDots then
+        self.MinimizeToDots()
+    end
 end
 function Panel:RestoreWindow()
-if self.RestoreFromDots then
-self.RestoreFromDots()
-end
+    if self.RestoreFromDots then
+        self.RestoreFromDots()
+    end
 end
 function WasUI:CreateWindow(title, size, position, displayOrder)
-displayOrder = displayOrder or WasUI.DefaultDisplayOrder
-local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-local screenGui = CreateInstance("ScreenGui", {
-Name = "WasUI_Window",
-ResetOnSpawn = false,
-DisplayOrder = displayOrder,
-Parent = playerGui
-})
-local window = Panel:New(tostring(title), screenGui, size, position)
-return window
+    displayOrder = displayOrder or WasUI.DefaultDisplayOrder
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "WasUI_Window",
+        ResetOnSpawn = false,
+        DisplayOrder = displayOrder,
+        Parent = playerGui
+    })
+    local window = Panel:New(tostring(title), screenGui, size, position)
+    return window
 end
 function WasUI:SaveConfig(key, data)
-local keyStr = tostring(key)
-local configValue = WasUI_Folder:FindFirstChild(keyStr)
-if not configValue then
-configValue = CreateInstance("StringValue", {
-Name = keyStr,
-Parent = WasUI_Folder
-})
-end
-configValue.Value = tostring(data)
+    local keyStr = tostring(key)
+    local configValue = WasUI_Folder:FindFirstChild(keyStr)
+    if not configValue then
+        configValue = CreateInstance("StringValue", {
+            Name = keyStr,
+            Parent = WasUI_Folder
+        })
+    end
+    configValue.Value = tostring(data)
 end
 function WasUI:LoadConfig(key, default)
 local keyStr = tostring(key)
@@ -1431,4 +1465,4 @@ IsSnowfallEnabled = function()
 return WasUI:IsSnowfallEnabled()
 end
 }
-return _G.WasUIModule    
+return _G.WasUIModule
