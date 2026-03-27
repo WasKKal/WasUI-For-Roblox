@@ -177,16 +177,22 @@ function Button:New(name, parent, text, onClick)
     local self = Control.New(self, name, parent)
     self.Instance = CreateInstance("TextButton", {
         Name = name,
-        Size = UDim2.new(1, 0, 0, 28),
+        Size = UDim2.new(0, 0, 0, 28),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         Text = text or "按钮",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
         AutoButtonColor = false,
-        Parent = parent
+        Parent = parent,
+        AutomaticSize = Enum.AutomaticSize.X
     })
     local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
+    local padding = CreateInstance("UIPadding", {
+        PaddingLeft = UDim.new(0, 12),
+        PaddingRight = UDim.new(0, 12),
+        Parent = self.Instance
+    })
     self.Instance.MouseEnter:Connect(function() 
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
     end)
@@ -512,7 +518,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(0.7, 0, 0, 20),
+        Size = UDim2.new(0.65, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
         Text = title or "滑块",
@@ -524,8 +530,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.ValueLabel = CreateInstance("TextLabel", {
         Name = "ValueLabel",
-        Size = UDim2.new(0.3, 0, 0, 20),
-        Position = UDim2.new(0.7, 0, 0, 0),
+        Size = UDim2.new(0.2, 0, 0, 20),
+        Position = UDim2.new(0.65, 0, 0, 0),
         BackgroundTransparency = 1,
         Text = tostring(defaultValue or min),
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -536,7 +542,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.SliderTrack = CreateInstance("TextButton", {
         Name = "SliderTrack",
-        Size = UDim2.new(0.94, 0, 0, 8),
+        Size = UDim2.new(0.85, 0, 0, 8),
         Position = UDim2.new(0.03, 0, 0, 30),
         BackgroundColor3 = Color3.fromRGB(220, 220, 220),
         BorderSizePixel = 0,
@@ -1040,25 +1046,27 @@ function Panel:New(name, parent, size, position)
                 DisplayOrder = 1000,
                 Parent = self.Instance
             })
-            local overlay = CreateInstance("Frame", {
+            local overlay = CreateInstance("TextButton", {
                 Name = "Overlay",
                 Size = UDim2.new(1, 0, 1, 0),
                 BackgroundColor3 = Color3.fromRGB(0, 0, 0),
                 BackgroundTransparency = 0.5,
                 Visible = true,
+                AutoButtonColor = false,
+                Text = "",
                 Parent = dialogGui,
                 Active = true
             })
             local dialogFrame = CreateInstance("Frame", {
                 Name = "Dialog",
-                Size = UDim2.new(0, 280, 0, 140),
-                Position = UDim2.new(0.5, -140, 0.5, -70),
+                Size = UDim2.new(0, 320, 0, 160),
+                Position = UDim2.new(0.5, -160, 0.5, -80),
                 BackgroundColor3 = WasUI.CurrentTheme.Background,
-                BackgroundTransparency = 1,
+                BackgroundTransparency = 0.3,
                 BorderSizePixel = 0,
                 Parent = overlay
             })
-            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = dialogFrame})
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
             local titleText = CreateInstance("TextLabel", {
                 Name = "Title",
                 Size = UDim2.new(1, -20, 0, 40),
@@ -1079,11 +1087,18 @@ function Panel:New(name, parent, size, position)
                 BackgroundTransparency = 1,
                 Parent = dialogFrame
             })
+            local buttonLayout = CreateInstance("UIListLayout", {
+                FillDirection = Enum.FillDirection.Horizontal,
+                HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                VerticalAlignment = Enum.VerticalAlignment.Center,
+                Padding = UDim.new(0, 12),
+                Parent = buttonContainer
+            })
             local confirmButton = CreateInstance("TextButton", {
                 Name = "Confirm",
                 Size = UDim2.new(0, 100, 0, 32),
-                Position = UDim2.new(1, -110, 0.5, -16),
                 BackgroundColor3 = WasUI.CurrentTheme.Section,
+                BackgroundTransparency = 0.3,
                 Text = "确认关闭",
                 TextColor3 = Color3.fromRGB(255, 100, 100),
                 Font = Enum.Font.GothamSemibold,
@@ -1094,8 +1109,8 @@ function Panel:New(name, parent, size, position)
             local cancelButton = CreateInstance("TextButton", {
                 Name = "Cancel",
                 Size = UDim2.new(0, 100, 0, 32),
-                Position = UDim2.new(1, 10, 0.5, -16),
                 BackgroundColor3 = WasUI.CurrentTheme.Section,
+                BackgroundTransparency = 0.3,
                 Text = "取消",
                 TextColor3 = Color3.fromRGB(255, 255, 255),
                 Font = Enum.Font.GothamSemibold,
@@ -1113,7 +1128,7 @@ function Panel:New(name, parent, size, position)
                 end)
             end
             dialogFrame.BackgroundTransparency = 1
-            Tween(dialogFrame, {BackgroundTransparency = 0}, 0.2)
+            Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
             confirmButton.MouseButton1Click:Connect(function()
                 if self.SnowConnection then
                     self.SnowConnection:Disconnect()
@@ -1146,10 +1161,20 @@ function Panel:New(name, parent, size, position)
                 task.wait(0.2)
                 dialogGui:Destroy()
             end)
-            overlay.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    input:SetConsumed(true)
+            overlay.MouseButton1Click:Connect(function(input)
+                local mousePos = input.Position
+                local framePos = dialogFrame.AbsolutePosition
+                local frameSize = dialogFrame.AbsoluteSize
+                if not (mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
+                        mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y) then
+                    Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+                    task.wait(0.2)
+                    dialogGui:Destroy()
                 end
+            end)
+            overlay.Active = true
+            overlay.InputBegan:Connect(function(input)
+                input:SetConsumed(true)
             end)
         end
         showCloseDialog()
@@ -1218,7 +1243,12 @@ function Panel:New(name, parent, size, position)
         Image = "",
         BorderSizePixel = 0,
         AutoButtonColor = false,
-        Parent = self.AnnouncementBar
+        Parent = self.AnnouncementBar,
+        AnchorPoint = Vector2.new(0, 0.5)
+    })
+    local avatarScale = CreateInstance("UIScale", {
+        Scale = 1,
+        Parent = self.Avatar
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
     local avatarStroke = CreateInstance("UIStroke", {
@@ -1229,10 +1259,10 @@ function Panel:New(name, parent, size, position)
     loadAvatar()
     
     self.Avatar.MouseButton1Down:Connect(function()
-        Tween(self.Avatar, {Size = UDim2.new(0, 44, 0, 44)}, 0.1)
+        Tween(avatarScale, {Scale = 0.9}, 0.1)
     end)
     self.Avatar.MouseButton1Up:Connect(function()
-        Tween(self.Avatar, {Size = UDim2.new(0, 48, 0, 48)}, 0.1)
+        Tween(avatarScale, {Scale = 1}, 0.1)
     end)
     
     self.Username = CreateInstance("TextLabel", {
