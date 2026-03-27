@@ -694,6 +694,7 @@ Panel.__index = Panel
 
 function Panel:New(name, parent, size, position)
     local self = setmetatable({}, Panel)
+    -- 固定窗口尺寸 0,380,0,350
     local windowWidth = 380
     local windowHeight = 350
     self.Instance = CreateInstance("Frame", {
@@ -1091,15 +1092,16 @@ function Panel:New(name, parent, size, position)
     self.TabContainer = CreateInstance("Frame", {
         Name = "TabContainer",
         Size = UDim2.new(1, 0, 0, 24),
-        Position = UDim2.new(0, -3, 0, 0),
+        Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
         Parent = self.TabBar
     })
+    -- 修复PaddingLeft报错：用Padding属性替代，实现左侧2.5px偏移
     self.TabLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 5),
+        Padding = UDim.new(0, 2.5),
         Parent = self.TabContainer
     })
     self.TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -1255,7 +1257,6 @@ function Panel:AddTab(tabName)
         underline.BackgroundTransparency = 0
         tabContent.Visible = true
     end
-    self.TabLayout.PaddingLeft = UDim.new(0, 2.5)
     table.insert(WasUI.Objects, {Object = tabButton, Type = "TabButton"})
     table.insert(WasUI.Objects, {Object = underline, Type = "TabUnderline"})
     return tabContent
@@ -1344,7 +1345,8 @@ function WasUI:CreateWindow(title, size, position, displayOrder)
         DisplayOrder = displayOrder,
         Parent = playerGui
     })
-    local window = Panel:New(title, screenGui, size, position)
+    -- 强制固定窗口尺寸为 0,380,0,350，忽略传入的size参数
+    local window = Panel:New(title, screenGui, UDim2.new(0, 380, 0, 350), position)
     self.CurrentWindow = window
     return window
 end
@@ -1364,8 +1366,10 @@ function WasUI:SetTheme(themeName)
                 elseif objType == "Label" then
                     obj.TextColor3 = self.CurrentTheme.Text
                 elseif objType == "Toggle" then
-                    local isToggled = obj.Name:find("_BG") and obj.Parent.Toggled or false
-                    obj.BackgroundColor3 = isToggled and self.CurrentTheme.Success or Color3.fromRGB(200, 200, 200)
+                    local toggleObj = obj.Parent.Parent
+                    if toggleObj.Toggled ~= nil then
+                        obj.BackgroundColor3 = toggleObj.Toggled and self.CurrentTheme.Success or Color3.fromRGB(200, 200, 200)
+                    end
                 elseif objType == "SliderFill" then
                     obj.BackgroundColor3 = self.CurrentTheme.Primary
                 elseif objType == "DropdownButton" then
