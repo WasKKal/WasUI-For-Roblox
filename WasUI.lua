@@ -880,8 +880,39 @@ end
 
 function Panel:AddCategory(title, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-    local category = Category:New("Category_" .. title, targetContent, title)
-    return category
+    
+    local categoryContainer = CreateInstance("Frame", {
+        Name = "Category_" .. title,
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Parent = targetContent
+    })
+    
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(0.9, 0, 0, 24),
+        Position = UDim2.new(0.05, 0, 0, 8),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = WasUI.CurrentTheme.Primary,
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Parent = categoryContainer
+    })
+    
+    local line = CreateInstance("Frame", {
+        Name = "Line",
+        Size = UDim2.new(0.9, 0, 0, 2),
+        Position = UDim2.new(0.05, 0, 1, -4),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        Parent = categoryContainer
+    })
+    
+    return categoryContainer
 end
 
 function Panel:AddButton(text, onClick, tabName)
