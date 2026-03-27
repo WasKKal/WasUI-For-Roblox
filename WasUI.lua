@@ -184,6 +184,7 @@ function Button:New(name, parent, text, onClick)
         AutoButtonColor = false,
         Parent = parent
     })
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
     self.Instance.MouseEnter:Connect(function() 
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
     end)
@@ -418,11 +419,21 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         if self.IsOpen or #self.Options == 0 then return end
         local buttonPos = self.DropdownButton.AbsolutePosition
         local buttonSize = self.DropdownButton.AbsoluteSize
-        self.OptionsContainer.Position = UDim2.new(0, buttonPos.X, 0, buttonPos.Y + buttonSize.Y)
+        local screenSize = workspace.CurrentCamera.ViewportSize
+        local optionHeight = math.min(#self.Options * 25, 150)
+        local posX = buttonPos.X
+        local posY = buttonPos.Y + buttonSize.Y
+        if posY + optionHeight > screenSize.Y then
+            posY = buttonPos.Y - optionHeight
+        end
+        if posX + buttonSize.X > screenSize.X then
+            posX = screenSize.X - buttonSize.X
+        end
+        if posX < 0 then posX = 0 end
+        self.OptionsContainer.Position = UDim2.new(0, posX, 0, posY)
         self.OptionsContainer.Size = UDim2.new(0, buttonSize.X, 0, 0)
         self.OptionsContainer.Visible = true
-        local maxHeight = math.min(#self.Options * 25, 150)
-        Tween(self.OptionsContainer, {Size = UDim2.new(0, buttonSize.X, 0, maxHeight)}, 0.3)
+        Tween(self.OptionsContainer, {Size = UDim2.new(0, buttonSize.X, 0, optionHeight)}, 0.3)
         Tween(self.DropdownButton.ArrowIcon, {Rotation = 180}, 0.2)
         self.IsOpen = true
         local function closeIfClickedOutside(input, gameProcessed)
@@ -882,7 +893,7 @@ function Panel:New(name, parent, size, position)
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 11, 0.5, -5),
+        Position = UDim2.new(0, 15, 0.5, -5),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -892,7 +903,7 @@ function Panel:New(name, parent, size, position)
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 22, 0.5, -5),
+        Position = UDim2.new(0, 30, 0.5, -5),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -1342,24 +1353,37 @@ function Panel:AddTab(tabName)
 
     tabButton.MouseButton1Click:Connect(function()
         for _, tab in pairs(self.Tabs) do
-            if tab.Button ~= tabButton then
-                Tween(tab.Button, {BackgroundTransparency = 0.7, TextColor3 = Color3.fromRGB(100, 100, 105), BackgroundColor3 = WasUI.CurrentTheme.TabButton}, 0.3, Enum.EasingStyle.Cubic)
-                if tab.Underline then
-                    Tween(tab.Underline, {Size = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1}, 0.3, Enum.EasingStyle.Cubic)
+            if tab.Button ~= tabButton and tab.Content.Visible then
+                local children = tab.Content:GetDescendants()
+                for _, child in ipairs(children) do
+                    if child:IsA("GuiObject") and child ~= tab.Content then
+                        Tween(child, {BackgroundTransparency = 1, TextTransparency = 1}, 0.2)
+                    end
                 end
-                if tab.Content.Visible then
-                    local tween = Tween(tab.Content, {Transparency = 1}, 0.3, Enum.EasingStyle.Cubic)
-                    tween.Completed:Connect(function()
-                        tab.Content.Visible = false
-                        tab.Content.Transparency = 0
-                    end)
+                task.wait(0.2)
+                tab.Content.Visible = false
+                for _, child in ipairs(children) do
+                    if child:IsA("GuiObject") and child ~= tab.Content then
+                        child.BackgroundTransparency = 0
+                        child.TextTransparency = 0
+                    end
                 end
             end
         end
 
         tabContent.Visible = true
-        tabContent.Transparency = 1
-        Tween(tabContent, {Transparency = 0}, 0.3, Enum.EasingStyle.Cubic)
+        local children = tabContent:GetDescendants()
+        for _, child in ipairs(children) do
+            if child:IsA("GuiObject") and child ~= tabContent then
+                child.BackgroundTransparency = 1
+                child.TextTransparency = 1
+            end
+        end
+        for _, child in ipairs(children) do
+            if child:IsA("GuiObject") and child ~= tabContent then
+                Tween(child, {BackgroundTransparency = 0, TextTransparency = 0}, 0.2)
+            end
+        end
 
         Tween(tabButton, {BackgroundTransparency = 0, TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.3, Enum.EasingStyle.Cubic)
         Tween(underline, {Size = UDim2.new(0.8, 0, 0, 2), BackgroundTransparency = 0}, 0.3, Enum.EasingStyle.Cubic)
@@ -1383,7 +1407,13 @@ function Panel:AddTab(tabName)
         underline.Size = UDim2.new(0.8, 0, 0, 2)
         underline.BackgroundTransparency = 0
         tabContent.Visible = true
-        tabContent.Transparency = 0
+        local children = tabContent:GetDescendants()
+        for _, child in ipairs(children) do
+            if child:IsA("GuiObject") and child ~= tabContent then
+                child.BackgroundTransparency = 0
+                child.TextTransparency = 0
+            end
+        end
     end
 
     table.insert(WasUI.Objects, {Object = tabButton, Type = "TabButton"})
