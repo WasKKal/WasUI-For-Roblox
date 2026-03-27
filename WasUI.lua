@@ -20,47 +20,19 @@ WasUI_Folder.Name = "WasUI_Config"
 WasUI_Folder.Parent = ReplicatedStorage
 
 WasUI.Themes = {
-    Default = {
-        Primary = Color3.fromRGB(106, 17, 203),
-        Secondary = Color3.fromRGB(135, 45, 225),
-        Background = Color3.fromRGB(240, 245, 250),
-        Text = Color3.fromRGB(44, 62, 80),
-        Accent = Color3.fromRGB(231, 76, 60),
-        Success = Color3.fromRGB(46, 204, 113),
-        Warning = Color3.fromRGB(241, 196, 15),
-        Error = Color3.fromRGB(231, 76, 60),
-        Section = Color3.fromRGB(230, 235, 240),
-        Input = Color3.fromRGB(250, 250, 252),
-        TabBorder = Color3.fromRGB(220, 220, 220),
-        TabButton = Color3.fromRGB(255,255,255)
-    },
     Dark = {
-        Primary = Color3.fromRGB(106, 17, 203),
-        Secondary = Color3.fromRGB(135, 45, 225),
+        Primary = Color3.fromRGB(15, 15, 20),
+        Secondary = Color3.fromRGB(25, 25, 30),
         Background = Color3.fromRGB(28, 28, 34),
         Text = Color3.fromRGB(220, 220, 220),
         Accent = Color3.fromRGB(97, 175, 239),
         Success = Color3.fromRGB(83, 227, 136),
         Warning = Color3.fromRGB(255, 213, 92),
         Error = Color3.fromRGB(255, 123, 123),
-        Section = Color3.fromRGB(35, 35, 40),
+        Section = Color3.fromRGB(45, 45, 50),
         Input = Color3.fromRGB(45, 45, 50),
-        TabBorder = Color3.fromRGB(40, 40, 40),
+        TabBorder = Color3.fromRGB(60, 60, 65),
         TabButton = Color3.fromRGB(0, 0, 0)
-    },
-    Light = {
-        Primary = Color3.fromRGB(76, 175, 80),
-        Secondary = Color3.fromRGB(102, 187, 106),
-        Background = Color3.fromRGB(255, 255, 255),
-        Text = Color3.fromRGB(60, 64, 67),
-        Accent = Color3.fromRGB(219, 68, 55),
-        Success = Color3.fromRGB(15, 157, 88),
-        Warning = Color3.fromRGB(249, 171, 0),
-        Error = Color3.fromRGB(219, 68, 55),
-        Section = Color3.fromRGB(248, 249, 250),
-        Input = Color3.fromRGB(241, 243, 244),
-        TabBorder = Color3.fromRGB(220, 220, 220),
-        TabButton = Color3.fromRGB(76, 175, 80)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
@@ -694,7 +666,6 @@ Panel.__index = Panel
 
 function Panel:New(name, parent, size, position)
     local self = setmetatable({}, Panel)
-    -- 固定窗口尺寸 0,380,0,350
     local windowWidth = 380
     local windowHeight = 350
     self.Instance = CreateInstance("Frame", {
@@ -702,54 +673,105 @@ function Panel:New(name, parent, size, position)
         Size = size or UDim2.new(0, windowWidth, 0, windowHeight),
         Position = position or UDim2.new(0.5, -windowWidth/2, 0.5, -windowHeight/2),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Parent = parent
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
-    self.BorderEffect = CreateInstance("Frame", {
-        Name = "BorderEffect",
-        Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
-        Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
-        AnchorPoint = Vector2.new(0, 0),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ZIndex = -1,
-        Parent = self.Instance.Parent
-    })
-    local borderCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderEffect})
-    local borderStroke = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 2,
-        Parent = self.BorderEffect
-    })
-    local function updateBorder()
-        if not self.Instance or not self.BorderEffect then return end
-        self.BorderEffect.Position = UDim2.new(
-            0, self.Instance.AbsolutePosition.X - 2,
-            0, self.Instance.AbsolutePosition.Y - 2
-        )
-        self.BorderEffect.Size = UDim2.new(
-            0, self.Instance.AbsoluteSize.X + 4,
-            0, self.Instance.AbsoluteSize.Y + 4
-        )
+    
+    local borderSegments = {}
+    local segmentCount = 12
+    local cornerRadius = 10
+    local borderThickness = 2
+    local function createBorderSegment(startAngle, endAngle, zIndex)
+        local segment = CreateInstance("Frame", {
+            Name = "BorderSegment",
+            BackgroundColor3 = Color3.fromRGB(255, 0, 0),
+            BorderSizePixel = 0,
+            ZIndex = zIndex,
+            Parent = self.Instance.Parent
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = segment})
+        table.insert(borderSegments, segment)
+        return segment
     end
-    self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
-    self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
-    updateBorder()
+    
+    createBorderSegment(0, math.pi/2, 1)
+    createBorderSegment(math.pi/2, math.pi, 2)
+    createBorderSegment(math.pi, 3*math.pi/2, 3)
+    createBorderSegment(3*math.pi/2, 2*math.pi, 4)
+    
+    for i = 5, segmentCount do
+        createBorderSegment(0, 2*math.pi/segmentCount, i)
+    end
+    
+    local function updateBorderSegments()
+        local absPos = self.Instance.AbsolutePosition
+        local absSize = self.Instance.AbsoluteSize
+        local halfThickness = borderThickness/2
+        local segmentsPerSide = segmentCount/4
+        
+        for i, segment in ipairs(borderSegments) do
+            if i == 1 then
+                segment.Size = UDim2.new(0, absSize.X - cornerRadius*2, 0, borderThickness)
+                segment.Position = UDim2.new(0, absPos.X + cornerRadius, 0, absPos.Y - halfThickness)
+            elseif i == 2 then
+                segment.Size = UDim2.new(0, absSize.Y - cornerRadius*2, 0, borderThickness)
+                segment.Position = UDim2.new(0, absPos.X + absSize.X - halfThickness, 0, absPos.Y + cornerRadius)
+                segment.Rotation = 90
+            elseif i == 3 then
+                segment.Size = UDim2.new(0, absSize.X - cornerRadius*2, 0, borderThickness)
+                segment.Position = UDim2.new(0, absPos.X + cornerRadius, 0, absPos.Y + absSize.Y - halfThickness)
+            elseif i == 4 then
+                segment.Size = UDim2.new(0, absSize.Y - cornerRadius*2, 0, borderThickness)
+                segment.Position = UDim2.new(0, absPos.X - halfThickness, 0, absPos.Y + cornerRadius)
+                segment.Rotation = 90
+            else
+                local side = math.floor((i-5)/segmentsPerSide)
+                local sideSegment = (i-5)%segmentsPerSide
+                local segmentLength = (absSize.X - cornerRadius*2)/segmentsPerSide
+                if side == 0 then
+                    segment.Size = UDim2.new(0, segmentLength, 0, borderThickness)
+                    segment.Position = UDim2.new(0, absPos.X + cornerRadius + sideSegment*segmentLength, 0, absPos.Y - halfThickness)
+                elseif side == 1 then
+                    segment.Size = UDim2.new(0, segmentLength, 0, borderThickness)
+                    segment.Position = UDim2.new(0, absPos.X + absSize.X - halfThickness, 0, absPos.Y + cornerRadius + sideSegment*segmentLength)
+                    segment.Rotation = 90
+                elseif side == 2 then
+                    segment.Size = UDim2.new(0, segmentLength, 0, borderThickness)
+                    segment.Position = UDim2.new(0, absPos.X + cornerRadius + sideSegment*segmentLength, 0, absPos.Y + absSize.Y - halfThickness)
+                elseif side == 3 then
+                    segment.Size = UDim2.new(0, segmentLength, 0, borderThickness)
+                    segment.Position = UDim2.new(0, absPos.X - halfThickness, 0, absPos.Y + cornerRadius + sideSegment*segmentLength)
+                    segment.Rotation = 90
+                end
+            end
+        end
+    end
+    
+    updateBorderSegments()
+    self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorderSegments)
+    self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorderSegments)
+    
     local borderTime = 0
-    self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-        borderTime = borderTime + deltaTime * 4
-        local r = (math.sin(borderTime) + 1) / 2
-        local g = (math.sin(borderTime + math.pi/3) + 1) / 2
-        local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
-        borderStroke.Color = Color3.new(r, g, b)
+    RunService.Heartbeat:Connect(function(deltaTime)
+        borderTime = borderTime + deltaTime * 8
+        for i, segment in ipairs(borderSegments) do
+            local segmentTime = borderTime + (i/segmentCount)*2*math.pi
+            local r = (math.sin(segmentTime) + 1)/2
+            local g = (math.sin(segmentTime + math.pi/3) + 1)/2
+            local b = (math.sin(segmentTime + 2*math.pi/3) + 1)/2
+            Tween(segment, {BackgroundColor3 = Color3.new(r, g, b)}, 0.1)
+        end
     end)
+    
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
         Size = UDim2.new(1, 0, 0, 26),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         Parent = self.Instance
     })
@@ -757,6 +779,7 @@ function Panel:New(name, parent, size, position)
         CornerRadius = UDim.new(0, 10),
         Parent = self.TitleBar
     })
+    
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
         Size = UDim2.new(1, 0, 1, 0),
@@ -767,6 +790,7 @@ function Panel:New(name, parent, size, position)
         ZIndex = 1,
         Parent = self.TitleBar
     })
+    
     self.Title = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(1, -100, 1, 0),
@@ -779,6 +803,7 @@ function Panel:New(name, parent, size, position)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.TitleBar
     })
+    
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 36, 1, 0),
@@ -787,6 +812,7 @@ function Panel:New(name, parent, size, position)
         ZIndex = 2,
         Parent = self.TitleBar
     })
+    
     self.DotAreaButton = CreateInstance("ImageButton", {
         Name = "DotAreaButton",
         Size = UDim2.new(1, 0, 1, 0),
@@ -796,6 +822,7 @@ function Panel:New(name, parent, size, position)
         ZIndex = 2,
         Parent = self.DotContainer
     })
+    
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 12, 0, 12),
@@ -805,6 +832,7 @@ function Panel:New(name, parent, size, position)
         ZIndex = 3,
         Parent = self.DotContainer
     })
+    
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 12, 0, 12),
@@ -814,6 +842,7 @@ function Panel:New(name, parent, size, position)
         ZIndex = 3,
         Parent = self.DotContainer
     })
+    
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 12, 0, 12),
@@ -823,9 +852,11 @@ function Panel:New(name, parent, size, position)
         ZIndex = 3,
         Parent = self.DotContainer
     })
+    
     for _, dot in ipairs({self.CloseDot, self.MinimizeDot, self.MaximizeDot}) do
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
+    
     self.MinimizeButton = CreateInstance("TextButton", {
         Name = "MinimizeButton",
         Size = UDim2.new(0, 22, 0, 22),
@@ -837,6 +868,7 @@ function Panel:New(name, parent, size, position)
         TextSize = 18,
         Parent = self.TitleBar
     })
+    
     self.CloseButton = CreateInstance("TextButton", {
         Name = "CloseButton",
         Size = UDim2.new(0, 22, 0, 22),
@@ -848,9 +880,11 @@ function Panel:New(name, parent, size, position)
         TextSize = 16,
         Parent = self.TitleBar
     })
+    
     self.IsMinimized = false
     self.OriginalSize = self.Instance.Size
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
+    
     self.MinimizeToDots = function()
         if self.IsMinimized then return end
         Tween(self.Instance, {
@@ -878,6 +912,7 @@ function Panel:New(name, parent, size, position)
         end
         self.SnowFlakes = {}
     end
+    
     self.RestoreFromDots = function()
         if not self.IsMinimized then return end
         Tween(self.Instance, {
@@ -903,6 +938,7 @@ function Panel:New(name, parent, size, position)
         end
         self.IsMinimized = false
     end
+    
     self.DotAreaButton.MouseButton1Click:Connect(function()
         if self.IsMinimized then
             self:RestoreFromDots()
@@ -910,12 +946,14 @@ function Panel:New(name, parent, size, position)
             self:MinimizeToDots()
         end
     end)
+    
     self.CloseDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             input:SetConsumed(true)
             self:SetVisible(false)
         end
     end)
+    
     self.MinimizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             input:SetConsumed(true)
@@ -926,11 +964,13 @@ function Panel:New(name, parent, size, position)
             end
         end
     end)
+    
     self.MaximizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             input:SetConsumed(true)
         end
     end)
+    
     self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
     self.CloseButton.MouseButton1Click:Connect(function() 
         if self.SnowConnection then
@@ -943,15 +983,12 @@ function Panel:New(name, parent, size, position)
             end
         end
         self.SnowFlakes = {}
-        if self.BorderConnection then
-            self.BorderConnection:Disconnect()
-            self.BorderConnection = nil
-        end
-        if self.BorderEffect then
-            self.BorderEffect:Destroy()
+        for _, segment in ipairs(borderSegments) do
+            segment:Destroy()
         end
         self:SetVisible(false) 
     end)
+    
     local dragging = false
     local dragStart
     local startPos
@@ -967,6 +1004,7 @@ function Panel:New(name, parent, size, position)
             dragging = false
         end
     end
+    
     self.DraggableArea.InputBegan:Connect(startDragging)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -981,16 +1019,18 @@ function Panel:New(name, parent, size, position)
         end
     end)
     UserInputService.InputEnded:Connect(stopDragging)
+    
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
         Name = "AnnouncementBar",
         Size = UDim2.new(1, 0, 0, announcementHeight),
         Position = UDim2.new(0, 0, 0, 26),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
-        BackgroundTransparency = 0.1,
+        BackgroundTransparency = 0.4,
         BorderSizePixel = 0,
         Parent = self.Instance
     })
+    
     local player = Players.LocalPlayer
     local headshot = Players:GetUserThumbnailAsync(
         player.UserId, 
@@ -1013,12 +1053,14 @@ function Panel:New(name, parent, size, position)
         Thickness = 1,
         Parent = self.Avatar
     })
+    
     self.Avatar.MouseButton1Down:Connect(function()
         Tween(self.Avatar, {Size = UDim2.new(0, 44, 0, 44)}, 0.1)
     end)
     self.Avatar.MouseButton1Up:Connect(function()
         Tween(self.Avatar, {Size = UDim2.new(0, 48, 0, 48)}, 0.1)
     end)
+    
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0.6, 0, 0, 18),
@@ -1031,6 +1073,7 @@ function Panel:New(name, parent, size, position)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
+    
     self.ExecutorLabel = CreateInstance("TextLabel", {
         Name = "ExecutorLabel",
         Size = UDim2.new(0.6, 0, 0, 16),
@@ -1043,6 +1086,7 @@ function Panel:New(name, parent, size, position)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
+    
     self.WelcomeLabel = CreateInstance("TextLabel", {
         Name = "WelcomeLabel",
         Size = UDim2.new(0.6, 0, 0, 14),
@@ -1055,6 +1099,7 @@ function Panel:New(name, parent, size, position)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
+    
     self.SnowContainer = CreateInstance("Frame", {
         Name = "SnowContainer",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1064,16 +1109,19 @@ function Panel:New(name, parent, size, position)
         ZIndex = 100,
         Parent = self.Instance
     })
+    
     self.TabBar = CreateInstance("ScrollingFrame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 24),
         Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
-        BackgroundColor3 = WasUI.CurrentTheme.Section,
+        BackgroundColor3 = Color3.fromRGB(50, 50, 55),
+        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         ScrollBarThickness = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
     })
+    
     CreateInstance("Frame", {
         Name = "TabTopBorder",
         Size = UDim2.new(1, 0, 0, 1),
@@ -1089,6 +1137,7 @@ function Panel:New(name, parent, size, position)
         BorderSizePixel = 0,
         Parent = self.TabBar
     })
+    
     self.TabContainer = CreateInstance("Frame", {
         Name = "TabContainer",
         Size = UDim2.new(1, 0, 0, 24),
@@ -1096,7 +1145,7 @@ function Panel:New(name, parent, size, position)
         BackgroundTransparency = 1,
         Parent = self.TabBar
     })
-    -- 修复PaddingLeft报错：用Padding属性替代，实现左侧2.5px偏移
+    
     self.TabLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
@@ -1104,9 +1153,11 @@ function Panel:New(name, parent, size, position)
         Padding = UDim.new(0, 2.5),
         Parent = self.TabContainer
     })
+    
     self.TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
     end)
+    
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
         Size = UDim2.new(1, -10, 1, -announcementHeight - 28 - 31),
@@ -1116,11 +1167,13 @@ function Panel:New(name, parent, size, position)
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
     })
+    
     self.Tabs = {}
     self.ActiveTab = nil
     self.TabContents = {}
     self.SnowFlakes = {}
     self.SnowEnabled = true
+    
     function self:CreateSnowflake()
         local size = math.random(3, 8)
         local snowflake = CreateInstance("Frame", {
@@ -1140,11 +1193,13 @@ function Panel:New(name, parent, size, position)
             Offset = math.random()*math.pi*2
         }
     end
+    
     function self:SpawnSnowflakes()
         if #self.SnowFlakes < 30 and self.Instance.Visible then
             table.insert(self.SnowFlakes, self:CreateSnowflake())
         end
     end
+    
     function self:UpdateSnowflakes()
         for i = #self.SnowFlakes, 1, -1 do
             local flake = self.SnowFlakes[i]
@@ -1160,12 +1215,14 @@ function Panel:New(name, parent, size, position)
             end
         end
     end
+    
     self.SnowConnection = RunService.Heartbeat:Connect(function()
         if self.SnowContainer.Visible then
             self:SpawnSnowflakes()
             self:UpdateSnowflakes()
         end
     end)
+    
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Window"})
     table.insert(WasUI.Objects, {Object = self.TitleBar, Type = "TitleBar"})
     table.insert(WasUI.Objects, {Object = self.AnnouncementBar, Type = "AnnouncementBar"})
@@ -1345,8 +1402,7 @@ function WasUI:CreateWindow(title, size, position, displayOrder)
         DisplayOrder = displayOrder,
         Parent = playerGui
     })
-    -- 强制固定窗口尺寸为 0,380,0,350，忽略传入的size参数
-    local window = Panel:New(title, screenGui, UDim2.new(0, 380, 0, 350), position)
+    local window = Panel:New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position)
     self.CurrentWindow = window
     return window
 end
@@ -1354,7 +1410,6 @@ end
 function WasUI:SetTheme(themeName)
     if self.Themes[themeName] then
         self.CurrentTheme = self.Themes[themeName]
-        -- 主题切换时同步更新所有UI元素样式
         for _, objData in ipairs(WasUI.Objects) do
             local obj = objData.Object
             local objType = objData.Type
@@ -1429,7 +1484,7 @@ function WasUI:IsSnowfallEnabled()
 end
 
 function WasUI:RefreshTheme()
-    self:SetTheme(self.CurrentTheme == self.Themes.Dark and "Dark" or "Light")
+    self:SetTheme("Dark")
 end
 
 _G.WasUIModule = WasUI
