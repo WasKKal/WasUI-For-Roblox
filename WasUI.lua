@@ -22,8 +22,7 @@ WasUI_Folder.Parent = ReplicatedStorage
 WasUI.Themes = {
     Default = {
         Primary = Color3.fromRGB(106, 17, 203),
-        Secondary = Color3.fromRGB(135, 45, 225),
-        Background = Color3.fromRGB(240, 245, 250),
+       40, 245, 250),
         Text = Color3.fromRGB(44, 62, 80),
         Accent = Color3.fromRGB(231, 76, 60),
         Success = Color3.fromRGB(46, 204, 113),
@@ -72,11 +71,12 @@ local function CreateInstance(className, properties)
     return instance
 end
 
+-- 修复核心语法错误：TweenService用冒号调用Create
 local function Tween(instance, properties, duration, easingStyle, easingDirection)
     easingStyle = easingStyle or Enum.EasingStyle.Quad
     easingDirection = easingDirection or Enum.EasingDirection.Out
     local tweenInfo = TweenInfo.new(duration or 0.3, easingStyle, easingDirection)
-    local tween = TweenService.Create(instance, tweenInfo, properties)
+    local tween = TweenService:Create(instance, tweenInfo, properties)
     tween:Play()
     return tween
 end
@@ -425,9 +425,10 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         TextXAlignment = Enum.TextXAlignment.Right,
         Parent = self.Container
     })
+    -- 加宽滑动条上下宽度（从6→8），保持圆角
     self.SliderTrack = CreateInstance("TextButton", {
         Name = "SliderTrack",
-        Size = UDim2.new(1, 0, 0, 6),
+        Size = UDim2.new(1, 0, 0, 8),
         Position = UDim2.new(0, 0, 0, 30),
         BackgroundColor3 = Color3.fromRGB(220, 220, 220),
         BorderSizePixel = 0,
@@ -719,8 +720,12 @@ function Panel:New(name, parent, size, position)
         BorderSizePixel = 0,
         Parent = self.Instance
     })
+    -- 加强标题栏外围圆角（顶部12px），内部（底部）改为直角
     CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 10, 0, 0),
+        TopLeftRadius = UDim.new(0, 12),
+        TopRightRadius = UDim.new(0, 12),
+        BottomLeftRadius = UDim.new(0, 0),
+        BottomRightRadius = UDim.new(0, 0),
         Parent = self.TitleBar
     })
 
@@ -1009,39 +1014,44 @@ function Panel:New(name, parent, size, position)
         Tween(self.Avatar, {Size = UDim2.new(0, 48, 0, 48)}, 0.1)
     end)
 
+    -- 三行文字向左对齐，贴紧头像右侧（留8px，XOffset从68→66）
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0.6, 0, 0, 18),
-        Position = UDim2.new(0, 68, 0.12, 0),
+        Position = UDim2.new(0, 66, 0.12, 0),
         BackgroundTransparency = 1,
         Text = "玩家: " .. player.Name,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
 
     self.ExecutorLabel = CreateInstance("TextLabel", {
         Name = "ExecutorLabel",
+
         Size = UDim2.new(0.6, 0, 0, 16),
-        Position = UDim2.new(0, 68, 0.35, 0),
+        Position = UDim2.new(0, 66, 0.35, 0),
         BackgroundTransparency = 1,
         Text = "执行器: "..getExecutor(),
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
 
     self.WelcomeLabel = CreateInstance("TextLabel", {
         Name = "WelcomeLabel",
         Size = UDim2.new(0.6, 0, 0, 14),
-        Position = UDim2.new(0, 68, 0.55, 0),
+        Position = UDim2.new(0, 66, 0.55, 0),
         BackgroundTransparency = 1,
         Text = "欢迎使用WasUI",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
 
