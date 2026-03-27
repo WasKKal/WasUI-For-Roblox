@@ -19,6 +19,7 @@ local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
 WasUI_Folder.Parent = ReplicatedStorage
 
+-- 主题配置（保留原配色，确保Dark模式紫色正常）
 WasUI.Themes = {
     Default = {
         Primary = Color3.fromRGB(106, 17, 203),
@@ -60,7 +61,7 @@ WasUI.Themes = {
         Input = Color3.fromRGB(241, 243, 244),
         TabBorder = Color3.fromRGB(220, 220, 220),
         TabButton = Color3.fromRGB(255, 255, 255)
-    },
+    }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
 
@@ -72,7 +73,6 @@ local function CreateInstance(className, properties)
     return instance
 end
 
--- 修复核心语法错误：TweenService用冒号调用Create
 local function Tween(instance, properties, duration, easingStyle, easingDirection)
     easingStyle = easingStyle or Enum.EasingStyle.Quad
     easingDirection = easingDirection or Enum.EasingDirection.Out
@@ -240,6 +240,7 @@ function Category:New(name, parent, title)
     return self
 end
 
+-- 模仿参考文档下拉菜单逻辑：增加展开动画、点击外部关闭、hover效果
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback)
@@ -280,6 +281,20 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Parent = self.Container
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.DropdownButton})
+    
+    -- 下拉箭头图标
+    local arrowIcon = CreateInstance("ImageLabel", {
+        Name = "ArrowIcon",
+        Size = UDim2.new(0, 12, 0, 12),
+        Position = UDim2.new(1, -10, 0.5, -6),
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://12187365364", -- 通用箭头图标
+        ImageRectOffset = Vector2.new(0, 0),
+        ImageRectSize = Vector2.new(24, 24),
+        ImageColor3 = WasUI.CurrentTheme.Text,
+        Parent = self.DropdownButton
+    })
+
     self.Options = options or {}
     self.SelectedValue = defaultValue
     self.Callback = callback
@@ -302,6 +317,8 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Padding = UDim.new(0, 1),
         Parent = self.OptionsContainer
     })
+
+    -- 生成选项按钮（增加hover动画）
     for i, option in ipairs(self.Options) do
         local optionButton = CreateInstance("TextButton", {
             Name = "Option_" .. option,
@@ -332,6 +349,8 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             end
         end)
     end
+
+    -- 按钮点击逻辑（展开/关闭）
     self.DropdownButton.MouseButton1Click:Connect(function()
         if self.IsOpen then
             self:CloseDropdown()
@@ -339,16 +358,22 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             self:OpenDropdown()
         end
     end)
+
     self.Instance = self.Container
     return self
 end
 
+-- 展开下拉菜单（动画+外部点击关闭）
 function Dropdown:OpenDropdown()
     if self.IsOpen or #self.Options == 0 then return end
     self.OptionsContainer.Visible = true
     local maxHeight = math.min(#self.Options * 25, 150)
     Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, maxHeight)}, 0.3)
+    -- 箭头旋转动画
+    Tween(self.DropdownButton.ArrowIcon, {Rotation = 180}, 0.2)
     self.IsOpen = true
+
+    -- 点击外部关闭
     local function closeIfClickedOutside(input, gameProcessed)
         if gameProcessed then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -369,9 +394,12 @@ function Dropdown:OpenDropdown()
     self.CloseConnection = UserInputService.InputBegan:Connect(closeIfClickedOutside)
 end
 
+-- 关闭下拉菜单（动画）
 function Dropdown:CloseDropdown()
     if not self.IsOpen then return end
     Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, 0)}, 0.2)
+    -- 箭头复位动画
+    Tween(self.DropdownButton.ArrowIcon, {Rotation = 0}, 0.2)
     task.wait(0.2)
     self.OptionsContainer.Visible = false
     self.IsOpen = false
@@ -426,10 +454,9 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         TextXAlignment = Enum.TextXAlignment.Right,
         Parent = self.Container
     })
-    -- 加宽滑动条上下宽度（从6→8），保持圆角
     self.SliderTrack = CreateInstance("TextButton", {
         Name = "SliderTrack",
-        Size = UDim2.new(1, 0, 0, 8),
+        Size = UDim2.new(1, 0, 0, 6),
         Position = UDim2.new(0, 0, 0, 30),
         BackgroundColor3 = Color3.fromRGB(220, 220, 220),
         BorderSizePixel = 0,
@@ -672,7 +699,8 @@ function Panel:New(name, parent, size, position)
         ClipsDescendants = true,
         Parent = parent
     })
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
+    -- 标题栏外围保留完整圆角（关键修复：移除原顶部半圆角限制）
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
 
     self.BorderEffect = CreateInstance("Frame", {
         Name = "BorderEffect",
@@ -721,12 +749,9 @@ function Panel:New(name, parent, size, position)
         BorderSizePixel = 0,
         Parent = self.Instance
     })
-    -- 加强标题栏外围圆角（顶部12px），内部（底部）改为直角
+    -- 标题栏内部圆角与外围一致（完整圆角，无顶部限制）
     CreateInstance("UICorner", {
-        TopLeftRadius = UDim.new(0, 12),
-        TopRightRadius = UDim.new(0, 12),
-        BottomLeftRadius = UDim.new(0, 0),
-        BottomRightRadius = UDim.new(0, 0),
+        CornerRadius = UDim.new(0, 10),
         Parent = self.TitleBar
     })
 
@@ -1015,44 +1040,39 @@ function Panel:New(name, parent, size, position)
         Tween(self.Avatar, {Size = UDim2.new(0, 48, 0, 48)}, 0.1)
     end)
 
-    -- 三行文字向左对齐，贴紧头像右侧（留8px，XOffset从68→66）
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0.6, 0, 0, 18),
-        Position = UDim2.new(0, 66, 0.12, 0),
+        Position = UDim2.new(0, 68, 0.12, 0),
         BackgroundTransparency = 1,
         Text = "玩家: " .. player.Name,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 13,
-        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
 
     self.ExecutorLabel = CreateInstance("TextLabel", {
         Name = "ExecutorLabel",
-
         Size = UDim2.new(0.6, 0, 0, 16),
-        Position = UDim2.new(0, 66, 0.35, 0),
+        Position = UDim2.new(0, 68, 0.35, 0),
         BackgroundTransparency = 1,
         Text = "执行器: "..getExecutor(),
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
 
     self.WelcomeLabel = CreateInstance("TextLabel", {
         Name = "WelcomeLabel",
         Size = UDim2.new(0.6, 0, 0, 14),
-        Position = UDim2.new(0, 66, 0.55, 0),
+        Position = UDim2.new(0, 68, 0.55, 0),
         BackgroundTransparency = 1,
         Text = "欢迎使用WasUI",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 11,
-        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
 
