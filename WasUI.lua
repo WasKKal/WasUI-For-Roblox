@@ -883,7 +883,7 @@ function Panel:New(name, parent, size, position)
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 0, 0.5, -5),
+        Position = UDim2.new(0, 0.2, 0.5, -5.2),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -893,7 +893,7 @@ function Panel:New(name, parent, size, position)
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 15, 0.5, -5),
+        Position = UDim2.new(0, 15.2, 0.5, -5.2),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -903,7 +903,7 @@ function Panel:New(name, parent, size, position)
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 30, 0.5, -5),
+        Position = UDim2.new(0, 30.2, 0.5, -5.2),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -1135,7 +1135,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 18),
         Position = UDim2.new(0, 62, 0.12, 0),
         BackgroundTransparency = 1,
-        Text = "玩家: " .. player.Name,
+        Text = "当前用户: " .. player.Name,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 13,
@@ -1148,7 +1148,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 16),
         Position = UDim2.new(0, 62, 0.35, 0),
         BackgroundTransparency = 1,
-        Text = "执行器: "..getExecutor(),
+        Text = "您使用的执行器为: " .. getExecutor(),
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -1354,34 +1354,61 @@ function Panel:AddTab(tabName)
     tabButton.MouseButton1Click:Connect(function()
         for _, tab in pairs(self.Tabs) do
             if tab.Button ~= tabButton and tab.Content.Visible then
-                local children = tab.Content:GetDescendants()
+                local children = tab.Content:GetChildren()
+                local tweens = {}
                 for _, child in ipairs(children) do
-                    if child:IsA("GuiObject") and child ~= tab.Content then
-                        Tween(child, {BackgroundTransparency = 1, TextTransparency = 1}, 0.2)
+                    if child:IsA("GuiObject") and not child:IsA("UIListLayout") then
+                        local props = {}
+                        if child:IsA("TextLabel") or child:IsA("TextButton") then
+                            props.TextTransparency = 1
+                        end
+                        if child:IsA("Frame") or child:IsA("ImageButton") or child:IsA("TextButton") then
+                            props.BackgroundTransparency = 1
+                        end
+                        if next(props) then
+                            table.insert(tweens, Tween(child, props, 0.2))
+                        end
                     end
                 end
                 task.wait(0.2)
                 tab.Content.Visible = false
                 for _, child in ipairs(children) do
-                    if child:IsA("GuiObject") and child ~= tab.Content then
-                        child.BackgroundTransparency = 0
-                        child.TextTransparency = 0
+                    if child:IsA("GuiObject") and not child:IsA("UIListLayout") then
+                        if child:IsA("TextLabel") or child:IsA("TextButton") then
+                            child.TextTransparency = 0
+                        end
+                        if child:IsA("Frame") or child:IsA("ImageButton") or child:IsA("TextButton") then
+                            child.BackgroundTransparency = 0
+                        end
                     end
                 end
             end
         end
 
         tabContent.Visible = true
-        local children = tabContent:GetDescendants()
+        local children = tabContent:GetChildren()
         for _, child in ipairs(children) do
-            if child:IsA("GuiObject") and child ~= tabContent then
-                child.BackgroundTransparency = 1
-                child.TextTransparency = 1
+            if child:IsA("GuiObject") and not child:IsA("UIListLayout") then
+                if child:IsA("TextLabel") or child:IsA("TextButton") then
+                    child.TextTransparency = 1
+                end
+                if child:IsA("Frame") or child:IsA("ImageButton") or child:IsA("TextButton") then
+                    child.BackgroundTransparency = 1
+                end
             end
         end
         for _, child in ipairs(children) do
-            if child:IsA("GuiObject") and child ~= tabContent then
-                Tween(child, {BackgroundTransparency = 0, TextTransparency = 0}, 0.2)
+            if child:IsA("GuiObject") and not child:IsA("UIListLayout") then
+                local props = {}
+                if child:IsA("TextLabel") or child:IsA("TextButton") then
+                    props.TextTransparency = 0
+                end
+                if child:IsA("Frame") or child:IsA("ImageButton") or child:IsA("TextButton") then
+                    props.BackgroundTransparency = 0
+                end
+                if next(props) then
+                    Tween(child, props, 0.2)
+                end
             end
         end
 
@@ -1407,11 +1434,15 @@ function Panel:AddTab(tabName)
         underline.Size = UDim2.new(0.8, 0, 0, 2)
         underline.BackgroundTransparency = 0
         tabContent.Visible = true
-        local children = tabContent:GetDescendants()
+        local children = tabContent:GetChildren()
         for _, child in ipairs(children) do
-            if child:IsA("GuiObject") and child ~= tabContent then
-                child.BackgroundTransparency = 0
-                child.TextTransparency = 0
+            if child:IsA("GuiObject") and not child:IsA("UIListLayout") then
+                if child:IsA("TextLabel") or child:IsA("TextButton") then
+                    child.TextTransparency = 0
+                end
+                if child:IsA("Frame") or child:IsA("ImageButton") or child:IsA("TextButton") then
+                    child.BackgroundTransparency = 0
+                end
             end
         end
     end
