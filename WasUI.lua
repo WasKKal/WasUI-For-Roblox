@@ -22,8 +22,8 @@ WasUI_Folder.Parent = ReplicatedStorage
 
 WasUI.Themes = {
     Default = {
-        Primary = Color3.fromRGB(41, 128, 185),
-        Secondary = Color3.fromRGB(52, 152, 219),
+        Primary = Color3.fromRGB(106, 17, 203),  -- 紫色
+        Secondary = Color3.fromRGB(135, 45, 225),  -- 亮紫色
         Background = Color3.fromRGB(240, 245, 250),
         Text = Color3.fromRGB(44, 62, 80),
         Accent = Color3.fromRGB(231, 76, 60),
@@ -34,8 +34,8 @@ WasUI.Themes = {
         Input = Color3.fromRGB(250, 250, 252)
     },
     Dark = {
-        Primary = Color3.fromRGB(30, 30, 36),
-        Secondary = Color3.fromRGB(40, 40, 46),
+        Primary = Color3.fromRGB(106, 17, 203),  -- 紫色
+        Secondary = Color3.fromRGB(135, 45, 225),  -- 亮紫色
         Background = Color3.fromRGB(28, 28, 34),
         Text = Color3.fromRGB(220, 220, 220),
         Accent = Color3.fromRGB(97, 175, 239),
@@ -46,8 +46,8 @@ WasUI.Themes = {
         Input = Color3.fromRGB(45, 45, 50)
     },
     Light = {
-        Primary = Color3.fromRGB(76, 175, 80),  -- 蓝色改为绿色
-        Secondary = Color3.fromRGB(102, 187, 106),  -- 蓝色改为绿色
+        Primary = Color3.fromRGB(76, 175, 80),  -- 绿色
+        Secondary = Color3.fromRGB(102, 187, 106),  -- 亮绿色
         Background = Color3.fromRGB(255, 255, 255),
         Text = Color3.fromRGB(60, 64, 67),
         Accent = Color3.fromRGB(219, 68, 55),
@@ -126,7 +126,7 @@ function Button:New(name, parent, text, onClick)
         Parent = parent
     })
     
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Instance})  -- 改为胶囊形
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Instance})  -- 胶囊形
     
     self.Instance.MouseEnter:Connect(function() 
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
@@ -296,7 +296,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Parent = self.Container
     })
     
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.DropdownButton})  -- 改为胶囊形
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.DropdownButton})
     
     self.Options = options or {}
     self.SelectedValue = defaultValue
@@ -312,6 +312,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         BorderSizePixel = 1,
         ClipsDescendants = true,
         Visible = false,
+        ZIndex = 100,  -- 确保层级在选项卡上方
         Parent = self.Container
     })
     
@@ -462,7 +463,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Parent = self.Container
     })
     
-    self.SliderTrack = CreateInstance("TextButton", {  -- 改为TextButton支持点击
+    self.SliderTrack = CreateInstance("TextButton", {
         Name = "SliderTrack",
         Size = UDim2.new(1, 0, 0, 6),
         Position = UDim2.new(0, 0, 0, 30),
@@ -473,7 +474,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Parent = self.Container
     })
     
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderTrack})  -- 改为胶囊形
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderTrack})
     
     self.SliderFill = CreateInstance("Frame", {
         Name = "SliderFill",
@@ -666,7 +667,7 @@ function WasUI:ProcessNotificationQueue()
         Parent = screenGui
     })
     
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = notificationFrame})  -- 改为胶囊形
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = notificationFrame})
     
     local stroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(60, 60, 65),
@@ -788,22 +789,44 @@ function Panel:New(name, parent, size, position)
     
     local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
     
-    local stroke = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(200, 200, 205),
-        Thickness = 1,
+    -- 彩色流动光效边框
+    self.BorderEffect = CreateInstance("Frame", {
+        Name = "BorderEffect",
+        Size = UDim2.new(1, 4, 1, 4),
+        Position = UDim2.new(0, -2, 0, -2),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 0,
         Parent = self.Instance
     })
+    
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderEffect})
+    
+    local borderStroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 0, 0),
+        Thickness = 2,
+        Parent = self.BorderEffect
+    })
+    
+    local borderTime = 0
+    self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        borderTime = borderTime + deltaTime
+        local r = (math.sin(borderTime) + 1) / 2
+        local g = (math.sin(borderTime + math.pi/3) + 1) / 2
+        local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
+        borderStroke.Color = Color3.new(r, g, b)
+    end)
     
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
         Size = UDim2.new(1, 0, 0, 26),
-        Position = UDim2.new(0, 0, 0, 0),  -- 确保贴合顶部
+        Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BorderSizePixel = 0,
         Parent = self.Instance
     })
     
-    local titleCorner = CreateInstance("UICorner", {
+    CreateInstance("UICorner", {
         CornerRadius = UDim.new(0, 10, 0, 0),
         Parent = self.TitleBar
     })
@@ -1021,6 +1044,11 @@ function Panel:New(name, parent, size, position)
         end
         self.SnowFlakes = {}
         
+        if self.BorderConnection then
+            self.BorderConnection:Disconnect()
+            self.BorderConnection = nil
+        end
+        
         self:SetVisible(false) 
     end)
     
@@ -1077,13 +1105,14 @@ function Panel:New(name, parent, size, position)
         Enum.ThumbnailSize.Size60x60
     )
     
-    self.Avatar = CreateInstance("ImageLabel", {
+    self.Avatar = CreateInstance("ImageButton", {  -- 改为ImageButton支持点击
         Name = "Avatar",
         Size = UDim2.new(0, 48, 0, 48),
         Position = UDim2.new(0, 10, 0.15, 0),
         BackgroundColor3 = Color3.fromRGB(240, 240, 245),
         Image = headshot,
         BorderSizePixel = 0,
+        AutoButtonColor = false,
         Parent = self.AnnouncementBar
     })
     
@@ -1093,6 +1122,14 @@ function Panel:New(name, parent, size, position)
         Thickness = 1,
         Parent = self.Avatar
     })
+    
+    self.Avatar.MouseButton1Down:Connect(function()
+        Tween(self.Avatar, {Size = UDim2.new(0, 44, 0, 44)}, 0.1)
+    end)
+    
+    self.Avatar.MouseButton1Up:Connect(function()
+        Tween(self.Avatar, {Size = UDim2.new(0, 48, 0, 48)}, 0.1)
+    end)
     
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
@@ -1151,7 +1188,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(1, 0, 0, 24),
         Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
-        BorderSizePixel = 0,  -- 移除边框
+        BorderSizePixel = 0,
         ScrollBarThickness = 6,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollingEnabled = true,
@@ -1161,7 +1198,7 @@ function Panel:New(name, parent, size, position)
     
     self.TabContainer = CreateInstance("Frame", {
         Name = "TabContainer",
-        Size = UDim2.new(1, 0, 0, 24),  -- 固定高度
+        Size = UDim2.new(1, 0, 0, 24),
         BackgroundTransparency = 1,
         Parent = self.TabBar
     })
@@ -1294,7 +1331,7 @@ end
 function Panel:AddTab(tabName)
     local tabButton = CreateInstance("TextButton", {
         Name = tabName .. "Tab",
-        Size = UDim2.new(0, 70, 1, 0),  -- 紧贴选项卡区域
+        Size = UDim2.new(0, 70, 1, 0),
         BackgroundColor3 = Color3.fromRGB(200, 200, 205),
         BackgroundTransparency = 0.7,
         Text = tabName,
@@ -1309,19 +1346,20 @@ function Panel:AddTab(tabName)
     
     local underlineColor
     if WasUI.CurrentTheme == WasUI.Themes.Light then
-        underlineColor = Color3.fromRGB(76, 175, 80)  -- Light主题下改为绿色
+        underlineColor = Color3.fromRGB(76, 175, 80)  -- Light主题下为绿色
     else
-        underlineColor = Color3.fromRGB(106, 17, 203)  -- 其他主题保持紫色
+        underlineColor = Color3.fromRGB(106, 17, 203)  -- Dark主题下为紫色
     end
     
     local underline = CreateInstance("Frame", {
         Name = "Underline",
-        Size = UDim2.new(0, 0, 0, 2),  -- 减小高度
-        Position = UDim2.new(0.5, 0, 1, 0),  -- 紧贴选项卡按钮
+        Size = UDim2.new(0, 0, 0, 2),
+        Position = UDim2.new(0.5, 0, 1, 0),
         AnchorPoint = Vector2.new(0.5, 0),
         BackgroundColor3 = underlineColor,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
+        ZIndex = 10,  -- 确保层级在选项卡按钮上方
         Parent = tabButton
     })
     
