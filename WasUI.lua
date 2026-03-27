@@ -19,7 +19,6 @@ local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
 WasUI_Folder.Parent = ReplicatedStorage
 
--- 【Dark主题紫色加深】
 WasUI.Themes = {
     Default = {
         Primary = Color3.fromRGB(106, 17, 203),
@@ -36,8 +35,8 @@ WasUI.Themes = {
         TabButton = Color3.fromRGB(255,255,255)
     },
     Dark = {
-        Primary = Color3.fromRGB(80, 0, 160), -- 加深紫色
-        Secondary = Color3.fromRGB(100, 20, 180), -- 加深紫色
+        Primary = Color3.fromRGB(80, 0, 160),
+        Secondary = Color3.fromRGB(100, 20, 180),
         Background = Color3.fromRGB(28, 28, 34),
         Text = Color3.fromRGB(220, 220, 220),
         Accent = Color3.fromRGB(97, 175, 239),
@@ -245,146 +244,151 @@ local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback)
     local self = Control.New(self, name, parent)
-    self.Options = options or {}
-    self.Selected = defaultValue or options[1]
-    self.Callback = callback
-    self.Open = false
-
-    self.Frame = CreateInstance("Frame", {
+    self.Container = CreateInstance("Frame", {
         Name = name,
-        Size = UDim2.new(1, 0, 0, 30),
+        Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
+        ZIndex = 10,
         Parent = parent
     })
-
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(0, 100, 1, 0),
+        Size = UDim2.new(0.7, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        Text = title,
+        Text = title or "下拉菜单",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = self.Frame
+        Parent = self.Container
     })
-
-    self.MainBtn = CreateInstance("TextButton", {
-        Name = "MainBtn",
-        Size = UDim2.new(1, -110, 0, 22),
-        Position = UDim2.new(0, 110, 0.5, -11),
+    self.DropdownButton = CreateInstance("TextButton", {
+        Name = "DropdownButton",
+        Size = UDim2.new(0.3, 0, 0, 24),
+        Position = UDim2.new(0.7, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
-        Text = self.Selected,
+        BorderColor3 = Color3.fromRGB(200, 200, 200),
+        BorderSizePixel = 1,
+        Text = defaultValue or "选择...",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
         AutoButtonColor = false,
-        Parent = self.Frame
+        ZIndex = 11,
+        Parent = self.Container
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0,4), Parent = self.MainBtn})
-
-    self.Arrow = CreateInstance("TextLabel", {
-        Name = "Arrow",
-        Size = UDim2.new(0, 20, 1, 0),
-        Position = UDim2.new(1, -20, 0, 0),
-        BackgroundTransparency = 1,
-        Text = "▼",
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        Parent = self.MainBtn
-    })
-
-    self.DropList = CreateInstance("Frame", {
-        Name = "DropList",
-        Size = UDim2.new(1, 0, 0, 0),
-        Position = UDim2.new(0, 0, 1, 2),
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.DropdownButton})
+    self.Options = options or {}
+    self.SelectedValue = defaultValue
+    self.Callback = callback
+    self.IsOpen = false
+    self.OptionsContainer = CreateInstance("Frame", {
+        Name = "OptionsContainer",
+        Size = UDim2.new(0.3, 0, 0, 0),
+        Position = UDim2.new(0.7, 0, 0, 24),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
-        Visible = false,
+        BorderColor3 = Color3.fromRGB(200, 200, 200),
+        BorderSizePixel = 1,
         ClipsDescendants = true,
-        ZIndex = 9999,
-        Parent = self.MainBtn
+        Visible = false,
+        ZIndex = 999,
+        Parent = self.Container
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0,4), Parent = self.DropList})
-
-    self.ListLayout = CreateInstance("UIListLayout", {
-        FillDirection = Enum.FillDirection.Vertical,
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = self.OptionsContainer})
+    self.OptionsListLayout = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = self.DropList
+        Padding = UDim.new(0, 1),
+        Parent = self.OptionsContainer
     })
-
-    for i, opt in pairs(self.Options) do
-        local Btn = CreateInstance("TextButton", {
-            Name = opt,
-            Size = UDim2.new(1, 0, 0, 22),
-            BackgroundTransparency = 1,
-            Text = opt,
+    for i, option in ipairs(self.Options) do
+        local optionButton = CreateInstance("TextButton", {
+            Name = "Option_" .. option,
+            Size = UDim2.new(1, 0, 0, 24),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BorderSizePixel = 0,
+            Text = option,
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
             TextSize = 12,
-            TextXAlignment = Enum.TextXAlignment.Left,
+            AutoButtonColor = false,
             LayoutOrder = i,
-            Parent = self.DropList
+            ZIndex = 1000,
+            Parent = self.OptionsContainer
         })
-        Btn.MouseEnter:Connect(function()
-            Tween(Btn, {BackgroundColor3 = WasUI.CurrentTheme.Section, BackgroundTransparency = 0}, 0.1)
+        optionButton.MouseEnter:Connect(function()
+            Tween(optionButton, {BackgroundColor3 = Color3.fromRGB(240, 240, 245)}, 0.2)
         end)
-        Btn.MouseLeave:Connect(function()
-            Tween(Btn, {BackgroundColorTransparency = 1}, 0.1)
+        optionButton.MouseLeave:Connect(function()
+            Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.2)
         end)
-        Btn.MouseButton1Click:Connect(function()
-            self.Selected = opt
-            self.MainBtn.Text = opt
-            self:Close()
-            if self.Callback then self.Callback(opt) end
+        optionButton.MouseButton1Click:Connect(function()
+            self.SelectedValue = option
+            self.DropdownButton.Text = option
+            self:CloseDropdown()
+            if self.Callback then
+                self.Callback(option)
+            end
         end)
     end
-
-    self.MainBtn.MouseButton1Click:Connect(function()
-        self.Open = not self.Open
-        if self.Open then
-            self:OpenList()
+    self.DropdownButton.MouseButton1Click:Connect(function()
+        if self.IsOpen then
+            self:CloseDropdown()
         else
-            self:Close()
+            self:OpenDropdown()
         end
     end)
-
-    self.Instance = self.Frame
+    self.Instance = self.Container
     return self
 end
 
-function Dropdown:OpenList()
-    self.Open = true
-    self.Arrow.Text = "▲"
-    self.DropList.Visible = true
-    local height = #self.Options * 22
-    Tween(self.DropList, {Size = UDim2.new(1, 0, 0, height)}, 0.2)
-
-    self.ClickConn = UserInputService.InputBegan:Connect(function(input)
+function Dropdown:OpenDropdown()
+    if self.IsOpen or #self.Options == 0 then return end
+    self.OptionsContainer.Visible = true
+    local maxHeight = math.min(#self.Options * 25, 150)
+    Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, maxHeight)}, 0.3)
+    self.IsOpen = true
+    local function closeIfClickedOutside(input, gameProcessed)
+        if gameProcessed then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local pos = input.Position
-            local min = self.MainBtn.AbsolutePosition
-            local max = min + self.MainBtn.AbsoluteSize
-            local listMin = self.DropList.AbsolutePosition
-            local listMax = listMin + self.DropList.AbsoluteSize
-            if not (pos.X >= min.X and pos.X <= max.X and pos.Y >= min.Y and pos.Y <= max.Y) and not (pos.X >= listMin.X and pos.X <= listMax.X and pos.Y >= listMin.Y and pos.Y <= listMax.Y) then
-                self:Close()
+            local mousePos = input.Position
+            local absolutePos = self.OptionsContainer.AbsolutePosition
+            local absoluteSize = self.OptionsContainer.AbsoluteSize
+            local buttonPos = self.DropdownButton.AbsolutePosition
+            local buttonSize = self.DropdownButton.AbsoluteSize
+            local inButton = mousePos.X >= buttonPos.X and mousePos.X <= buttonPos.X + buttonSize.X and
+                             mousePos.Y >= buttonPos.Y and mousePos.Y <= buttonPos.Y + buttonSize.Y
+            local inOptions = mousePos.X >= absolutePos.X and mousePos.X <= absolutePos.X + absoluteSize.X and
+                              mousePos.Y >= absolutePos.Y and mousePos.Y <= absolutePos.Y + absoluteSize.Y
+            if not inButton and not inOptions then
+                self:CloseDropdown()
             end
         end
-    end)
+    end
+    self.CloseConnection = UserInputService.InputBegan:Connect(closeIfClickedOutside)
 end
 
-function Dropdown:Close()
-    self.Open = false
-    self.Arrow.Text = "▼"
-    Tween(self.DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.2)
+function Dropdown:CloseDropdown()
+    if not self.IsOpen then return end
+    Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, 0)}, 0.2)
     task.wait(0.2)
-    self.DropList.Visible = false
-    if self.ClickConn then
-        self.ClickConn:Disconnect()
-        self.ClickConn = nil
+    self.OptionsContainer.Visible = false
+    self.IsOpen = false
+    if self.CloseConnection then
+        self.CloseConnection:Disconnect()
+        self.CloseConnection = nil
+    end
+end
+
+function Dropdown:GetValue()
+    return self.SelectedValue
+end
+
+function Dropdown:SetValue(value)
+    if table.find(self.Options, value) then
+        self.SelectedValue = value
+        self.DropdownButton.Text = value
     end
 end
 
@@ -737,7 +741,6 @@ function Panel:New(name, parent, size, position)
         Parent = self.TitleBar
     })
 
-    -- 【修复Frame点击事件】改为用InputBegan
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 12, 0, 12),
@@ -772,7 +775,6 @@ function Panel:New(name, parent, size, position)
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
 
-    -- 【修复Frame点击事件】绑定InputBegan
     self.CloseDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             input:SetConsumed(true)
@@ -923,7 +925,6 @@ function Panel:New(name, parent, size, position)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
     CreateInstance("UIStroke", {Color = Color3.fromRGB(220,220,225), Thickness = 1, Parent = self.Avatar})
 
-    -- 公告栏文字紧贴头像8px，靠左排版
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0, 200, 0, 18),
