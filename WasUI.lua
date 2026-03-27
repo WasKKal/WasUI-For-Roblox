@@ -456,7 +456,7 @@ function Panel:New(name, parent, size, position)
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 36, 1, 0),
-        Position = UDim2.new(0, 11, 0, 1.5),
+        Position = UDim2.new(0, 10.5, 0, 1.5),
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = self.TitleBar
@@ -796,7 +796,7 @@ function Panel:AddTab(tabName)
         Text = tabName,
         TextColor3 = Color3.fromRGB(180, 180, 180),
         Font = Enum.Font.Gotham,
-        TextSize = 11,
+        TextSize = 16,
         AutoButtonColor = false,
         Parent = self.TabContainer
     })
