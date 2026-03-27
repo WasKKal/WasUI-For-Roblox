@@ -22,7 +22,8 @@ WasUI_Folder.Parent = ReplicatedStorage
 WasUI.Themes = {
     Default = {
         Primary = Color3.fromRGB(106, 17, 203),
-       40, 245, 250),
+        Secondary = Color3.fromRGB(135, 45, 225),
+        Background = Color3.fromRGB(240, 245, 250),
         Text = Color3.fromRGB(44, 62, 80),
         Accent = Color3.fromRGB(231, 76, 60),
         Success = Color3.fromRGB(46, 204, 113),
