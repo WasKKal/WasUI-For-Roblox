@@ -431,7 +431,6 @@ local function getExecutor()
         return "未知执行器"
     end
 end
-
 local Panel = setmetatable({}, {__index = Control})
 Panel.__index = Panel
 
@@ -812,13 +811,15 @@ function Panel:New(name, parent, size, position)
     
     self.TabBar = CreateInstance("ScrollingFrame", {
         Name = "TabBar",
-        Size = UDim2.new(1, 0, 0, 32),
+        Size = UDim2.new(1, 0, 0, 28),
         Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
         BackgroundColor3 = Color3.fromRGB(35, 35, 40),
         BorderSizePixel = 1,
         BorderColor3 = Color3.fromRGB(60, 60, 65),
-        ScrollBarThickness = 4,
+        ScrollBarThickness = 6,
         CanvasSize = UDim2.new(0, 0, 0, 0),
+        ScrollingEnabled = true,
+        ScrollingDirection = Enum.ScrollingDirection.X,
         Parent = self.Instance
     })
     
@@ -987,13 +988,13 @@ end
 function Panel:AddTab(tabName)
     local tabButton = CreateInstance("TextButton", {
         Name = tabName .. "Tab",
-        Size = UDim2.new(0, 70, 1, -4),
+        Size = UDim2.new(0, 70, 1, -6),
         BackgroundColor3 = Color3.fromRGB(45, 45, 50),
         BackgroundTransparency = 0.7,
         Text = tabName,
         TextColor3 = Color3.fromRGB(180, 180, 180),
         Font = Enum.Font.Gotham,
-        TextSize = 16,
+        TextSize = 13,
         AutoButtonColor = false,
         Parent = self.TabContainer
     })
@@ -1004,6 +1005,40 @@ function Panel:AddTab(tabName)
         Thickness = 1,
         Parent = tabButton
     })
+    
+    local underline = CreateInstance("Frame", {
+        Name = "Underline",
+        Size = UDim2.new(0, 0, 0, 3),
+        Position = UDim2.new(0.5, 0, 1, -1),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.fromRGB(106, 17, 203),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Parent = tabButton
+    })
+    
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 2), Parent = underline})
+    
+    local function animateUnderline(targetWidth, instant)
+        if instant then
+            underline.Size = UDim2.new(0, targetWidth, 0, 3)
+            underline.BackgroundTransparency = 0
+        else
+            underline.Position = UDim2.new(0.5, 0, 1, -1)
+            underline.Size = UDim2.new(0, 2, 0, 3)
+            underline.BackgroundTransparency = 0
+            
+            wait(0.05)
+            
+            Tween(underline, {
+                Size = UDim2.new(0, targetWidth, 0, 3)
+            }, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        end
+    end
+    
+    local function hideUnderline()
+        Tween(underline, {BackgroundTransparency = 1}, 0.2)
+    end
     
     local tabContent = CreateInstance("ScrollingFrame", {
         Name = tabName .. "Content",
@@ -1025,12 +1060,12 @@ function Panel:AddTab(tabName)
         tabContent.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y)
     end)
     
-    tabButton.Size = UDim2.new(0, 0, 1, -4)
+    tabButton.Size = UDim2.new(0, 0, 1, -6)
     tabButton.Visible = false
     
     task.spawn(function()
         tabButton.Visible = true
-        Tween(tabButton, {Size = UDim2.new(0, 70, 1, -4)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        Tween(tabButton, {Size = UDim2.new(0, 70, 1, -6)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
     end)
     
     tabButton.MouseButton1Click:Connect(function()
@@ -1039,14 +1074,23 @@ function Panel:AddTab(tabName)
                 tabButton.BackgroundTransparency = 0
                 tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
                 Tween(tabButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
-                Tween(tabButton, {Size = UDim2.new(0, 75, 1, -4)}, 0.15)
+                
+                animateUnderline(tabButton.AbsoluteSize.X, false)
+                
+                Tween(tabButton, {Size = UDim2.new(0, 75, 1, -6)}, 0.15)
                 task.wait(0.05)
-                Tween(tabButton, {Size = UDim2.new(0, 70, 1, -4)}, 0.1)
+                Tween(tabButton, {Size = UDim2.new(0, 70, 1, -6)}, 0.1)
                 tab.Content.Visible = true
             else
                 tab.Button.BackgroundTransparency = 0.7
                 tab.Button.TextColor3 = Color3.fromRGB(180, 180, 180)
                 Tween(tab.Button, {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}, 0.2)
+                
+                if tab.Button:FindFirstChild("Underline") then
+                    local otherUnderline = tab.Button:FindFirstChild("Underline")
+                    Tween(otherUnderline, {BackgroundTransparency = 1}, 0.2)
+                end
+                
                 tab.Content.Visible = false
             end
         end
@@ -1056,7 +1100,9 @@ function Panel:AddTab(tabName)
     local tab = {
         Name = tabName,
         Button = tabButton,
-        Content = tabContent
+        Content = tabContent,
+        Underline = underline,
+        HideUnderline = hideUnderline
     }
     
     table.insert(self.Tabs, tab)
@@ -1068,6 +1114,9 @@ function Panel:AddTab(tabName)
             tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
             tabButton.BackgroundColor3 = WasUI.CurrentTheme.Primary
             tabContent.Visible = true
+            
+            animateUnderline(tabButton.AbsoluteSize.X, true)
+            
             self.ActiveTab = tabName
         end)
     end
