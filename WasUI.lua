@@ -456,7 +456,7 @@ function Panel:New(name, parent, size, position)
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 36, 1, 0),
-        Position = UDim2.new(0, 12, 0, 1.5),
+        Position = UDim2.new(0, 11, 0, 1.5),
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = self.TitleBar
