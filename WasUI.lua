@@ -531,16 +531,10 @@ function WasUI:ProcessNotificationQueue()
         WasUI:ProcessNotificationQueue()
     end)
 end
-
 local Panel = setmetatable({}, {__index = Control})
 Panel.__index = Panel
 
 function Panel:New(name, parent, size, position)
-    SnowFolder = Instance.new("Folder")
-    SnowFolder.Name = "SnowEffects"
-    SnowFolder.Parent = workspace
-    SnowModule:ToggleSnow(true)
-    
     local self = setmetatable({}, Panel)
     
     local windowWidth = 400
@@ -755,10 +749,6 @@ function Panel:New(name, parent, size, position)
     end)
     
     self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
-    self.CloseButton.MouseButton1Click:Connect(function() 
-        SnowModule:Destroy()
-        self:SetVisible(false) 
-    end)
     
     local dragging = false
     local dragStart
@@ -858,8 +848,8 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     
-    self.SubtitleLabel = CreateInstance("TextLabel", {
-        Name = "SubtitleLabel",
+    self.WelcomeLabel = CreateInstance("TextLabel", {
+        Name = "WelcomeLabel",
         Size = UDim2.new(0.6, 0, 0, 14),
         Position = UDim2.new(0, 68, 0.55, 0),
         BackgroundTransparency = 1,
@@ -870,6 +860,15 @@ function Panel:New(name, parent, size, position)
         TextXAlignment = Enum.TextXAlignment.Left,
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = self.AnnouncementBar
+    })
+    
+    self.SnowContainer = CreateInstance("Frame", {
+        Name = "SnowContainer",
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        ClipsDescendants = true,
+        Parent = self.Instance
     })
     
     self.TabBar = CreateInstance("ScrollingFrame", {
@@ -917,8 +916,86 @@ function Panel:New(name, parent, size, position)
     self.ActiveTab = nil
     self.TabContents = {}
     
+    local snowFlakes = {}
+    
+    local function createSnowflake()
+        local size = math.random(3, 8)
+        local snowflake = CreateInstance("Frame", {
+            Name = "Snowflake",
+            Size = UDim2.new(0, size, 0, size),
+            Position = UDim2.new(math.random(), -size, 0, -size),
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            Parent = self.SnowContainer
+        })
+        
+        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowflake})
+        
+        local speed = math.random(1, 3)
+        local sway = math.random(-2, 2) * 0.1
+        
+        return {
+            Instance = snowflake,
+            Speed = speed,
+            Sway = sway,
+            XOffset = math.random(0, 100)
+        }
+    end
+    
+    local function updateSnowflakes()
+        for i, flake in ipairs(snowFlakes) do
+            if flake.Instance.Parent then
+                local currentY = flake.Instance.Position.Y.Offset
+                local currentX = flake.Instance.Position.X.Offset
+                
+                local newY = currentY + flake.Speed
+                local swayAmount = math.sin(tick() + flake.XOffset) * 20
+                local newX = currentX + flake.Sway + swayAmount * 0.1
+                
+                flake.Instance.Position = UDim2.new(0, newX, 0, newY)
+                
+                if newY > self.SnowContainer.AbsoluteSize.Y then
+                    flake.Instance:Destroy()
+                    table.remove(snowFlakes, i)
+                end
+            end
+        end
+    end
+    
+    local function spawnSnowflakes()
+        if #snowFlakes < 30 and self.Instance.Visible then
+            for i = 1, math.random(1, 3) do
+                local flake = createSnowflake()
+                table.insert(snowFlakes, flake)
+            end
+        end
+    end
+    
+    local snowConnection
+    snowConnection = RunService.Heartbeat:Connect(function()
+        if self.SnowContainer.Visible and self.Instance.Visible then
+            updateSnowflakes()
+            spawnSnowflakes()
+        end
+    end)
+    
+    self.CloseButton.MouseButton1Click:Connect(function() 
+        if snowConnection then
+            snowConnection:Disconnect()
+        end
+        for _, flake in ipairs(snowFlakes) do
+            if flake.Instance then
+                flake.Instance:Destroy()
+            end
+        end
+        snowFlakes = {}
+        self:SetVisible(false) 
+    end)
+    
     return self
 end
+
 function Panel:SetUsername(text)
     if self.Username then
         self.Username.Text = "玩家: " .. tostring(text)
@@ -1173,16 +1250,23 @@ function WasUI.RemoveRainbowText(text)
 end
 
 function WasUI:ToggleSnowfall(enabled)
-    SnowModule:ToggleSnow(enabled)
+    if self.CurrentWindow and self.CurrentWindow.SnowContainer then
+        self.CurrentWindow.SnowContainer.Visible = enabled
+    end
 end
 
 function WasUI:IsSnowfallEnabled()
-    return SnowEnabled
+    if self.CurrentWindow and self.CurrentWindow.SnowContainer then
+        return self.CurrentWindow.SnowContainer.Visible
+    end
+    return false
 end
 
 return {
     CreateWindow = function(title, size, position, displayOrder)
-        return WasUI:CreateWindow(title, size, position, displayOrder)
+        local window = WasUI:CreateWindow(title, size, position, displayOrder)
+        WasUI.CurrentWindow = window
+        return window
     end,
     SetTheme = function(themeName)
         if WasUI.Themes[themeName] then
