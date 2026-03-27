@@ -60,7 +60,7 @@ WasUI.Themes = {
         Input = Color3.fromRGB(241, 243, 244),
         TabBorder = Color3.fromRGB(220, 220, 220),
         TabButton = Color3.fromRGB(255, 255, 255)
-    }
+    },
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
 
