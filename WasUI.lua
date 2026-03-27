@@ -19,6 +19,7 @@ local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
 WasUI_Folder.Parent = ReplicatedStorage
 
+-- 【Dark主题紫色加深】
 WasUI.Themes = {
     Default = {
         Primary = Color3.fromRGB(106, 17, 203),
@@ -35,8 +36,8 @@ WasUI.Themes = {
         TabButton = Color3.fromRGB(255,255,255)
     },
     Dark = {
-        Primary = Color3.fromRGB(106, 17, 203),
-        Secondary = Color3.fromRGB(135, 45, 225),
+        Primary = Color3.fromRGB(80, 0, 160), -- 加深紫色
+        Secondary = Color3.fromRGB(100, 20, 180), -- 加深紫色
         Background = Color3.fromRGB(28, 28, 34),
         Text = Color3.fromRGB(220, 220, 220),
         Accent = Color3.fromRGB(97, 175, 239),
@@ -240,7 +241,6 @@ function Category:New(name, parent, title)
     return self
 end
 
--- ====================== 【重写修复下拉菜单】风格不变，完全可用 ======================
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback)
@@ -266,7 +266,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
-        TextXAlignment = Enum.TextLeft,
+        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.Frame
     })
 
@@ -279,7 +279,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
-        TextXAlignment = Enum.TextLeft,
+        TextXAlignment = Enum.TextXAlignment.Left,
         AutoButtonColor = false,
         Parent = self.Frame
     })
@@ -324,7 +324,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
             TextSize = 12,
-            TextXAlignment = Enum.TextLeft,
+            TextXAlignment = Enum.TextXAlignment.Left,
             LayoutOrder = i,
             Parent = self.DropList
         })
@@ -387,7 +387,6 @@ function Dropdown:Close()
         self.ClickConn = nil
     end
 end
--- ==============================================================================
 
 local Slider = setmetatable({}, {__index = Control})
 Slider.__index = Slider
@@ -738,16 +737,7 @@ function Panel:New(name, parent, size, position)
         Parent = self.TitleBar
     })
 
-    self.DotAreaButton = CreateInstance("ImageButton", {
-        Name = "DotAreaButton",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Image = "",
-        AutoButtonColor = false,
-        ZIndex = 2,
-        Parent = self.DotContainer
-    })
-
+    -- 【修复Frame点击事件】改为用InputBegan
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 12, 0, 12),
@@ -781,6 +771,31 @@ function Panel:New(name, parent, size, position)
     for _, dot in ipairs({self.CloseDot, self.MinimizeDot, self.MaximizeDot}) do
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
+
+    -- 【修复Frame点击事件】绑定InputBegan
+    self.CloseDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            input:SetConsumed(true)
+            self:SetVisible(false)
+        end
+    end)
+
+    self.MinimizeDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            input:SetConsumed(true)
+            if self.IsMinimized then
+                self:RestoreFromDots()
+            else
+                self:MinimizeToDots()
+            end
+        end
+    end)
+
+    self.MaximizeDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            input:SetConsumed(true)
+        end
+    end)
 
     self.MinimizeButton = CreateInstance("TextButton", {
         Name = "MinimizeButton",
@@ -836,14 +851,19 @@ function Panel:New(name, parent, size, position)
         self.IsMinimized = false
     end
 
+    self.DotAreaButton = CreateInstance("ImageButton", {
+        Name = "DotAreaButton",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Image = "",
+        AutoButtonColor = false,
+        ZIndex = 2,
+        Parent = self.DotContainer
+    })
+
     self.DotAreaButton.MouseButton1Click:Connect(function()
         if self.IsMinimized then self:RestoreFromDots() else self:MinimizeToDots() end
     end)
-    self.CloseDot.MouseButton1Click:Connect(function() self:SetVisible(false) end)
-    self.MinimizeDot.MouseButton1Click:Connect(function()
-        if self.IsMinimized then self:RestoreFromDots() else self:MinimizeToDots() end
-    end)
-    self.MaximizeDot.MouseButton1Click:Connect(function() end)
 
     self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
     self.CloseButton.MouseButton1Click:Connect(function() 
@@ -855,20 +875,27 @@ function Panel:New(name, parent, size, position)
     end)
 
     local dragging = false
+    local dragStart, startPos
     self.DraggableArea.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
-            local start = input.Position
-            local pos = self.Instance.Position
-            while dragging do
-                local delta = input.Position - start
-                self.Instance.Position = UDim2.new(pos.X.Scale, pos.X.Offset + delta.X, pos.Y.Scale, pos.Y.Offset + delta.Y)
-                task.wait()
-            end
+            dragStart = input.Position
+            startPos = self.Instance.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            self.Instance.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
         end
     end)
     UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
     end)
 
     local announcementHeight = 80
@@ -884,7 +911,6 @@ function Panel:New(name, parent, size, position)
     local player = Players.LocalPlayer
     local headshot = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size60x60)
     
-    -- ====================== 【公告栏布局修复】紧贴头像右侧8px，靠左排版 ======================
     self.Avatar = CreateInstance("ImageButton", {
         Name = "Avatar",
         Size = UDim2.new(0, 48, 0, 48),
@@ -897,7 +923,7 @@ function Panel:New(name, parent, size, position)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
     CreateInstance("UIStroke", {Color = Color3.fromRGB(220,220,225), Thickness = 1, Parent = self.Avatar})
 
-    -- 文字全部靠左，间距头像8px
+    -- 公告栏文字紧贴头像8px，靠左排版
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0, 200, 0, 18),
@@ -907,7 +933,7 @@ function Panel:New(name, parent, size, position)
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 13,
-        TextXAlignment = Enum.TextLeft,
+        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
 
@@ -920,7 +946,7 @@ function Panel:New(name, parent, size, position)
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
-        TextXAlignment = Enum.TextLeft,
+        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
 
@@ -933,10 +959,9 @@ function Panel:New(name, parent, size, position)
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 11,
-        TextXAlignment = Enum.TextLeft,
+        TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
-    -- ========================================================================================
 
     self.SnowContainer = CreateInstance("Frame", {
         Name = "SnowContainer",
