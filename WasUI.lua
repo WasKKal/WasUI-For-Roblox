@@ -6,7 +6,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 if _G.WasUILoaded then
-    warn("WasUI å·²å è½½ï¼è·³è¿éå¤å è½½")
+    warn("WasUI 已加载，跳过重复加载")
     return _G.WasUIModule
 end
 _G.WasUILoaded = true
@@ -102,7 +102,7 @@ function Button:New(name, parent, text, onClick)
         Name = name,
         Size = UDim2.new(1, 0, 0, 28),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        Text = text or "æé®",
+        Text = text or "按钮",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
@@ -174,7 +174,7 @@ function Label:New(name, parent, text)
         Name = name,
         Size = UDim2.new(1, 0, 0, 20),
         BackgroundTransparency = 1,
-        Text = text or "æ ç­¾",
+        Text = text or "标签",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -233,7 +233,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Size = UDim2.new(0.7, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        Text = title or "ä¸æèå",
+        Text = title or "下拉菜单",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -247,7 +247,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
         BorderSizePixel = 1,
-        Text = defaultValue or "éæ©...",
+        Text = defaultValue or "选择...",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -340,7 +340,7 @@ end
 function Dropdown:CloseDropdown()
     if not self.IsOpen then return end
     Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, 0)}, 0.2)
-    task.wait(0.2)
+    wait(0.2)
     self.OptionsContainer.Visible = false
     self.IsOpen = false
     if self.CloseConnection then
@@ -372,7 +372,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Size = UDim2.new(0.7, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        Text = title or "æ»å",
+        Text = title or "滑块",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -522,85 +522,82 @@ WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
 WasUI.NotificationWidth = 250
 function WasUI:Notify(options)
-    task.spawn(function()
-        local config = {
-            Content = options.Content or "éç¥",
-            Duration = options.Duration or 3,
-            Type = options.Type or "Info"
-        }
-        local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-        local screenGui = CreateInstance("ScreenGui", {
-            Name = "WasUI_Notification_" .. tick(),
-            ResetOnSpawn = false,
-            DisplayOrder = 999,
-            Parent = playerGui
-        })
-        local notificationFrame = CreateInstance("Frame", {
-            Name = "Notification",
-            Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
-            Position = UDim2.new(1, 10, 0, 20),
-            BackgroundColor3 = Color3.fromRGB(30, 30, 35),
-            BackgroundTransparency = 0.3,
-            Parent = screenGui
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = notificationFrame})
-        local stroke = CreateInstance("UIStroke", {
-            Color = Color3.fromRGB(60, 60, 65),
-            Thickness = 1,
-            Parent = notificationFrame
-        })
-        local textLabel = CreateInstance("TextLabel", {
-            Name = "Content",
-            Size = UDim2.new(0.9, 0, 0.8, 0),
-            Position = UDim2.new(0.05, 0, 0.1, 0),
-            BackgroundTransparency = 1,
-            Text = config.Content,
-            TextColor3 = Color3.fromRGB(255, 255, 255),
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 12,
-            TextWrapped = true,
-            Parent = notificationFrame
-        })
-        local notificationId = tostring(tick())
-        local notificationData = {
-            Instance = notificationFrame,
-            ScreenGui = screenGui,
-            Height = WasUI.NotificationHeight
-        }
-        WasUI.ActiveNotifications[notificationId] = notificationData
-        local function calculatePosition(index)
-            return (index - 1) * (WasUI.NotificationHeight + WasUI.NotificationSpacing) + WasUI.NotificationTop
+    local config = {
+        Content = options.Content or "通知",
+        Duration = options.Duration or 3,
+        Type = options.Type or "Info"
+    }
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "WasUI_Notification_" .. tick(),
+        ResetOnSpawn = false,
+        DisplayOrder = 999,
+        Parent = playerGui
+    })
+    local notificationFrame = CreateInstance("Frame", {
+        Name = "Notification",
+        Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
+        Position = UDim2.new(1, 10, 0, 20),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 35),
+        BackgroundTransparency = 0.3,
+        Parent = screenGui
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = notificationFrame})
+    local stroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(60, 60, 65),
+        Thickness = 1,
+        Parent = notificationFrame
+    })
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "Content",
+        Size = UDim2.new(0.9, 0, 0.8, 0),
+        Position = UDim2.new(0.05, 0, 0.1, 0),
+        BackgroundTransparency = 1,
+        Text = config.Content,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 12,
+        TextWrapped = true,
+        Parent = notificationFrame
+    })
+    local notificationId = tostring(tick())
+    local notificationData = {
+        Instance = notificationFrame,
+        ScreenGui = screenGui,
+        Height = WasUI.NotificationHeight
+    }
+    WasUI.ActiveNotifications[notificationId] = notificationData
+    local function calculatePosition(index)
+        return (index - 1) * (WasUI.NotificationHeight + WasUI.NotificationSpacing) + WasUI.NotificationTop
+    end
+    local function updateAllNotificationPositions()
+        local sortedIds = {}
+        for id, _ in pairs(WasUI.ActiveNotifications) do
+            table.insert(sortedIds, id)
         end
-        local function updateAllNotificationPositions()
-            local sortedIds = {}
-            for id, _ in pairs(WasUI.ActiveNotifications) do
-                table.insert(sortedIds, id)
-            end
-            table.sort(sortedIds, function(a, b)
-                return tonumber(a) < tonumber(b)
-            end)
-            for i, id in ipairs(sortedIds) do
-                local notification = WasUI.ActiveNotifications[id]
-                if notification and notification.Instance and notification.Instance.Parent then
-                    local targetY = calculatePosition(i)
-                    Tween(notification.Instance, {
-                        Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, targetY)
-                    }, 0.3)
-                end
-            end
-        end
-        updateAllNotificationPositions()
-        task.delay(config.Duration, function()
-            local fadeOut = Tween(notificationFrame, {BackgroundTransparency = 1}, 0.5)
-            Tween(textLabel, {TextTransparency = 1}, 0.5)
-            Tween(stroke, {Transparency = 1}, 0.5)
-            fadeOut.Completed:Connect(function()
-                screenGui:Destroy()
-                WasUI.ActiveNotifications[notificationId] = nil
-                task.wait(0.1)
-                updateAllNotificationPositions()
-            end)
+        table.sort(sortedIds, function(a, b)
+            return tonumber(a) < tonumber(b)
         end)
+        for i, id in ipairs(sortedIds) do
+            local notification = WasUI.ActiveNotifications[id]
+            if notification and notification.Instance and notification.Instance.Parent then
+                local targetY = calculatePosition(i)
+                Tween(notification.Instance, {
+                    Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, targetY)
+                }, 0.3)
+            end
+        end
+    end
+    updateAllNotificationPositions()
+    wait(config.Duration)
+    local fadeOut = Tween(notificationFrame, {BackgroundTransparency = 1}, 0.5)
+    Tween(textLabel, {TextTransparency = 1}, 0.5)
+    Tween(stroke, {Transparency = 1}, 0.5)
+    fadeOut.Completed:Connect(function()
+        screenGui:Destroy()
+        WasUI.ActiveNotifications[notificationId] = nil
+        wait(0.1)
+        updateAllNotificationPositions()
     end)
 end
 local function getExecutor()
@@ -621,7 +618,7 @@ local function getExecutor()
     elseif get_hidden_ui then
         return "Hydrogen"
     else
-        return "æªç¥æ§è¡å¨"
+        return "未知执行器"
     end
 end
 local Panel = setmetatable({}, {__index = Control})
@@ -642,20 +639,27 @@ function Panel:New(name, parent, size, position)
     local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
     self.BorderEffect = CreateInstance("Frame", {
         Name = "BorderEffect",
-        Size = UDim2.new(1, 0, 1, 0),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(1, 4, 1, 4),
+        Position = self.Instance.Position,
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        ZIndex = 0,
-        Parent = self.Instance
+        ZIndex = -1,
+        Parent = self.Instance.Parent
     })
     local borderCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderEffect})
     local borderStroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
         Thickness = 2,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Outside,
         Parent = self.BorderEffect
     })
+    self.Instance:GetPropertyChangedSignal("Position"):Connect(function()
+        self.BorderEffect.Position = self.Instance.Position
+    end)
+    self.Instance:GetPropertyChangedSignal("Size"):Connect(function()
+        self.BorderEffect.Size = UDim2.new(self.Instance.Size.X.Scale, self.Instance.Size.X.Offset + 4, self.Instance.Size.Y.Scale, self.Instance.Size.Y.Offset + 4)
+    end)
     local borderTime = 0
     self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
         borderTime = borderTime + deltaTime
@@ -761,7 +765,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0, 22, 0, 22),
         Position = UDim2.new(1, -28, 0, 2),
         BackgroundTransparency = 1,
-        Text = "Ã",
+        Text = "×",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamBold,
         TextSize = 16,
@@ -866,6 +870,9 @@ function Panel:New(name, parent, size, position)
             self.BorderConnection:Disconnect()
             self.BorderConnection = nil
         end
+        if self.BorderEffect then
+            self.BorderEffect:Destroy()
+        end
         self:SetVisible(false) 
     end)
     local dragging = false
@@ -940,7 +947,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 18),
         Position = UDim2.new(0, 68, 0.12, 0),
         BackgroundTransparency = 1,
-        Text = "ç©å®¶: " .. player.Name,
+        Text = "玩家: " .. player.Name,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 13,
@@ -953,7 +960,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 16),
         Position = UDim2.new(0, 68, 0.35, 0),
         BackgroundTransparency = 1,
-        Text = "æ¨çæ§è¡å¨ä¸º: " .. getExecutor(),
+        Text = "您的执行器为: " .. getExecutor(),
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -966,7 +973,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 14),
         Position = UDim2.new(0, 68, 0.55, 0),
         BackgroundTransparency = 1,
-        Text = "æ¬¢è¿ä½¿ç¨WasUI",
+        Text = "欢迎使用WasUI",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 11,
@@ -998,6 +1005,7 @@ function Panel:New(name, parent, size, position)
     self.TabContainer = CreateInstance("Frame", {
         Name = "TabContainer",
         Size = UDim2.new(1, 0, 0, 24),
+        Position = UDim2.new(0, 10, 0, 0),
         BackgroundTransparency = 1,
         Parent = self.TabBar
     })
@@ -1137,292 +1145,292 @@ function Panel:AddTab(tabName)
         Parent = tabButton
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 1), Parent = underline})
-local function animateUnderline(targetWidth, instant)
-if instant then
-underline.Size = UDim2.new(0, targetWidth, 0, 2)
-underline.BackgroundTransparency = 0
-else
-underline.Position = UDim2.new(0.5, 0, 1, 0)
-underline.Size = UDim2.new(0, 2, 0, 2)
-underline.BackgroundTransparency = 0
-wait(0.05)
-Tween(underline, {Size = UDim2.new(0, targetWidth, 0, 2)}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-end
-end
-local function hideUnderline()
-Tween(underline, {BackgroundTransparency = 1}, 0.2)
-end
-local tabContent = CreateInstance("ScrollingFrame", {
-Name = tabName .. "Content",
-Size = UDim2.new(1, 0, 1, 0),
-BackgroundTransparency = 1,
-Visible = false,
-ScrollBarThickness = 0,
-CanvasSize = UDim2.new(0, 0, 0, 0),
-Parent = self.ContentArea
-})
-local contentLayout = CreateInstance("UIListLayout", {
-SortOrder = Enum.SortOrder.LayoutOrder,
-Padding = UDim.new(0, 4),
-Parent = tabContent
-})
-local function checkEmptyTab()
-task.wait(0.5)
-if #tabContent:GetChildren() <= 1 then
-local emptyLabel = CreateInstance("TextLabel", {
-Name = "EmptyTabMessage",
-Size = UDim2.new(1, 0, 0, 60),
-Position = UDim2.new(0, 0, 0, 20),
-BackgroundTransparency = 1,
-Text = "è¯·æ£æ¥æ¯å¦ç»å®äºæ§ä»¶å°æ­¤é¡µé¢æ¥çæ§å¶å°è¾åºä»¥ä¿®å¤é®é¢",
-TextColor3 = WasUI.CurrentTheme.Error,
-Font = Enum.Font.GothamSemibold,
-TextSize = 14,
-TextWrapped = true,
-TextXAlignment = Enum.TextXAlignment.Center,
-TextYAlignment = Enum.TextYAlignment.Center,
-Parent = tabContent
-})
-warn("éé¡¹å¡ '" .. tabName .. "' ä¸­æ²¡ææ§ä»¶ãè¯·æ£æ¥æ¯å¦è°ç¨äºæ­£ç¡®çAddæ¹æ³ã")
-end
-end
-spawn(checkEmptyTab)
-contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-tabContent.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y)
-end)
-tabButton.Size = UDim2.new(0, 0, 1, 0)
-tabButton.Visible = false
-task.spawn(function()
-tabButton.Visible = true
-Tween(tabButton, {Size = UDim2.new(0, 70, 1, 0)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-end)
-tabButton.MouseButton1Click:Connect(function()
-for _, tab in pairs(self.Tabs) do
-if tab.Button == tabButton then
-tabButton.BackgroundTransparency = 0
-tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-Tween(tabButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
-animateUnderline(tabButton.AbsoluteSize.X, false)
-Tween(tabButton, {Size = UDim2.new(0, 75, 1, 0)}, 0.15)
-task.wait(0.05)
-Tween(tabButton, {Size = UDim2.new(0, 70, 1, 0)}, 0.1)
-tab.Content.Visible = true
-else
-tab.Button.BackgroundTransparency = 0.7
-tab.Button.TextColor3 = Color3.fromRGB(100, 100, 105)
-Tween(tab.Button, {BackgroundColor3 = Color3.fromRGB(200, 200, 205)}, 0.2)
-if tab.Button:FindFirstChild("Underline") then
-local otherUnderline = tab.Button:FindFirstChild("Underline")
-Tween(otherUnderline, {BackgroundTransparency = 1}, 0.2)
-end
-tab.Content.Visible = false
-end
-end
-self.ActiveTab = tabName
-end)
-local tab = {
-Name = tabName,
-Button = tabButton,
-Content = tabContent,
-Underline = underline,
-HideUnderline = hideUnderline
-}
-table.insert(self.Tabs, tab)
-self.TabContents[tabName] = tabContent
-if #self.Tabs == 1 then
-task.spawn(function()
-tabButton.BackgroundTransparency = 0
-tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-tabButton.BackgroundColor3 = WasUI.CurrentTheme.Primary
-tabContent.Visible = true
-animateUnderline(tabButton.AbsoluteSize.X, true)
-self.ActiveTab = tabName
-end)
-end
-return tabContent
+    local function animateUnderline(targetWidth, instant)
+        if instant then
+            underline.Size = UDim2.new(0, targetWidth, 0, 2)
+            underline.BackgroundTransparency = 0
+        else
+            underline.Position = UDim2.new(0.5, 0, 1, 0)
+            underline.Size = UDim2.new(0, 2, 0, 2)
+            underline.BackgroundTransparency = 0
+            wait(0.05)
+            Tween(underline, {Size = UDim2.new(0, targetWidth, 0, 2)}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        end
+    end
+    local function hideUnderline()
+        Tween(underline, {BackgroundTransparency = 1}, 0.2)
+    end
+    local tabContent = CreateInstance("ScrollingFrame", {
+        Name = tabName .. "Content",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Visible = false,
+        ScrollBarThickness = 0,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        Parent = self.ContentArea
+    })
+    local contentLayout = CreateInstance("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 4),
+        Parent = tabContent
+    })
+    local function checkEmptyTab()
+        task.wait(0.5)
+        if #tabContent:GetChildren() <= 1 then
+            local emptyLabel = CreateInstance("TextLabel", {
+                Name = "EmptyTabMessage",
+                Size = UDim2.new(1, 0, 0, 60),
+                Position = UDim2.new(0, 0, 0, 20),
+                BackgroundTransparency = 1,
+                Text = "请检查是否绑定了控件到此页面查看控制台输出以修复问题",
+                TextColor3 = WasUI.CurrentTheme.Error,
+                Font = Enum.Font.GothamSemibold,
+                TextSize = 14,
+                TextWrapped = true,
+                TextXAlignment = Enum.TextXAlignment.Center,
+                TextYAlignment = Enum.TextYAlignment.Center,
+                Parent = tabContent
+            })
+            warn("选项卡 '" .. tabName .. "' 中没有控件。请检查是否调用了正确的Add方法。")
+        end
+    end
+    spawn(checkEmptyTab)
+    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        tabContent.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y)
+    end)
+    tabButton.Size = UDim2.new(0, 0, 1, 0)
+    tabButton.Visible = false
+    task.spawn(function()
+        tabButton.Visible = true
+        Tween(tabButton, {Size = UDim2.new(0, 70, 1, 0)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    end)
+    tabButton.MouseButton1Click:Connect(function()
+        for _, tab in pairs(self.Tabs) do
+            if tab.Button == tabButton then
+                tabButton.BackgroundTransparency = 0
+                tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+                Tween(tabButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
+                animateUnderline(tabButton.AbsoluteSize.X, false)
+                Tween(tabButton, {Size = UDim2.new(0, 75, 1, 0)}, 0.15)
+                task.wait(0.05)
+                Tween(tabButton, {Size = UDim2.new(0, 70, 1, 0)}, 0.1)
+                tab.Content.Visible = true
+            else
+                tab.Button.BackgroundTransparency = 0.7
+                tab.Button.TextColor3 = Color3.fromRGB(100, 100, 105)
+                Tween(tab.Button, {BackgroundColor3 = Color3.fromRGB(200, 200, 205)}, 0.2)
+                if tab.Button:FindFirstChild("Underline") then
+                    local otherUnderline = tab.Button:FindFirstChild("Underline")
+                    Tween(otherUnderline, {BackgroundTransparency = 1}, 0.2)
+                end
+                tab.Content.Visible = false
+            end
+        end
+        self.ActiveTab = tabName
+    end)
+    local tab = {
+        Name = tabName,
+        Button = tabButton,
+        Content = tabContent,
+        Underline = underline,
+        HideUnderline = hideUnderline
+    }
+    table.insert(self.Tabs, tab)
+    self.TabContents[tabName] = tabContent
+    if #self.Tabs == 1 then
+        task.spawn(function()
+            tabButton.BackgroundTransparency = 0
+            tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            tabButton.BackgroundColor3 = WasUI.CurrentTheme.Primary
+            tabContent.Visible = true
+            animateUnderline(tabButton.AbsoluteSize.X, true)
+            self.ActiveTab = tabName
+        end)
+    end
+    return tabContent
 end
 function Panel:SetUsername(text)
-if self.Username then
-self.Username.Text = "ç©å®¶: " .. tostring(text)
-end
+    if self.Username then
+        self.Username.Text = "玩家: " .. tostring(text)
+    end
 end
 function Panel:SetWelcomeText(text)
-if self.WelcomeLabel then
-self.WelcomeLabel.Text = tostring(text)
-end
+    if self.WelcomeLabel then
+        self.WelcomeLabel.Text = tostring(text)
+    end
 end
 function Panel:SetVersionInfo(versionText)
-if self.VersionLabel then
-self.VersionLabel.Instance.Text = "çæ¬: " .. tostring(versionText)
-end
+    if self.VersionLabel then
+        self.VersionLabel.Instance.Text = "版本: " .. tostring(versionText)
+    end
 end
 function Panel:SetAuthorInfo(authorText)
-if self.AuthorLabel then
-self.AuthorLabel.Instance.Text = "ä½è: " .. tostring(authorText)
-end
+    if self.AuthorLabel then
+        self.AuthorLabel.Instance.Text = "作者: " .. tostring(authorText)
+    end
 end
 function Panel:SetGithubInfo(githubText)
-if self.GithubLabel then
-self.GithubLabel.Instance.Text = "GitHub: " .. tostring(githubText)
-end
+    if self.GithubLabel then
+        self.GithubLabel.Instance.Text = "GitHub: " .. tostring(githubText)
+    end
 end
 function Panel:AddButton(text, onClick, tabName)
-local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-local button = Button:New("Button" .. text, targetContent, text, onClick)
-return button
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    local button = Button:New("Button_" .. text, targetContent, text, onClick)
+    return button
 end
 function Panel:AddLabel(text, tabName)
-local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-local label = Label:New("Label_" .. text, targetContent, text)
-return label
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    local label = Label:New("Label_" .. text, targetContent, text)
+    return label
 end
 function Panel:AddToggle(text, initialState, onToggle, tabName)
-local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-local toggleContainer = CreateInstance("Frame", {
-Name = "ToggleContainer_" .. text,
-Size = UDim2.new(1, 0, 0, 28),
-BackgroundTransparency = 1,
-Parent = targetContent
-})
-local toggleLabel = CreateInstance("TextLabel", {
-Name = "ToggleLabel",
-Size = UDim2.new(0.7, 0, 1, 0),
-Position = UDim2.new(0, 0, 0, 0),
-BackgroundTransparency = 1,
-Text = text,
-TextColor3 = WasUI.CurrentTheme.Text,
-Font = Enum.Font.Gotham,
-TextSize = 12,
-TextXAlignment = Enum.TextXAlignment.Left,
-TextWrapped = true,
-Parent = toggleContainer
-})
-local toggleSwitch = ToggleSwitch:New("Toggle", toggleContainer, initialState, onToggle)
-return toggleSwitch
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    local toggleContainer = CreateInstance("Frame", {
+        Name = "ToggleContainer_" .. text,
+        Size = UDim2.new(1, 0, 0, 28),
+        BackgroundTransparency = 1,
+        Parent = targetContent
+    })
+    local toggleLabel = CreateInstance("TextLabel", {
+        Name = "ToggleLabel",
+        Size = UDim2.new(0.7, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextWrapped = true,
+        Parent = toggleContainer
+    })
+    local toggleSwitch = ToggleSwitch:New("Toggle", toggleContainer, initialState, onToggle)
+    return toggleSwitch
 end
 function Panel:AddDropdown(title, options, defaultValue, callback, tabName)
-local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-if not targetContent then
-return nil
-end
-local dropdown = Dropdown:New("Dropdown_" .. title, targetContent, title, options, defaultValue, callback)
-return dropdown
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    if not targetContent then
+        return nil
+    end
+    local dropdown = Dropdown:New("Dropdown_" .. title, targetContent, title, options, defaultValue, callback)
+    return dropdown
 end
 function Panel:AddSlider(title, min, max, defaultValue, callback, tabName)
-local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-if not targetContent then
-return nil
-end
-local slider = Slider:New("Slider_" .. title, targetContent, title, min, max, defaultValue, callback)
-return slider
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    if not targetContent then
+        return nil
+    end
+    local slider = Slider:New("Slider_" .. title, targetContent, title, min, max, defaultValue, callback)
+    return slider
 end
 function Panel:MinimizeWindow()
-if self.MinimizeToDots then
-self.MinimizeToDots()
-end
+    if self.MinimizeToDots then
+        self.MinimizeToDots()
+    end
 end
 function Panel:RestoreWindow()
-if self.RestoreFromDots then
-self.RestoreFromDots()
-end
+    if self.RestoreFromDots then
+        self.RestoreFromDots()
+    end
 end
 function WasUI:CreateWindow(title, size, position, displayOrder)
-displayOrder = displayOrder or WasUI.DefaultDisplayOrder
-local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-local screenGui = CreateInstance("ScreenGui", {
-Name = "WasUI_Window",
-ResetOnSpawn = false,
-DisplayOrder = displayOrder,
-Parent = playerGui
-})
-local window = Panel:New(tostring(title), screenGui, size, position)
-return window
+    displayOrder = displayOrder or WasUI.DefaultDisplayOrder
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "WasUI_Window",
+        ResetOnSpawn = false,
+        DisplayOrder = displayOrder,
+        Parent = playerGui
+    })
+    local window = Panel:New(tostring(title), screenGui, size, position)
+    return window
 end
 function WasUI:SaveConfig(key, data)
-local keyStr = tostring(key)
-local configValue = WasUI_Folder:FindFirstChild(keyStr)
-if not configValue then
-configValue = CreateInstance("StringValue", {
-Name = keyStr,
-Parent = WasUI_Folder
-})
-end
-configValue.Value = tostring(data)
+    local keyStr = tostring(key)
+    local configValue = WasUI_Folder:FindFirstChild(keyStr)
+    if not configValue then
+        configValue = CreateInstance("StringValue", {
+            Name = keyStr,
+            Parent = WasUI_Folder
+        })
+    end
+    configValue.Value = tostring(data)
 end
 function WasUI:LoadConfig(key, default)
-local keyStr = tostring(key)
-local configValue = WasUI_Folder:FindFirstChild(keyStr)
-if configValue and configValue.Value ~= "" then
-return configValue.Value
-end
-return default
+    local keyStr = tostring(key)
+    local configValue = WasUI_Folder:FindFirstChild(keyStr)
+    if configValue and configValue.Value ~= "" then
+        return configValue.Value
+    end
+    return default
 end
 function WasUI.SetDisplayOrder(order)
-WasUI.DefaultDisplayOrder = order
+    WasUI.DefaultDisplayOrder = order
 end
 function WasUI.CreateRainbowText(text, position)
-return CreateRainbowText(text, position)
+    return CreateRainbowText(text, position)
 end
 function WasUI.RemoveRainbowText(text)
-RemoveRainbowText(text)
+    return RemoveRainbowText(text)
 end
 function WasUI:ToggleSnowfall(enabled)
-if self.CurrentWindow and self.CurrentWindow.SnowContainer then
-self.CurrentWindow.SnowEnabled = enabled
-self.CurrentWindow.SnowContainer.Visible = enabled
-if enabled and not self.CurrentWindow.SnowConnection then
-self.CurrentWindow.SnowConnection = RunService.Heartbeat:Connect(function()
-if self.CurrentWindow.SnowContainer.Visible and self.CurrentWindow.Instance.Visible then
-self.CurrentWindow:UpdateSnowflakes()
-self.CurrentWindow:SpawnSnowflakes()
-end
-end)
-elseif not enabled and self.CurrentWindow.SnowConnection then
-self.CurrentWindow.SnowConnection:Disconnect()
-self.CurrentWindow.SnowConnection = nil
-for _, flake in ipairs(self.CurrentWindow.SnowFlakes) do
-if flake.Instance then
-flake.Instance:Destroy()
-end
-end
-self.CurrentWindow.SnowFlakes = {}
-end
-end
+    if self.CurrentWindow and self.CurrentWindow.SnowContainer then
+        self.CurrentWindow.SnowEnabled = enabled
+        self.CurrentWindow.SnowContainer.Visible = enabled
+        if enabled and not self.CurrentWindow.SnowConnection then
+            self.CurrentWindow.SnowConnection = RunService.Heartbeat:Connect(function()
+                if self.CurrentWindow.SnowContainer.Visible and self.CurrentWindow.Instance.Visible then
+                    self.CurrentWindow:UpdateSnowflakes()
+                    self.CurrentWindow:SpawnSnowflakes()
+                end
+            end)
+        elseif not enabled and self.CurrentWindow.SnowConnection then
+            self.CurrentWindow.SnowConnection:Disconnect()
+            self.CurrentWindow.SnowConnection = nil
+            for _, flake in ipairs(self.CurrentWindow.SnowFlakes) do
+                if flake.Instance then
+                    flake.Instance:Destroy()
+                end
+            end
+            self.CurrentWindow.SnowFlakes = {}
+        end
+    end
 end
 function WasUI:IsSnowfallEnabled()
-if self.CurrentWindow and self.CurrentWindow.SnowContainer then
-return self.CurrentWindow.SnowEnabled
-end
-return false
+    if self.CurrentWindow and self.CurrentWindow.SnowContainer then
+        return self.CurrentWindow.SnowEnabled
+    end
+    return false
 end
 _G.WasUIModule = {
-CreateWindow = function(title, size, position, displayOrder)
-local window = WasUI:CreateWindow(title, size, position, displayOrder)
-WasUI.CurrentWindow = window
-return window
-end,
-SetTheme = function(themeName)
-if WasUI.Themes[themeName] then
-WasUI.CurrentTheme = WasUI.Themes[themeName]
-end
-end,
-SaveConfig = function(key, data)
-WasUI:SaveConfig(key, data)
-end,
-LoadConfig = function(key, default)
-return WasUI:LoadConfig(key, default)
-end,
-SetDisplayOrder = WasUI.SetDisplayOrder,
-Notify = function(options)
-WasUI:Notify(options)
-end,
-CreateRainbowText = WasUI.CreateRainbowText,
-RemoveRainbowText = WasUI.RemoveRainbowText,
-ToggleSnowfall = function(enabled)
-WasUI:ToggleSnowfall(enabled)
-end,
-IsSnowfallEnabled = function()
-return WasUI:IsSnowfallEnabled()
-end
+    CreateWindow = function(title, size, position, displayOrder)
+        local window = WasUI:CreateWindow(title, size, position, displayOrder)
+        WasUI.CurrentWindow = window
+        return window
+    end,
+    SetTheme = function(themeName)
+        if WasUI.Themes[themeName] then
+            WasUI.CurrentTheme = WasUI.Themes[themeName]
+        end
+    end,
+    SaveConfig = function(key, data)
+        WasUI:SaveConfig(key, data)
+    end,
+    LoadConfig = function(key, default)
+        return WasUI:LoadConfig(key, default)
+    end,
+    SetDisplayOrder = WasUI.SetDisplayOrder,
+    Notify = function(options)
+        WasUI:Notify(options)
+    end,
+    CreateRainbowText = WasUI.CreateRainbowText,
+    RemoveRainbowText = WasUI.RemoveRainbowText,
+    ToggleSnowfall = function(enabled)
+        WasUI:ToggleSnowfall(enabled)
+    end,
+    IsSnowfallEnabled = function()
+        return WasUI:IsSnowfallEnabled()
+    end
 }
 return _G.WasUIModule
