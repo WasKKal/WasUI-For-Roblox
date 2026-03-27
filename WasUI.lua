@@ -46,8 +46,8 @@ WasUI.Themes = {
         Input = Color3.fromRGB(45, 45, 50)
     },
     Light = {
-        Primary = Color3.fromRGB(66, 133, 244),
-        Secondary = Color3.fromRGB(102, 156, 246),
+        Primary = Color3.fromRGB(76, 175, 80),  -- 蓝色改为绿色
+        Secondary = Color3.fromRGB(102, 187, 106),  -- 蓝色改为绿色
         Background = Color3.fromRGB(255, 255, 255),
         Text = Color3.fromRGB(60, 64, 67),
         Accent = Color3.fromRGB(219, 68, 55),
@@ -126,7 +126,7 @@ function Button:New(name, parent, text, onClick)
         Parent = parent
     })
     
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.Instance})
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Instance})  -- 改为胶囊形
     
     self.Instance.MouseEnter:Connect(function() 
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
@@ -296,7 +296,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Parent = self.Container
     })
     
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = self.DropdownButton})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.DropdownButton})  -- 改为胶囊形
     
     self.Options = options or {}
     self.SelectedValue = defaultValue
@@ -462,16 +462,18 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Parent = self.Container
     })
     
-    self.SliderTrack = CreateInstance("Frame", {
+    self.SliderTrack = CreateInstance("TextButton", {  -- 改为TextButton支持点击
         Name = "SliderTrack",
         Size = UDim2.new(1, 0, 0, 6),
         Position = UDim2.new(0, 0, 0, 30),
         BackgroundColor3 = Color3.fromRGB(220, 220, 220),
         BorderSizePixel = 0,
+        Text = "",
+        AutoButtonColor = false,
         Parent = self.Container
     })
     
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 3), Parent = self.SliderTrack})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderTrack})  -- 改为胶囊形
     
     self.SliderFill = CreateInstance("Frame", {
         Name = "SliderFill",
@@ -482,20 +484,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Parent = self.SliderTrack
     })
     
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 3), Parent = self.SliderFill})
-    
-    self.SliderThumb = CreateInstance("Frame", {
-        Name = "SliderThumb",
-        Size = UDim2.new(0, 16, 0, 16),
-        Position = UDim2.new(0, 0, 0.5, -8),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BorderColor3 = Color3.fromRGB(255, 255, 255),
-        BorderSizePixel = 2,
-        Parent = self.SliderTrack
-    })
-    
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderThumb})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
     
     self.MinValue = min or 0
     self.MaxValue = max or 100
@@ -516,7 +505,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         local percentage = (self.CurrentValue - self.MinValue) / (self.MaxValue - self.MinValue)
         
         self.SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
-        self.SliderThumb.Position = UDim2.new(percentage, 0, 0.5, -8)
         self.ValueLabel.Text = tostring(self.CurrentValue)
         
         if self.Callback then
@@ -524,24 +512,22 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         end
     end
     
-    self.SliderTrack.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            self.IsDragging = true
-            
-            local mousePos = input.Position.X
-            local trackPos = self.SliderTrack.AbsolutePosition.X
-            local relativeX = mousePos - trackPos
-            
-            local newValue = calculateValueFromX(relativeX)
-            updateSlider(newValue)
-        end
+    self.SliderTrack.MouseButton1Down:Connect(function()
+        self.IsDragging = true
+        
+        local mousePos = UserInputService:GetMouseLocation()
+        local trackPos = self.SliderTrack.AbsolutePosition
+        local relativeX = mousePos.X - trackPos.X
+        
+        local newValue = calculateValueFromX(relativeX)
+        updateSlider(newValue)
     end)
     
     UserInputService.InputChanged:Connect(function(input)
         if self.IsDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local mousePos = input.Position.X
-            local trackPos = self.SliderTrack.AbsolutePosition.X
-            local relativeX = mousePos - trackPos
+            local mousePos = input.Position
+            local trackPos = self.SliderTrack.AbsolutePosition
+            local relativeX = mousePos.X - trackPos.X
             
             local newValue = calculateValueFromX(relativeX)
             updateSlider(newValue)
@@ -571,7 +557,6 @@ function Slider:SetValue(value)
     
     local percentage = (value - self.MinValue) / (self.MaxValue - self.MinValue)
     self.SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
-    self.SliderThumb.Position = UDim2.new(percentage, 0, 0.5, -8)
     self.ValueLabel.Text = tostring(value)
 end
 
@@ -635,10 +620,11 @@ WasUI.Notifications = {}
 WasUI.NotificationQueue = {}
 WasUI.ActiveNotifications = {}
 WasUI.NotificationTop = 20
-WasUI.NotificationSpacing = 5
+WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
 WasUI.NotificationWidth = 250
 WasUI.NotificationProcessing = false
+WasUI.NotificationPositions = {}
 
 function WasUI:Notify(options)
     local config = {
@@ -680,7 +666,7 @@ function WasUI:ProcessNotificationQueue()
         Parent = screenGui
     })
     
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = notificationFrame})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = notificationFrame})  -- 改为胶囊形
     
     local stroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(60, 60, 65),
@@ -710,10 +696,12 @@ function WasUI:ProcessNotificationQueue()
     
     WasUI.ActiveNotifications[notificationId] = notificationData
     
-    local function updateNotificationPositions()
-        local currentY = WasUI.NotificationTop
+    local function calculatePosition(index)
+        return (index - 1) * (WasUI.NotificationHeight + WasUI.NotificationSpacing) + WasUI.NotificationTop
+    end
+    
+    local function updateAllNotificationPositions()
         local sortedIds = {}
-        
         for id, _ in pairs(WasUI.ActiveNotifications) do
             table.insert(sortedIds, id)
         end
@@ -722,22 +710,22 @@ function WasUI:ProcessNotificationQueue()
             return tonumber(a) < tonumber(b)
         end)
         
-        for _, id in ipairs(sortedIds) do
+        for i, id in ipairs(sortedIds) do
             local notification = WasUI.ActiveNotifications[id]
             if notification and notification.Instance and notification.Instance.Parent then
+                local targetY = calculatePosition(i)
                 Tween(notification.Instance, {
-                    Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, currentY)
+                    Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, targetY)
                 }, 0.3)
-                currentY = currentY + notification.Height + WasUI.NotificationSpacing
             end
         end
     end
     
     Tween(notificationFrame, {
-        Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, WasUI.NotificationTop)
+        Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, calculatePosition(#WasUI.ActiveNotifications))
     }, 0.3)
     
-    updateNotificationPositions()
+    updateAllNotificationPositions()
     
     wait(config.Duration)
     
@@ -750,7 +738,7 @@ function WasUI:ProcessNotificationQueue()
         WasUI.ActiveNotifications[notificationId] = nil
         
         wait(0.1)
-        updateNotificationPositions()
+        updateAllNotificationPositions()
         
         wait(0.2)
         WasUI:ProcessNotificationQueue()
@@ -809,6 +797,7 @@ function Panel:New(name, parent, size, position)
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
         Size = UDim2.new(1, 0, 0, 26),
+        Position = UDim2.new(0, 0, 0, 0),  -- 确保贴合顶部
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BorderSizePixel = 0,
         Parent = self.Instance
@@ -1098,7 +1087,7 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     
-    local avatarCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
     local avatarStroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(220, 220, 225),
         Thickness = 1,
@@ -1162,8 +1151,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(1, 0, 0, 24),
         Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
-        BorderSizePixel = 1,
-        BorderColor3 = Color3.fromRGB(220, 220, 225),
+        BorderSizePixel = 0,  -- 移除边框
         ScrollBarThickness = 6,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollingEnabled = true,
@@ -1173,7 +1161,7 @@ function Panel:New(name, parent, size, position)
     
     self.TabContainer = CreateInstance("Frame", {
         Name = "TabContainer",
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2.new(1, 0, 0, 24),  -- 固定高度
         BackgroundTransparency = 1,
         Parent = self.TabBar
     })
@@ -1306,7 +1294,7 @@ end
 function Panel:AddTab(tabName)
     local tabButton = CreateInstance("TextButton", {
         Name = tabName .. "Tab",
-        Size = UDim2.new(0, 70, 1, -2),
+        Size = UDim2.new(0, 70, 1, 0),  -- 紧贴选项卡区域
         BackgroundColor3 = Color3.fromRGB(200, 200, 205),
         BackgroundTransparency = 0.7,
         Text = tabName,
@@ -1317,39 +1305,41 @@ function Panel:AddTab(tabName)
         Parent = self.TabContainer
     })
     
-    local tabCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tabButton})
-    local tabBorder = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(220, 220, 225),
-        Thickness = 1,
-        Parent = tabButton
-    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tabButton})
+    
+    local underlineColor
+    if WasUI.CurrentTheme == WasUI.Themes.Light then
+        underlineColor = Color3.fromRGB(76, 175, 80)  -- Light主题下改为绿色
+    else
+        underlineColor = Color3.fromRGB(106, 17, 203)  -- 其他主题保持紫色
+    end
     
     local underline = CreateInstance("Frame", {
         Name = "Underline",
-        Size = UDim2.new(0, 0, 0, 3),
-        Position = UDim2.new(0.5, 0, 1, -1),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = Color3.fromRGB(106, 17, 203),
+        Size = UDim2.new(0, 0, 0, 2),  -- 减小高度
+        Position = UDim2.new(0.5, 0, 1, 0),  -- 紧贴选项卡按钮
+        AnchorPoint = Vector2.new(0.5, 0),
+        BackgroundColor3 = underlineColor,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Parent = tabButton
     })
     
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 2), Parent = underline})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 1), Parent = underline})
     
     local function animateUnderline(targetWidth, instant)
         if instant then
-            underline.Size = UDim2.new(0, targetWidth, 0, 3)
+            underline.Size = UDim2.new(0, targetWidth, 0, 2)
             underline.BackgroundTransparency = 0
         else
-            underline.Position = UDim2.new(0.5, 0, 1, -1)
-            underline.Size = UDim2.new(0, 2, 0, 3)
+            underline.Position = UDim2.new(0.5, 0, 1, 0)
+            underline.Size = UDim2.new(0, 2, 0, 2)
             underline.BackgroundTransparency = 0
             
             wait(0.05)
             
             Tween(underline, {
-                Size = UDim2.new(0, targetWidth, 0, 3)
+                Size = UDim2.new(0, targetWidth, 0, 2)
             }, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         end
     end
@@ -1402,12 +1392,12 @@ function Panel:AddTab(tabName)
         tabContent.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y)
     end)
     
-    tabButton.Size = UDim2.new(0, 0, 1, -2)
+    tabButton.Size = UDim2.new(0, 0, 1, 0)
     tabButton.Visible = false
     
     task.spawn(function()
         tabButton.Visible = true
-        Tween(tabButton, {Size = UDim2.new(0, 70, 1, -2)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        Tween(tabButton, {Size = UDim2.new(0, 70, 1, 0)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
     end)
     
     tabButton.MouseButton1Click:Connect(function()
@@ -1419,9 +1409,9 @@ function Panel:AddTab(tabName)
                 
                 animateUnderline(tabButton.AbsoluteSize.X, false)
                 
-                Tween(tabButton, {Size = UDim2.new(0, 75, 1, -2)}, 0.15)
+                Tween(tabButton, {Size = UDim2.new(0, 75, 1, 0)}, 0.15)
                 task.wait(0.05)
-                Tween(tabButton, {Size = UDim2.new(0, 70, 1, -2)}, 0.1)
+                Tween(tabButton, {Size = UDim2.new(0, 70, 1, 0)}, 0.1)
                 tab.Content.Visible = true
             else
                 tab.Button.BackgroundTransparency = 0.7
