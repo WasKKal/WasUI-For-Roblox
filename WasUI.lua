@@ -877,6 +877,26 @@ function Panel:AddTab(tabName)
     
     return tabContent
 end
+
+function Panel:AddTitle(text, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title_" .. text,
+        Size = UDim2.new(0.9, 0, 0, 28),
+        Position = UDim2.new(0.05, 0, 0, #targetContent:GetChildren() * 30),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = targetContent
+    })
+    
+    return titleLabel
+end
+
 function Panel:AddCategory(title, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     
