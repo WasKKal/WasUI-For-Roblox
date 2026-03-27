@@ -867,66 +867,25 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(1, 0, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        ClipsDescendants = true,
+        ClipsDescendants = false,
+        ZIndex = 100,
         Parent = self.Instance
     })
-    
-    self.TabBar = CreateInstance("ScrollingFrame", {
-        Name = "TabBar",
-        Size = UDim2.new(1, 0, 0, 32),
-        Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
-        BackgroundColor3 = Color3.fromRGB(35, 35, 40),
-        BorderSizePixel = 1,
-        BorderColor3 = Color3.fromRGB(60, 60, 65),
-        ScrollBarThickness = 4,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        Parent = self.Instance
-    })
-    
-    self.TabContainer = CreateInstance("Frame", {
-        Name = "TabContainer",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Parent = self.TabBar
-    })
-    
-    self.TabLayout = CreateInstance("UIListLayout", {
-        FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Left,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 5),
-        Parent = self.TabContainer
-    })
-    
-    self.TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
-    end)
-    
-    self.ContentArea = CreateInstance("ScrollingFrame", {
-        Name = "ContentArea",
-        Size = UDim2.new(1, -10, 1, -announcementHeight - 32 - 31),
-        Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 32),
-        BackgroundTransparency = 1,
-        ScrollBarThickness = 4,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        Parent = self.Instance
-    })
-    
-    self.Tabs = {}
-    self.ActiveTab = nil
-    self.TabContents = {}
     
     local snowFlakes = {}
     
     local function createSnowflake()
         local size = math.random(3, 8)
+        local xPos = math.random(0, 100) / 100
+        local yPos = -size
         local snowflake = CreateInstance("Frame", {
             Name = "Snowflake",
             Size = UDim2.new(0, size, 0, size),
-            Position = UDim2.new(math.random(), -size, 0, -size),
+            Position = UDim2.new(xPos, 0, 0, yPos),
             BackgroundColor3 = Color3.fromRGB(255, 255, 255),
             BackgroundTransparency = 0.3,
             BorderSizePixel = 0,
+            ZIndex = 101,
             Parent = self.SnowContainer
         })
         
@@ -980,6 +939,48 @@ function Panel:New(name, parent, size, position)
         end
     end)
     
+    self.MinimizeToDots = function()
+        if self.IsMinimized then return end
+        
+        Tween(self.Instance, {
+            Size = self.MinimizedSize,
+            Position = self.Instance.Position
+        }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        
+        self.Title.Visible = false
+        self.AnnouncementBar.Visible = false
+        self.TabBar.Visible = false
+        self.ContentArea.Visible = false
+        self.CloseButton.Visible = false
+        self.MinimizeButton.Visible = false
+        self.DraggableArea.Visible = true
+        self.SnowContainer.Visible = false
+        
+        self.DotContainer.Visible = true
+        self.IsMinimized = true
+    end
+    
+    self.RestoreFromDots = function()
+        if not self.IsMinimized then return end
+        
+        Tween(self.Instance, {
+            Size = self.OriginalSize,
+            Position = self.Instance.Position
+        }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        
+        self.Title.Visible = true
+        self.AnnouncementBar.Visible = true
+        self.TabBar.Visible = true
+        self.ContentArea.Visible = true
+        self.CloseButton.Visible = true
+        self.MinimizeButton.Visible = true
+        self.DraggableArea.Visible = true
+        self.SnowContainer.Visible = true
+        
+        self.DotContainer.Visible = true
+        self.IsMinimized = false
+    end
+
     self.CloseButton.MouseButton1Click:Connect(function() 
         if snowConnection then
             snowConnection:Disconnect()
