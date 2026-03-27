@@ -1347,8 +1347,9 @@ function Panel:AddTab(tabName)
                 if tab.Underline then
                     Tween(tab.Underline, {Size = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1}, 0.3, Enum.EasingStyle.Cubic)
                 end
-                if tab.Content.Visible then
-                    Tween(tab.Content, {Transparency = 1}, 0.3, Enum.EasingStyle.Cubic):Completed:Connect(function()
+                    if tab.Content.Visible then
+                     local tween = Tween(tab.Content, {Transparency = 1}, 0.3, Enum.EasingStyle.Cubic)
+                        tween.Completed:Connect(function()
                         tab.Content.Visible = false
                     end)
                 end
