@@ -40,7 +40,7 @@ WasUI.Themes = {
         Section = Color3.fromRGB(35, 35, 40),
         Input = Color3.fromRGB(45, 45, 50),
         TabBorder = Color3.fromRGB(40, 40, 40),
-        TabButton = Color3.fromRGB(0, 0, 0) -- Dark主题选项卡按钮黑色
+        TabButton = Color3.fromRGB(0, 0, 0)
     },
     Light = {
         Primary = Color3.fromRGB(76, 175, 80),
@@ -54,7 +54,7 @@ WasUI.Themes = {
         Section = Color3.fromRGB(248, 249, 250),
         Input = Color3.fromRGB(241, 243, 244),
         TabBorder = Color3.fromRGB(220, 220, 220),
-        TabButton = Color3.fromRGB(255, 255, 255) -- Light主题选项卡按钮白色
+        TabButton = Color3.fromRGB(255, 255, 255)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
@@ -258,6 +258,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         TextSize = 12,
         TextTruncate = Enum.TextTruncate.AtEnd,
         AutoButtonColor = false,
+        ZIndex = 10,
         Parent = self.Container
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.DropdownButton})
@@ -265,6 +266,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
     self.SelectedValue = defaultValue
     self.Callback = callback
     self.IsOpen = false
+    -- 下拉选项容器修复：提升ZIndex+确保父级正确
     self.OptionsContainer = CreateInstance("Frame", {
         Name = "OptionsContainer",
         Size = UDim2.new(0.3, 0, 0, 0),
@@ -274,7 +276,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         BorderSizePixel = 1,
         ClipsDescendants = true,
         Visible = false,
-        ZIndex = 100,
+        ZIndex = 200,  -- 确保在最上层
         Parent = self.Container
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = self.OptionsContainer})
@@ -295,6 +297,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             TextSize = 12,
             AutoButtonColor = false,
             LayoutOrder = i,
+            ZIndex = 201,
             Parent = self.OptionsContainer
         })
         optionButton.MouseEnter:Connect(function()
@@ -312,6 +315,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             end
         end)
     end
+    -- 修复点击事件：确保正确触发展开/关闭
     self.DropdownButton.MouseButton1Click:Connect(function()
         if self.IsOpen then
             self:CloseDropdown()
@@ -323,19 +327,27 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
     return self
 end
 function Dropdown:OpenDropdown()
-    if self.IsOpen then return end
-    self.OptionsContainer.Visible = true
-    self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, 0)
+    if self.IsOpen or #self.Options == 0 then return end
+    self.OptionsContainer.Visible = true  -- 先显示再动画
     local maxHeight = math.min(#self.Options * 25, 150)
+    -- 修复动画：直接设置目标尺寸，避免初始尺寸为0导致看不见
     Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, maxHeight)}, 0.3)
     self.IsOpen = true
+    -- 修复点击外部关闭：增加gameProcessed判断，避免误触发
     local function closeIfClickedOutside(input, gameProcessed)
-        if not gameProcessed and input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if gameProcessed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
             local mousePos = input.Position
             local absolutePos = self.OptionsContainer.AbsolutePosition
             local absoluteSize = self.OptionsContainer.AbsoluteSize
-            if not (mousePos.X >= absolutePos.X and mousePos.X <= absolutePos.X + absoluteSize.X and
-                   mousePos.Y >= absolutePos.Y and mousePos.Y <= absolutePos.Y + absoluteSize.Y) then
+            local buttonPos = self.DropdownButton.AbsolutePosition
+            local buttonSize = self.DropdownButton.AbsoluteSize
+            -- 点击按钮或选项容器内不关闭
+            local inButton = mousePos.X >= buttonPos.X and mousePos.X <= buttonPos.X + buttonSize.X and
+                             mousePos.Y >= buttonPos.Y and mousePos.Y <= buttonPos.Y + buttonSize.Y
+            local inOptions = mousePos.X >= absolutePos.X and mousePos.X <= absolutePos.X + absoluteSize.X and
+                              mousePos.Y >= absolutePos.Y and mousePos.Y <= absolutePos.Y + absoluteSize.Y
+            if not inButton and not inOptions then
                 self:CloseDropdown()
             end
         end
@@ -345,7 +357,7 @@ end
 function Dropdown:CloseDropdown()
     if not self.IsOpen then return end
     Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, 0)}, 0.2)
-    wait(0.2)
+    task.wait(0.2)  -- 用task.wait更稳定
     self.OptionsContainer.Visible = false
     self.IsOpen = false
     if self.CloseConnection then
@@ -642,11 +654,11 @@ function Panel:New(name, parent, size, position)
         Parent = parent
     })
     local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
-    -- 彩虹边框（修复偏移）
+    -- 彩虹边框修复：用AbsolutePosition动态计算，无偏移
     self.BorderEffect = CreateInstance("Frame", {
         Name = "BorderEffect",
-        Size = UDim2.new(0, self.Instance.Size.X.Offset + 4, 0, self.Instance.Size.Y.Offset + 4),
-        Position = UDim2.new(0, self.Instance.Position.X.Offset - 2, 0, self.Instance.Position.Y.Offset - 2),
+        Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
+        Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
         AnchorPoint = Vector2.new(0, 0),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
@@ -659,18 +671,23 @@ function Panel:New(name, parent, size, position)
         Thickness = 2,
         Parent = self.BorderEffect
     })
-    self.Instance:GetPropertyChangedSignal("Position"):Connect(function()
+    -- 同步主窗口位置+尺寸变化，确保边框始终贴合
+    local function updateBorder()
+        if not self.Instance or not self.BorderEffect then return end
         self.BorderEffect.Position = UDim2.new(
-            0, self.Instance.Position.X.Offset - 2,
-            0, self.Instance.Position.Y.Offset - 2
+            0, self.Instance.AbsolutePosition.X - 2,
+            0, self.Instance.AbsolutePosition.Y - 2
         )
-    end)
-    self.Instance:GetPropertyChangedSignal("Size"):Connect(function()
         self.BorderEffect.Size = UDim2.new(
-            0, self.Instance.Size.X.Offset + 4,
-            0, self.Instance.Size.Y.Offset + 4
+            0, self.Instance.AbsoluteSize.X + 4,
+            0, self.Instance.AbsoluteSize.Y + 4
         )
-    end)
+    end
+    -- 绑定位置+尺寸变化信号
+    self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
+    self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
+    -- 初始化执行一次
+    updateBorder()
     local borderTime = 0
     self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
         borderTime = borderTime + deltaTime
@@ -1001,7 +1018,6 @@ function Panel:New(name, parent, size, position)
         ZIndex = 100,
         Parent = self.Instance
     })
-    -- 选项卡栏（添加上下边框+左移5px）
     self.TabBar = CreateInstance("ScrollingFrame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 24),
@@ -1014,7 +1030,6 @@ function Panel:New(name, parent, size, position)
         ScrollingDirection = Enum.ScrollingDirection.X,
         Parent = self.Instance
     })
-    -- 选项卡栏上边框
     CreateInstance("Frame", {
         Name = "TabTopBorder",
         Size = UDim2.new(1, 0, 0, 1),
@@ -1022,7 +1037,6 @@ function Panel:New(name, parent, size, position)
         BorderSizePixel = 0,
         Parent = self.TabBar
     })
-    -- 选项卡栏下边框
     CreateInstance("Frame", {
         Name = "TabBottomBorder",
         Size = UDim2.new(1, 0, 0, 1),
@@ -1031,7 +1045,6 @@ function Panel:New(name, parent, size, position)
         BorderSizePixel = 0,
         Parent = self.TabBar
     })
-    -- 选项卡容器（左移5px：原右移10px → 现在-5px，整体左移15px，相对于原始位置左移5px）
     self.TabContainer = CreateInstance("Frame", {
         Name = "TabContainer",
         Size = UDim2.new(1, 0, 0, 24),
@@ -1144,7 +1157,6 @@ function Panel:AddCategory(title, tabName)
     return category
 end
 function Panel:AddTab(tabName)
-    -- 按主题设置选项卡按钮颜色：Dark黑色，Light白色
     local tabButtonBg = WasUI.CurrentTheme.TabButton
     local tabButton = CreateInstance("TextButton", {
         Name = tabName .. "Tab",
@@ -1390,79 +1402,81 @@ function WasUI:SaveConfig(key, data)
     configValue.Value = tostring(data)
 end
 function WasUI:LoadConfig(key, default)
-local keyStr = tostring(key)
-local configValue = WasUI_Folder:FindFirstChild(keyStr)
-if configValue and configValue.Value ~= "" then
-return configValue.Value
-end
-return default
+    local keyStr = tostring(key)
+    local configValue = WasUI_Folder:FindFirstChild(keyStr)
+    if configValue and configValue.Value ~= "" then
+        return configValue.Value
+    end
+    return default
 end
 function WasUI.SetDisplayOrder(order)
-WasUI.DefaultDisplayOrder = order
+    WasUI.DefaultDisplayOrder = order
 end
 function WasUI.CreateRainbowText(text, position)
-return CreateRainbowText(text, position)
+    return CreateRainbowText(text, position)
 end
 function WasUI.RemoveRainbowText(text)
-return RemoveRainbowText(text)
+    return RemoveRainbowText(text)
+    function WasUI:ToggleSnowfall(enabled)
+    if self.CurrentWindow and self.CurrentWindow.SnowContainer then
+        self.CurrentWindow.SnowEnabled = enabled
+        self.CurrentWindow.SnowContainer.Visible = enabled
+        if enabled and not self.CurrentWindow.SnowConnection then
+            self.CurrentWindow.SnowConnection = RunService.Heartbeat:Connect(function()
+                if self.CurrentWindow.SnowContainer.Visible and self.CurrentWindow.Instance.Visible then
+                    self.CurrentWindow:UpdateSnowflakes()
+                    self.CurrentWindow:SpawnSnowflakes()
+                end
+            end)
+        elseif not enabled and self.CurrentWindow.SnowConnection then
+            self.CurrentWindow.SnowConnection:Disconnect()
+            self.CurrentWindow.SnowConnection = nil
+            for _, flake in ipairs(self.CurrentWindow.SnowFlakes) do
+                if flake.Instance then
+                    flake.Instance:Destroy()
+                end
+            end
+            self.CurrentWindow.SnowFlakes = {}
+        end
+    end
 end
-function WasUI:ToggleSnowfall(enabled)
-if self.CurrentWindow and self.CurrentWindow.SnowContainer then
-self.CurrentWindow.SnowEnabled = enabled
-self.CurrentWindow.SnowContainer.Visible = enabled
-if enabled and not self.CurrentWindow.SnowConnection then
-self.CurrentWindow.SnowConnection = RunService.Heartbeat:Connect(function()
-if self.CurrentWindow.SnowContainer.Visible and self.CurrentWindow.Instance.Visible then
-self.CurrentWindow:UpdateSnowflakes()
-self.CurrentWindow:SpawnSnowflakes()
-end
-end)
-elseif not enabled and self.CurrentWindow.SnowConnection then
-self.CurrentWindow.SnowConnection:Disconnect()
-self.CurrentWindow.SnowConnection = nil
-for _, flake in ipairs(self.CurrentWindow.SnowFlakes) do
-if flake.Instance then
-flake.Instance:Destroy()
-end
-end
-self.CurrentWindow.SnowFlakes = {}
-end
-end
-end
+
 function WasUI:IsSnowfallEnabled()
-if self.CurrentWindow and self.CurrentWindow.SnowContainer then
-return self.CurrentWindow.SnowEnabled
+    if self.CurrentWindow and self.CurrentWindow.SnowContainer then
+        return self.CurrentWindow.SnowEnabled
+    end
+    return false
 end
-return false
-end
+
 _G.WasUIModule = {
-CreateWindow = function(title, size, position, displayOrder)
-local window = WasUI:CreateWindow(title, size, position, displayOrder)
-WasUI.CurrentWindow = window
-return window
-end,
-SetTheme = function(themeName)
-if WasUI.Themes[themeName] then
-WasUI.CurrentTheme = WasUI.Themes[themeName]
-end
-end,
-SaveConfig = function(key, data)
-WasUI:SaveConfig(key, data)
-end,
-LoadConfig = function(key, default)
-return WasUI:LoadConfig(key, default)
-end,
-SetDisplayOrder = WasUI.SetDisplayOrder,
-Notify = function(options)
-WasUI:Notify(options)
-end,
-CreateRainbowText = WasUI.CreateRainbowText,
-RemoveRainbowText = WasUI.RemoveRainbowText,
-ToggleSnowfall = function(enabled)
-WasUI:ToggleSnowfall(enabled)
-end,
-IsSnowfallEnabled = function()
-return WasUI:IsSnowfallEnabled()
-end
+    CreateWindow = function(title, size, position, displayOrder)
+        local window = WasUI:CreateWindow(title, size, position, displayOrder)
+        WasUI.CurrentWindow = window
+        return window
+    end,
+    SetTheme = function(themeName)
+        if WasUI.Themes[themeName] then
+            WasUI.CurrentTheme = WasUI.Themes[themeName]
+        end
+    end,
+    SaveConfig = function(key, data)
+        WasUI:SaveConfig(key, data)
+    end,
+    LoadConfig = function(key, default)
+        return WasUI:LoadConfig(key, default)
+    end,
+    SetDisplayOrder = WasUI.SetDisplayOrder,
+    Notify = function(options)
+        WasUI:Notify(options)
+    end,
+    CreateRainbowText = WasUI.CreateRainbowText,
+    RemoveRainbowText = WasUI.RemoveRainbowText,
+    ToggleSnowfall = function(enabled)
+        WasUI:ToggleSnowfall(enabled)
+    end,
+    IsSnowfallEnabled = function()
+        return WasUI:IsSnowfallEnabled()
+    end
 }
+
 return _G.WasUIModule
