@@ -1417,7 +1417,9 @@ function WasUI.CreateRainbowText(text, position)
 end
 function WasUI.RemoveRainbowText(text)
     return RemoveRainbowText(text)
-    function WasUI:ToggleSnowfall(enabled)
+end
+
+function WasUI:ToggleSnowfall(enabled)
     if self.CurrentWindow and self.CurrentWindow.SnowContainer then
         self.CurrentWindow.SnowEnabled = enabled
         self.CurrentWindow.SnowContainer.Visible = enabled
