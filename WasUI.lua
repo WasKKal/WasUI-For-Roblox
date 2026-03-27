@@ -212,7 +212,7 @@ function Category:New(name, parent, title)
         Text = title,
         TextColor3 = WasUI.CurrentTheme.Primary,
         Font = Enum.Font.GothamBold,
-        TextSize = 14,
+        TextSize = 18,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
         Parent = self.Instance
