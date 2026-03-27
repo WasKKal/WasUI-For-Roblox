@@ -821,7 +821,7 @@ function Panel:New(name, parent, size, position)
         Text = "×",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamBold,
-        the TextSize = 16,
+        TextSize = 16,
         Parent = self.TitleBar
     })
 
