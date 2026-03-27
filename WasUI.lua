@@ -1,19 +1,24 @@
 local WasUI = {}
 WasUI.__index = WasUI
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+
 if _G.WasUILoaded then
     warn("WasUI 已加载，跳过重复加载")
     return _G.WasUIModule
 end
 _G.WasUILoaded = true
+
 WasUI.DefaultDisplayOrder = 10
+
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
 WasUI_Folder.Parent = ReplicatedStorage
+
 WasUI.Themes = {
     Default = {
         Primary = Color3.fromRGB(106, 17, 203),
@@ -58,6 +63,7 @@ WasUI.Themes = {
     }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
+
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
     for prop, value in pairs(properties) do
@@ -65,6 +71,7 @@ local function CreateInstance(className, properties)
     end
     return instance
 end
+
 local function Tween(instance, properties, duration, easingStyle, easingDirection)
     easingStyle = easingStyle or Enum.EasingStyle.Quad
     easingDirection = easingDirection or Enum.EasingDirection.Out
@@ -73,7 +80,7 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     tween:Play()
     return tween
 end
--- 基类Control（修正继承基础）
+
 local Control = {}
 Control.__index = Control
 function Control:New(name, parent)
@@ -84,27 +91,30 @@ function Control:New(name, parent)
     self.Visible = true
     return self
 end
+
 function Control:SetPosition(position)
     if self.Instance then
         self.Instance.Position = position
     end
 end
+
 function Control:SetSize(size)
     if self.Instance then
         self.Instance.Size = size
     end
 end
+
 function Control:SetVisible(visible)
     self.Visible = visible
     if self.Instance then
         self.Instance.Visible = visible
     end
 end
--- Button子类（修正继承写法）
+
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick)
-    local self = setmetatable(Control:New(name, parent), Button)
+    local self = Control.New(self, name, parent)
     self.Instance = CreateInstance("TextButton", {
         Name = name,
         Size = UDim2.new(1, 0, 0, 28),
@@ -132,11 +142,11 @@ function Button:New(name, parent, text, onClick)
     end)
     return self
 end
--- ToggleSwitch子类（修正继承写法）
+
 local ToggleSwitch = setmetatable({}, {__index = Control})
 ToggleSwitch.__index = ToggleSwitch
 function ToggleSwitch:New(name, parent, initialState, onToggle)
-    local self = setmetatable(Control:New(name, parent), ToggleSwitch)
+    local self = Control.New(self, name, parent)
     self.Toggled = initialState or false
     self.ToggleCallback = onToggle
     self.Background = CreateInstance("ImageButton", {
@@ -174,11 +184,11 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
     end)
     return self
 end
--- Label子类（修正继承写法）
+
 local Label = setmetatable({}, {__index = Control})
 Label.__index = Label
 function Label:New(name, parent, text)
-    local self = setmetatable(Control:New(name, parent), Label)
+    local self = Control.New(self, name, parent)
     self.Instance = CreateInstance("TextLabel", {
         Name = name,
         Size = UDim2.new(1, 0, 0, 20),
@@ -193,11 +203,11 @@ function Label:New(name, parent, text)
     })
     return self
 end
--- Category子类（修正继承写法）
+
 local Category = setmetatable({}, {__index = Control})
 Category.__index = Category
 function Category:New(name, parent, title)
-    local self = setmetatable(Control:New(name, parent), Category)
+    local self = Control.New(self, name, parent)
     self.Instance = CreateInstance("Frame", {
         Name = name,
         Size = UDim2.new(1, 0, 0, 32),
@@ -228,11 +238,11 @@ function Category:New(name, parent, title)
     })
     return self
 end
--- Dropdown子类（核心修复：正确继承+方法绑定）
+
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback)
-    local self = setmetatable(Control:New(name, parent), Dropdown)
+    local self = Control.New(self, name, parent)
     self.Container = CreateInstance("Frame", {
         Name = name,
         Size = UDim2.new(1, 0, 0, 40),
@@ -295,7 +305,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         local optionButton = CreateInstance("TextButton", {
             Name = "Option_" .. option,
             Size = UDim2.new(1, 0, 0, 24),
-            BackgroundColor3 = i == 1 and Color3.fromRGB(240, 240, 245) or WasUI.CurrentTheme.Input,
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
             BorderSizePixel = 0,
             Text = option,
             TextColor3 = WasUI.CurrentTheme.Text,
@@ -331,7 +341,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
     self.Instance = self.Container
     return self
 end
--- Dropdown方法（正确绑定到子类）
+
 function Dropdown:OpenDropdown()
     if self.IsOpen or #self.Options == 0 then return end
     self.OptionsContainer.Visible = true
@@ -357,6 +367,7 @@ function Dropdown:OpenDropdown()
     end
     self.CloseConnection = UserInputService.InputBegan:Connect(closeIfClickedOutside)
 end
+
 function Dropdown:CloseDropdown()
     if not self.IsOpen then return end
     Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, 0)}, 0.2)
@@ -368,20 +379,22 @@ function Dropdown:CloseDropdown()
         self.CloseConnection = nil
     end
 end
+
 function Dropdown:GetValue()
     return self.SelectedValue
 end
+
 function Dropdown:SetValue(value)
     if table.find(self.Options, value) then
         self.SelectedValue = value
         self.DropdownButton.Text = value
     end
 end
--- Slider子类（修正继承写法）
+
 local Slider = setmetatable({}, {__index = Control})
 Slider.__index = Slider
 function Slider:New(name, parent, title, min, max, defaultValue, callback)
-    local self = setmetatable(Control:New(name, parent), Slider)
+    local self = Control.New(self, name, parent)
     self.Container = CreateInstance("Frame", {
         Name = name,
         Size = UDim2.new(1, 0, 0, 50),
@@ -479,9 +492,11 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     updateSlider(self.CurrentValue)
     return self
 end
+
 function Slider:GetValue()
     return self.CurrentValue
 end
+
 function Slider:SetValue(value)
     value = math.clamp(value, self.MinValue, self.MaxValue)
     self.CurrentValue = value
@@ -489,9 +504,10 @@ function Slider:SetValue(value)
     self.SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
     self.ValueLabel.Text = tostring(value)
 end
--- 彩虹文字（速度加快到4）
+
 WasUI.RainbowTexts = {}
 local rainbowConnections = {}
+
 local function CreateRainbowText(text, position)
     local screenGui = CreateInstance("ScreenGui", {
         Name = "RainbowText_" .. text,
@@ -527,6 +543,7 @@ local function CreateRainbowText(text, position)
     rainbowConnections[text] = connection
     return screenGui
 end
+
 local function RemoveRainbowText(text)
     if WasUI.RainbowTexts[text] then
         WasUI.RainbowTexts[text]:Destroy()
@@ -537,13 +554,14 @@ local function RemoveRainbowText(text)
         rainbowConnections[text] = nil
     end
 end
--- 通知系统
+
 WasUI.Notifications = {}
 WasUI.ActiveNotifications = {}
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
 WasUI.NotificationWidth = 250
+
 function WasUI:Notify(options)
     local config = {
         Content = options.Content or "通知",
@@ -612,45 +630,36 @@ function WasUI:Notify(options)
         end
     end
     updateAllNotificationPositions()
-    wait(config.Duration)
+    task.wait(config.Duration)
     local fadeOut = Tween(notificationFrame, {BackgroundTransparency = 1}, 0.5)
     Tween(textLabel, {TextTransparency = 1}, 0.5)
     Tween(stroke, {Transparency = 1}, 0.5)
     fadeOut.Completed:Connect(function()
         screenGui:Destroy()
         WasUI.ActiveNotifications[notificationId] = nil
-        wait(0.1)
+        task.wait(0.1)
         updateAllNotificationPositions()
     end)
 end
--- 执行器获取
+
 local function getExecutor()
     if syn then
         return "Synapse X"
     elseif krnl then
         return "Krnl"
-    elseif script_context and script_context.getexecutorname then
-        return script_context.getexecutorname()
     elseif identifyexecutor then
         return identifyexecutor()
-    elseif getexecutorname then
-        return getexecutorname()
-    elseif is_sirhurt_closure then
-        return "Sirhurt"
-    elseif pebc_execute then
-        return "ProtoSmasher"
-    elseif get_hidden_ui then
-        return "Hydrogen"
     else
         return "未知执行器"
     end
 end
--- Panel窗口类（修正继承写法）
+
 local Panel = setmetatable({}, {__index = Control})
 Panel.__index = Panel
+
 function Panel:New(name, parent, size, position)
-    local self = setmetatable(Control:New(name, parent), Panel)
-    local windowWidth = 400
+    local self = setmetatable({}, Panel)
+    local windowWidth = 380
     local windowHeight = 350
     self.Instance = CreateInstance("Frame", {
         Name = name,
@@ -694,7 +703,6 @@ function Panel:New(name, parent, size, position)
     self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
     updateBorder()
     local borderTime = 0
-    -- 彩虹变色速度加快到4
     self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
         borderTime = borderTime + deltaTime * 4
         local r = (math.sin(borderTime) + 1) / 2
@@ -813,14 +821,14 @@ function Panel:New(name, parent, size, position)
         Text = "×",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamBold,
-        TextSize = 16,
+        the TextSize = 16,
         Parent = self.TitleBar
     })
 
     self.IsMinimized = false
     self.OriginalSize = self.Instance.Size
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
-    
+
     self.MinimizeToDots = function()
         if self.IsMinimized then return end
         Tween(self.Instance, {
@@ -972,7 +980,11 @@ function Panel:New(name, parent, size, position)
     })
 
     local player = Players.LocalPlayer
-    local headshot = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size60x60)
+    local headshot = Players:GetUserThumbnailAsync(
+        player.UserId, 
+        Enum.ThumbnailType.HeadShot, 
+        Enum.ThumbnailSize.Size60x60
+    )
     self.Avatar = CreateInstance("ImageButton", {
         Name = "Avatar",
         Size = UDim2.new(0, 48, 0, 48),
@@ -984,7 +996,11 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
-    local avatarStroke = CreateInstance("UIStroke", {Color = Color3.fromRGB(220, 220, 225), Thickness = 1, Parent = self.Avatar})
+    local avatarStroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(220, 220, 225),
+        Thickness = 1,
+        Parent = self.Avatar
+    })
 
     self.Avatar.MouseButton1Down:Connect(function()
         Tween(self.Avatar, {Size = UDim2.new(0, 44, 0, 44)}, 0.1)
@@ -1039,22 +1055,35 @@ function Panel:New(name, parent, size, position)
         Parent = self.Instance
     })
 
-    -- 选项卡区域 向右偏移2px
     self.TabBar = CreateInstance("ScrollingFrame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 24),
         Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
+        BorderSizePixel = 0,
         ScrollBarThickness = 0,
-        CanvasSize = UDim2.new(0,0,0,0),
+        CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
     })
-    CreateInstance("Frame", {Name = "TopLine", Size = UDim2.new(1,0,0,1), BackgroundColor3 = WasUI.CurrentTheme.TabBorder, Parent = self.TabBar})
-    CreateInstance("Frame", {Name = "BottomLine", Size = UDim2.new(1,0,0,1), Position = UDim2.new(0,0,1,-1), BackgroundColor3 = WasUI.CurrentTheme.TabBorder, Parent = self.TabBar})
-    
+    CreateInstance("Frame", {
+        Name = "TabTopBorder",
+        Size = UDim2.new(1, 0, 0, 1),
+        BackgroundColor3 = WasUI.CurrentTheme.TabBorder,
+        BorderSizePixel = 0,
+        Parent = self.TabBar
+    })
+    CreateInstance("Frame", {
+        Name = "TabBottomBorder",
+        Size = UDim2.new(1, 0, 0, 1),
+        Position = UDim2.new(0, 0, 1, -1),
+        BackgroundColor3 = WasUI.CurrentTheme.TabBorder,
+        BorderSizePixel = 0,
+        Parent = self.TabBar
+    })
+
     self.TabContainer = CreateInstance("Frame", {
         Name = "TabContainer",
-        Size = UDim2.new(1,0,0,24),
+        Size = UDim2.new(1, 0, 0, 24),
         Position = UDim2.new(0, -3, 0, 0),
         BackgroundTransparency = 1,
         Parent = self.TabBar
@@ -1063,40 +1092,43 @@ function Panel:New(name, parent, size, position)
     self.TabLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
-        Padding = UDim.new(0,5),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 5),
         Parent = self.TabContainer
     })
     self.TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        self.TabBar.CanvasSize = UDim2.new(self.TabLayout.AbsoluteContentSize.X, 0, 0, 0)
+        self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
     end)
 
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
-        Size = UDim2.new(1, -10, 1, -announcementHeight - 54),
-        Position = UDim2.new(0,5,0, 26 + announcementHeight + 24),
+        Size = UDim2.new(1, -10, 1, -announcementHeight - 28 - 31),
+        Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 28),
         BackgroundTransparency = 1,
-        ScrollBarThickness = 0,
-        CanvasSize = UDim2.new(0,0,0,0),
+        ScrollBarThickness = 4,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
     })
+
     self.Tabs = {}
+    self.ActiveTab = nil
     self.TabContents = {}
     self.SnowFlakes = {}
     self.SnowEnabled = true
 
     function self:CreateSnowflake()
-        local size = math.random(3,8)
-        local snowflake = CreateInstance("Frame",{
-            Name = "Snow",
-            Size = UDim2.new(0,size,0,size),
-            Position = UDim2.new(math.random(),0,-size,0),
+        local size = math.random(3, 8)
+        local snowflake = CreateInstance("Frame", {
+            Name = "Snowflake",
+            Size = UDim2.new(0, size, 0, size),
+            Position = UDim2.new(math.random(), 0, -size, 0),
             BackgroundColor3 = Color3.new(1,1,1),
             BackgroundTransparency = 0.3,
             BorderSizePixel = 0,
             ZIndex = 101,
             Parent = self.SnowContainer
         })
-        CreateInstance("UICorner",{CornerRadius = UDim.new(1,0), Parent = snowflake})
+        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowflake})
         return {
             Instance = snowflake,
             Speed = math.random(1,3),
@@ -1112,16 +1144,16 @@ function Panel:New(name, parent, size, position)
 
     function self:UpdateSnowflakes()
         for i = #self.SnowFlakes, 1, -1 do
-            local v = self.SnowFlakes[i]
-            if not v.Instance or not v.Instance.Parent then
-                table.remove(self.SnowFlakes,i)
+            local flake = self.SnowFlakes[i]
+            if not flake.Instance or not flake.Instance.Parent then
+                table.remove(self.SnowFlakes, i)
                 continue
             end
-            local pos = v.Instance.Position
-            v.Instance.Position = UDim2.new(pos.X.Scale, pos.X.Offset, pos.Y.Scale, pos.Y.Offset + v.Speed)
-            if v.Instance.Position.Y.Offset > self.SnowContainer.AbsoluteSize.Y then
-                v.Instance:Destroy()
-                table.remove(self.SnowFlakes,i)
+            local pos = flake.Instance.Position
+            flake.Instance.Position = UDim2.new(pos.X.Scale, pos.X.Offset, pos.Y.Scale, pos.Y.Offset + flake.Speed)
+            if flake.Instance.Position.Y.Offset > self.SnowContainer.AbsoluteSize.Y then
+                flake.Instance:Destroy()
+                table.remove(self.SnowFlakes, i)
             end
         end
     end
@@ -1136,175 +1168,150 @@ function Panel:New(name, parent, size, position)
     return self
 end
 
+function Panel:SetWelcomeText(text)
+    if self.WelcomeLabel then
+        self.WelcomeLabel.Text = text
+    end
+end
+
 function Panel:AddTab(tabName)
-    local tabColor = WasUI.CurrentTheme.TabButton
-    local tab = CreateInstance("TextButton",{
-        Name = tabName,
-        Size = UDim2.new(0,70,0,20),
-        Position = UDim2.new(0,0,0,2),
-        BackgroundColor3 = tabColor,
+    local tabButtonBg = WasUI.CurrentTheme.TabButton
+    local tabButton = CreateInstance("TextButton", {
+        Name = tabName .. "Tab",
+        Size = UDim2.new(0, 70, 1, 0),
+        BackgroundColor3 = tabButtonBg,
         BackgroundTransparency = 0.7,
         Text = tabName,
-        TextColor3 = WasUI.CurrentTheme.Text,
+        TextColor3 = Color3.fromRGB(100, 100, 105),
         Font = Enum.Font.GothamSemibold,
-        TextSize = 12,
+        TextSize = 13,
         AutoButtonColor = false,
         Parent = self.TabContainer
     })
-    CreateInstance("UICorner",{CornerRadius = UDim.new(0,4), Parent = tab})
-
-    local underline = CreateInstance("Frame",{
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tabButton})
+    local underline = CreateInstance("Frame", {
         Name = "Underline",
-        Size = UDim2.new(0,0,0,2),
-        Position = UDim2.new(0.5,0,1,-1),
-        AnchorPoint = Vector2.new(0.5,1),
+        Size = UDim2.new(0, 0, 0, 2),
+        Position = UDim2.new(0.5, 0, 1, 0),
+        AnchorPoint = Vector2.new(0.5, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        Parent = tab
-    })
-    CreateInstance("UICorner",{CornerRadius = UDim.new(0,1), Parent = underline})
-
-    local content = CreateInstance("ScrollingFrame",{
-        Name = tabName.."Content",
-        Size = UDim2.new(1,0,1,0),
         BackgroundTransparency = 1,
-        ScrollBarThickness = 0,
-        CanvasSize = UDim2.new(0,0,0,0),
+        Parent = tabButton
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 1), Parent = underline})
+    local tabContent = CreateInstance("ScrollingFrame", {
+        Name = tabName .. "Content",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
         Visible = false,
+        ScrollBarThickness = 0,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.ContentArea
     })
-    local layout = CreateInstance("UIListLayout",{
-        Padding = UDim.new(0,6),
-        FillDirection = Enum.FillDirection.Vertical,
-        Parent = content
+    local contentLayout = CreateInstance("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 4),
+        Parent = tabContent
     })
-    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        content.CanvasSize = UDim2.new(0,0,layout.AbsoluteContentSize.Y + 10, 0)
+    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        tabContent.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y)
     end)
-
-    tab.MouseButton1Click:Connect(function()
-        for _,t in pairs(self.Tabs) do
-            t.btn.BackgroundTransparency = 0.7
-            t.underline.Size = UDim2.new(0,0,0,2)
-            t.content.Visible = false
+    tabButton.MouseButton1Click:Connect(function()
+        for _, tab in pairs(self.Tabs) do
+            tab.Button.BackgroundTransparency = 0.7
+            tab.Button.TextColor3 = Color3.fromRGB(100, 100, 105)
+            Tween(tab.Button, {BackgroundColor3 = WasUI.CurrentTheme.TabButton}, 0.2)
+            if tab.Underline then
+                Tween(tab.Underline, {BackgroundTransparency = 1}, 0.2)
+            end
+            tab.Content.Visible = false
         end
-        tab.BackgroundTransparency = 0
-        Tween(underline,{Size = UDim2.new(0.8,0,0,2)},0.15)
-        content.Visible = true
+        tabButton.BackgroundTransparency = 0
+        tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Tween(tabButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
+        Tween(underline, {Size = UDim2.new(0.8, 0, 0, 2), BackgroundTransparency = 0}, 0.2)
+        tabContent.Visible = true
         self.ActiveTab = tabName
     end)
-
-    table.insert(self.Tabs, {btn = tab, underline = underline, content = content})
-    self.TabContents[tabName] = content
+    local tab = {
+        Name = tabName,
+        Button = tabButton,
+        Content = tabContent,
+        Underline = underline
+    }
+    table.insert(self.Tabs, tab)
+    self.TabContents[tabName] = tabContent
     if #self.Tabs == 1 then
-        tab.BackgroundTransparency = 0
-        underline.Size = UDim2.new(0.8,0,0,2)
-        content.Visible = true
+        tabButton.BackgroundTransparency = 0
+        tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        tabButton.BackgroundColor3 = WasUI.CurrentTheme.Primary
+        underline.Size = UDim2.new(0.8, 0, 0, 2)
+        underline.BackgroundTransparency = 0
+        tabContent.Visible = true
     end
-    return content
+    return tabContent
 end
 
-function Panel:AddTitle(text, tab)
-    local parent = tab and self.TabContents[tab] or self.ContentArea
-    local title = CreateInstance("TextLabel",{
-        Name = "Title",
-        Size = UDim2.new(1,0,0,24),
-        BackgroundTransparency = 1,
-        Text = text,
-        TextColor3 = WasUI.CurrentTheme.Primary,
-        Font = Enum.Font.GothamBold,
-        TextSize = 14,
-        Parent = parent
-    })
-    return title
-end
-
-function Panel:AddLabel(text, tab)
-    local parent = tab and self.TabContents[tab] or self.ContentArea
-    local label = CreateInstance("TextLabel",{
-        Name = "Label",
-        Size = UDim2.new(1,0,0,22),
+function Panel:AddTitle(text, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title_" .. text,
+        Size = UDim2.new(1, 0, 0, 28),
         BackgroundTransparency = 1,
         Text = text,
         TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        Parent = parent
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = targetContent
     })
+    return titleLabel
+end
+
+function Panel:AddLabel(text, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    local label = Label:New("Label_" .. text, targetContent, text)
     return label
 end
 
-function Panel:AddButton(text, callback, tab)
-    local parent = tab and self.TabContents[tab] or self.ContentArea
-    local btn = CreateInstance("TextButton",{
-        Name = "Button",
-        Size = UDim2.new(1,0,0,26),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        Text = text,
-        TextColor3 = Color3.new(1,1,1),
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 12,
-        AutoButtonColor = false,
-        Parent = parent
-    })
-    CreateInstance("UICorner",{CornerRadius = UDim.new(0,4), Parent = btn})
-    btn.MouseButton1Click:Connect(callback)
-    return btn
+function Panel:AddButton(text, onClick, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    local button = Button:New("Button_" .. text, targetContent, text, onClick)
+    return button
 end
 
-function Panel:AddToggle(text, default, callback, tab)
-    local parent = tab and self.TabContents[tab] or self.ContentArea
-    local frame = CreateInstance("Frame",{
-        Name = "Toggle",
-        Size = UDim2.new(1,0,0,26),
+function Panel:AddToggle(text, initialState, onToggle, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    local toggleContainer = CreateInstance("Frame", {
+        Name = "ToggleContainer_" .. text,
+        Size = UDim2.new(1, 0, 0, 28),
         BackgroundTransparency = 1,
-        Parent = parent
+        Parent = targetContent
     })
-    local label = CreateInstance("TextLabel",{
-        Name = "Label",
-        Size = UDim2.new(0.7,0,1,0),
+    local toggleLabel = CreateInstance("TextLabel", {
+        Name = "ToggleLabel",
+        Size = UDim2.new(0.7, 0, 1, 0),
         BackgroundTransparency = 1,
         Text = text,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
-        Parent = frame
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = toggleContainer
     })
-    local toggleBtn = CreateInstance("TextButton",{
-        Name = "Btn",
-        Size = UDim2.new(0,36,0,18),
-        Position = UDim2.new(1,-40,0.5,-9),
-        BackgroundColor3 = default and WasUI.CurrentTheme.Primary or Color3.fromRGB(60,60,60),
-        AutoButtonColor = false,
-        Parent = frame
-    })
-    CreateInstance("UICorner",{CornerRadius = UDim.new(1,0), Parent = toggleBtn})
-    local circle = CreateInstance("Frame",{
-        Name = "Circle",
-        Size = UDim2.new(0,14,0,14),
-        Position = default and UDim2.new(1,-17,0.5,-7) or UDim2.new(0,3,0.5,-7),
-        BackgroundColor3 = Color3.new(1,1,1),
-        Parent = toggleBtn
-    })
-    CreateInstance("UICorner",{CornerRadius = UDim.new(1,0), Parent = circle})
-    local enabled = default
-    toggleBtn.MouseButton1Click:Connect(function()
-        enabled = not enabled
-        Tween(toggleBtn, {BackgroundColor3 = enabled and WasUI.CurrentTheme.Primary or Color3.fromRGB(60,60,60)}, 0.15)
-        Tween(circle, {Position = enabled and UDim2.new(1,-17,0.5,-7) or UDim2.new(0,3,0.5,-7)}, 0.15)
-        callback(enabled)
-    end)
-    return frame
+    local toggleSwitch = ToggleSwitch:New("Toggle", toggleContainer, initialState, onToggle)
+    return toggleSwitch
 end
 
-function Panel:AddDropdown(text, options, default, callback, tab)
-    local parent = tab and self.TabContents[tab] or self.ContentArea
-    local dropdown = Dropdown:New(text, parent, text, options, default, callback)
+function Panel:AddDropdown(title, options, defaultValue, callback, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    local dropdown = Dropdown:New("Dropdown_" .. title, targetContent, title, options, defaultValue, callback)
     return dropdown
 end
 
-function Panel:AddSlider(text, min, max, default, callback, tab)
-    local parent = tab and self.TabContents[tab] or self.ContentArea
-    local slider = Slider:New(text, parent, text, min, max, default, callback)
+function Panel:AddSlider(title, min, max, defaultValue, callback, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    local slider = Slider:New("Slider_" .. title, targetContent, title, min, max, defaultValue, callback)
     return slider
 end
 
@@ -1316,21 +1323,53 @@ function Panel:RestoreWindow()
     self.RestoreFromDots()
 end
 
-function WasUI:CreateWindow(title, size, position)
-    local pg = Players.LocalPlayer.PlayerGui
-    local sg = Instance.new("ScreenGui")
-    sg.Name = "WasUI"
-    sg.ResetOnSpawn = false
-    sg.Parent = pg
-    local window = Panel.new(title, sg, size, position)
+function WasUI:CreateWindow(title, size, position, displayOrder)
+    displayOrder = displayOrder or WasUI.DefaultDisplayOrder
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "WasUI_Window",
+        ResetOnSpawn = false,
+        DisplayOrder = displayOrder,
+        Parent = playerGui
+    })
+    local window = Panel:New(title, screenGui, size, position)
     self.CurrentWindow = window
     return window
 end
 
-function WasUI:SetTheme(theme)
-    if self.Themes[theme] then
-        self.CurrentTheme = self.Themes[theme]
+function WasUI:SetTheme(themeName)
+    if self.Themes[themeName] then
+        self.CurrentTheme = self.Themes[themeName]
     end
+end
+
+function WasUI:SaveConfig(key, data)
+    local keyStr = tostring(key)
+    local configValue = WasUI_Folder:FindFirstChild(keyStr)
+    if not configValue then
+        configValue = CreateInstance("StringValue", {
+            Name = keyStr,
+            Parent = WasUI_Folder
+        })
+    end
+    configValue.Value = tostring(data)
+end
+
+function WasUI:LoadConfig(key, default)
+    local keyStr = tostring(key)
+    local configValue = WasUI_Folder:FindFirstChild(keyStr)
+    if configValue and configValue.Value ~= "" then
+        return configValue.Value
+    end
+    return default
+end
+
+function WasUI.SetDisplayOrder(order)
+    WasUI.DefaultDisplayOrder = order
+end
+
+function WasUI.CreateRainbowText(text, position)
+    return CreateRainbowText(text, position)
 end
 
 function WasUI.RemoveRainbowText(text)
@@ -1338,43 +1377,17 @@ function WasUI.RemoveRainbowText(text)
 end
 
 function WasUI:ToggleSnowfall(enabled)
-    if self.CurrentWindow then
+    if self.CurrentWindow and self.CurrentWindow.SnowContainer then
         self.CurrentWindow.SnowEnabled = enabled
         self.CurrentWindow.SnowContainer.Visible = enabled
     end
 end
 
-function WasUI:Notify(data)
-    local pg = Players.LocalPlayer.PlayerGui
-    local sg = pg:FindFirstChild("WasUI_Notify") or Instance.new("ScreenGui")
-    sg.Name = "WasUI_Notify"
-    sg.Parent = pg
-    local frame = CreateInstance("Frame",{
-        Name = "Notify",
-        Size = UDim2.new(0,260,0,36),
-        Position = UDim2.new(1,10,0, #self.Notifications*40 + 10),
-        BackgroundColor3 = WasUI.CurrentTheme.Section,
-        BackgroundTransparency = 0.1,
-        Parent = sg
-    })
-    CreateInstance("UICorner",{CornerRadius = UDim.new(0,4), Parent = frame})
-    local label = CreateInstance("TextLabel",{
-        Name = "Text",
-        Size = UDim2.new(1,-10,1,0),
-        Position = UDim2.new(0,5,0,0),
-        BackgroundTransparency = 1,
-        Text = data.Content,
-        TextColor3 = Color3.new(1,1,1),
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        Parent = frame
-    })
-    table.insert(self.Notifications, frame)
-    Tween(frame, {Position = UDim2.new(1,-270,0, frame.Position.Y.Offset)}, 0.3)
-    task.wait(data.Duration or 2)
-    Tween(frame, {Position = UDim2.new(1,10,0, frame.Position.Y.Offset)}, 0.3)
-    task.wait(0.3)
-    frame:Destroy()
+function WasUI:IsSnowfallEnabled()
+    if self.CurrentWindow then
+        return self.CurrentWindow.SnowEnabled
+    end
+    return false
 end
 
 _G.WasUIModule = WasUI
