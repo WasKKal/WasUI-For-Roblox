@@ -29,7 +29,9 @@ WasUI.Themes = {
         Accent = Color3.fromRGB(231, 76, 60),
         Success = Color3.fromRGB(46, 204, 113),
         Warning = Color3.fromRGB(241, 196, 15),
-        Error = Color3.fromRGB(231, 76, 60)
+        Error = Color3.fromRGB(231, 76, 60),
+        Section = Color3.fromRGB(230, 235, 240),
+        Input = Color3.fromRGB(250, 250, 252)
     },
     Dark = {
         Primary = Color3.fromRGB(30, 30, 36),
@@ -39,7 +41,21 @@ WasUI.Themes = {
         Accent = Color3.fromRGB(97, 175, 239),
         Success = Color3.fromRGB(83, 227, 136),
         Warning = Color3.fromRGB(255, 213, 92),
-        Error = Color3.fromRGB(255, 123, 123)
+        Error = Color3.fromRGB(255, 123, 123),
+        Section = Color3.fromRGB(35, 35, 40),
+        Input = Color3.fromRGB(45, 45, 50)
+    },
+    Light = {
+        Primary = Color3.fromRGB(66, 133, 244),
+        Secondary = Color3.fromRGB(102, 156, 246),
+        Background = Color3.fromRGB(255, 255, 255),
+        Text = Color3.fromRGB(60, 64, 67),
+        Accent = Color3.fromRGB(219, 68, 55),
+        Success = Color3.fromRGB(15, 157, 88),
+        Warning = Color3.fromRGB(249, 171, 0),
+        Error = Color3.fromRGB(219, 68, 55),
+        Section = Color3.fromRGB(248, 249, 250),
+        Input = Color3.fromRGB(241, 243, 244)
     }
 }
 
@@ -144,7 +160,7 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
         Name = name .. "_BG",
         Size = UDim2.new(0, 36, 0, 18),
         Position = UDim2.new(1, -40, 0.5, -9),
-        BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or Color3.fromRGB(100, 100, 100),
+        BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or Color3.fromRGB(200, 200, 200),
         Image = "",
         BorderSizePixel = 0,
         AutoButtonColor = false,
@@ -170,7 +186,7 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
             Tween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.2)
         else
-            Tween(self.Background, {BackgroundColor3 = Color3.fromRGB(100, 100, 100)}, 0.2)
+            Tween(self.Background, {BackgroundColor3 = Color3.fromRGB(200, 200, 200)}, 0.2)
             Tween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.2)
         end
         if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
@@ -236,6 +252,327 @@ function Category:New(name, parent, title)
     })
     
     return self
+end
+
+local Dropdown = setmetatable({}, {__index = Control})
+Dropdown.__index = Dropdown
+
+function Dropdown:New(name, parent, title, options, defaultValue, callback)
+    local self = Control.New(self, name, parent)
+    
+    self.Container = CreateInstance("Frame", {
+        Name = name,
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Parent = parent
+    })
+    
+    self.TitleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(0.7, 0, 0, 20),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = title or "下拉菜单",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.Container
+    })
+    
+    self.DropdownButton = CreateInstance("TextButton", {
+        Name = "DropdownButton",
+        Size = UDim2.new(0.3, 0, 0, 24),
+        Position = UDim2.new(0.7, 0, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BorderColor3 = Color3.fromRGB(200, 200, 200),
+        BorderSizePixel = 1,
+        Text = defaultValue or "选择...",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        AutoButtonColor = false,
+        Parent = self.Container
+    })
+    
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = self.DropdownButton})
+    
+    self.Options = options or {}
+    self.SelectedValue = defaultValue
+    self.Callback = callback
+    self.IsOpen = false
+    
+    self.OptionsContainer = CreateInstance("Frame", {
+        Name = "OptionsContainer",
+        Size = UDim2.new(0.3, 0, 0, 0),
+        Position = UDim2.new(0.7, 0, 0, 24),
+        BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BorderColor3 = Color3.fromRGB(200, 200, 200),
+        BorderSizePixel = 1,
+        ClipsDescendants = true,
+        Visible = false,
+        Parent = self.Container
+    })
+    
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = self.OptionsContainer})
+    
+    self.OptionsListLayout = CreateInstance("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 1),
+        Parent = self.OptionsContainer
+    })
+    
+    for i, option in ipairs(self.Options) do
+        local optionButton = CreateInstance("TextButton", {
+            Name = "Option_" .. option,
+            Size = UDim2.new(1, 0, 0, 24),
+            BackgroundColor3 = i == 1 and Color3.fromRGB(240, 240, 245) or WasUI.CurrentTheme.Input,
+            BorderSizePixel = 0,
+            Text = option,
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            AutoButtonColor = false,
+            LayoutOrder = i,
+            Parent = self.OptionsContainer
+        })
+        
+        optionButton.MouseEnter:Connect(function()
+            Tween(optionButton, {BackgroundColor3 = Color3.fromRGB(240, 240, 245)}, 0.2)
+        end)
+        
+        optionButton.MouseLeave:Connect(function()
+            Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.2)
+        end)
+        
+        optionButton.MouseButton1Click:Connect(function()
+            self.SelectedValue = option
+            self.DropdownButton.Text = option
+            self:CloseDropdown()
+            
+            if self.Callback then
+                self.Callback(option)
+            end
+        end)
+    end
+    
+    self.DropdownButton.MouseButton1Click:Connect(function()
+        if self.IsOpen then
+            self:CloseDropdown()
+        else
+            self:OpenDropdown()
+        end
+    end)
+    
+    self.Instance = self.Container
+    
+    return self
+end
+
+function Dropdown:OpenDropdown()
+    if self.IsOpen then return end
+    
+    self.OptionsContainer.Visible = true
+    self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, 0)
+    
+    local maxHeight = math.min(#self.Options * 25, 150)
+    Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, maxHeight)}, 0.3)
+    
+    self.IsOpen = true
+    
+    local function closeIfClickedOutside(input, gameProcessed)
+        if not gameProcessed and input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local mousePos = input.Position
+            local absolutePos = self.OptionsContainer.AbsolutePosition
+            local absoluteSize = self.OptionsContainer.AbsoluteSize
+            
+            if not (mousePos.X >= absolutePos.X and mousePos.X <= absolutePos.X + absoluteSize.X and
+                   mousePos.Y >= absolutePos.Y and mousePos.Y <= absolutePos.Y + absoluteSize.Y) then
+                self:CloseDropdown()
+            end
+        end
+    end
+    
+    self.CloseConnection = UserInputService.InputBegan:Connect(closeIfClickedOutside)
+end
+
+function Dropdown:CloseDropdown()
+    if not self.IsOpen then return end
+    
+    Tween(self.OptionsContainer, {Size = UDim2.new(0.3, 0, 0, 0)}, 0.2)
+    wait(0.2)
+    self.OptionsContainer.Visible = false
+    
+    self.IsOpen = false
+    
+    if self.CloseConnection then
+        self.CloseConnection:Disconnect()
+        self.CloseConnection = nil
+    end
+end
+
+function Dropdown:GetValue()
+    return self.SelectedValue
+end
+
+function Dropdown:SetValue(value)
+    if table.find(self.Options, value) then
+        self.SelectedValue = value
+        self.DropdownButton.Text = value
+    end
+end
+
+local Slider = setmetatable({}, {__index = Control})
+Slider.__index = Slider
+
+function Slider:New(name, parent, title, min, max, defaultValue, callback)
+    local self = Control.New(self, name, parent)
+    
+    self.Container = CreateInstance("Frame", {
+        Name = name,
+        Size = UDim2.new(1, 0, 0, 50),
+        BackgroundTransparency = 1,
+        Parent = parent
+    })
+    
+    self.TitleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(0.7, 0, 0, 20),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = title or "滑块",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.Container
+    })
+    
+    self.ValueLabel = CreateInstance("TextLabel", {
+        Name = "ValueLabel",
+        Size = UDim2.new(0.3, 0, 0, 20),
+        Position = UDim2.new(0.7, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = tostring(defaultValue or min),
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        Parent = self.Container
+    })
+    
+    self.SliderTrack = CreateInstance("Frame", {
+        Name = "SliderTrack",
+        Size = UDim2.new(1, 0, 0, 6),
+        Position = UDim2.new(0, 0, 0, 30),
+        BackgroundColor3 = Color3.fromRGB(220, 220, 220),
+        BorderSizePixel = 0,
+        Parent = self.Container
+    })
+    
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 3), Parent = self.SliderTrack})
+    
+    self.SliderFill = CreateInstance("Frame", {
+        Name = "SliderFill",
+        Size = UDim2.new(0, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BorderSizePixel = 0,
+        Parent = self.SliderTrack
+    })
+    
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 3), Parent = self.SliderFill})
+    
+    self.SliderThumb = CreateInstance("Frame", {
+        Name = "SliderThumb",
+        Size = UDim2.new(0, 16, 0, 16),
+        Position = UDim2.new(0, 0, 0.5, -8),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BorderColor3 = Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = 2,
+        Parent = self.SliderTrack
+    })
+    
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderThumb})
+    
+    self.MinValue = min or 0
+    self.MaxValue = max or 100
+    self.CurrentValue = defaultValue or min or 0
+    self.Callback = callback
+    self.IsDragging = false
+    
+    local function calculateValueFromX(x)
+        local trackWidth = self.SliderTrack.AbsoluteSize.X
+        local relativeX = math.clamp(x, 0, trackWidth)
+        local percentage = relativeX / trackWidth
+        local value = self.MinValue + (self.MaxValue - self.MinValue) * percentage
+        return math.floor(value)
+    end
+    
+    local function updateSlider(value)
+        self.CurrentValue = math.clamp(value, self.MinValue, self.MaxValue)
+        local percentage = (self.CurrentValue - self.MinValue) / (self.MaxValue - self.MinValue)
+        
+        self.SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+        self.SliderThumb.Position = UDim2.new(percentage, 0, 0.5, -8)
+        self.ValueLabel.Text = tostring(self.CurrentValue)
+        
+        if self.Callback then
+            self.Callback(self.CurrentValue)
+        end
+    end
+    
+    self.SliderTrack.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            self.IsDragging = true
+            
+            local mousePos = input.Position.X
+            local trackPos = self.SliderTrack.AbsolutePosition.X
+            local relativeX = mousePos - trackPos
+            
+            local newValue = calculateValueFromX(relativeX)
+            updateSlider(newValue)
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if self.IsDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local mousePos = input.Position.X
+            local trackPos = self.SliderTrack.AbsolutePosition.X
+            local relativeX = mousePos - trackPos
+            
+            local newValue = calculateValueFromX(relativeX)
+            updateSlider(newValue)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            self.IsDragging = false
+        end
+    end)
+    
+    self.Instance = self.Container
+    
+    updateSlider(self.CurrentValue)
+    
+    return self
+end
+
+function Slider:GetValue()
+    return self.CurrentValue
+end
+
+function Slider:SetValue(value)
+    value = math.clamp(value, self.MinValue, self.MaxValue)
+    self.CurrentValue = value
+    
+    local percentage = (value - self.MinValue) / (self.MaxValue - self.MinValue)
+    self.SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+    self.SliderThumb.Position = UDim2.new(percentage, 0, 0.5, -8)
+    self.ValueLabel.Text = tostring(value)
 end
 
 WasUI.RainbowTexts = {}
@@ -464,7 +801,7 @@ function Panel:New(name, parent, size, position)
     local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
     
     local stroke = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(60, 60, 65),
+        Color = Color3.fromRGB(200, 200, 205),
         Thickness = 1,
         Parent = self.Instance
     })
@@ -738,7 +1075,7 @@ function Panel:New(name, parent, size, position)
         Name = "AnnouncementBar",
         Size = UDim2.new(1, 0, 0, announcementHeight),
         Position = UDim2.new(0, 0, 0, 26),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundColor3 = WasUI.CurrentTheme.Section,
         BackgroundTransparency = 0.1,
         BorderSizePixel = 0,
         Parent = self.Instance
@@ -755,7 +1092,7 @@ function Panel:New(name, parent, size, position)
         Name = "Avatar",
         Size = UDim2.new(0, 48, 0, 48),
         Position = UDim2.new(0, 10, 0.15, 0),
-        BackgroundColor3 = Color3.fromRGB(60, 60, 65),
+        BackgroundColor3 = Color3.fromRGB(240, 240, 245),
         Image = headshot,
         BorderSizePixel = 0,
         Parent = self.AnnouncementBar
@@ -763,7 +1100,7 @@ function Panel:New(name, parent, size, position)
     
     local avatarCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
     local avatarStroke = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(100, 100, 110),
+        Color = Color3.fromRGB(220, 220, 225),
         Thickness = 1,
         Parent = self.Avatar
     })
@@ -824,9 +1161,9 @@ function Panel:New(name, parent, size, position)
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 24),
         Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
-        BackgroundColor3 = Color3.fromRGB(35, 35, 40),
+        BackgroundColor3 = WasUI.CurrentTheme.Section,
         BorderSizePixel = 1,
-        BorderColor3 = Color3.fromRGB(60, 60, 65),
+        BorderColor3 = Color3.fromRGB(220, 220, 225),
         ScrollBarThickness = 6,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollingEnabled = true,
@@ -970,10 +1307,10 @@ function Panel:AddTab(tabName)
     local tabButton = CreateInstance("TextButton", {
         Name = tabName .. "Tab",
         Size = UDim2.new(0, 70, 1, -2),
-        BackgroundColor3 = Color3.fromRGB(45, 45, 50),
+        BackgroundColor3 = Color3.fromRGB(200, 200, 205),
         BackgroundTransparency = 0.7,
         Text = tabName,
-        TextColor3 = Color3.fromRGB(180, 180, 180),
+        TextColor3 = Color3.fromRGB(100, 100, 105),
         Font = Enum.Font.Gotham,
         TextSize = 13,
         AutoButtonColor = false,
@@ -982,7 +1319,7 @@ function Panel:AddTab(tabName)
     
     local tabCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tabButton})
     local tabBorder = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(60, 60, 65),
+        Color = Color3.fromRGB(220, 220, 225),
         Thickness = 1,
         Parent = tabButton
     })
@@ -1088,8 +1425,8 @@ function Panel:AddTab(tabName)
                 tab.Content.Visible = true
             else
                 tab.Button.BackgroundTransparency = 0.7
-                tab.Button.TextColor3 = Color3.fromRGB(180, 180, 180)
-                Tween(tab.Button, {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}, 0.2)
+                tab.Button.TextColor3 = Color3.fromRGB(100, 100, 105)
+                Tween(tab.Button, {BackgroundColor3 = Color3.fromRGB(200, 200, 205)}, 0.2)
                 
                 if tab.Button:FindFirstChild("Underline") then
                     local otherUnderline = tab.Button:FindFirstChild("Underline")
@@ -1198,6 +1535,28 @@ function Panel:AddToggle(text, initialState, onToggle, tabName)
     local toggleSwitch = ToggleSwitch:New("Toggle", toggleContainer, initialState, onToggle)
     
     return toggleSwitch
+end
+
+function Panel:AddDropdown(title, options, defaultValue, callback, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    
+    if not targetContent then
+        return nil
+    end
+    
+    local dropdown = Dropdown:New("Dropdown_" .. title, targetContent, title, options, defaultValue, callback)
+    return dropdown
+end
+
+function Panel:AddSlider(title, min, max, defaultValue, callback, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    
+    if not targetContent then
+        return nil
+    end
+    
+    local slider = Slider:New("Slider_" .. title, targetContent, title, min, max, defaultValue, callback)
+    return slider
 end
 
 function Panel:MinimizeWindow()
