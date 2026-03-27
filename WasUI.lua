@@ -651,7 +651,6 @@ function Panel:New(name, parent, size, position)
     local borderStroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
         Thickness = 2,
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Outside,
         Parent = self.BorderEffect
     })
     self.Instance:GetPropertyChangedSignal("Position"):Connect(function()
@@ -1296,141 +1295,140 @@ function Panel:AddToggle(text, initialState, onToggle, tabName)
         Name = "ToggleLabel",
         Size = UDim2.new(0.7, 0, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
-        BackgroundTransparency = 1,
-        Text = text,
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextWrapped = true,
-        Parent = toggleContainer
-    })
-    local toggleSwitch = ToggleSwitch:New("Toggle", toggleContainer, initialState, onToggle)
-    return toggleSwitch
+        BackgroundTransparency = 1,Text = text,
+TextColor3 = WasUI.CurrentTheme.Text,
+Font = Enum.Font.Gotham,
+TextSize = 12,
+TextXAlignment = Enum.TextXAlignment.Left,
+TextWrapped = true,
+Parent = toggleContainer
+})
+local toggleSwitch = ToggleSwitch:New("Toggle", toggleContainer, initialState, onToggle)
+return toggleSwitch
 end
 function Panel:AddDropdown(title, options, defaultValue, callback, tabName)
-    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-    if not targetContent then
-        return nil
-    end
-    local dropdown = Dropdown:New("Dropdown_" .. title, targetContent, title, options, defaultValue, callback)
-    return dropdown
+local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+if not targetContent then
+return nil
+end
+local dropdown = Dropdown:New("Dropdown_" .. title, targetContent, title, options, defaultValue, callback)
+return dropdown
 end
 function Panel:AddSlider(title, min, max, defaultValue, callback, tabName)
-    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-    if not targetContent then
-        return nil
-    end
-    local slider = Slider:New("Slider_" .. title, targetContent, title, min, max, defaultValue, callback)
-    return slider
+local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+if not targetContent then
+return nil
+end
+local slider = Slider:New("Slider_" .. title, targetContent, title, min, max, defaultValue, callback)
+return slider
 end
 function Panel:MinimizeWindow()
-    if self.MinimizeToDots then
-        self.MinimizeToDots()
-    end
+if self.MinimizeToDots then
+self.MinimizeToDots()
+end
 end
 function Panel:RestoreWindow()
-    if self.RestoreFromDots then
-        self.RestoreFromDots()
-    end
+if self.RestoreFromDots then
+self.RestoreFromDots()
+end
 end
 function WasUI:CreateWindow(title, size, position, displayOrder)
-    displayOrder = displayOrder or WasUI.DefaultDisplayOrder
-    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "WasUI_Window",
-        ResetOnSpawn = false,
-        DisplayOrder = displayOrder,
-        Parent = playerGui
-    })
-    local window = Panel:New(tostring(title), screenGui, size, position)
-    return window
+displayOrder = displayOrder or WasUI.DefaultDisplayOrder
+local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+local screenGui = CreateInstance("ScreenGui", {
+Name = "WasUI_Window",
+ResetOnSpawn = false,
+DisplayOrder = displayOrder,
+Parent = playerGui
+})
+local window = Panel:New(tostring(title), screenGui, size, position)
+return window
 end
 function WasUI:SaveConfig(key, data)
-    local keyStr = tostring(key)
-    local configValue = WasUI_Folder:FindFirstChild(keyStr)
-    if not configValue then
-        configValue = CreateInstance("StringValue", {
-            Name = keyStr,
-            Parent = WasUI_Folder
-        })
-    end
-    configValue.Value = tostring(data)
+local keyStr = tostring(key)
+local configValue = WasUI_Folder:FindFirstChild(keyStr)
+if not configValue then
+configValue = CreateInstance("StringValue", {
+Name = keyStr,
+Parent = WasUI_Folder
+})
+end
+configValue.Value = tostring(data)
 end
 function WasUI:LoadConfig(key, default)
-    local keyStr = tostring(key)
-    local configValue = WasUI_Folder:FindFirstChild(keyStr)
-    if configValue and configValue.Value ~= "" then
-        return configValue.Value
-    end
-    return default
+local keyStr = tostring(key)
+local configValue = WasUI_Folder:FindFirstChild(keyStr)
+if configValue and configValue.Value ~= "" then
+return configValue.Value
+end
+return default
 end
 function WasUI.SetDisplayOrder(order)
-    WasUI.DefaultDisplayOrder = order
+WasUI.DefaultDisplayOrder = order
 end
 function WasUI.CreateRainbowText(text, position)
-    return CreateRainbowText(text, position)
+return CreateRainbowText(text, position)
 end
 function WasUI.RemoveRainbowText(text)
-    return RemoveRainbowText(text)
+return RemoveRainbowText(text)
 end
 function WasUI:ToggleSnowfall(enabled)
-    if self.CurrentWindow and self.CurrentWindow.SnowContainer then
-        self.CurrentWindow.SnowEnabled = enabled
-        self.CurrentWindow.SnowContainer.Visible = enabled
-        if enabled and not self.CurrentWindow.SnowConnection then
-            self.CurrentWindow.SnowConnection = RunService.Heartbeat:Connect(function()
-                if self.CurrentWindow.SnowContainer.Visible and self.CurrentWindow.Instance.Visible then
-                    self.CurrentWindow:UpdateSnowflakes()
-                    self.CurrentWindow:SpawnSnowflakes()
-                end
-            end)
-        elseif not enabled and self.CurrentWindow.SnowConnection then
-            self.CurrentWindow.SnowConnection:Disconnect()
-            self.CurrentWindow.SnowConnection = nil
-            for _, flake in ipairs(self.CurrentWindow.SnowFlakes) do
-                if flake.Instance then
-                    flake.Instance:Destroy()
-                end
-            end
-            self.CurrentWindow.SnowFlakes = {}
-        end
-    end
+if self.CurrentWindow and self.CurrentWindow.SnowContainer then
+self.CurrentWindow.SnowEnabled = enabled
+self.CurrentWindow.SnowContainer.Visible = enabled
+if enabled and not self.CurrentWindow.SnowConnection then
+self.CurrentWindow.SnowConnection = RunService.Heartbeat:Connect(function()
+if self.CurrentWindow.SnowContainer.Visible and self.CurrentWindow.Instance.Visible then
+self.CurrentWindow:UpdateSnowflakes()
+self.CurrentWindow:SpawnSnowflakes()
+end
+end)
+elseif not enabled and self.CurrentWindow.SnowConnection then
+self.CurrentWindow.SnowConnection:Disconnect()
+self.CurrentWindow.SnowConnection = nil
+for _, flake in ipairs(self.CurrentWindow.SnowFlakes) do
+if flake.Instance then
+flake.Instance:Destroy()
+end
+end
+self.CurrentWindow.SnowFlakes = {}
+end
+end
 end
 function WasUI:IsSnowfallEnabled()
-    if self.CurrentWindow and self.CurrentWindow.SnowContainer then
-        return self.CurrentWindow.SnowEnabled
-    end
-    return false
+if self.CurrentWindow and self.CurrentWindow.SnowContainer then
+return self.CurrentWindow.SnowEnabled
+end
+return false
 end
 _G.WasUIModule = {
-    CreateWindow = function(title, size, position, displayOrder)
-        local window = WasUI:CreateWindow(title, size, position, displayOrder)
-        WasUI.CurrentWindow = window
-        return window
-    end,
-    SetTheme = function(themeName)
-        if WasUI.Themes[themeName] then
-            WasUI.CurrentTheme = WasUI.Themes[themeName]
-        end
-    end,
-    SaveConfig = function(key, data)
-        WasUI:SaveConfig(key, data)
-    end,
-    LoadConfig = function(key, default)
-        return WasUI:LoadConfig(key, default)
-    end,
-    SetDisplayOrder = WasUI.SetDisplayOrder,
-    Notify = function(options)
-        WasUI:Notify(options)
-    end,
-    CreateRainbowText = WasUI.CreateRainbowText,
-    RemoveRainbowText = WasUI.RemoveRainbowText,
-    ToggleSnowfall = function(enabled)
-        WasUI:ToggleSnowfall(enabled)
-    end,
-    IsSnowfallEnabled = function()
-        return WasUI:IsSnowfallEnabled()
-    end
+CreateWindow = function(title, size, position, displayOrder)
+local window = WasUI:CreateWindow(title, size, position, displayOrder)
+WasUI.CurrentWindow = window
+return window
+end,
+SetTheme = function(themeName)
+if WasUI.Themes[themeName] then
+WasUI.CurrentTheme = WasUI.Themes[themeName]
+end
+end,
+SaveConfig = function(key, data)
+WasUI:SaveConfig(key, data)
+end,
+LoadConfig = function(key, default)
+return WasUI:LoadConfig(key, default)
+end,
+SetDisplayOrder = WasUI.SetDisplayOrder,
+Notify = function(options)
+WasUI:Notify(options)
+end,
+CreateRainbowText = WasUI.CreateRainbowText,
+RemoveRainbowText = WasUI.RemoveRainbowText,
+ToggleSnowfall = function(enabled)
+WasUI:ToggleSnowfall(enabled)
+end,
+IsSnowfallEnabled = function()
+return WasUI:IsSnowfallEnabled()
+end
 }
-return _G.WasUIModule
+return _G.WasUIModule    
