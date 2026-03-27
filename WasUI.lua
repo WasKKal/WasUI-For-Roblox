@@ -322,215 +322,6 @@ function ToggleSwitch:New(name, parent, initialState, onToggle)
 
     return self
 end
-
-local Label = setmetatable({}, {__index = Control})
-Label.__index = Label
-
-function Label:New(name, parent, text)
-    local self = Control.New(self, name, parent)
-    self.Instance = CreateInstance("TextLabel", {
-        Name = name,
-        Size = UDim2.new(1, 0, 0, 20),
-        BackgroundTransparency = 1,
-        Text = text or "标签",
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = parent
-    })
-    return self
-end
-
-local Category = setmetatable({}, {__index = Control})
-Category.__index = Category
-
-function Category:New(name, parent, title)
-    local self = Control.New(self, name, parent)
-    self.Instance = CreateInstance("Frame", {
-        Name = name,
-        Size = UDim2.new(1, 0, 0, 32),
-        BackgroundTransparency = 1,
-        Parent = parent
-    })
-    
-    local titleLabel = CreateInstance("TextLabel", {
-        Name = "Title",
-        Size = UDim2.new(0.9, 0, 1, 0),
-        Position = UDim2.new(0.05, 0, 0, 0),
-        BackgroundTransparency = 1,
-        Text = title,
-        TextColor3 = WasUI.CurrentTheme.Primary,
-        Font = Enum.Font.GothamBold,
-        TextSize = 18,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        Parent = self.Instance
-    })
-    
-    local line = CreateInstance("Frame", {
-        Name = "Line",
-        Size = UDim2.new(0.9, 0, 0, 1),
-        Position = UDim2.new(0.05, 0, 1, -2),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.5,
-        BorderSizePixel = 0,
-        Parent = self.Instance
-    })
-    
-    return self
-end
-
-WasUI.RainbowTexts = {}
-local rainbowConnections = {}
-
-local function CreateRainbowText(text, position)
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "RainbowText_" .. text,
-        ResetOnSpawn = false,
-        DisplayOrder = 100,
-        Parent = game:GetService("CoreGui")
-    })
-    
-    local textLabel = CreateInstance("TextLabel", {
-        Name = "RainbowText",
-        Size = UDim2.new(0, 0, 0, 0),
-        Position = position or UDim2.new(1, -10, 0, 10),
-        BackgroundTransparency = 1,
-        Text = text,
-        TextColor3 = Color3.fromRGB(255, 0, 0),
-        Font = Enum.Font.GothamBold,
-        TextSize = 18,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        TextStrokeTransparency = 0.5,
-        TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
-        Parent = screenGui
-    })
-    
-    Tween(textLabel, {Size = UDim2.new(0, 200, 0, 30)}, 0.3)
-    
-    local rainbowSpeed = 2
-    local time = 0
-    
-    local connection = RunService.Heartbeat:Connect(function(deltaTime)
-        time = time + deltaTime * rainbowSpeed
-        local r = (math.sin(time) + 1) / 2
-        local g = (math.sin(time + math.pi/3) + 1) / 2
-        local b = (math.sin(time + 2*math.pi/3) + 1) / 2
-        textLabel.TextColor3 = Color3.new(r, g, b)
-    end)
-    
-    WasUI.RainbowTexts[text] = screenGui
-    rainbowConnections[text] = connection
-    
-    return screenGui
-end
-
-local function RemoveRainbowText(text)
-    if WasUI.RainbowTexts[text] then
-        WasUI.RainbowTexts[text]:Destroy()
-        WasUI.RainbowTexts[text] = nil
-    end
-    if rainbowConnections[text] then
-        rainbowConnections[text]:Disconnect()
-        rainbowConnections[text] = nil
-    end
-end
-
-WasUI.Notifications = {}
-WasUI.NotificationQueue = {}
-WasUI.NotificationActive = false
-WasUI.NotificationBlocked = false
-
-function WasUI:Notify(options)
-    if WasUI.NotificationActive or WasUI.NotificationBlocked then
-        return
-    end
-    
-    local config = {
-        Content = options.Content or "通知",
-        Duration = options.Duration or 3,
-        Type = options.Type or "Info"
-    }
-    
-    table.insert(WasUI.NotificationQueue, config)
-    
-    if not WasUI.NotificationProcessing then
-        WasUI.NotificationProcessing = true
-        WasUI:ProcessNotificationQueue()
-    end
-end
-
-function WasUI:ProcessNotificationQueue()
-    if #WasUI.NotificationQueue == 0 then
-        WasUI.NotificationProcessing = false
-        WasUI.NotificationActive = false
-        return
-    end
-    
-    local config = table.remove(WasUI.NotificationQueue, 1)
-    WasUI.NotificationActive = true
-    WasUI.NotificationBlocked = true
-    
-    task.delay(0.1, function()
-        WasUI.NotificationBlocked = false
-    end)
-    
-    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "WasUI_Notification",
-        ResetOnSpawn = false,
-        DisplayOrder = 999,
-        Parent = playerGui
-    })
-    
-    local notificationFrame = CreateInstance("Frame", {
-        Name = "Notification",
-        Size = UDim2.new(0, 300, 0, 40),
-        Position = UDim2.new(0.5, -150, 0, -50),
-        BackgroundColor3 = Color3.fromRGB(30, 30, 35),
-        BackgroundTransparency = 0.3,
-        Parent = screenGui
-    })
-    
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = notificationFrame})
-    
-    local stroke = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(60, 60, 65),
-        Thickness = 2,
-        Parent = notificationFrame
-    })
-    
-    local textLabel = CreateInstance("TextLabel", {
-        Name = "Content",
-        Size = UDim2.new(0.9, 0, 0.8, 0),
-        Position = UDim2.new(0.05, 0, 0.1, 0),
-        BackgroundTransparency = 1,
-        Text = config.Content,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 14,
-        TextWrapped = true,
-        Parent = notificationFrame
-    })
-    
-    local slideDown = Tween(notificationFrame, {Position = UDim2.new(0.5, -150, 0, 20)}, 0.3)
-    slideDown.Completed:Wait()
-    
-    wait(config.Duration)
-    
-    local fadeOut = Tween(notificationFrame, {BackgroundTransparency = 1}, 0.5)
-    Tween(textLabel, {TextTransparency = 1}, 0.5)
-    Tween(stroke, {Transparency = 1}, 0.5)
-    
-    fadeOut.Completed:Connect(function()
-        screenGui:Destroy()
-        WasUI.NotificationActive = false
-        wait(0.5)
-        WasUI:ProcessNotificationQueue()
-    end)
-end
 local Panel = setmetatable({}, {__index = Control})
 Panel.__index = Panel
 
@@ -691,9 +482,21 @@ function Panel:New(name, parent, size, position)
         self.CloseButton.Visible = false
         self.MinimizeButton.Visible = false
         self.DraggableArea.Visible = true
-        
+        self.SnowContainer.Visible = false
         self.DotContainer.Visible = true
         self.IsMinimized = true
+        
+        if self.SnowConnection then
+            self.SnowConnection:Disconnect()
+            self.SnowConnection = nil
+        end
+        
+        for _, flake in ipairs(self.SnowFlakes) do
+            if flake.Instance then
+                flake.Instance:Destroy()
+            end
+        end
+        self.SnowFlakes = {}
     end
     
     self.RestoreFromDots = function()
@@ -711,8 +514,18 @@ function Panel:New(name, parent, size, position)
         self.CloseButton.Visible = true
         self.MinimizeButton.Visible = true
         self.DraggableArea.Visible = true
-        
         self.DotContainer.Visible = true
+        self.SnowContainer.Visible = self.SnowEnabled
+        
+        if self.SnowEnabled and not self.SnowConnection then
+            self.SnowConnection = RunService.Heartbeat:Connect(function()
+                if self.SnowContainer.Visible and self.Instance.Visible then
+                    self:UpdateSnowflakes()
+                    self:SpawnSnowflakes()
+                end
+            end)
+        end
+        
         self.IsMinimized = false
     end
     
@@ -749,6 +562,21 @@ function Panel:New(name, parent, size, position)
     end)
     
     self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
+    self.CloseButton.MouseButton1Click:Connect(function() 
+        if self.SnowConnection then
+            self.SnowConnection:Disconnect()
+            self.SnowConnection = nil
+        end
+        
+        for _, flake in ipairs(self.SnowFlakes) do
+            if flake.Instance then
+                flake.Instance:Destroy()
+            end
+        end
+        self.SnowFlakes = {}
+        
+        self:SetVisible(false) 
+    end)
     
     local dragging = false
     local dragStart
@@ -872,9 +700,55 @@ function Panel:New(name, parent, size, position)
         Parent = self.Instance
     })
     
-    local snowFlakes = {}
+    self.TabBar = CreateInstance("ScrollingFrame", {
+        Name = "TabBar",
+        Size = UDim2.new(1, 0, 0, 32),
+        Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
+        BackgroundColor3 = Color3.fromRGB(35, 35, 40),
+        BorderSizePixel = 1,
+        BorderColor3 = Color3.fromRGB(60, 60, 65),
+        ScrollBarThickness = 4,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        Parent = self.Instance
+    })
     
-    local function createSnowflake()
+    self.TabContainer = CreateInstance("Frame", {
+        Name = "TabContainer",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Parent = self.TabBar
+    })
+    
+    self.TabLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 5),
+        Parent = self.TabContainer
+    })
+    
+    self.TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
+    end)
+    
+    self.ContentArea = CreateInstance("ScrollingFrame", {
+        Name = "ContentArea",
+        Size = UDim2.new(1, -10, 1, -announcementHeight - 32 - 31),
+        Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 32),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 4,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        Parent = self.Instance
+    })
+    
+    self.Tabs = {}
+    self.ActiveTab = nil
+    self.TabContents = {}
+    
+    self.SnowFlakes = {}
+    self.SnowEnabled = true
+    
+    function self:CreateSnowflake()
         local size = math.random(3, 8)
         local xPos = math.random(0, 100) / 100
         local yPos = -size
@@ -902,8 +776,8 @@ function Panel:New(name, parent, size, position)
         }
     end
     
-    local function updateSnowflakes()
-        for i, flake in ipairs(snowFlakes) do
+    function self:UpdateSnowflakes()
+        for i, flake in ipairs(self.SnowFlakes) do
             if flake.Instance.Parent then
                 local currentY = flake.Instance.Position.Y.Offset
                 local currentX = flake.Instance.Position.X.Offset
@@ -916,82 +790,26 @@ function Panel:New(name, parent, size, position)
                 
                 if newY > self.SnowContainer.AbsoluteSize.Y then
                     flake.Instance:Destroy()
-                    table.remove(snowFlakes, i)
+                    table.remove(self.SnowFlakes, i)
                 end
             end
         end
     end
     
-    local function spawnSnowflakes()
-        if #snowFlakes < 30 and self.Instance.Visible then
+    function self:SpawnSnowflakes()
+        if #self.SnowFlakes < 30 and self.Instance.Visible then
             for i = 1, math.random(1, 3) do
-                local flake = createSnowflake()
-                table.insert(snowFlakes, flake)
+                local flake = self:CreateSnowflake()
+                table.insert(self.SnowFlakes, flake)
             end
         end
     end
     
-    local snowConnection
-    snowConnection = RunService.Heartbeat:Connect(function()
+    self.SnowConnection = RunService.Heartbeat:Connect(function()
         if self.SnowContainer.Visible and self.Instance.Visible then
-            updateSnowflakes()
-            spawnSnowflakes()
+            self:UpdateSnowflakes()
+            self:SpawnSnowflakes()
         end
-    end)
-    
-    self.MinimizeToDots = function()
-        if self.IsMinimized then return end
-        
-        Tween(self.Instance, {
-            Size = self.MinimizedSize,
-            Position = self.Instance.Position
-        }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-        
-        self.Title.Visible = false
-        self.AnnouncementBar.Visible = false
-        self.TabBar.Visible = false
-        self.ContentArea.Visible = false
-        self.CloseButton.Visible = false
-        self.MinimizeButton.Visible = false
-        self.DraggableArea.Visible = true
-        self.SnowContainer.Visible = false
-        
-        self.DotContainer.Visible = true
-        self.IsMinimized = true
-    end
-    
-    self.RestoreFromDots = function()
-        if not self.IsMinimized then return end
-        
-        Tween(self.Instance, {
-            Size = self.OriginalSize,
-            Position = self.Instance.Position
-        }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-        
-        self.Title.Visible = true
-        self.AnnouncementBar.Visible = true
-        self.TabBar.Visible = true
-        self.ContentArea.Visible = true
-        self.CloseButton.Visible = true
-        self.MinimizeButton.Visible = true
-        self.DraggableArea.Visible = true
-        self.SnowContainer.Visible = true
-        
-        self.DotContainer.Visible = true
-        self.IsMinimized = false
-    end
-
-    self.CloseButton.MouseButton1Click:Connect(function() 
-        if snowConnection then
-            snowConnection:Disconnect()
-        end
-        for _, flake in ipairs(snowFlakes) do
-            if flake.Instance then
-                flake.Instance:Destroy()
-            end
-        end
-        snowFlakes = {}
-        self:SetVisible(false) 
     end)
     
     return self
@@ -1252,13 +1070,33 @@ end
 
 function WasUI:ToggleSnowfall(enabled)
     if self.CurrentWindow and self.CurrentWindow.SnowContainer then
+        self.CurrentWindow.SnowEnabled = enabled
         self.CurrentWindow.SnowContainer.Visible = enabled
+        
+        if enabled and not self.CurrentWindow.SnowConnection then
+            self.CurrentWindow.SnowConnection = RunService.Heartbeat:Connect(function()
+                if self.CurrentWindow.SnowContainer.Visible and self.CurrentWindow.Instance.Visible then
+                    self.CurrentWindow:UpdateSnowflakes()
+                    self.CurrentWindow:SpawnSnowflakes()
+                end
+            end)
+        elseif not enabled and self.CurrentWindow.SnowConnection then
+            self.CurrentWindow.SnowConnection:Disconnect()
+            self.CurrentWindow.SnowConnection = nil
+            
+            for _, flake in ipairs(self.CurrentWindow.SnowFlakes) do
+                if flake.Instance then
+                    flake.Instance:Destroy()
+                end
+            end
+            self.CurrentWindow.SnowFlakes = {}
+        end
     end
 end
 
 function WasUI:IsSnowfallEnabled()
     if self.CurrentWindow and self.CurrentWindow.SnowContainer then
-        return self.CurrentWindow.SnowContainer.Visible
+        return self.CurrentWindow.SnowEnabled
     end
     return false
 end
