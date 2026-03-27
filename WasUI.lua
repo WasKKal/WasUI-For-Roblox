@@ -860,7 +860,7 @@ function Panel:New(name, parent, size, position)
     self.Title = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(1, -120, 1, 0),
-        Position = UDim2.new(0, 50, 0, 0),
+        Position = UDim2.new(0, 53, 0, 0),
         BackgroundTransparency = 1,
         Text = name,
         TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -873,7 +873,7 @@ function Panel:New(name, parent, size, position)
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 28, 1, 0),
-        Position = UDim2.new(0, 8.5, 0, 1.1),
+        Position = UDim2.new(0, 9.5, 0, 1.1),
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = self.TitleBar
@@ -1059,8 +1059,8 @@ function Panel:New(name, parent, size, position)
             })
             local dialogFrame = CreateInstance("Frame", {
                 Name = "Dialog",
-                Size = UDim2.new(0, 320, 0, 160),
-                Position = UDim2.new(0.5, -160, 0.5, -80),
+                Size = UDim2.new(0, 340, 0, 180),
+                Position = UDim2.new(0.5, -170, 0.5, -90),
                 BackgroundColor3 = WasUI.CurrentTheme.Background,
                 BackgroundTransparency = 0.3,
                 BorderSizePixel = 0,
@@ -1069,7 +1069,7 @@ function Panel:New(name, parent, size, position)
             CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
             local titleText = CreateInstance("TextLabel", {
                 Name = "Title",
-                Size = UDim2.new(1, -20, 0, 40),
+                Size = UDim2.new(1, -20, 0, 50),
                 Position = UDim2.new(0, 10, 0, 10),
                 BackgroundTransparency = 1,
                 Text = WasUI.DialogTitle,
@@ -1082,8 +1082,8 @@ function Panel:New(name, parent, size, position)
             })
             local buttonContainer = CreateInstance("Frame", {
                 Name = "ButtonContainer",
-                Size = UDim2.new(1, -20, 0, 40),
-                Position = UDim2.new(0, 10, 1, -50),
+                Size = UDim2.new(1, -20, 0, 50),
+                Position = UDim2.new(0, 10, 1, -60),
                 BackgroundTransparency = 1,
                 Parent = dialogFrame
             })
@@ -1091,12 +1091,12 @@ function Panel:New(name, parent, size, position)
                 FillDirection = Enum.FillDirection.Horizontal,
                 HorizontalAlignment = Enum.HorizontalAlignment.Center,
                 VerticalAlignment = Enum.VerticalAlignment.Center,
-                Padding = UDim.new(0, 12),
+                Padding = UDim.new(0, 15),
                 Parent = buttonContainer
             })
             local confirmButton = CreateInstance("TextButton", {
                 Name = "Confirm",
-                Size = UDim2.new(0, 100, 0, 32),
+                Size = UDim2.new(0, 110, 0, 36),
                 BackgroundColor3 = WasUI.CurrentTheme.Section,
                 BackgroundTransparency = 0.3,
                 Text = "确认关闭",
@@ -1108,7 +1108,7 @@ function Panel:New(name, parent, size, position)
             })
             local cancelButton = CreateInstance("TextButton", {
                 Name = "Cancel",
-                Size = UDim2.new(0, 100, 0, 32),
+                Size = UDim2.new(0, 110, 0, 36),
                 BackgroundColor3 = WasUI.CurrentTheme.Section,
                 BackgroundTransparency = 0.3,
                 Text = "取消",
@@ -1119,7 +1119,7 @@ function Panel:New(name, parent, size, position)
                 Parent = buttonContainer
             })
             for _, btn in ipairs({confirmButton, cancelButton}) do
-                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = btn})
+                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 18), Parent = btn})
                 btn.MouseEnter:Connect(function()
                     Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
                 end)
@@ -1174,7 +1174,14 @@ function Panel:New(name, parent, size, position)
             end)
             overlay.Active = true
             overlay.InputBegan:Connect(function(input)
-                input:SetConsumed(true)
+                local mousePos = input.Position
+                local framePos = dialogFrame.AbsolutePosition
+                local frameSize = dialogFrame.AbsoluteSize
+                local inDialog = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
+                                 mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
+                if not inDialog then
+                    input:SetConsumed(true)
+                end
             end)
         end
         showCloseDialog()
@@ -1243,8 +1250,7 @@ function Panel:New(name, parent, size, position)
         Image = "",
         BorderSizePixel = 0,
         AutoButtonColor = false,
-        Parent = self.AnnouncementBar,
-        AnchorPoint = Vector2.new(0, 0.5)
+        Parent = self.AnnouncementBar
     })
     local avatarScale = CreateInstance("UIScale", {
         Scale = 1,
@@ -1532,6 +1538,48 @@ function Panel:AddTab(tabName)
     table.insert(WasUI.Objects, {Object = tabButton, Type = "TabButton"})
     table.insert(WasUI.Objects, {Object = underline, Type = "TabUnderline"})
     return tabContent
+end
+
+function Panel:AddButtonRow(buttons)
+    local container = CreateInstance("Frame", {
+        Name = "ButtonRow",
+        Size = UDim2.new(1, 0, 0, 0),
+        BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = self.CurrentTabContent or self.ContentArea
+    })
+    local layout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 8),
+        Parent = container
+    })
+    local buttonFrames = {}
+    for i, btn in ipairs(buttons) do
+        local btnFrame = CreateInstance("Frame", {
+            Name = "Button_" .. i,
+            Size = UDim2.new(0, 0, 1, 0),
+            BackgroundTransparency = 1,
+            AutomaticSize = Enum.AutomaticSize.X,
+            Parent = container
+        })
+        local button = Button:New("Button_" .. i, btnFrame, btn.text, btn.onClick)
+        buttonFrames[btnFrame] = button
+    end
+    local function updateWidths()
+        local count = #buttons
+        if count == 0 then return end
+        local eachWidth = UDim2.new(1 / count, 0, 1, 0)
+        for _, frame in ipairs(container:GetChildren()) do
+            if frame:IsA("Frame") and frame.Name:match("^Button_") then
+                frame.Size = eachWidth
+            end
+        end
+    end
+    updateWidths()
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateWidths)
+    return container
 end
 
 function Panel:AddTitle(text, tabName)
