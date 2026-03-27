@@ -289,14 +289,13 @@ end
 
 WasUI.Notifications = {}
 WasUI.NotificationQueue = {}
-WasUI.NotificationActive = false
-WasUI.NotificationBlocked = false
+WasUI.ActiveNotifications = {}
+WasUI.NotificationTop = 20
+WasUI.NotificationSpacing = 5
+WasUI.NotificationHeight = 30
+WasUI.NotificationWidth = 250
 
 function WasUI:Notify(options)
-    if WasUI.NotificationActive or WasUI.NotificationBlocked then
-        return
-    end
-    
     local config = {
         Content = options.Content or "通知",
         Duration = options.Duration or 3,
@@ -314,21 +313,14 @@ end
 function WasUI:ProcessNotificationQueue()
     if #WasUI.NotificationQueue == 0 then
         WasUI.NotificationProcessing = false
-        WasUI.NotificationActive = false
         return
     end
     
     local config = table.remove(WasUI.NotificationQueue, 1)
-    WasUI.NotificationActive = true
-    WasUI.NotificationBlocked = true
-    
-    task.delay(0.1, function()
-        WasUI.NotificationBlocked = false
-    end)
     
     local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
     local screenGui = CreateInstance("ScreenGui", {
-        Name = "WasUI_Notification",
+        Name = "WasUI_Notification_" .. tick(),
         ResetOnSpawn = false,
         DisplayOrder = 999,
         Parent = playerGui
@@ -336,18 +328,18 @@ function WasUI:ProcessNotificationQueue()
     
     local notificationFrame = CreateInstance("Frame", {
         Name = "Notification",
-        Size = UDim2.new(0, 300, 0, 40),
-        Position = UDim2.new(0.5, -150, 0, -50),
+        Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
+        Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, 20),
         BackgroundColor3 = Color3.fromRGB(30, 30, 35),
         BackgroundTransparency = 0.3,
         Parent = screenGui
     })
     
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = notificationFrame})
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = notificationFrame})
     
     local stroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(60, 60, 65),
-        Thickness = 2,
+        Thickness = 1,
         Parent = notificationFrame
     })
     
@@ -359,13 +351,24 @@ function WasUI:ProcessNotificationQueue()
         Text = config.Content,
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamSemibold,
-        TextSize = 14,
+        TextSize = 12,
         TextWrapped = true,
         Parent = notificationFrame
     })
     
-    local slideDown = Tween(notificationFrame, {Position = UDim2.new(0.5, -150, 0, 20)}, 0.3)
-    slideDown.Completed:Wait()
+    local notificationId = tostring(#WasUI.ActiveNotifications + 1)
+    WasUI.ActiveNotifications[notificationId] = {
+        Instance = notificationFrame,
+        ScreenGui = screenGui,
+        Height = WasUI.NotificationHeight
+    }
+    
+    WasUI:UpdateNotificationPositions()
+    
+    local slideIn = Tween(notificationFrame, {
+        Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, 20)
+    }, 0.3)
+    slideIn.Completed:Wait()
     
     wait(config.Duration)
     
@@ -375,11 +378,37 @@ function WasUI:ProcessNotificationQueue()
     
     fadeOut.Completed:Connect(function()
         screenGui:Destroy()
-        WasUI.NotificationActive = false
-        wait(0.5)
+        WasUI.ActiveNotifications[notificationId] = nil
+        wait(0.2)
+        WasUI:UpdateNotificationPositions()
+        wait(0.3)
         WasUI:ProcessNotificationQueue()
     end)
 end
+
+function WasUI:UpdateNotificationPositions()
+    local currentY = WasUI.NotificationTop
+    local sortedNotifications = {}
+    
+    for id, notification in pairs(WasUI.ActiveNotifications) do
+        table.insert(sortedNotifications, {id = id, notification = notification})
+    end
+    
+    table.sort(sortedNotifications, function(a, b)
+        return tonumber(a.id) < tonumber(b.id)
+    end)
+    
+    for _, entry in ipairs(sortedNotifications) do
+        local notification = entry.notification
+        if notification.Instance and notification.Instance.Parent then
+            Tween(notification.Instance, {
+                Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, currentY)
+            }, 0.3)
+            currentY = currentY + notification.Height + WasUI.NotificationSpacing
+        end
+    end
+end
+
 
 local function getExecutor()
     if syn then
