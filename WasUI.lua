@@ -14,6 +14,7 @@ end
 _G.WasUILoaded = true
 
 WasUI.DefaultDisplayOrder = 10
+WasUI.DialogTitle = "你要关闭WasUI吗?"
 
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
@@ -278,7 +279,7 @@ function Category:New(name, parent, title)
     local self = Control.New(self, name, parent)
     self.Instance = CreateInstance("Frame", {
         Name = name,
-        Size = UDim2.new(1, 0, 0, 32),
+        Size = UDim2.new(1, 0, 0, 28),
         BackgroundTransparency = 1,
         Parent = parent
     })
@@ -290,7 +291,7 @@ function Category:New(name, parent, title)
         Text = title,
         TextColor3 = WasUI.CurrentTheme.Primary,
         Font = Enum.Font.GothamBold,
-        TextSize = 18,
+        TextSize = 16,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
         Parent = self.Instance
@@ -365,6 +366,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
     self.SelectedValue = defaultValue
     self.Callback = callback
     self.IsOpen = false
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
     self.OptionsContainer = CreateInstance("Frame", {
         Name = "OptionsContainer",
         Size = UDim2.new(0.3, 0, 0, 0),
@@ -375,7 +377,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         ClipsDescendants = true,
         Visible = false,
         ZIndex = 9999,
-        Parent = parent.Parent.Parent
+        Parent = playerGui
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = self.OptionsContainer})
     self.OptionsListLayout = CreateInstance("UIListLayout", {
@@ -864,7 +866,7 @@ function Panel:New(name, parent, size, position)
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 28, 1, 0),
-        Position = UDim2.new(0, 8, 0, 1.3),
+        Position = UDim2.new(0, 8.5, 0, 1.1),
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = self.TitleBar
@@ -883,7 +885,7 @@ function Panel:New(name, parent, size, position)
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 0.2, 0.5, -5.2),
+        Position = UDim2.new(0, 0.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -893,7 +895,7 @@ function Panel:New(name, parent, size, position)
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 15.2, 0.5, -5.2),
+        Position = UDim2.new(0, 15.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -903,7 +905,7 @@ function Panel:New(name, parent, size, position)
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 30.2, 0.5, -5.2),
+        Position = UDim2.new(0, 30.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
         ZIndex = 3,
@@ -1030,30 +1032,113 @@ function Panel:New(name, parent, size, position)
     
     self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
     self.CloseButton.MouseButton1Click:Connect(function() 
-        if self.SnowConnection then
-            self.SnowConnection:Disconnect()
-            self.SnowConnection = nil
-        end
-        for _, flake in ipairs(self.SnowFlakes) do
-            if flake.Instance then
-                flake.Instance:Destroy()
+        local function showCloseDialog()
+            local dialogGui = CreateInstance("ScreenGui", {
+                Name = "CloseDialog",
+                ResetOnSpawn = false,
+                DisplayOrder = 1000,
+                Parent = game:GetService("CoreGui")
+            })
+            local overlay = CreateInstance("Frame", {
+                Name = "Overlay",
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+                BackgroundTransparency = 0.5,
+                Visible = true,
+                Parent = dialogGui
+            })
+            local dialogFrame = CreateInstance("Frame", {
+                Name = "Dialog",
+                Size = UDim2.new(0, 300, 0, 150),
+                Position = UDim2.new(0.5, -150, 0.5, -75),
+                BackgroundColor3 = WasUI.CurrentTheme.Background,
+                BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                Parent = overlay
+            })
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = dialogFrame})
+            local titleText = CreateInstance("TextLabel", {
+                Name = "Title",
+                Size = UDim2.new(1, -20, 0, 40),
+                Position = UDim2.new(0, 10, 0, 10),
+                BackgroundTransparency = 1,
+                Text = WasUI.DialogTitle,
+                TextColor3 = WasUI.CurrentTheme.Text,
+                Font = Enum.Font.GothamBold,
+                TextSize = 16,
+                TextXAlignment = Enum.TextXAlignment.Center,
+                TextYAlignment = Enum.TextYAlignment.Center,
+                Parent = dialogFrame
+            })
+            local confirmButton = CreateInstance("TextButton", {
+                Name = "Confirm",
+                Size = UDim2.new(0, 100, 0, 32),
+                Position = UDim2.new(0.5, -110, 1, -50),
+                BackgroundColor3 = WasUI.CurrentTheme.Section,
+                Text = "确认关闭",
+                TextColor3 = Color3.fromRGB(255, 100, 100),
+                Font = Enum.Font.GothamSemibold,
+                TextSize = 14,
+                AutoButtonColor = false,
+                Parent = dialogFrame
+            })
+            local cancelButton = CreateInstance("TextButton", {
+                Name = "Cancel",
+                Size = UDim2.new(0, 100, 0, 32),
+                Position = UDim2.new(0.5, 10, 1, -50),
+                BackgroundColor3 = WasUI.CurrentTheme.Section,
+                Text = "取消",
+                TextColor3 = Color3.fromRGB(255, 255, 255),
+                Font = Enum.Font.GothamSemibold,
+                TextSize = 14,
+                AutoButtonColor = false,
+                Parent = dialogFrame
+            })
+            for _, btn in ipairs({confirmButton, cancelButton}) do
+                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = btn})
+                btn.MouseEnter:Connect(function()
+                    Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
+                end)
+                btn.MouseLeave:Connect(function()
+                    Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Section}, 0.2)
+                end)
             end
+            dialogFrame.BackgroundTransparency = 1
+            Tween(dialogFrame, {BackgroundTransparency = 0}, 0.2)
+            confirmButton.MouseButton1Click:Connect(function()
+                if self.SnowConnection then
+                    self.SnowConnection:Disconnect()
+                    self.SnowConnection = nil
+                end
+                for _, flake in ipairs(self.SnowFlakes) do
+                    if flake.Instance then
+                        flake.Instance:Destroy()
+                    end
+                end
+                self.SnowFlakes = {}
+                if self.BorderConnection then
+                    self.BorderConnection:Disconnect()
+                    self.BorderConnection = nil
+                end
+                if self.BorderEffect then
+                    self.BorderEffect:Destroy()
+                end
+                for _, data in pairs(WasUI.ActiveRainbowTexts) do
+                    if data.ScreenGui then data.ScreenGui:Destroy() end
+                    if data.Connection then data.Connection:Disconnect() end
+                end
+                WasUI.ActiveRainbowTexts = {}
+                WasUI.RainbowOrder = {}
+                self:SetVisible(false)
+                dialogGui:Destroy()
+            end)
+            cancelButton.MouseButton1Click:Connect(function()
+                Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+                task.wait(0.2)
+                dialogGui:Destroy()
+            end)
         end
-        self.SnowFlakes = {}
-        if self.BorderConnection then
-            self.BorderConnection:Disconnect()
-            self.BorderConnection = nil
-        end
-        if self.BorderEffect then
-            self.BorderEffect:Destroy()
-        end
-        for _, data in pairs(WasUI.ActiveRainbowTexts) do
-            if data.ScreenGui then data.ScreenGui:Destroy() end
-            if data.Connection then data.Connection:Disconnect() end
-        end
-        WasUI.ActiveRainbowTexts = {}
-        WasUI.RainbowOrder = {}
-        self:SetVisible(false) 
+        showCloseDialog()
     end)
     
     local dragging = false
@@ -1354,66 +1439,23 @@ function Panel:AddTab(tabName)
     tabButton.MouseButton1Click:Connect(function()
         for _, tab in pairs(self.Tabs) do
             if tab.Button ~= tabButton and tab.Content.Visible then
-                local children = tab.Content:GetChildren()
-                local tweens = {}
-                for _, child in ipairs(children) do
-                    if child:IsA("GuiObject") and not child:IsA("UIListLayout") then
-                        local props = {}
-                        if child:IsA("TextLabel") or child:IsA("TextButton") then
-                            props.TextTransparency = 1
-                        end
-                        if child:IsA("Frame") or child:IsA("ImageButton") or child:IsA("TextButton") then
-                            props.BackgroundTransparency = 1
-                        end
-                        if next(props) then
-                            table.insert(tweens, Tween(child, props, 0.2))
-                        end
-                    end
-                end
+                Tween(tab.Content, {Transparency = 1}, 0.2, Enum.EasingStyle.Cubic)
                 task.wait(0.2)
                 tab.Content.Visible = false
-                for _, child in ipairs(children) do
-                    if child:IsA("GuiObject") and not child:IsA("UIListLayout") then
-                        if child:IsA("TextLabel") or child:IsA("TextButton") then
-                            child.TextTransparency = 0
-                        end
-                        if child:IsA("Frame") or child:IsA("ImageButton") or child:IsA("TextButton") then
-                            child.BackgroundTransparency = 0
-                        end
-                    end
+                tab.Content.Transparency = 0
+                Tween(tab.Button, {BackgroundTransparency = 0.7, TextColor3 = Color3.fromRGB(100, 100, 105), BackgroundColor3 = WasUI.CurrentTheme.TabButton}, 0.2, Enum.EasingStyle.Cubic)
+                if tab.Underline then
+                    Tween(tab.Underline, {Size = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1}, 0.2, Enum.EasingStyle.Cubic)
                 end
             end
         end
 
         tabContent.Visible = true
-        local children = tabContent:GetChildren()
-        for _, child in ipairs(children) do
-            if child:IsA("GuiObject") and not child:IsA("UIListLayout") then
-                if child:IsA("TextLabel") or child:IsA("TextButton") then
-                    child.TextTransparency = 1
-                end
-                if child:IsA("Frame") or child:IsA("ImageButton") or child:IsA("TextButton") then
-                    child.BackgroundTransparency = 1
-                end
-            end
-        end
-        for _, child in ipairs(children) do
-            if child:IsA("GuiObject") and not child:IsA("UIListLayout") then
-                local props = {}
-                if child:IsA("TextLabel") or child:IsA("TextButton") then
-                    props.TextTransparency = 0
-                end
-                if child:IsA("Frame") or child:IsA("ImageButton") or child:IsA("TextButton") then
-                    props.BackgroundTransparency = 0
-                end
-                if next(props) then
-                    Tween(child, props, 0.2)
-                end
-            end
-        end
+        tabContent.Transparency = 1
+        Tween(tabContent, {Transparency = 0}, 0.2, Enum.EasingStyle.Cubic)
 
-        Tween(tabButton, {BackgroundTransparency = 0, TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.3, Enum.EasingStyle.Cubic)
-        Tween(underline, {Size = UDim2.new(0.8, 0, 0, 2), BackgroundTransparency = 0}, 0.3, Enum.EasingStyle.Cubic)
+        Tween(tabButton, {BackgroundTransparency = 0, TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2, Enum.EasingStyle.Cubic)
+        Tween(underline, {Size = UDim2.new(0.8, 0, 0, 2), BackgroundTransparency = 0}, 0.2, Enum.EasingStyle.Cubic)
 
         self.ActiveTab = tabName
     end)
@@ -1434,17 +1476,7 @@ function Panel:AddTab(tabName)
         underline.Size = UDim2.new(0.8, 0, 0, 2)
         underline.BackgroundTransparency = 0
         tabContent.Visible = true
-        local children = tabContent:GetChildren()
-        for _, child in ipairs(children) do
-            if child:IsA("GuiObject") and not child:IsA("UIListLayout") then
-                if child:IsA("TextLabel") or child:IsA("TextButton") then
-                    child.TextTransparency = 0
-                end
-                if child:IsA("Frame") or child:IsA("ImageButton") or child:IsA("TextButton") then
-                    child.BackgroundTransparency = 0
-                end
-            end
-        end
+        tabContent.Transparency = 0
     end
 
     table.insert(WasUI.Objects, {Object = tabButton, Type = "TabButton"})
@@ -1538,6 +1570,10 @@ function WasUI:CreateWindow(title, size, position, displayOrder)
     local window = Panel:New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position)
     self.CurrentWindow = window
     return window
+end
+
+function WasUI:SetDialogTitle(title)
+    WasUI.DialogTitle = title or "你要关闭WasUI吗?"
 end
 
 function WasUI:SetTheme(themeName)
