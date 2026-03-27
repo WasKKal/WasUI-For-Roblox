@@ -103,7 +103,7 @@ function Button:New(name, parent, text, onClick)
         Parent = parent
     })
     
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = self.Instance})
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.Instance})
     
     self.Instance.MouseEnter:Connect(function() 
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
@@ -408,7 +408,7 @@ function Panel:New(name, parent, size, position)
         Parent = parent
     })
     
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Instance})
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
     
     local stroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(60, 60, 65),
@@ -425,7 +425,7 @@ function Panel:New(name, parent, size, position)
     })
     
     local titleCorner = CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 8, 0, 0),
+        CornerRadius = UDim.new(0, 10, 0, 0),
         Parent = self.TitleBar
     })
     
@@ -456,7 +456,7 @@ function Panel:New(name, parent, size, position)
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 36, 1, 0),
-        Position = UDim2.new(0, 10.5, 0, 1.5),
+        Position = UDim2.new(0, 10.5, 0, 1.3),
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = self.TitleBar
@@ -707,8 +707,8 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     
-    self.WelcomeText = CreateInstance("TextLabel", {
-        Name = "WelcomeText",
+    self.SubtitleLabel = CreateInstance("TextLabel", {
+        Name = "SubtitleLabel",
         Size = UDim2.new(0.6, 0, 0, 14),
         Position = UDim2.new(0, 68, 0.55, 0),
         BackgroundTransparency = 1,
@@ -770,8 +770,8 @@ function Panel:New(name, parent, size, position)
 end
 
 function Panel:SetWelcomeText(text)
-    if self.WelcomeText then
-        self.WelcomeText.Text = tostring(text)
+    if self.SubtitleLabel then
+        self.SubtitleLabel.Text = tostring(text)
     end
 end
 
@@ -785,6 +785,59 @@ function Panel:SetUsername(text)
     if self.Username then
         self.Username.Text = "玩家: " .. tostring(text)
     end
+end
+
+function Panel:SetSubtitleText(text)
+    if self.SubtitleLabel then
+        self.SubtitleLabel.Text = tostring(text)
+    end
+end
+
+function Panel:SetVersionInfo(versionText)
+    if self.VersionLabel then
+        self.VersionLabel.Instance.Text = "版本: " .. tostring(versionText)
+    end
+end
+
+function Panel:SetAuthorInfo(authorText)
+    if self.AuthorLabel then
+        self.AuthorLabel.Instance.Text = "作者: " .. tostring(authorText)
+    end
+end
+
+function Panel:SetGithubInfo(githubText)
+    if self.GithubLabel then
+        self.GithubLabel.Instance.Text = "GitHub: " .. tostring(githubText)
+    end
+end
+
+function Panel:AddTitle(text, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    
+    if not targetContent then
+        return nil
+    end
+    
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title_" .. text,
+        Size = UDim2.new(1, 0, 0, 28),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = targetContent
+    })
+    
+    return titleLabel
+end
+
+function Panel:AddCategory(title, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    local category = Category:New("Category_" .. title, targetContent, title)
+    return category
 end
 
 function Panel:AddTab(tabName)
@@ -801,7 +854,7 @@ function Panel:AddTab(tabName)
         Parent = self.TabContainer
     })
     
-    local tabCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tabButton})
+    local tabCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tabButton})
     local tabBorder = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(60, 60, 65),
         Thickness = 1,
@@ -820,7 +873,7 @@ function Panel:AddTab(tabName)
     
     local contentLayout = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 8),
+        Padding = UDim.new(0, 4),
         Parent = tabContent
     })
     
@@ -876,62 +929,6 @@ function Panel:AddTab(tabName)
     end
     
     return tabContent
-end
-
-function Panel:AddTitle(text, tabName)
-    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-    
-    local titleLabel = CreateInstance("TextLabel", {
-        Name = "Title_" .. text,
-        Size = UDim2.new(0.9, 0, 0, 28),
-        Position = UDim2.new(0.05, 0, 0, #targetContent:GetChildren() * 30),
-        BackgroundTransparency = 1,
-        Text = text,
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamBold,
-        TextSize = 18,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = targetContent
-    })
-    
-    return titleLabel
-end
-
-function Panel:AddCategory(title, tabName)
-    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-    
-    local categoryContainer = CreateInstance("Frame", {
-        Name = "Category_" .. title,
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        Parent = targetContent
-    })
-    
-    local titleLabel = CreateInstance("TextLabel", {
-        Name = "Title",
-        Size = UDim2.new(0.9, 0, 0, 24),
-        Position = UDim2.new(0.05, 0, 0, 8),
-        BackgroundTransparency = 1,
-        Text = title,
-        TextColor3 = WasUI.CurrentTheme.Primary,
-        Font = Enum.Font.GothamBold,
-        TextSize = 18,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        Parent = categoryContainer
-    })
-    
-    local line = CreateInstance("Frame", {
-        Name = "Line",
-        Size = UDim2.new(0.9, 0, 0, 2),
-        Position = UDim2.new(0.05, 0, 1, -4),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.3,
-        BorderSizePixel = 0,
-        Parent = categoryContainer
-    })
-    
-    return categoryContainer
 end
 
 function Panel:AddButton(text, onClick, tabName)
