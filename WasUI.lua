@@ -60,7 +60,7 @@ WasUI.Themes = {
         Section = Color3.fromRGB(248, 249, 250),
         Input = Color3.fromRGB(241, 243, 244),
         TabBorder = Color3.fromRGB(220, 220, 220),
-        TabButton = Color3.fromRGB(255, 255, 255)
+        TabButton = Color3.fromRGB(76, 175, 80)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
@@ -1155,6 +1155,7 @@ function Panel:SetWelcomeText(text)
 end
 
 function Panel:AddTab(tabName)
+    assert(self and self.TabContainer and self.Tabs and self.TabContents, "AddTab 必须使用 : 调用，格式为 window:AddTab(\"标签名\")")
     local tabButtonBg = WasUI.CurrentTheme.TabButton
     local tabButton = CreateInstance("TextButton", {
         Name = tabName .. "Tab",
@@ -1290,7 +1291,6 @@ function Panel:AddDropdown(title, options, defaultValue, callback, tabName)
     local dropdown = Dropdown:New("Dropdown_" .. title, targetContent, title, options, defaultValue, callback)
     return dropdown
 end
-
 function Panel:AddSlider(title, min, max, defaultValue, callback, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     local slider = Slider:New("Slider_" .. title, targetContent, title, min, max, defaultValue, callback)
@@ -1298,11 +1298,11 @@ function Panel:AddSlider(title, min, max, defaultValue, callback, tabName)
 end
 
 function Panel:MinimizeWindow()
-    self.MinimizeToDots()
+    self:MinimizeToDots()
 end
 
 function Panel:RestoreWindow()
-    self.RestoreFromDots()
+    self:RestoreFromDots()
 end
 
 function WasUI:CreateWindow(title, size, position, displayOrder)
@@ -1322,6 +1322,10 @@ end
 function WasUI:SetTheme(themeName)
     if self.Themes[themeName] then
         self.CurrentTheme = self.Themes[themeName]
+        -- 切换主题时同步更新所有UI元素样式
+        for _, obj in pairs(self.Objects) do
+            self.UpdateTheme(obj.Object, true)
+        end
     end
 end
 
@@ -1370,6 +1374,10 @@ function WasUI:IsSnowfallEnabled()
         return self.CurrentWindow.SnowEnabled
     end
     return false
+end
+
+function WasUI:UpdateAllTheme()
+    self.UpdateTheme(nil, true)
 end
 
 _G.WasUIModule = WasUI
