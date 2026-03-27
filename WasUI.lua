@@ -811,7 +811,7 @@ function Panel:New(name, parent, size, position)
     
     self.TabBar = CreateInstance("ScrollingFrame", {
         Name = "TabBar",
-        Size = UDim2.new(1, 0, 0, 28),
+        Size = UDim2.new(1, 0, 0, 24),  -- 固定高度，与选项卡按钮一致
         Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
         BackgroundColor3 = Color3.fromRGB(35, 35, 40),
         BorderSizePixel = 1,
@@ -844,8 +844,8 @@ function Panel:New(name, parent, size, position)
     
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
-        Size = UDim2.new(1, -10, 1, -announcementHeight - 32 - 31),
-        Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 32),
+        Size = UDim2.new(1, -10, 1, -announcementHeight - 28 - 31),  -- 调整高度
+        Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 28),  -- 调整位置
         BackgroundTransparency = 1,
         ScrollBarThickness = 4,
         CanvasSize = UDim2.new(0, 0, 0, 0),
@@ -926,69 +926,10 @@ function Panel:New(name, parent, size, position)
     return self
 end
 
-function Panel:SetUsername(text)
-    if self.Username then
-        self.Username.Text = "玩家: " .. tostring(text)
-    end
-end
-
-function Panel:SetWelcomeText(text)
-    if self.WelcomeLabel then
-        self.WelcomeLabel.Text = tostring(text)
-    end
-end
-
-function Panel:SetVersionInfo(versionText)
-    if self.VersionLabel then
-        self.VersionLabel.Instance.Text = "版本: " .. tostring(versionText)
-    end
-end
-
-function Panel:SetAuthorInfo(authorText)
-    if self.AuthorLabel then
-        self.AuthorLabel.Instance.Text = "作者: " .. tostring(authorText)
-    end
-end
-
-function Panel:SetGithubInfo(githubText)
-    if self.GithubLabel then
-        self.GithubLabel.Instance.Text = "GitHub: " .. tostring(githubText)
-    end
-end
-
-function Panel:AddTitle(text, tabName)
-    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-    
-    if not targetContent then
-        return nil
-    end
-    
-    local titleLabel = CreateInstance("TextLabel", {
-        Name = "Title_" .. text,
-        Size = UDim2.new(1, 0, 0, 28),
-        Position = UDim2.new(0, 0, 0, 0),
-        BackgroundTransparency = 1,
-        Text = text,
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamBold,
-        TextSize = 18,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = targetContent
-    })
-    
-    return titleLabel
-end
-
-function Panel:AddCategory(title, tabName)
-    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-    local category = Category:New("Category_" .. title, targetContent, title)
-    return category
-end
-
 function Panel:AddTab(tabName)
     local tabButton = CreateInstance("TextButton", {
         Name = tabName .. "Tab",
-        Size = UDim2.new(0, 70, 1, -6),
+        Size = UDim2.new(0, 70, 1, -2),  -- 预留1px上下边距
         BackgroundColor3 = Color3.fromRGB(45, 45, 50),
         BackgroundTransparency = 0.7,
         Text = tabName,
@@ -1060,12 +1001,12 @@ function Panel:AddTab(tabName)
         tabContent.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y)
     end)
     
-    tabButton.Size = UDim2.new(0, 0, 1, -6)
+    tabButton.Size = UDim2.new(0, 0, 1, -2)  -- 预留1px上下边距
     tabButton.Visible = false
     
     task.spawn(function()
         tabButton.Visible = true
-        Tween(tabButton, {Size = UDim2.new(0, 70, 1, -6)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        Tween(tabButton, {Size = UDim2.new(0, 70, 1, -2)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
     end)
     
     tabButton.MouseButton1Click:Connect(function()
@@ -1077,9 +1018,9 @@ function Panel:AddTab(tabName)
                 
                 animateUnderline(tabButton.AbsoluteSize.X, false)
                 
-                Tween(tabButton, {Size = UDim2.new(0, 75, 1, -6)}, 0.15)
+                Tween(tabButton, {Size = UDim2.new(0, 75, 1, -2)}, 0.15)
                 task.wait(0.05)
-                Tween(tabButton, {Size = UDim2.new(0, 70, 1, -6)}, 0.1)
+                Tween(tabButton, {Size = UDim2.new(0, 70, 1, -2)}, 0.1)
                 tab.Content.Visible = true
             else
                 tab.Button.BackgroundTransparency = 0.7
@@ -1122,6 +1063,194 @@ function Panel:AddTab(tabName)
     end
     
     return tabContent
+end
+
+-- 修复通知堆叠问题
+WasUI.Notifications = {}
+WasUI.NotificationQueue = {}
+WasUI.ActiveNotifications = {}
+WasUI.NotificationTop = 20
+WasUI.NotificationSpacing = 5
+WasUI.NotificationHeight = 30
+WasUI.NotificationWidth = 250
+WasUI.NotificationProcessing = false
+
+function WasUI:Notify(options)
+    local config = {
+        Content = options.Content or "通知",
+        Duration = options.Duration or 3,
+        Type = options.Type or "Info"
+    }
+    
+    table.insert(WasUI.NotificationQueue, config)
+    
+    if not WasUI.NotificationProcessing then
+        WasUI.NotificationProcessing = true
+        WasUI:ProcessNotificationQueue()
+    end
+end
+
+function WasUI:ProcessNotificationQueue()
+    if #WasUI.NotificationQueue == 0 then
+        WasUI.NotificationProcessing = false
+        return
+    end
+    
+    local config = table.remove(WasUI.NotificationQueue, 1)
+    
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "WasUI_Notification_" .. tick(),
+        ResetOnSpawn = false,
+        DisplayOrder = 999,
+        Parent = playerGui
+    })
+    
+    local notificationFrame = CreateInstance("Frame", {
+        Name = "Notification",
+        Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
+        Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, 20),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 35),
+        BackgroundTransparency = 0.3,
+        Parent = screenGui
+    })
+    
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = notificationFrame})
+    
+    local stroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(60, 60, 65),
+        Thickness = 1,
+        Parent = notificationFrame
+    })
+    
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "Content",
+        Size = UDim2.new(0.9, 0, 0.8, 0),
+        Position = UDim2.new(0.05, 0, 0.1, 0),
+        BackgroundTransparency = 1,
+        Text = config.Content,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 12,
+        TextWrapped = true,
+        Parent = notificationFrame
+    })
+    
+    local notificationId = tostring(tick())
+    local notificationData = {
+        Instance = notificationFrame,
+        ScreenGui = screenGui,
+        Height = WasUI.NotificationHeight
+    }
+    
+    WasUI.ActiveNotifications[notificationId] = notificationData
+    
+    local function updateNotificationPositions()
+        local currentY = WasUI.NotificationTop
+        local sortedIds = {}
+        
+        for id, _ in pairs(WasUI.ActiveNotifications) do
+            table.insert(sortedIds, id)
+        end
+        
+        table.sort(sortedIds, function(a, b)
+            return tonumber(a) < tonumber(b)
+        end)
+        
+        for _, id in ipairs(sortedIds) do
+            local notification = WasUI.ActiveNotifications[id]
+            if notification and notification.Instance and notification.Instance.Parent then
+                Tween(notification.Instance, {
+                    Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, currentY)
+                }, 0.3)
+                currentY = currentY + notification.Height + WasUI.NotificationSpacing
+            end
+        end
+    end
+    
+    updateNotificationPositions()
+    
+    local slideIn = Tween(notificationFrame, {
+        Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, WasUI.NotificationTop)
+    }, 0.3)
+    slideIn.Completed:Wait()
+    
+    wait(config.Duration)
+    
+    local fadeOut = Tween(notificationFrame, {BackgroundTransparency = 1}, 0.5)
+    Tween(textLabel, {TextTransparency = 1}, 0.5)
+    Tween(stroke, {Transparency = 1}, 0.5)
+    
+    fadeOut.Completed:Connect(function()
+        screenGui:Destroy()
+        WasUI.ActiveNotifications[notificationId] = nil
+        
+        wait(0.2)
+        updateNotificationPositions()
+        
+        wait(0.3)
+        WasUI:ProcessNotificationQueue()
+    end)
+end
+
+-- 保留其他 Panel 方法不变...
+function Panel:SetUsername(text)
+    if self.Username then
+        self.Username.Text = "玩家: " .. tostring(text)
+    end
+end
+
+function Panel:SetWelcomeText(text)
+    if self.WelcomeLabel then
+        self.WelcomeLabel.Text = tostring(text)
+    end
+end
+
+function Panel:SetVersionInfo(versionText)
+    if self.VersionLabel then
+        self.VersionLabel.Instance.Text = "版本: " .. tostring(versionText)
+    end
+end
+
+function Panel:SetAuthorInfo(authorText)
+    if self.AuthorLabel then
+        self.AuthorLabel.Instance.Text = "作者: " .. tostring(authorText)
+    end
+end
+
+function Panel:SetGithubInfo(githubText)
+    if self.GithubLabel then
+        self.GithubLabel.Instance.Text = "GitHub: " .. tostring(githubText)
+    end
+end
+
+function Panel:AddTitle(text, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    
+    if not targetContent then
+        return nil
+    end
+    
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title_" .. text,
+        Size = UDim2.new(1, 0, 0, 28),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = targetContent
+    })
+    
+    return titleLabel
+end
+
+function Panel:AddCategory(title, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
+    local category = Category:New("Category_" .. title, targetContent, title)
+    return category
 end
 
 function Panel:AddButton(text, onClick, tabName)
