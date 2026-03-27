@@ -6,7 +6,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 if _G.WasUILoaded then
-    warn("WasUI 已加载，跳过重复加载")
+    warn("WasUI å·²å è½½ï¼è·³è¿éå¤å è½½")
     return _G.WasUIModule
 end
 _G.WasUILoaded = true
@@ -102,7 +102,7 @@ function Button:New(name, parent, text, onClick)
         Name = name,
         Size = UDim2.new(1, 0, 0, 28),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        Text = text or "按钮",
+        Text = text or "æé®",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
@@ -174,7 +174,7 @@ function Label:New(name, parent, text)
         Name = name,
         Size = UDim2.new(1, 0, 0, 20),
         BackgroundTransparency = 1,
-        Text = text or "标签",
+        Text = text or "æ ç­¾",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -233,7 +233,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Size = UDim2.new(0.7, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        Text = title or "下拉菜单",
+        Text = title or "ä¸æèå",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -247,7 +247,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
         BorderSizePixel = 1,
-        Text = defaultValue or "选择...",
+        Text = defaultValue or "éæ©...",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -372,7 +372,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Size = UDim2.new(0.7, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        Text = title or "滑块",
+        Text = title or "æ»å",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -524,7 +524,7 @@ WasUI.NotificationWidth = 250
 function WasUI:Notify(options)
     task.spawn(function()
         local config = {
-            Content = options.Content or "通知",
+            Content = options.Content or "éç¥",
             Duration = options.Duration or 3,
             Type = options.Type or "Info"
         }
@@ -621,7 +621,7 @@ local function getExecutor()
     elseif get_hidden_ui then
         return "Hydrogen"
     else
-        return "未知执行器"
+        return "æªç¥æ§è¡å¨"
     end
 end
 local Panel = setmetatable({}, {__index = Control})
@@ -761,7 +761,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0, 22, 0, 22),
         Position = UDim2.new(1, -28, 0, 2),
         BackgroundTransparency = 1,
-        Text = "×",
+        Text = "Ã",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamBold,
         TextSize = 16,
@@ -940,7 +940,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 18),
         Position = UDim2.new(0, 68, 0.12, 0),
         BackgroundTransparency = 1,
-        Text = "玩家: " .. player.Name,
+        Text = "ç©å®¶: " .. player.Name,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 13,
@@ -953,7 +953,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 16),
         Position = UDim2.new(0, 68, 0.35, 0),
         BackgroundTransparency = 1,
-        Text = "您的执行器为: " .. getExecutor(),
+        Text = "æ¨çæ§è¡å¨ä¸º: " .. getExecutor(),
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -966,7 +966,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 14),
         Position = UDim2.new(0, 68, 0.55, 0),
         BackgroundTransparency = 1,
-        Text = "欢迎使用WasUI",
+        Text = "æ¬¢è¿ä½¿ç¨WasUI",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 11,
@@ -1174,7 +1174,7 @@ Name = "EmptyTabMessage",
 Size = UDim2.new(1, 0, 0, 60),
 Position = UDim2.new(0, 0, 0, 20),
 BackgroundTransparency = 1,
-Text = "请检查是否绑定了控件到此页面查看控制台输出以修复问题",
+Text = "è¯·æ£æ¥æ¯å¦ç»å®äºæ§ä»¶å°æ­¤é¡µé¢æ¥çæ§å¶å°è¾åºä»¥ä¿®å¤é®é¢",
 TextColor3 = WasUI.CurrentTheme.Error,
 Font = Enum.Font.GothamSemibold,
 TextSize = 14,
@@ -1183,7 +1183,7 @@ TextXAlignment = Enum.TextXAlignment.Center,
 TextYAlignment = Enum.TextYAlignment.Center,
 Parent = tabContent
 })
-warn("选项卡 '" .. tabName .. "' 中没有控件。请检查是否调用了正确的Add方法。")
+warn("éé¡¹å¡ '" .. tabName .. "' ä¸­æ²¡ææ§ä»¶ãè¯·æ£æ¥æ¯å¦è°ç¨äºæ­£ç¡®çAddæ¹æ³ã")
 end
 end
 spawn(checkEmptyTab)
@@ -1197,7 +1197,7 @@ tabButton.Visible = true
 Tween(tabButton, {Size = UDim2.new(0, 70, 1, 0)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 end)
 tabButton.MouseButton1Click:Connect(function()
-for , tab in pairs(self.Tabs) do
+for _, tab in pairs(self.Tabs) do
 if tab.Button == tabButton then
 tabButton.BackgroundTransparency = 0
 tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1243,7 +1243,7 @@ return tabContent
 end
 function Panel:SetUsername(text)
 if self.Username then
-self.Username.Text = "玩家: " .. tostring(text)
+self.Username.Text = "ç©å®¶: " .. tostring(text)
 end
 end
 function Panel:SetWelcomeText(text)
@@ -1253,12 +1253,12 @@ end
 end
 function Panel:SetVersionInfo(versionText)
 if self.VersionLabel then
-self.VersionLabel.Instance.Text = "版本: " .. tostring(versionText)
+self.VersionLabel.Instance.Text = "çæ¬: " .. tostring(versionText)
 end
 end
 function Panel:SetAuthorInfo(authorText)
 if self.AuthorLabel then
-self.AuthorLabel.Instance.Text = "作者: " .. tostring(authorText)
+self.AuthorLabel.Instance.Text = "ä½è: " .. tostring(authorText)
 end
 end
 function Panel:SetGithubInfo(githubText)
