@@ -38,6 +38,7 @@ WasUI.Themes = {
 WasUI.CurrentTheme = WasUI.Themes.Dark
 WasUI.Objects = {}
 WasUI.ActiveRainbowTexts = {}
+WasUI.RainbowOrder = {}
 
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
@@ -56,27 +57,50 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     return tween
 end
 
+local function RefreshRainbowLayout()
+    local startY = 10
+    local spacing = 5
+    for i, featureName in ipairs(WasUI.RainbowOrder) do
+        local data = WasUI.ActiveRainbowTexts[featureName]
+        if data and data.Label then
+            local label = data.Label
+            local height = label.Size.Y.Offset
+            label.Position = UDim2.new(1, -190, 0, startY)
+            startY = startY + height + spacing
+        end
+    end
+end
+
 local function CreateRainbowTextForFeature(featureName)
+    if WasUI.ActiveRainbowTexts[featureName] then return end
+
     local screenGui = CreateInstance("ScreenGui", {
         Name = "FeatureRainbowText_" .. featureName,
         ResetOnSpawn = false,
         DisplayOrder = 100,
         Parent = game:GetService("CoreGui")
     })
+
     local textLabel = CreateInstance("TextLabel", {
         Name = "RainbowText",
-        Size = UDim2.new(0, 180, 0, 24),
-        Position = UDim2.new(1, -190, 0, 10),
+        Size = UDim2.new(0, 180, 0, 0),
+        Position = UDim2.new(1, -190, 0, 0),
         BackgroundTransparency = 1,
         Text = featureName,
         TextColor3 = Color3.fromRGB(255, 0, 0),
         Font = Enum.Font.GothamBold,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Right,
+        TextWrapped = true,
         TextStrokeTransparency = 0.5,
         TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
         Parent = screenGui
     })
+
+    local bounds = textLabel.TextBounds
+    local height = bounds.Y + 4
+    textLabel.Size = UDim2.new(0, 180, 0, height)
+
     local rainbowSpeed = 4
     local time = 0
     local connection = RunService.Heartbeat:Connect(function(deltaTime)
@@ -86,10 +110,15 @@ local function CreateRainbowTextForFeature(featureName)
         local b = (math.sin(time + 2*math.pi/3) + 1) / 2
         textLabel.TextColor3 = Color3.new(r, g, b)
     end)
+
     WasUI.ActiveRainbowTexts[featureName] = {
         ScreenGui = screenGui,
-        Connection = connection
+        Connection = connection,
+        Label = textLabel
     }
+    table.insert(WasUI.RainbowOrder, featureName)
+
+    RefreshRainbowLayout()
 end
 
 local function DestroyRainbowTextForFeature(featureName)
@@ -98,6 +127,15 @@ local function DestroyRainbowTextForFeature(featureName)
         if data.ScreenGui then data.ScreenGui:Destroy() end
         if data.Connection then data.Connection:Disconnect() end
         WasUI.ActiveRainbowTexts[featureName] = nil
+
+        for i, name in ipairs(WasUI.RainbowOrder) do
+            if name == featureName then
+                table.remove(WasUI.RainbowOrder, i)
+                break
+            end
+        end
+
+        RefreshRainbowLayout()
     end
 end
 
@@ -1003,6 +1041,7 @@ function Panel:New(name, parent, size, position)
             if data.Connection then data.Connection:Disconnect() end
         end
         WasUI.ActiveRainbowTexts = {}
+        WasUI.RainbowOrder = {}
         self:SetVisible(false) 
     end)
     
@@ -1282,6 +1321,7 @@ function Panel:AddTab(tabName)
         Parent = tabButton
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 1), Parent = underline})
+
     local tabContent = CreateInstance("ScrollingFrame", {
         Name = tabName .. "Content",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1299,19 +1339,32 @@ function Panel:AddTab(tabName)
     contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         tabContent.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y)
     end)
+
     tabButton.MouseButton1Click:Connect(function()
         for _, tab in pairs(self.Tabs) do
-            Tween(tab.Button, {BackgroundTransparency = 0.7, TextColor3 = Color3.fromRGB(100, 100, 105), BackgroundColor3 = WasUI.CurrentTheme.TabButton}, 0.3, Enum.EasingStyle.Cubic)
-            if tab.Underline then
-                Tween(tab.Underline, {Size = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1}, 0.3, Enum.EasingStyle.Cubic)
+            if tab.Button ~= tabButton then
+                Tween(tab.Button, {BackgroundTransparency = 0.7, TextColor3 = Color3.fromRGB(100, 100, 105), BackgroundColor3 = WasUI.CurrentTheme.TabButton}, 0.3, Enum.EasingStyle.Cubic)
+                if tab.Underline then
+                    Tween(tab.Underline, {Size = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1}, 0.3, Enum.EasingStyle.Cubic)
+                end
+                if tab.Content.Visible then
+                    Tween(tab.Content, {Transparency = 1}, 0.3, Enum.EasingStyle.Cubic):Completed:Connect(function()
+                        tab.Content.Visible = false
+                    end)
+                end
             end
-            Tween(tab.Content, {Visible = false, Transparency = 1}, 0.2)
         end
+
+        tabContent.Visible = true
+        tabContent.Transparency = 1
+        Tween(tabContent, {Transparency = 0}, 0.3, Enum.EasingStyle.Cubic)
+
         Tween(tabButton, {BackgroundTransparency = 0, TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.3, Enum.EasingStyle.Cubic)
         Tween(underline, {Size = UDim2.new(0.8, 0, 0, 2), BackgroundTransparency = 0}, 0.3, Enum.EasingStyle.Cubic)
-        Tween(tabContent, {Visible = true, Transparency = 0}, 0.3)
+
         self.ActiveTab = tabName
     end)
+
     local tab = {
         Name = tabName,
         Button = tabButton,
@@ -1320,6 +1373,7 @@ function Panel:AddTab(tabName)
     }
     table.insert(self.Tabs, tab)
     self.TabContents[tabName] = tabContent
+
     if #self.Tabs == 1 then
         tabButton.BackgroundTransparency = 0
         tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1327,7 +1381,9 @@ function Panel:AddTab(tabName)
         underline.Size = UDim2.new(0.8, 0, 0, 2)
         underline.BackgroundTransparency = 0
         tabContent.Visible = true
+        tabContent.Transparency = 0
     end
+
     table.insert(WasUI.Objects, {Object = tabButton, Type = "TabButton"})
     table.insert(WasUI.Objects, {Object = underline, Type = "TabUnderline"})
     return tabContent
