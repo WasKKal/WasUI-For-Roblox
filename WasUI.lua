@@ -1616,7 +1616,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                     Parent = self.SnowContainer
                 })
                 CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
-                local speedY = math.random(80, 150) / 100
+                local speedY = math.random(150, 120) / 100
                 local speedX = (math.random() - 0.5) * 0.7
                 table.insert(self.Snowflakes, {
                     Instance = flake,
