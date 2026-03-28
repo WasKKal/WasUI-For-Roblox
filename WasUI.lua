@@ -304,11 +304,12 @@ function Control:SetVisible(visible)
     end
 end
 
+-- 按钮高度恢复为 28，圆角 14
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick, size)
     local self = Control.New(self, name, parent)
-    local buttonSize = size or UDim2.new(0, 0, 0, 24)
+    local buttonSize = size or UDim2.new(0, 0, 0, 28)
     self.Instance = CreateInstance("TextButton", {
         Name = name,
         Size = buttonSize,
@@ -321,9 +322,9 @@ function Button:New(name, parent, text, onClick, size)
         TextSize = 12,
         AutoButtonColor = false,
         Parent = parent,
-        AutomaticSize = buttonSize == UDim2.new(0, 0, 0, 24) and Enum.AutomaticSize.X or Enum.AutomaticSize.None
+        AutomaticSize = buttonSize == UDim2.new(0, 0, 0, 28) and Enum.AutomaticSize.X or Enum.AutomaticSize.None
     })
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.Instance})
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
     local padding = CreateInstance("UIPadding", {
         PaddingLeft = UDim.new(0, 12),
         PaddingRight = UDim.new(0, 12),
@@ -594,6 +595,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
     return self
 end
 
+-- 滑动条修复：缩短轨道两侧长度，修复拖动逻辑
 local Slider = setmetatable({}, {__index = Control})
 Slider.__index = Slider
 function Slider:New(name, parent, title, min, max, defaultValue, callback)
@@ -632,10 +634,11 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         TextXAlignment = Enum.TextXAlignment.Right,
         Parent = self.Container
     })
+    -- 轨道缩短两侧各 10px
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, 0, 0, 4),
-        Position = UDim2.new(0, 0, 0, 22),
+        Size = UDim2.new(1, -20, 0, 4),
+        Position = UDim2.new(0, 10, 0, 22),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -662,11 +665,14 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Parent = self.SliderTrack
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderKnob})
+
     local dragging = false
-    local function updateFromInput(input)
+    local function updateFromInput()
+        local mousePos = UserInputService:GetMouseLocation()
+        local trackPos = self.SliderTrack.AbsolutePosition
         local trackSize = self.SliderTrack.AbsoluteSize.X
         if trackSize <= 0 then return end
-        local mouseX = input.Position.X - self.SliderTrack.AbsolutePosition.X
+        local mouseX = mousePos.X - trackPos.X
         local t = math.clamp(mouseX / trackSize, 0, 1)
         local newValue = self.Min + t * (self.Max - self.Min)
         newValue = math.round(newValue)
@@ -678,12 +684,20 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             if self.Callback then self.Callback(self.Value) end
         end
     end
+
     self.SliderKnob.MouseButton1Down:Connect(function()
         dragging = true
+        updateFromInput()
+    end)
+    self.SliderTrack.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            updateFromInput()
+        end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            updateFromInput(input)
+            updateFromInput()
         end
     end)
     UserInputService.InputEnded:Connect(function(input)
@@ -691,11 +705,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             dragging = false
         end
     end)
-    self.SliderTrack.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            updateFromInput(input)
-        end
-    end)
+
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
     return self
 end
@@ -1314,18 +1324,11 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(1, -20, 1, -announcementHeight - 28 - 31),
         Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 28),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 1,
         ScrollBarThickness = 4,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollingDirection = Enum.ScrollingDirection.Y,
         Parent = self.Instance
-    })
-    CreateInstance("UIPadding", {
-        PaddingLeft = UDim.new(0, 5),
-        PaddingRight = UDim.new(0, 5),
-        PaddingTop = UDim.new(0, 0),
-        PaddingBottom = UDim.new(0, 0),
-        Parent = self.ContentArea
     })
     
     self.Tabs = {}
@@ -1427,12 +1430,19 @@ function Panel:AddTab(tabName)
         Name = tabName .. "Content",
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 1,
         Visible = false,
         ScrollBarThickness = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollingDirection = Enum.ScrollingDirection.Y,
         Parent = self.ContentArea
+    })
+    CreateInstance("UIPadding", {
+        PaddingLeft = UDim.new(0, 12),
+        PaddingRight = UDim.new(0, 12),
+        PaddingTop = UDim.new(0, 8),
+        PaddingBottom = UDim.new(0, 8),
+        Parent = tabContent
     })
     local contentLayout = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
@@ -1486,19 +1496,29 @@ end
 
 function Panel:AddButtonRow(buttons, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-    local container = CreateInstance("Frame", {
+    local container = CreateInstance("ScrollingFrame", {
         Name = "ButtonRow",
         Size = UDim2.new(1, 0, 0, 0),
         BackgroundTransparency = 1,
         AutomaticSize = Enum.AutomaticSize.Y,
+        ScrollBarThickness = 4,
+        ScrollingDirection = Enum.ScrollingDirection.X,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = targetContent
+    })
+    local inner = CreateInstance("Frame", {
+        Name = "Inner",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.X,
+        Parent = container
     })
     local layout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 8),
-        Parent = container
+        Parent = inner
     })
     for i, btn in ipairs(buttons) do
         local btnFrame = CreateInstance("Frame", {
@@ -1506,22 +1526,16 @@ function Panel:AddButtonRow(buttons, tabName)
             Size = UDim2.new(0, 0, 1, 0),
             BackgroundTransparency = 1,
             AutomaticSize = Enum.AutomaticSize.X,
-            Parent = container
+            Parent = inner
         })
         Button:New("Button_" .. i, btnFrame, btn.text, btn.onClick, UDim2.new(1, 0, 1, 0))
     end
-    local function updateWidths()
-        local count = #buttons
-        if count == 0 then return end
-        local eachWidth = UDim2.new(1 / count, 0, 1, 0)
-        for _, frame in ipairs(container:GetChildren()) do
-            if frame:IsA("Frame") and frame.Name:match("^Button_") then
-                frame.Size = eachWidth
-            end
-        end
+    local function updateCanvas()
+        container.CanvasSize = UDim2.new(0, inner.AbsoluteSize.X, 0, 0)
     end
-    updateWidths()
-    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateWidths)
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+    inner:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateCanvas)
+    updateCanvas()
     return container
 end
 
