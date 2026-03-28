@@ -15,7 +15,6 @@ _G.WasUILoaded = true
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.DefaultNotificationTitle = "通知"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -178,10 +177,7 @@ local function RefreshRainbowLayout()
 end
 
 local function CreateRainbowTextForFeature(featureName)
-    if type(featureName) ~= "string" then
-        warn("featureName must be a string")
-        return
-    end
+    featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
     local screenGui = CreateInstance("ScreenGui", {
         Name = "FeatureRainbowText_" .. featureName,
@@ -217,7 +213,7 @@ local function CreateRainbowTextForFeature(featureName)
 end
 
 local function DestroyRainbowTextForFeature(featureName)
-    if type(featureName) ~= "string" then return end
+    featureName = type(featureName) == "string" and featureName or tostring(featureName)
     local data = WasUI.ActiveRainbowTexts[featureName]
     if data then
         if data.ScreenGui then data.ScreenGui:Destroy() end
@@ -232,10 +228,51 @@ local function DestroyRainbowTextForFeature(featureName)
     end
 end
 
+local function CreateRainbowText(text, position)
+    if WasUI.ActiveRainbowTexts[text] then return end
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "RainbowText_" .. text,
+        ResetOnSpawn = false,
+        DisplayOrder = 100,
+        Parent = game:GetService("CoreGui")
+    })
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "RainbowText",
+        Size = UDim2.new(0, 180, 0, 0),
+        Position = position or UDim2.new(0.5, -90, 0.5, -10),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = Color3.fromRGB(255, 0, 0),
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextWrapped = true,
+        TextStrokeTransparency = 0.5,
+        TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+        Parent = screenGui
+    })
+    local bounds = textLabel.TextBounds
+    local height = bounds.Y + 4
+    textLabel.Size = UDim2.new(0, 180, 0, height)
+    WasUI.ActiveRainbowTexts[text] = {
+        ScreenGui = screenGui,
+        Connection = nil,
+        Label = textLabel
+    }
+end
+
+local function RemoveRainbowText(text)
+    local data = WasUI.ActiveRainbowTexts[text]
+    if data then
+        if data.ScreenGui then data.ScreenGui:Destroy() end
+        WasUI.ActiveRainbowTexts[text] = nil
+    end
+end
+
 local rainbowTime = 0
 local rainbowSpeed = 4
-RunService.Heartbeat:Connect(function(deltaTime)
-    rainbowTime += deltaTime * rainbowSpeed
+local rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
+    rainbowTime = rainbowTime + deltaTime * rainbowSpeed
     local r = (math.sin(rainbowTime) + 1) / 2
     local g = (math.sin(rainbowTime + math.pi/3) + 1) / 2
     local b = (math.sin(rainbowTime + 2*math.pi/3) + 1) / 2
@@ -325,8 +362,7 @@ function ToggleSwitch:New(name, parent, initialState, onToggle, featureName)
     local self = Control:New(name, parent)
     self.Toggled = initialState or false
     self.ToggleCallback = onToggle
-    self.FeatureName = type(featureName) == "string" and featureName or name
-
+    self.FeatureName = featureName or name
     self.Background = CreateInstance("ImageButton", {
         Name = name .. "_BG",
         Size = UDim2.new(0, 36, 0, 18),
@@ -407,7 +443,7 @@ function Category:New(name, parent, title)
         Position = UDim2.new(0.05, 0, 0, 0),
         BackgroundTransparency = 1,
         Text = title,
-        TextColor3 = Color3.new(1,1,1),
+        TextColor3 = Color3.new(1, 1, 1),
         TextTransparency = 0,
         Font = Enum.Font.GothamBold,
         TextSize = 16,
@@ -848,7 +884,7 @@ function Panel:New(name, parent, size, position)
 
     local borderTime = 0
     self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-        borderTime += deltaTime * 4
+        borderTime = borderTime + deltaTime * 4
         local r = (math.sin(borderTime) + 1) / 2
         local g = (math.sin(borderTime + math.pi/3) + 1) / 2
         local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
@@ -972,406 +1008,607 @@ function Panel:New(name, parent, size, position)
         TextColor3 = Color3.fromRGB(255, 255, 255),
         TextTransparency = 0,
         Font = Enum.Font.GothamBold,
-        TextSize = 18,
+        TextSize = 16,
         Parent = self.TitleBar
     })
-
-    local dragging = false
-    local dragStartPos, dragStartFramePos
-
-    self.DraggableArea.MouseButton1Down:Connect(function(x, y)
-        dragging = true
-        dragStartPos = Vector2.new(x, y)
-        dragStartFramePos = self.Instance.Position
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStartPos
-            self.Instance.Position = UDim2.new(
-                dragStartFramePos.X.Scale,
-                dragStartFramePos.X.Offset + delta.X,
-                dragStartFramePos.Y.Scale,
-                dragStartFramePos.Y.Offset + delta.Y
-            )
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-
-    self.CloseButton.MouseButton1Click:Connect(function()
-        local dialog = {}
-        dialog.Container = CreateInstance("Frame", {
-            Size = UDim2.new(0, 260, 0, 120),
-            Position = UDim2.new(0.5, -130, 0.5, -60),
-            BackgroundColor3 = WasUI.CurrentTheme.Background,
-            BackgroundTransparency = 0.3,
-            ClipsDescendants = true,
-            Parent = game:GetService("CoreGui")
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = dialog.Container})
-        local stroke = CreateInstance("UIStroke", {Color = Color3.fromRGB(60, 60, 60), Thickness = 1, Parent = dialog.Container})
-        dialog.Title = CreateInstance("TextLabel", {
-            Size = UDim2.new(1, 0, 0, 30),
-            Position = UDim2.new(0, 0, 0, 0),
-            BackgroundColor3 = WasUI.CurrentTheme.Primary,
-            BackgroundTransparency = 0.3,
-            Text = WasUI.DialogTitle,
-            TextColor3 = Color3.new(1,1,1),
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 13,
-            Parent = dialog.Container
-        })
-        dialog.Message = CreateInstance("TextLabel", {
-            Size = UDim2.new(1, -20, 0, 40),
-            Position = UDim2.new(0, 10, 0, 35),
-            BackgroundTransparency = 1,
-            Text = "确定要关闭界面吗？",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            Parent = dialog.Container
-        })
-        dialog.Yes = CreateInstance("TextButton", {
-            Size = UDim2.new(0, 100, 0, 26),
-            Position = UDim2.new(0.5, -105, 1, -35),
-            BackgroundColor3 = WasUI.CurrentTheme.Primary,
-            BackgroundTransparency = 0.3,
-            Text = "确定",
-            TextColor3 = Color3.new(1,1,1),
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 12,
-            Parent = dialog.Container
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = dialog.Yes})
-        dialog.No = CreateInstance("TextButton", {
-            Size = UDim2.new(0, 100, 0, 26),
-            Position = UDim2.new(0.5, 5, 1, -35),
-            BackgroundColor3 = WasUI.CurrentTheme.Primary,
-            BackgroundTransparency = 0.3,
-            Text = "取消",
-            TextColor3 = Color3.new(1,1,1),
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 12,
-            Parent = dialog.Container
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = dialog.No})
-        dialog.Yes.MouseButton1Click:Connect(function()
-            for _, data in pairs(WasUI.ActiveRainbowTexts) do
-                if data.ScreenGui then data.ScreenGui:Destroy() end
-            end
-            if WasUI.NotificationGui then WasUI.NotificationGui:Destroy() end
-            if WasUI.DropdownGui then WasUI.DropdownGui:Destroy() end
-            dialog.Container:Destroy()
-            self.Instance:Destroy()
-            _G.WasUILoaded = nil
-        end)
-        dialog.No.MouseButton1Click:Connect(function()
-            dialog.Container:Destroy()
-        end)
-    end)
-
+    
     self.IsMinimized = false
     self.OriginalSize = self.Instance.Size
-
-    self.MinimizeButton.MouseButton1Click:Connect(function()
-        self.IsMinimized = not self.IsMinimized
+    self.MinimizedSize = UDim2.new(0, 60, 0, 26)
+    
+    self.MinimizeToDots = function()
+        if self.IsMinimized then return end
+        Tween(self.Instance, {
+            Size = self.MinimizedSize,
+            Position = self.Instance.Position
+        }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        self.Title.Visible = false
+        self.AnnouncementBar.Visible = false
+        self.TabBar.Visible = false
+        self.ContentArea.Visible = false
+        self.CloseButton.Visible = false
+        self.MinimizeButton.Visible = false
+        self.DraggableArea.Visible = true
+        self.DotContainer.Visible = true
+        self.IsMinimized = true
+    end
+    
+    self.RestoreFromDots = function()
+        if not self.IsMinimized then return end
+        Tween(self.Instance, {
+            Size = self.OriginalSize,
+            Position = self.Instance.Position
+        }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        self.Title.Visible = true
+        self.AnnouncementBar.Visible = true
+        self.TabBar.Visible = true
+        self.ContentArea.Visible = true
+        self.CloseButton.Visible = true
+        self.MinimizeButton.Visible = true
+        self.DraggableArea.Visible = true
+        self.DotContainer.Visible = true
+        self.IsMinimized = false
+    end
+    
+    self.DotAreaButton.MouseButton1Click:Connect(function()
         if self.IsMinimized then
-            Tween(self.Instance, {Size = UDim2.new(0, 380, 0, 26)}, 0.2)
+            self:RestoreFromDots()
         else
-            Tween(self.Instance, {Size = self.OriginalSize}, 0.2)
+            self:MinimizeToDots()
         end
     end)
-
+    
+    self.CloseDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            input:SetConsumed(true)
+            self:SetVisible(false)
+        end
+    end)
+    
+    self.MinimizeDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            input:SetConsumed(true)
+            if self.IsMinimized then
+                self:RestoreFromDots()
+            else
+                self:MinimizeToDots()
+            end
+        end
+    end)
+    
+    self.MaximizeDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            input:SetConsumed(true)
+        end
+    end)
+    
+    self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
+    self.CloseButton.MouseButton1Click:Connect(function() 
+        local function showCloseDialog()
+            local overlay = CreateInstance("Frame", {
+                Name = "Overlay",
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+                BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                Visible = true,
+                Active = true,
+                ZIndex = 10000,
+                Parent = self.Instance
+            })
+            local dialogFrame = CreateInstance("Frame", {
+                Name = "Dialog",
+                Size = UDim2.new(0, 400, 0, 220),
+                Position = UDim2.new(0.5, -200, 0.5, -110),
+                BackgroundColor3 = WasUI.CurrentTheme.Background,
+                BackgroundTransparency = 0.3,
+                BorderSizePixel = 0,
+                Parent = overlay,
+                ZIndex = 10001
+            })
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
+            local titleText = CreateInstance("TextLabel", {
+                Name = "Title",
+                Size = UDim2.new(1, -20, 0, 50),
+                Position = UDim2.new(0, 10, 0, 10),
+                BackgroundTransparency = 1,
+                Text = WasUI.DialogTitle,
+                TextColor3 = WasUI.CurrentTheme.Text,
+                TextTransparency = 0,
+                Font = Enum.Font.GothamBold,
+                TextSize = 16,
+                TextXAlignment = Enum.TextXAlignment.Center,
+                TextYAlignment = Enum.TextYAlignment.Center,
+                Parent = dialogFrame,
+                ZIndex = 10002
+            })
+            local buttonContainer = CreateInstance("Frame", {
+                Name = "ButtonContainer",
+                Size = UDim2.new(1, -20, 0, 50),
+                Position = UDim2.new(0, 10, 1, -60),
+                BackgroundTransparency = 1,
+                Parent = dialogFrame,
+                ZIndex = 10002
+            })
+            local buttonLayout = CreateInstance("UIListLayout", {
+                FillDirection = Enum.FillDirection.Horizontal,
+                HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                VerticalAlignment = Enum.VerticalAlignment.Center,
+                Padding = UDim.new(0, 15),
+                Parent = buttonContainer
+            })
+            local confirmButton = CreateInstance("TextButton", {
+                Name = "Confirm",
+                Size = UDim2.new(0, 110, 0, 36),
+                BackgroundColor3 = WasUI.CurrentTheme.Section,
+                BackgroundTransparency = 0.3,
+                Text = "确认关闭",
+                TextColor3 = Color3.fromRGB(255, 100, 100),
+                TextTransparency = 0,
+                Font = Enum.Font.GothamSemibold,
+                TextSize = 14,
+                AutoButtonColor = true,
+                Parent = buttonContainer,
+                ZIndex = 10003
+            })
+            local cancelButton = CreateInstance("TextButton", {
+                Name = "Cancel",
+                Size = UDim2.new(0, 110, 0, 36),
+                BackgroundColor3 = WasUI.CurrentTheme.Section,
+                BackgroundTransparency = 0.3,
+                Text = "取消",
+                TextColor3 = Color3.fromRGB(255, 255, 255),
+                TextTransparency = 0,
+                Font = Enum.Font.GothamSemibold,
+                TextSize = 14,
+                AutoButtonColor = true,
+                Parent = buttonContainer,
+                ZIndex = 10003
+            })
+            for _, btn in ipairs({confirmButton, cancelButton}) do
+                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 18), Parent = btn})
+                btn.MouseEnter:Connect(function()
+                    Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
+                end)
+                btn.MouseLeave:Connect(function()
+                    Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Section}, 0.2)
+                end)
+            end
+            dialogFrame.BackgroundTransparency = 1
+            Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
+            Tween(overlay, {BackgroundTransparency = 0.5}, 0.3)
+            confirmButton.MouseButton1Click:Connect(function()
+                if self.BorderConnection then
+                    self.BorderConnection:Disconnect()
+                    self.BorderConnection = nil
+                end
+                if self.BorderEffect then
+                    self.BorderEffect:Destroy()
+                end
+                for _, data in pairs(WasUI.ActiveRainbowTexts) do
+                    if data.ScreenGui then data.ScreenGui:Destroy() end
+                end
+                WasUI.ActiveRainbowTexts = {}
+                WasUI.RainbowOrder = {}
+                self:SetVisible(false)
+                overlay:Destroy()
+                pcall(function() WasUI.DropdownGui:Destroy() end)
+                pcall(function() WasUI.NotificationGui:Destroy() end)
+                pcall(function() WasUI.DropdownGui = nil end)
+                pcall(function() WasUI.NotificationGui = nil end)
+            end)
+            cancelButton.MouseButton1Click:Connect(function()
+                Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+                Tween(overlay, {BackgroundTransparency = 1}, 0.2)
+                task.wait(0.2)
+                overlay:Destroy()
+            end)
+            overlay.MouseButton1Click:Connect(function(input)
+                local mousePos = input.Position
+                local framePos = dialogFrame.AbsolutePosition
+                local frameSize = dialogFrame.AbsoluteSize
+                if not (mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
+                        mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y) then
+                    Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+                    Tween(overlay, {BackgroundTransparency = 1}, 0.2)
+                    task.wait(0.2)
+                    overlay:Destroy()
+                end
+            end)
+        end
+        showCloseDialog()
+    end)
+    
+    local dragging = false
+    local dragStart = Vector2.new()
+    local startPos = UDim2.new()
+    local function startDragging(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = self.Instance.Position
+            input:SetConsumed(true)
+        end
+    end
+    local function stopDragging()
+        dragging = false
+    end
+    
+    self.DraggableArea.InputBegan:Connect(startDragging)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            local newPosition = UDim2.new(
+                startPos.X.Scale, 
+                startPos.X.Offset + delta.X, 
+                startPos.Y.Scale, 
+                startPos.Y.Offset + delta.Y
+            )
+            self.Instance.Position = newPosition
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            stopDragging()
+        end
+    end)
+    
+    local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
         Name = "AnnouncementBar",
-        Size = UDim2.new(1, 0, 0, 80),
+        Size = UDim2.new(1, 0, 0, announcementHeight),
         Position = UDim2.new(0, 0, 0, 26),
-        BackgroundColor3 = WasUI.CurrentTheme.Secondary,
+        BackgroundColor3 = WasUI.CurrentTheme.Section,
         BackgroundTransparency = 0.4,
+        BorderSizePixel = 0,
         Parent = self.Instance
     })
-
+    
+    local player = Players.LocalPlayer
+    local function loadAvatar()
+        local headshot = Players:GetUserThumbnailAsync(
+            player.UserId, 
+            Enum.ThumbnailType.HeadShot, 
+            Enum.ThumbnailSize.Size60x60
+        )
+        if self.Avatar then
+            self.Avatar.Image = headshot
+        end
+    end
     self.Avatar = CreateInstance("ImageButton", {
         Name = "Avatar",
         Size = UDim2.new(0, 48, 0, 48),
         Position = UDim2.new(0, 10, 0.15, 0),
-        BackgroundColor3 = Color3.fromRGB(240,240,245),
+        BackgroundColor3 = Color3.fromRGB(240, 240, 245),
         Image = "",
         BorderSizePixel = 0,
         AutoButtonColor = false,
         Parent = self.AnnouncementBar
     })
+    local avatarScale = CreateInstance("UIScale", {
+        Scale = 1,
+        Parent = self.Avatar
+    })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
-    CreateInstance("UIStroke", {Color = Color3.fromRGB(220,220,225), Thickness = 1, Parent = self.Avatar})
-
-    local player = Players.LocalPlayer
-    pcall(function()
-        self.Avatar.Image = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size60x60)
+    local avatarStroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(220, 220, 225),
+        Thickness = 1,
+        Parent = self.Avatar
+    })
+    loadAvatar()
+    
+    self.Avatar.MouseButton1Down:Connect(function()
+        Tween(avatarScale, {Scale = 0.9}, 0.1)
     end)
-
+    self.Avatar.MouseButton1Up:Connect(function()
+        Tween(avatarScale, {Scale = 1}, 0.1)
+    end)
+    
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0.6, 0, 0, 18),
         Position = UDim2.new(0, 62, 0.12, 0),
         BackgroundTransparency = 1,
-        Text = "用户: " .. player.Name,
+        Text = "当前用户: " .. player.Name,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
-
-    local executorName = "Unknown"
-    pcall(function()
-        if typeof(getexecutorname) == "function" then
-            executorName = getexecutorname()
-        elseif typeof(getExecutor) == "function" then
-            executorName = getExecutor()
-        end
-    end)
-
+    
+    local executorName = "Unknown Executor"
+    if typeof(getexecutorname) == "function" then
+        executorName = getexecutorname()
+    elseif typeof(getExecutor) == "function" then
+        executorName = getExecutor()
+    end
+    
     self.ExecutorLabel = CreateInstance("TextLabel", {
-        Name = "Executor",
-        Size = UDim2.new(0.6, 0, 0, 18),
+        Name = "ExecutorLabel",
+        Size = UDim2.new(0.6, 0, 0, 16),
         Position = UDim2.new(0, 62, 0.35, 0),
         BackgroundTransparency = 1,
-        Text = "注入器: " .. executorName,
+        Text = "执行器: " .. executorName,
         TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 13,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.AnnouncementBar
+    })
+    
+    self.WelcomeLabel = CreateInstance("TextLabel", {
+        Name = "WelcomeLabel",
+        Size = UDim2.new(0.6, 0, 0, 14),
+        Position = UDim2.new(0, 62, 0.55, 0),
+        BackgroundTransparency = 1,
+        Text = "欢迎使用 WasUI",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
 
-    self.TabContainer = CreateInstance("Frame", {
-        Name = "TabContainer",
-        Size = UDim2.new(1, 0, 0, 30),
-        Position = UDim2.new(0, 0, 0, 106),
-        BackgroundColor3 = WasUI.CurrentTheme.Secondary,
-        BackgroundTransparency = 0.3,
+    self.TabBar = CreateInstance("Frame", {
+        Name = "TabBar",
+        Size = UDim2.new(1, 0, 0, 32),
+        Position = UDim2.new(0, 0, 0, 26 + 80),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.4,
         Parent = self.Instance
     })
-
-    self.TabListLayout = CreateInstance("UIListLayout", {
+    local tabLine = CreateInstance("Frame", {
+        Name = "TabLine",
+        Size = UDim2.new(1, 0, 0, 1),
+        Position = UDim2.new(0, 0, 1, -1),
+        BackgroundColor3 = WasUI.CurrentTheme.TabBorder,
+        Parent = self.TabBar
+    })
+    self.TabContainer = CreateInstance("Frame", {
+        Name = "TabContainer",
+        Size = UDim2.new(1, -10, 1, 0),
+        Position = UDim2.new(0, 5, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = self.TabBar
+    })
+    local tabLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
         VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 0),
         Parent = self.TabContainer
     })
 
-    self.TabContentContainer = CreateInstance("Frame", {
-        Name = "TabContentContainer",
-        Size = UDim2.new(1, 0, 1, -136),
-        Position = UDim2.new(0, 0, 0, 136),
+    self.ContentArea = CreateInstance("Frame", {
+        Name = "ContentArea",
+        Size = UDim2.new(1, 0, 1, -(26 + 80 + 32)),
+        Position = UDim2.new(0, 0, 0, 26 + 80 + 32),
         BackgroundTransparency = 1,
+        ClipsDescendants = true,
         Parent = self.Instance
+    })
+    local contentPadding = CreateInstance("UIPadding", {
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8),
+        PaddingTop = UDim.new(0, 6),
+        PaddingBottom = UDim.new(0, 6),
+        Parent = self.ContentArea
     })
 
     self.Tabs = {}
     self.ActiveTab = nil
 
-    function self:AddTab(tabName)
+    function self:AddTab(tabName, icon)
         local tabButton = CreateInstance("TextButton", {
-            Name = tabName .. "_Tab",
-            Size = UDim2.new(0, 90, 1, 0),
-            BackgroundTransparency = 1,
+            Name = "Tab_" .. tabName,
+            Size = UDim2.new(0, 90, 0, 24),
+            BackgroundColor3 = WasUI.CurrentTheme.TabButton,
+            BackgroundTransparency = 0.5,
             Text = tabName,
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.GothamSemibold,
             TextSize = 12,
+            AutoButtonColor = false,
             Parent = self.TabContainer
         })
-
         local tabUnderline = CreateInstance("Frame", {
             Name = "Underline",
             Size = UDim2.new(0, 0, 0, 2),
             Position = UDim2.new(0.5, 0, 1, -2),
             AnchorPoint = Vector2.new(0.5, 0),
-            BackgroundColor3 = Color3.fromRGB(25, 60, 140),
+            BackgroundColor3 = Color3.fromRGB(128, 0, 128),
             Visible = false,
             Parent = tabButton
         })
 
-        local tabPage = CreateInstance("Frame", {
-            Name = tabName .. "_Page",
+        local tabFrame = CreateInstance("ScrollingFrame", {
+            Name = "TabFrame_" .. tabName,
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
             Visible = false,
-            Parent = self.TabContentContainer
+            ScrollBarThickness = 4,
+            CanvasSize = UDim2.new(0, 0, 0, 0),
+            Parent = self.ContentArea
         })
-
-        local pageList = CreateInstance("UIListLayout", {
+        local tabListLayout = CreateInstance("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
             Padding = UDim.new(0, 6),
-            Parent = tabPage
+            Parent = tabFrame
         })
-
-        local pagePadding = CreateInstance("UIPadding", {
-            PaddingLeft = UDim.new(0, 8),
-            PaddingRight = UDim.new(0, 8),
-            PaddingTop = UDim.new(0, 6),
-            PaddingBottom = UDim.new(0, 6),
-            Parent = tabPage
+        local tabPadding = CreateInstance("UIPadding", {
+            PaddingLeft = UDim.new(0, 4),
+            PaddingRight = UDim.new(0, 4),
+            PaddingTop = UDim.new(0, 4),
+            PaddingBottom = UDim.new(0, 4),
+            Parent = tabFrame
         })
-
-        table.insert(self.Tabs, {
-            Button = tabButton,
-            Underline = tabUnderline,
-            Page = tabPage
-        })
-
-        tabButton.MouseButton1Click:Connect(function()
-            for _, tab in ipairs(self.Tabs) do
-                tab.Underline.Visible = false
-                Tween(tab.Underline, {Size = UDim2.new(0, 0, 0, 2)}, 0.1)
-                tab.Page.Visible = false
-            end
-            tabUnderline.Visible = true
-            Tween(tabUnderline, {Size = UDim2.new(1, 0, 0, 2)}, 0.2)
-            tabPage.Visible = true
-            self.ActiveTab = tabPage
+        tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            tabFrame.CanvasSize = UDim2.new(0, 0, 0, tabListLayout.AbsoluteContentSize.Y + 12)
         end)
 
+        tabButton.MouseButton1Click:Connect(function()
+            self:SetActiveTab(tabName)
+        end)
+
+        self.Tabs[tabName] = {
+            Button = tabButton,
+            Underline = tabUnderline,
+            Frame = tabFrame
+        }
+
         if not self.ActiveTab then
-            tabUnderline.Visible = true
-            tabUnderline.Size = UDim2.new(1, 0, 0, 2)
-            tabPage.Visible = true
-            self.ActiveTab = tabPage
+            self:SetActiveTab(tabName)
         end
 
-        return tabPage
+        return tabFrame
     end
 
+    function self:SetActiveTab(tabName)
+        if self.ActiveTab then
+            local old = self.Tabs[self.ActiveTab]
+            old.Underline.Visible = false
+            Tween(old.Underline, {Size = UDim2.new(0, 0, 0, 2)}, 0.15)
+            old.Frame.Visible = false
+        end
+
+        local new = self.Tabs[tabName]
+        new.Underline.Visible = true
+        Tween(new.Underline, {Size = UDim2.new(1, 0, 0, 2)}, 0.25)
+        new.Frame.Visible = true
+        self.ActiveTab = tabName
+    end
+
+    function self:SetVisible(visible)
+        self.Instance.Visible = visible
+        if self.BorderEffect then
+            self.BorderEffect.Visible = visible
+        end
+    end
+
+    function self:SetTitle(text)
+        self.Title.Text = text
+    end
+
+    function self:SetWelcome(text)
+        self.WelcomeLabel.Text = text
+    end
+
+    table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel"})
     return self
 end
 
-function WasUI:CreateWindow(windowName, size)
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "WasUI_Main",
-        ResetOnSpawn = false,
-        DisplayOrder = WasUI.DefaultDisplayOrder,
-        Parent = game:GetService("CoreGui")
-    })
-    local window = Panel:New(windowName, screenGui, size or UDim2.new(0, 420, 0, 520))
-    return window
+local function updateAllNotificationPositions()
+    local sorted = {}
+    for id, data in pairs(WasUI.ActiveNotifications) do
+        table.insert(sorted, data)
+    end
+    table.sort(sorted, function(a, b)
+        return a.CreationTime < b.CreationTime
+    end)
+    for i, data in ipairs(sorted) do
+        local targetY = WasUI.NotificationTop + (i-1)*(WasUI.NotificationHeight + WasUI.NotificationSpacing)
+        Tween(data.Frame, {Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, targetY)}, 0.2)
+    end
 end
 
-function WasUI:CreateButton(parent, text, onClick)
-    return Button:New(text .. "_Btn", parent, text, onClick)
-end
-
-function WasUI:CreateToggle(parent, text, defaultState, onToggle, featureName)
+function WasUI:Notify(options)
+    local title = options.Title or "Notification"
+    local content = options.Content or ""
+    local duration = options.Duration or 3
+    local notificationId = HttpService:GenerateGUID(false)
     local frame = CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 0, 24),
-        BackgroundTransparency = 1,
-        Parent = parent
+        Name = "Notification_" .. notificationId,
+        Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
+        Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, WasUI.NotificationTop),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 35),
+        BackgroundTransparency = 0.2,
+        ClipsDescendants = true,
+        Visible = true,
+        ZIndex = 9999,
+        Parent = WasUI.NotificationGui
     })
-    local label = CreateInstance("TextLabel", {
-        Size = UDim2.new(1, -50, 1, 0),
-        Position = UDim2.new(0, 0, 0, 0),
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = frame})
+    local stroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(0, 0, 0),
+        Thickness = 1,
+        Parent = frame
+    })
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(1, -10, 0, 14),
+        Position = UDim2.new(0, 5, 0, 2),
         BackgroundTransparency = 1,
-        Text = text,
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.Gotham,
+        Text = title,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.GothamSemibold,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = frame
     })
-    local toggle = ToggleSwitch:New(text .. "_Toggle", frame, defaultState, onToggle, featureName or text)
-    return toggle
+    local contentLabel = CreateInstance("TextLabel", {
+        Name = "Content",
+        Size = UDim2.new(1, -10, 0, 12),
+        Position = UDim2.new(0, 5, 0, 16),
+        BackgroundTransparency = 1,
+        Text = content,
+        TextColor3 = Color3.fromRGB(220, 220, 220),
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = frame
+    })
+    local data = {
+        Frame = frame,
+        Id = notificationId,
+        CreationTime = tick()
+    }
+    WasUI.ActiveNotifications[notificationId] = data
+    updateAllNotificationPositions()
+    Tween(frame, {Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, frame.Position.Y.Offset)}, 0.3)
+    task.delay(duration, function()
+        local fadeOut = Tween(frame, {BackgroundTransparency = 1, Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, frame.Position.Y.Offset)}, 0.3)
+        fadeOut.Completed:Connect(function()
+            WasUI.ActiveNotifications[notificationId] = nil
+            frame:Destroy()
+            updateAllNotificationPositions()
+        end)
+    end)
+end
+
+function WasUI:CreateWindow(title, size, position)
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "WasUI_Main"
+    screenGui.ResetOnSpawn = false
+    screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
+    screenGui.Parent = game:GetService("CoreGui")
+    local window = Panel:New(title, screenGui, size, position)
+    RecordOriginalTransparency(window.Instance)
+    return window
+end
+
+function WasUI:CreateButton(parent, text, onClick, size)
+    return Button:New("Button", parent, text, onClick, size)
+end
+
+function WasUI:CreateToggle(parent, initialState, onToggle, featureName)
+    return ToggleSwitch:New("Toggle", parent, initialState, onToggle, featureName)
 end
 
 function WasUI:CreateLabel(parent, text)
-    return Label:New(text .. "_Label", parent, text)
+    return Label:New("Label", parent, text)
 end
 
 function WasUI:CreateCategory(parent, title)
-    return Category:New(title .. "_Category", parent, title)
+    return Category:New("Category", parent, title)
 end
 
-function WasUI:CreateDropdown(parent, title, options, default, callback, multi)
-    return Dropdown:New(title .. "_Dropdown", parent, title, options, default, callback, multi)
+function WasUI:CreateDropdown(parent, title, options, defaultValue, callback, multiSelect)
+    return Dropdown:New("Dropdown", parent, title, options, defaultValue, callback, multiSelect)
 end
 
-function WasUI:CreateSlider(parent, title, min, max, default, callback)
-    return Slider:New(title .. "_Slider", parent, title, min, max, default, callback)
-end
-
-function WasUI:Notify(options)
-    local title = options.Title or WasUI.DefaultNotificationTitle
-    local content = options.Content or ""
-    local duration = options.Duration or 3
-
-    local noticeId = HttpService:GenerateGUID()
-    local notice = CreateInstance("Frame", {
-        Name = "Notice_" .. noticeId,
-        Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
-        Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, WasUI.NotificationTop),
-        BackgroundColor3 = Color3.fromRGB(30, 30, 34),
-        BackgroundTransparency = 0.3,
-        Parent = WasUI.NotificationGui
-    })
-
-    local stroke = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(10, 10, 12),
-        Thickness = 1,
-        Parent = notice
-    })
-
-    local corner = CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 4),
-        Parent = notice
-    })
-
-    local titleLabel = CreateInstance("TextLabel", {
-        Size = UDim2.new(0, 60, 1, 0),
-        Position = UDim2.new(0, 4, 0, 0),
-        BackgroundTransparency = 1,
-        Text = title,
-        TextColor3 = Color3.new(1,1,1),
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 12,
-        Parent = notice
-    })
-
-    local contentLabel = CreateInstance("TextLabel", {
-        Size = UDim2.new(1, -72, 1, 0),
-        Position = UDim2.new(0, 68, 0, 0),
-        BackgroundTransparency = 1,
-        Text = content,
-        TextColor3 = Color3.fromRGB(210,210,210),
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        Parent = notice
-    })
-
-    WasUI.ActiveNotifications[noticeId] = notice
-    local totalOffset = 0
-    for id, frame in pairs(WasUI.ActiveNotifications) do
-        if frame ~= notice then
-            totalOffset = totalOffset + frame.Size.Y.Offset + WasUI.NotificationSpacing
-        end
-    end
-
-    Tween(notice, {
-        Position = UDim2.new(1, -WasUI.NotificationWidth - 12, 0, WasUI.NotificationTop + totalOffset)
-    }, 0.3)
-
-    task.delay(duration, function()
-        if not WasUI.ActiveNotifications[noticeId] then return end
-        Tween(notice, {
-            Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, notice.Position.Y.Offset)
-        }, 0.3)
-        task.wait(0.3)
-        notice:Destroy()
-        WasUI.ActiveNotifications[noticeId] = nil
-    end)
+function WasUI:CreateSlider(parent, title, min, max, defaultValue, callback)
+    return Slider:New("Slider", parent, title, min, max, defaultValue, callback)
 end
 
 _G.WasUIModule = WasUI
