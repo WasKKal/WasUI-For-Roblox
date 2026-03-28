@@ -435,14 +435,14 @@ end
 
 local Label = setmetatable({}, {__index = Control})
 Label.__index = Label
-function Label:New(name, parent, text)
+function Label:New(name, parent, text, textColor)
     local self = Control:New(name, parent)
     self.Instance = CreateInstance("TextLabel", {
         Name = name,
         Size = UDim2.new(1, 0, 0, 20),
         BackgroundTransparency = 1,
         Text = text or "标签",
-        TextColor3 = WasUI.CurrentTheme.Text,
+        TextColor3 = textColor or WasUI.CurrentTheme.Text,
         TextTransparency = 0,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -467,7 +467,7 @@ function Category:New(name, parent, title)
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(0.9, 0, 1, 0),
-        Position = UDim2.new(0, 7, 0, 0),
+        Position = UDim2.new(0, 2, 0, 0),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = Color3.new(1, 1, 1),
@@ -480,8 +480,8 @@ function Category:New(name, parent, title)
     })
     local line = CreateInstance("Frame", {
         Name = "Line",
-        Size = UDim2.new(1, -14, 0, 1),
-        Position = UDim2.new(0, 7, 1, -2),
+        Size = UDim2.new(1, -4, 0, 1),
+        Position = UDim2.new(0, 2, 1, -2),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
@@ -1766,8 +1766,8 @@ function WasUI:CreateToggleWithTitle(parent, title, initialState, onToggle, feat
     return ToggleSwitch:New("Toggle", parent, title, initialState, onToggle, featureName, rainbowName)
 end
 
-function WasUI:CreateLabel(parent, text)
-    return Label:New("Label", parent, text)
+function WasUI:CreateLabel(parent, text, textColor)
+    return Label:New("Label", parent, text, textColor)
 end
 
 function WasUI:CreateCategory(parent, title)
