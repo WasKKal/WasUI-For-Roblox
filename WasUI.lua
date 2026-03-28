@@ -464,14 +464,14 @@ function Category:New(name, parent, title)
     return self
 end
 
--- 下拉菜单（支持多选、滚动、防超出屏幕）
+-- 下拉菜单（支持多选、滚动、防超出屏幕，自动处理只读表）
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback, multiSelect)
     local self = Control.New(self, name, parent)
     self.MultiSelect = multiSelect or false
     self.Options = options or {}
-    -- 类型安全初始化，复制传入的表以避免只读错误
+    -- 初始化选择值
     if self.MultiSelect then
         if type(defaultValue) == "table" then
             self.SelectedValues = {}
@@ -492,6 +492,25 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     end
     self.Callback = callback
     self.IsOpen = false
+
+    -- 为对象添加元表，拦截对 SelectedValues 的赋值，确保始终是可修改的本地表
+    local mt = {
+        __newindex = function(t, k, v)
+            if k == "SelectedValues" then
+                -- 将任何传入的表转换为可修改的副本
+                local copy = {}
+                if type(v) == "table" then
+                    for i, val in ipairs(v) do
+                        table.insert(copy, val)
+                    end
+                end
+                rawset(t, k, copy)
+            else
+                rawset(t, k, v)
+            end
+        end
+    }
+    setmetatable(self, mt)
 
     -- 创建容器
     self.Container = CreateInstance("Frame", {
@@ -1373,7 +1392,6 @@ function Panel:New(name, parent, size, position)
         Parent = self.Instance
     })
     
-    -- 选项卡栏（左侧无空白）
     self.TabBar = CreateInstance("ScrollingFrame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 24),
