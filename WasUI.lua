@@ -577,6 +577,9 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
     function self:Open()
         if self.IsOpen then return end
         self.IsOpen = true
+        local btnPos = self.DropdownButton.AbsolutePosition
+        local btnSize = self.DropdownButton.AbsoluteSize
+        self.OptionsContainer.Position = UDim2.new(0, btnPos.X, 0, btnPos.Y + btnSize.Y)
         self.OptionsContainer.Visible = true
         local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 8
         self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, totalHeight)
@@ -652,8 +655,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
 
     local dragging = false
-    local function updateFromInput(input)
-        local mousePos = input.Position
+    local function updateFromInput()
+        local mousePos = UserInputService:GetMouseLocation()
         local trackPos = self.SliderTrack.AbsolutePosition
         local trackSize = self.SliderTrack.AbsoluteSize.X
         if trackSize <= 0 then return end
@@ -672,12 +675,12 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.SliderTrack.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
-            updateFromInput(input)
+            updateFromInput()
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            updateFromInput(input)
+            updateFromInput()
         end
     end)
     UserInputService.InputEnded:Connect(function(input)
@@ -1405,7 +1408,7 @@ function Panel:AddTab(tabName)
         AnchorPoint = Vector2.new(0.5, 0),
         BackgroundColor3 = Color3.fromRGB(128, 0, 128),
         BackgroundTransparency = 1,
-        ZIndex = 5,
+        ZIndex = 10,
         Parent = tabButton
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 2), Parent = underline})
