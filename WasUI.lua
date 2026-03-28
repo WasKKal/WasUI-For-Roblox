@@ -304,12 +304,11 @@ function Control:SetVisible(visible)
     end
 end
 
--- 按钮高度改为21（缩小3/4）
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick, size)
     local self = Control.New(self, name, parent)
-    local buttonSize = size or UDim2.new(0, 0, 0, 21)
+    local buttonSize = size or UDim2.new(0, 0, 0, 10)
     self.Instance = CreateInstance("TextButton", {
         Name = name,
         Size = buttonSize,
@@ -319,15 +318,15 @@ function Button:New(name, parent, text, onClick, size)
         TextColor3 = Color3.fromRGB(255, 255, 255),
         TextTransparency = 0,
         Font = Enum.Font.GothamSemibold,
-        TextSize = 12,
+        TextSize = 10,
         AutoButtonColor = false,
         Parent = parent,
-        AutomaticSize = buttonSize == UDim2.new(0, 0, 0, 21) and Enum.AutomaticSize.X or Enum.AutomaticSize.None
+        AutomaticSize = buttonSize == UDim2.new(0, 0, 0, 10) and Enum.AutomaticSize.X or Enum.AutomaticSize.None
     })
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 5), Parent = self.Instance})
     local padding = CreateInstance("UIPadding", {
-        PaddingLeft = UDim.new(0, 12),
-        PaddingRight = UDim.new(0, 12),
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8),
         Parent = self.Instance
     })
     self.Instance.MouseEnter:Connect(function() 
@@ -595,7 +594,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
     return self
 end
 
--- 滑动条：轨道高度增加到12，滑块位置调整
 local Slider = setmetatable({}, {__index = Control})
 Slider.__index = Slider
 function Slider:New(name, parent, title, min, max, defaultValue, callback)
@@ -652,22 +650,10 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Parent = self.SliderTrack
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
-    self.SliderKnob = CreateInstance("ImageButton", {
-        Name = "Knob",
-        Size = UDim2.new(0, 16, 0, 16),
-        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -8, 0, -8),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        Image = "",
-        BorderSizePixel = 0,
-        AutoButtonColor = false,
-        ZIndex = 2,
-        Parent = self.SliderTrack
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderKnob})
 
     local dragging = false
-    local function updateFromInput()
-        local mousePos = UserInputService:GetMouseLocation()
+    local function updateFromInput(input)
+        local mousePos = input.Position
         local trackPos = self.SliderTrack.AbsolutePosition
         local trackSize = self.SliderTrack.AbsoluteSize.X
         if trackSize <= 0 then return end
@@ -679,24 +665,19 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             self.Value = newValue
             self.ValueLabel.Text = tostring(self.Value)
             self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
-            self.SliderKnob.Position = UDim2.new(t, -8, 0, -8)
             if self.Callback then self.Callback(self.Value) end
         end
     end
 
-    self.SliderKnob.MouseButton1Down:Connect(function()
-        dragging = true
-        updateFromInput()
-    end)
     self.SliderTrack.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
-            updateFromInput()
+            updateFromInput(input)
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            updateFromInput()
+            updateFromInput(input)
         end
     end)
     UserInputService.InputEnded:Connect(function(input)
@@ -1318,7 +1299,6 @@ function Panel:New(name, parent, size, position)
         self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
     end)
     
-    -- 内容区背景完全透明
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
         Size = UDim2.new(1, -20, 1, -announcementHeight - 28 - 31),
