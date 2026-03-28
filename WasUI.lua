@@ -6,6 +6,8 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
+local Workspace = game:GetService("Workspace")
+local GuiService = game:GetService("GuiService")
 
 if _G.WasUILoaded then
     warn("WasUI 已加载，跳过重复加载")
@@ -358,21 +360,46 @@ end
 
 local ToggleSwitch = setmetatable({}, {__index = Control})
 ToggleSwitch.__index = ToggleSwitch
-function ToggleSwitch:New(name, parent, initialState, onToggle, featureName)
+function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureName, rainbowName)
     local self = Control:New(name, parent)
     self.Toggled = initialState or false
     self.ToggleCallback = onToggle
     self.FeatureName = featureName or name
+    self.RainbowName = rainbowName or self.FeatureName
+    
+    self.Container = CreateInstance("Frame", {
+        Name = name .. "_Container",
+        Size = UDim2.new(1, 0, 0, 28),
+        BackgroundTransparency = 1,
+        Parent = parent
+    })
+    
+    if title then
+        self.TitleLabel = CreateInstance("TextLabel", {
+            Name = "Title",
+            Size = UDim2.new(0.7, 0, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Text = title,
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            Parent = self.Container
+        })
+    end
+    
     self.Background = CreateInstance("ImageButton", {
         Name = name .. "_BG",
         Size = UDim2.new(0, 36, 0, 18),
-        Position = UDim2.new(1, -40, 0.5, -9),
+        Position = title and UDim2.new(1, -40, 0.5, -9) or UDim2.new(1, -40, 0.5, -9),
         BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or Color3.fromRGB(200, 200, 200),
         Image = "",
         BorderSizePixel = 0,
         AutoButtonColor = false,
         ZIndex = 3,
-        Parent = parent
+        Parent = self.Container
     })
     local bgCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Background})
     self.Knob = CreateInstance("Frame", {
@@ -386,18 +413,18 @@ function ToggleSwitch:New(name, parent, initialState, onToggle, featureName)
     })
     local knobCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Knob})
     if self.Toggled then
-        CreateRainbowTextForFeature(self.FeatureName)
+        CreateRainbowTextForFeature(self.RainbowName)
     end
     self.Background.MouseButton1Click:Connect(function()
         self.Toggled = not self.Toggled
         if self.Toggled then
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
             Tween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.2)
-            CreateRainbowTextForFeature(self.FeatureName)
+            CreateRainbowTextForFeature(self.RainbowName)
         else
             Tween(self.Background, {BackgroundColor3 = Color3.fromRGB(200, 200, 200)}, 0.2)
             Tween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.2)
-            DestroyRainbowTextForFeature(self.FeatureName)
+            DestroyRainbowTextForFeature(self.RainbowName)
         end
         if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
     end)
@@ -645,7 +672,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         if not self.IsOpen then return end
         local btnPos = self.DropdownButton.AbsolutePosition
         local btnSize = self.DropdownButton.AbsoluteSize
-        local viewportSize = game:GetService("CoreGui").AbsoluteSize
+        local viewportSize = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or GuiService:GetScreenSize()
         local menuHeight = self.OptionsContainer.AbsoluteSize.Y
         local x = btnPos.X
         local y = btnPos.Y + btnSize.Y
@@ -919,7 +946,7 @@ function Panel:New(name, parent, size, position)
     self.Title = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(1, -120, 1, 0),
-        Position = UDim2.new(0, 53, 0, 0),
+        Position = UDim2.new(0, 53.5, 0, 0),
         BackgroundTransparency = 1,
         Text = name,
         TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -1591,8 +1618,12 @@ function WasUI:CreateButton(parent, text, onClick, size)
     return Button:New("Button", parent, text, onClick, size)
 end
 
-function WasUI:CreateToggle(parent, initialState, onToggle, featureName)
-    return ToggleSwitch:New("Toggle", parent, initialState, onToggle, featureName)
+function WasUI:CreateToggle(parent, initialState, onToggle, featureName, rainbowName)
+    return ToggleSwitch:New("Toggle", parent, nil, initialState, onToggle, featureName, rainbowName)
+end
+
+function WasUI:CreateToggleWithTitle(parent, title, initialState, onToggle, featureName, rainbowName)
+    return ToggleSwitch:New("Toggle", parent, title, initialState, onToggle, featureName, rainbowName)
 end
 
 function WasUI:CreateLabel(parent, text)
