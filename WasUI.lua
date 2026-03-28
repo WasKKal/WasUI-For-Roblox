@@ -1576,11 +1576,12 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             self.SnowTimer = self.SnowTimer + deltaTime
             self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
             
-            if self.SnowTimer >= 0.1 and #self.Snowflakes < 25 then
+            if self.SnowTimer >= 0.08 and #self.Snowflakes < 30 then
                 self.SnowTimer = 0
+                local size = math.random(4, 10)
                 local flake = CreateInstance("Frame", {
-                    Size = UDim2.new(0, math.random(3, 8), 0, math.random(3, 8)),
-                    Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.05, 0),
+                    Size = UDim2.new(0, size, 0, size),
+                    Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.1, 0),
                     BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                     BackgroundTransparency = 0,
                     BorderSizePixel = 0,
@@ -1588,23 +1589,22 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                     Parent = self.SnowContainer
                 })
                 CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
-                local speedY = math.random(30, 80) / 100
-                local speedX = (math.random() - 0.5) * 0.5
-                local size = flake.Size.X.Offset
+                local speedY = math.random(60, 150) / 100
+                local speedX = (math.random() - 0.5) * 0.8
                 table.insert(self.Snowflakes, {
                     Instance = flake,
                     SpeedY = speedY,
                     SpeedX = speedX,
-                    Size = size,
-                    Age = 0
+                    Age = 0,
+                    Size = size
                 })
             end
             
-            if self.SnowChangeTimer >= 0.7 then
+            if self.SnowChangeTimer >= 0.6 then
                 self.SnowChangeTimer = 0
                 for _, data in ipairs(self.Snowflakes) do
-                    data.SpeedX = (math.random() - 0.5) * 0.6
-                    data.SpeedY = math.random(30, 80) / 100
+                    data.SpeedX = (math.random() - 0.5) * 0.9
+                    data.SpeedY = math.random(60, 150) / 100
                 end
             end
             
@@ -1616,15 +1616,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                     continue
                 end
                 data.Age = data.Age + deltaTime
-                local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.5
-                local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
-                local alpha = math.clamp(1 - data.Age / 2, 0, 1)
-                local newSize = data.Size * (1 - data.Age / 3)
+                local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
+                local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 80
+                local alpha = math.clamp(1 - data.Age / 1.8, 0, 1)
+                local newSize = data.Size * (1 - data.Age / 2.2)
                 flake.Position = UDim2.new(newX, 0, 0, newY)
-                flake.Size = UDim2.new(0, math.max(1, newSize), 0, math.max(1, newSize))
+                flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
                 flake.BackgroundTransparency = 1 - alpha
                 
-                if newY > self.Instance.AbsoluteSize.Y + 20 or newX < -0.1 or newX > 1.1 or data.Age > 3 then
+                if newY > self.Instance.AbsoluteSize.Y + 30 or newX < -0.15 or newX > 1.15 or data.Age > 2.5 then
                     flake:Destroy()
                     table.remove(self.Snowflakes, i)
                 end
