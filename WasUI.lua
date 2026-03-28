@@ -867,7 +867,7 @@ end
 local Panel = {}
 Panel.__index = Panel
 
-function Panel:New(name, parent, size, position, backgroundUrl)
+function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local self = setmetatable({}, Panel)
     
     if backgroundUrl and backgroundUrl ~= "" then
@@ -886,8 +886,8 @@ function Panel:New(name, parent, size, position, backgroundUrl)
     
     self.Instance = CreateInstance("Frame", {
         Name = name,
-        Size = size or UDim2.new(0, 420, 0, 350),
-        Position = position or UDim2.new(0.5, -210, 0.5, -175),
+        Size = size or UDim2.new(0, 380, 0, 350),
+        Position = position or UDim2.new(0.5, -190, 0.5, -175),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0.3,
         ClipsDescendants = true,
@@ -1556,6 +1556,83 @@ function Panel:New(name, parent, size, position, backgroundUrl)
     function self:SetWelcome(text)
         self.WelcomeLabel.Text = text
     end
+    
+    if snowEnabled then
+        self.SnowContainer = CreateInstance("Frame", {
+            Name = "SnowContainer",
+            Size = UDim2.new(1, 0, 1, 0),
+            BackgroundTransparency = 1,
+            ZIndex = 100000,
+            Parent = self.Instance
+        })
+        
+        self.Snowflakes = {}
+        self.SnowTimer = 0
+        self.SnowChangeTimer = 0
+        
+        self.SnowConnection = RunService.Heartbeat:Connect(function(deltaTime)
+            if not self.Instance.Visible then return end
+            
+            self.SnowTimer = self.SnowTimer + deltaTime
+            self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
+            
+            if self.SnowTimer >= 0.1 and #self.Snowflakes < 25 then
+                self.SnowTimer = 0
+                local flake = CreateInstance("Frame", {
+                    Size = UDim2.new(0, math.random(3, 8), 0, math.random(3, 8)),
+                    Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.05, 0),
+                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                    BackgroundTransparency = 0,
+                    BorderSizePixel = 0,
+                    ZIndex = 100001,
+                    Parent = self.SnowContainer
+                })
+                CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
+                local speedY = math.random(30, 80) / 100
+                local speedX = (math.random() - 0.5) * 0.5
+                local size = flake.Size.X.Offset
+                table.insert(self.Snowflakes, {
+                    Instance = flake,
+                    SpeedY = speedY,
+                    SpeedX = speedX,
+                    Size = size,
+                    Age = 0
+                })
+            end
+            
+            if self.SnowChangeTimer >= 0.7 then
+                self.SnowChangeTimer = 0
+                for _, data in ipairs(self.Snowflakes) do
+                    data.SpeedX = (math.random() - 0.5) * 0.6
+                    data.SpeedY = math.random(30, 80) / 100
+                end
+            end
+            
+            for i = #self.Snowflakes, 1, -1 do
+                local data = self.Snowflakes[i]
+                local flake = data.Instance
+                if not flake or not flake.Parent then
+                    table.remove(self.Snowflakes, i)
+                    continue
+                end
+                data.Age = data.Age + deltaTime
+                local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.5
+                local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
+                local alpha = math.clamp(1 - data.Age / 2, 0, 1)
+                local newSize = data.Size * (1 - data.Age / 3)
+                flake.Position = UDim2.new(newX, 0, 0, newY)
+                flake.Size = UDim2.new(0, math.max(1, newSize), 0, math.max(1, newSize))
+                flake.BackgroundTransparency = 1 - alpha
+                
+                if newY > self.Instance.AbsoluteSize.Y + 20 or newX < -0.1 or newX > 1.1 or data.Age > 3 then
+                    flake:Destroy()
+                    table.remove(self.Snowflakes, i)
+                end
+            end
+        end)
+    else
+        self.SnowConnection = nil
+    end
 
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel"})
     return self
@@ -1641,13 +1718,13 @@ function WasUI:Notify(options)
     end)
 end
 
-function WasUI:CreateWindow(title, size, position, backgroundUrl)
+function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled)
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "WasUI_Main"
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = game:GetService("CoreGui")
-    local window = Panel:New(title, screenGui, size, position, backgroundUrl)
+    local window = Panel:New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position, backgroundUrl, snowEnabled)
     RecordOriginalTransparency(window.Instance)
     return window
 end
