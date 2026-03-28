@@ -467,7 +467,7 @@ function Category:New(name, parent, title)
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(0.9, 0, 1, 0),
-        Position = UDim2.new(0, 5, 0, 0),
+        Position = UDim2.new(0, 7, 0, 0),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = Color3.new(1, 1, 1),
@@ -480,8 +480,8 @@ function Category:New(name, parent, title)
     })
     local line = CreateInstance("Frame", {
         Name = "Line",
-        Size = UDim2.new(1, -10, 0, 1),
-        Position = UDim2.new(0, 5, 1, -2),
+        Size = UDim2.new(1, -14, 0, 1),
+        Position = UDim2.new(0, 7, 1, -2),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
@@ -572,6 +572,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         ImageRectSize = Vector2.new(24, 24),
         ImageColor3 = WasUI.CurrentTheme.Text,
         ImageTransparency = 0,
+        ZIndex = 12,
         Parent = self.DropdownButton
     })
 
@@ -624,6 +625,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
             Font = Enum.Font.Gotham,
             TextSize = 12,
             AutoButtonColor = false,
+            ZIndex = 10000,
             Parent = self.OptionsContainer
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = optionButton})
@@ -865,8 +867,23 @@ end
 local Panel = {}
 Panel.__index = Panel
 
-function Panel:New(name, parent, size, position)
+function Panel:New(name, parent, size, position, backgroundUrl)
     local self = setmetatable({}, Panel)
+    
+    if backgroundUrl and backgroundUrl ~= "" then
+        self.BackgroundImage = CreateInstance("ImageLabel", {
+            Name = "Background",
+            Size = UDim2.new(1, 0, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Image = backgroundUrl,
+            ImageTransparency = 0.4,
+            ScaleType = Enum.ScaleType.Crop,
+            ZIndex = 0,
+            Parent = parent
+        })
+    end
+    
     self.Instance = CreateInstance("Frame", {
         Name = name,
         Size = size or UDim2.new(0, 420, 0, 350),
@@ -946,7 +963,7 @@ function Panel:New(name, parent, size, position)
     self.Title = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(1, -120, 1, 0),
-        Position = UDim2.new(0, 53.5, 0, 0),
+        Position = UDim2.new(0, 54, 0, 0),
         BackgroundTransparency = 1,
         Text = name,
         TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -1437,8 +1454,8 @@ function Panel:New(name, parent, size, position)
     local contentPadding = CreateInstance("UIPadding", {
         PaddingLeft = UDim.new(0, 8),
         PaddingRight = UDim.new(0, 8),
-        PaddingTop = UDim.new(0, 6),
-        PaddingBottom = UDim.new(0, 6),
+        PaddingTop = UDim.new(0, 4),
+        PaddingBottom = UDim.new(0, 4),
         Parent = self.ContentArea
     })
 
@@ -1479,7 +1496,7 @@ function Panel:New(name, parent, size, position)
         })
         local tabListLayout = CreateInstance("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 6),
+            Padding = UDim.new(0, 4),
             Parent = tabFrame
         })
         local tabPadding = CreateInstance("UIPadding", {
@@ -1490,7 +1507,7 @@ function Panel:New(name, parent, size, position)
             Parent = tabFrame
         })
         tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            tabFrame.CanvasSize = UDim2.new(0, 0, 0, tabListLayout.AbsoluteContentSize.Y + 12)
+            tabFrame.CanvasSize = UDim2.new(0, 0, 0, tabListLayout.AbsoluteContentSize.Y + 8)
         end)
 
         tabButton.MouseButton1Click:Connect(function()
@@ -1590,6 +1607,7 @@ function WasUI:Notify(options)
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 10000,
         Parent = frame
     })
     local contentLabel = CreateInstance("TextLabel", {
@@ -1602,6 +1620,7 @@ function WasUI:Notify(options)
         Font = Enum.Font.Gotham,
         TextSize = 10,
         TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 10000,
         Parent = frame
     })
     local data = {
@@ -1622,13 +1641,13 @@ function WasUI:Notify(options)
     end)
 end
 
-function WasUI:CreateWindow(title, size, position)
+function WasUI:CreateWindow(title, size, position, backgroundUrl)
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "WasUI_Main"
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = game:GetService("CoreGui")
-    local window = Panel:New(title, screenGui, size, position)
+    local window = Panel:New(title, screenGui, size, position, backgroundUrl)
     RecordOriginalTransparency(window.Instance)
     return window
 end
