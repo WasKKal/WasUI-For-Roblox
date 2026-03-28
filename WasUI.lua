@@ -847,6 +847,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             updateFromInput()
+            input:SetConsumed(true)
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
@@ -1589,8 +1590,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                     Parent = self.SnowContainer
                 })
                 CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
-                local speedY = math.random(60, 150) / 100
-                local speedX = (math.random() - 0.5) * 0.8
+                local speedY = math.random(40, 90) / 100
+                local speedX = (math.random() - 0.5) * 0.7
                 table.insert(self.Snowflakes, {
                     Instance = flake,
                     SpeedY = speedY,
@@ -1600,11 +1601,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 })
             end
             
-            if self.SnowChangeTimer >= 0.6 then
+            if self.SnowChangeTimer >= 1.25 then
                 self.SnowChangeTimer = 0
                 for _, data in ipairs(self.Snowflakes) do
-                    data.SpeedX = (math.random() - 0.5) * 0.9
-                    data.SpeedY = math.random(60, 150) / 100
+                    data.SpeedX = (math.random() - 0.5) * 0.8
+                    data.SpeedY = math.random(40, 90) / 100
                 end
             end
             
@@ -1617,14 +1618,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 end
                 data.Age = data.Age + deltaTime
                 local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
-                local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 80
-                local alpha = math.clamp(1 - data.Age / 1.8, 0, 1)
-                local newSize = data.Size * (1 - data.Age / 2.2)
+                local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
+                local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
+                local newSize = data.Size * (1 - data.Age / 3.2)
                 flake.Position = UDim2.new(newX, 0, 0, newY)
                 flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
                 flake.BackgroundTransparency = 1 - alpha
                 
-                if newY > self.Instance.AbsoluteSize.Y + 30 or newX < -0.15 or newX > 1.15 or data.Age > 2.5 then
+                if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.2 or newX > 1.2 or data.Age > 3.5 then
                     flake:Destroy()
                     table.remove(self.Snowflakes, i)
                 end
