@@ -58,13 +58,11 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     return tween
 end
 
--- 通用渐隐动画（适配所有控件类型）
 local function FadeOut(container, duration)
     duration = duration or 0.3
     local tweens = {}
     for _, child in ipairs(container:GetChildren()) do
         local props = {}
-        -- 根据控件类型设置对应透明度属性
         if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
             props.TextTransparency = 1
             if child:IsA("TextButton") then
@@ -81,7 +79,6 @@ local function FadeOut(container, duration)
         if next(props) then
             table.insert(tweens, Tween(child, props, duration))
         end
-        -- 递归处理子控件
         local childTweens = FadeOut(child, duration)
         for _, tween in ipairs(childTweens) do
             table.insert(tweens, tween)
@@ -90,13 +87,11 @@ local function FadeOut(container, duration)
     return tweens
 end
 
--- 通用渐显动画（适配所有控件类型）
 local function FadeIn(container, duration)
     duration = duration or 0.3
     local tweens = {}
     for _, child in ipairs(container:GetChildren()) do
         local props = {}
-        -- 根据控件类型恢复对应透明度属性
         if child:IsA("TextLabel") then
             props.TextTransparency = 0
         elseif child:IsA("TextButton") then
@@ -119,7 +114,6 @@ local function FadeIn(container, duration)
         if next(props) then
             table.insert(tweens, Tween(child, props, duration))
         end
-        -- 递归处理子控件
         local childTweens = FadeIn(child, duration)
         for _, tween in ipairs(childTweens) do
             table.insert(tweens, tween)
@@ -128,7 +122,6 @@ local function FadeIn(container, duration)
     return tweens
 end
 
--- 记录控件原始透明度（用于渐显时恢复）
 local function RecordOriginalTransparency(container)
     for _, child in ipairs(container:GetChildren()) do
         if child:IsA("TextButton") then
@@ -146,7 +139,6 @@ local function RecordOriginalTransparency(container)
         elseif child:IsA("UIStroke") then
             child:SetAttribute("OriginalTransparency", child.Transparency)
         end
-        -- 递归处理子控件
         RecordOriginalTransparency(child)
     end
 end
@@ -263,7 +255,7 @@ function Button:New(name, parent, text, onClick)
         Name = name,
         Size = UDim2.new(0, 0, 0, 28),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.3, -- 按钮半透明
+        BackgroundTransparency = 0.3,
         Text = text or "按钮",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         TextTransparency = 0,
@@ -435,7 +427,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Size = UDim2.new(0.3, 0, 0, 24),
         Position = UDim2.new(0.7, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
-        BackgroundTransparency = 0.3, -- 下拉按钮半透明
+        BackgroundTransparency = 0.3,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
         BorderSizePixel = 1,
         Text = defaultValue or "选择...",
@@ -471,7 +463,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Size = UDim2.new(0.3, 0, 0, 0),
         Position = UDim2.new(0.7, 0, 0, 24),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
-        BackgroundTransparency = 0.3, -- 选项容器半透明
+        BackgroundTransparency = 0.3,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
         BorderSizePixel = 1,
         ClipsDescendants = true,
@@ -490,411 +482,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             Name = "Option_" .. option,
             Size = UDim2.new(1, 0, 0, 24),
             BackgroundColor3 = WasUI.CurrentTheme.Input,
-            BackgroundTransparency = 0.3, -- 选项按钮半透明
-            BorderSizePixel = 0,
-            Text = option,
-            TextColor3 = WasUI.CurrentTheme.Text,
-            TextTransparency = 0,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            AutoButtonColor = false,
-            LayoutOrder = i,
-            ZIndex = 10000,
-            Parent = self.OptionsContainer
-        })
-        optionButton.MouseEnter:Connect(function()
-            Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
-        end)
-        optionButton.MouseLeave:Connect(function()
-            Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.2)
-        end)
-        optionButton.MouseButton1Click:Connect(function()
-            self.SelectedValue = option
-            self.DropdownButton.Text = option
-            self:CloseDropdown()
-            if self.Callback then
-                self.Callback(option)
-            end
-        end)
-        table.insert(WasUI.Objects, {Object = optionButton, Type = "DropdownOption"})
-    end
-
-    function self:OpenDropdown()
-        if self.IsOpen or #self.Options == 0 then return end
-        local buttonPos = self.DropdownButton.AbsolutePosition
-        local buttonSize = self.DropdownButton.AbsoluteSize
-        local screenSize = workspace.CurrentCamera.ViewportSize
-        local optionHeight = math.min(#self.Options * 25, 150)
-        local posX = buttonPos.X
-        local posY = buttonPos.Y + buttonSize.Y
-        if posY + optionHeight > screenSize.Y then
-            posY = buttonPos.Y - optionHeight
-        end
-        if posX + buttonSize.X > screenSize.X then
-            posX = screenSize.X - buttonSize.X
-        end
-        if posX < 0 then posX = 0 end
-        self.OptionsContainer.Position = UDim2.new(0, posX, 0, posY)
-        self.OptionsContainer.Size = UDim2.new(0, buttonSize.X, 0, 0)
-        self.OptionsContainer.Visible = true
-        Tween(self.OptionsContainer, {Size = UDim2.new(0, buttonSize.X, 0, optionHeight)}, 0.3)
-        Tween(self.DropdownButton.ArrowIcon, {Rotation = 180}, 0.2)
-        self.IsOpen = true
-
-        local function closeIfClickedOutside(input, gameProcessed)
-            if gameProcessed then return end
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                local mousePos = input.Position
-                local absolutePos = self.OptionsContainer.AbsolutePosition
-                local absoluteSize = self.OptionsContainer.AbsoluteSize
-                local buttonPos = self.DropdownButton.AbsolutePosition
-                local buttonSize = self.DropdownButton.AbsoluteSize
-                local inButton = mousePos.X >= buttonPos.X and mousePos.X <= buttonPos.X + buttonSize.X and
-                                 mousePos.Y >= buttonPos.Y and mousePos.Y <= buttonPos.Y + buttonSize.Y
-                local inOptions = mousePos.X >= absolutePos.X and mousePos.X <= absolutePos.X + absoluteSize.X and
-                                  mousePos.Y >= absolutePos.Y and mousePos.Y <= absolutePos.Y + absoluteSize.Y
-                if not inButton and not inOptions then
-                    self:CloseDropdown()
-                end
-            end
-        end
-        self.CloseConnection = UserInputService.InputBegan:Connect(closeIfClickedOutside)
-    end
-
-    function self:CloseDropdown()
-        if not self.IsOpen then return end
-        Tween(self.OptionsContainer, {Size = UDim2.new(0, self.OptionsContainer.AbsoluteSize.X, 0, 0)}, 0.2)
-        Tween(self.DropdownButton.ArrowIcon, {Rotation = 0}, 0.2)
-        task.wait(0.2)
-        self.OptionsContainer.Visible = false
-        self.IsOpen = false
-        if self.CloseConnection then
-            self.CloseConnection:Disconnect()
-            self.CloseConnection = nil
-        end
-    end
-
-    self.DropdownButton.MouseButton1Click:Connect(function()
-        if self.IsOpen then
-            self:CloseDropdown()
-        else
-            self:OpenDropdown()
-        end
-    end)
-    self.Instance = self.Container
-    table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
-    table.insert(WasUI.Objects, {Object = self.TitleLabel, Type = "Label"})
-    table.insert(WasUI.Objects, {Object = self.DropdownButton, Type = "Button"})
-    table.insert(WasUI.Objects, {Object = arrowIcon, Type = "Icon"})
-    table.insert(WasUI.Objects, {Object = self.OptionsContainer, Type = "DropdownContainer"})
-    return self
-end
-
-function Dropdown:GetValue()
-    return self.SelectedValue
-end
-
-function Dropdown:SetValue(value)
-    if table.find(self.Options, value) then
-        self.SelectedValue = value
-        self.DropdownButton.Text = value
-    end
-end
-
-local Slider = setmetatable({}, {__index = Control})
-Slider.__index = Slider
-function Slider:New(name, parent, title, min, max, defaultValue, callback)
-    local self = Control.New(self, name, parent)
-    self.Container = CreateInstance("Frame", {
-        Name = name,
-        Size = UDim2.new(1, 0, 0, 50),
-        BackgroundTransparency = 1,
-        Parent = parent
-    })
-    self.TitleLabel = CreateInstance("TextLabel", {
-        Name = "Title",
-        Size = UDim2.new(0.65, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0, 0),
-        BackgroundTransparency = 1,
-        Text = title or "滑块",
-        TextColor3 = WasUI.CurrentTheme.Text,
-        TextTransparency = 0,
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = self.Container
-    })
-    self.ValueLabel = CreateInstance("TextLabel", {
-        Name = "ValueLabel",
-        Size = UDim2.new(0.2, 0, 0, 20),
-        Position = UDim2.new(0.65, 0, 0, 0),
-        BackgroundTransparency = 1,
-        Text = tostring(defaultValue or min),
-        TextColor3 = WasUI.CurrentTheme.Text,
-        TextTransparency = 0,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        Parent = self.Container
-    })
-    self.SliderTrack = CreateInstance("TextButton", {
-        Name = "SliderTrack",
-        Size = UDim2.new(0.85, 0, 0, 8),
-        Position = UDim2.new(0.03, 0, 0, 30),
-        BackgroundColor3 = WasUI.CurrentTheme.Secondary,
-        BackgroundTransparency = 0.3, -- 滑块轨道半透明
-        BorderSizePixel = 0,
-        Text = "",
-        AutoButtonColor = false,
-        Parent = self.Container
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderTrack})
-    self.SliderFill = CreateInstance("Frame", {
-        Name = "SliderFill",
-        Size = UDim2.new(0, 0, 1, 0),
-        Position = UDim2.new(0, 0, 0, 0),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.3, -- 滑块填充半透明
-        BorderSizePixel = 0,
-        Parent = self.SliderTrack
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
-
-    self.MinValue = min or 0
-    self.MaxValue = max or 100
-    self.CurrentValue = defaultValue or min or 0
-    self.Callback = callback
-    self.IsDragging = false
-
-    local function calculateValueFromX(x)
-        local trackWidth = self.SliderTrack.AbsoluteSize.X
-        local relativeX = math.clamp(x, 0, trackWidth)
-        local percentage = relativeX / trackWidth
-        local value = self.MinValue + (self.MaxValue - self.MinValue) * percentage
-        return math.floor(value)
-    end
-
-    local function updateSlider(value)
-        self.CurrentValue = math.clamp(value, self.MinValue, self.MaxValue)
-        local percentage = (self.CurrentValue - self.MinValue) / (self.MaxValue - self.MinValue)
-        self.SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
-        self.ValueLabel.Text = tostring(self.CurrentValue)
-        if self.Callback then
-            self.Callback(self.CurrentValue)
-        end
-    end
-
-    self.SliderTrack.MouseButton1Down:Connect(function()
-        self.IsDragging = true
-        local mousePos = UserInputService:GetMouseLocation()
-        local trackPos = self.SliderTrack.AbsolutePosition
-        local relativeX = mousePos.X - trackPos.X
-        local newValue = calculateValueFromX(relativeX)
-        updateSlider(newValue)
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if self.IsDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local mousePos = input.Position
-            local trackPos = self.SliderTrack.AbsolutePosition
-            local relativeX = mousePos.X - trackPos.X
-            local newValue = calculateValueFromX(relativeX)
-            updateSlider(newValue)
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            self.IsDragging = false
-        end
-    end)
-
-    self.Instance = self.Container
-    updateSlider(self.CurrentValue)
-    table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
-    table.insert(WasUI.Objects, {Object = self.TitleLabel, Type = "Label"})
-    table.insert(WasUI.Objects, {Object = self.ValueLabel, Type = "Label"})
-    table.insert(WasUI.Objects, {Object = self.SliderTrack, Type = "SliderTrack"})
-    table.insert(WasUI.Objects, {Object = self.SliderFill, Type = "SliderFill"})
-    return self
-end
-
-function Slider:GetValue()
-    return self.CurrentValue
-end
-
-function Slider:SetValue(value)
-    value = math.clamp(value, self.MinValue, self.MaxValue)
-    self.CurrentValue = value
-    local percentage = (value - self.MinValue) / (self.MaxValue - self.MinValue)
-    self.SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
-    self.ValueLabel.Text = tostring(value)
-end
-
-WasUI.RainbowTexts = {}
-local rainbowConnections = {}
-local function CreateRainbowText(text, position)
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "RainbowText_" .. text,
-        ResetOnSpawn = false,
-        DisplayOrder = 100,
-        Parent = game:GetService("CoreGui")
-    })
-    local textLabel = CreateInstance("TextLabel", {
-        Name = "RainbowText",
-        Size = UDim2.new(0, 0, 0, 0),
-        Position = position or UDim2.new(1, -10, 0, 10),
-        BackgroundTransparency = 1,
-        Text = text,
-        TextColor3 = Color3.fromRGB(255, 0, 0),
-        TextTransparency = 0,
-        Font = Enum.Font.GothamBold,
-        TextSize = 18,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        TextStrokeTransparency = 0.5,
-        TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
-        Parent = screenGui
-    })
-    Tween(textLabel, {Size = UDim2.new(0, 200, 0, 30)}, 0.3)
-    local rainbowSpeed = 4
-    local time = 0
-    local connection = RunService.Heartbeat:Connect(function(deltaTime)
-        time = time + deltaTime * rainbowSpeed
-        local r = (math.sin(time) + 1) / 2
-        local g = (math.sin(time + math.pi/3) + 1) / 2
-        local b = (math.sin(time + 2*math.pi/3) + 1) / 2
-        textLabel.TextColor3 = Color3.new(r, g, b)
-    end)
-    WasUI.RainbowTexts[text] = screenGui
-    rainbowConnections[text] = connection
-    return screenGui
-end
-
-local function RemoveRainbowText(text)
-    if WasUI.RainbowTexts[text] then
-        WasUI.RainbowTexts[text]:Destroy()
-        WasUI.RainbowTexts[text] = nil
-    end
-    if rainbowConnections[text] then
-        rainbowConnections[text]:Disconnect()
-        rainbowConnections[text] = nil
-    end
-end
-
-WasUI.Notifications = {}
-WasUI.ActiveNotifications = {}
-WasUI.NotificationTop = 20
-WasUI.NotificationSpacing = 8
-WasUI.NotificationHeight = 30
-WasUI.NotificationWidth = 250
-function WasUI:Notify(options)
-    local config = {
-        Content = options.Content or "通知",
-        Duration = options.Duration or 3,
-        Type = options.Type or "Info"
-    }
-    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "WasUI_Notification_" .. tick(),
-        ResetOnSpawn = false,
-        DisplayOrder = 999,
-        Parent = playerGui
-    })
-    local notificationFrame = CreateInstance("Frame", {
-        Name = "Notification",
-        Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
-        Position = UDim2.new(1, 10, 0, 20),
-        BackgroundColor3 = Color3.fromRGB(30, 30, 35),
-        BackgroundTransparency = 0.3,
-        Parent = screenGui
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = notificationFrame})
-    local stroke = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(60, 60, 65),
-        Thickness = 1,
-        Transparency = 0.5,
-        Parent = notificationFrame
-    })
-    local textLabel = CreateInstance("TextLabel", {
-        Name = "Content",
-        Size = UDim2.new(0.9, 0, 0.8, 0),
-        Position = UDim2.new(0.05, 0, 0.1, 0),
-        BackgroundTransparency = 1,
-        Text = config.Content,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextTransparency = 0,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 12,
-        TextWrapped = true,
-        Parent = notificationFrame
-    })
-    local notificationId = tostring(tick())
-    local notificationData = {
-        Instance = notificationFrame,
-        ScreenGui = screenGui,
-        Height = WasUI.NotificationHeight
-    }
-    WasUI.ActiveNotifications[notificationId] = notificationData
-
-    local function calculatePosition(index)
-        return (index - 1) * (WasUI.NotificationHeight + WasUI.NotificationSpacing) + WasUI.NotificationTop
-    end
-
-    local function updateAllNotificationPositions()
-        local sortedIds = {}
-        for id, _ in pairs(WasUI.ActiveNotifications) do
-            table.insert(sortedIds, id)
-        end
-        table.sort(sortedIds, function(a, b)
-            return tonumber(a) < tonumber(b)
-        end)
-        for i, id in ipairs(sortedIds) do
-            local notification = WasUI.ActiveNotifications[id]
-            if notification and notification.Instance and notification.Instance.Parent then
-                local targetY = calculatePosition(i)
-                Tween(notification.Instance, {
-                    Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, targetY)
-                }, 0.3)
-            end
-        end
-    end
-
-    updateAllNotificationPositions()
-    task.wait(config.Duration)
-    local fadeOut = Tween(notificationFrame, {BackgroundTransparency = 1}, 0.5)
-    Tween(textLabel, {TextTransparency = 1}, 0.5)
-    Tween(stroke, {Transparency = 1}, 0.5)
-    fadeOut.Completed:Connect(function()
-        screenGui:Destroy()
-        WasUI.ActiveNotifications[notificationId] = nil
-        task.wait(0.1)
-        updateAllNotificationPositions()
-    end)
-end
-
-local function getExecutor()
-    if syn then
-        return "Synapse X"
-    elseif krnl then
-        return "Krnl"
-    elseif identifyexecutor then
-        return identifyexecutor()
-    else
-        return "未知执行器"
-    end
-end
-
-local Panel = setmetatable({}, {__index = Control})
-Panel.__index = Panel
-function Panel:New(name, parent, size, position)
-    local self = setmetatable({}, Panel)
-    local windowWidth = 380
-    local windowHeight = 350
-    self.Instance = CreateInstance("Frame", {
-        Name = name,
-        Size = size or UDim2.new(0, windowWidth, 0, windowHeight),
-        Position = position or UDim2.new(0.5, -windowWidth/2, 0.5, -windowHeight/2),
-        BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0.3, -- 主窗口半透明
         BorderSizePixel = 0,
         ClipsDescendants = true,
@@ -951,7 +538,10 @@ function Panel:New(name, parent, size, position)
         BorderSizePixel = 0,
         Parent = self.Instance
     })
-    CreateInstance("
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 10),
+        Parent = self.TitleBar
+    })
     
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
@@ -1342,8 +932,6 @@ function Panel:New(name, parent, size, position)
         end
     end)
     
-    local announcementHeight = 80
-
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
         Name = "AnnouncementBar",
