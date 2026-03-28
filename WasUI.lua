@@ -1406,13 +1406,13 @@ Enum.ThumbnailSize.Size60x60
         BackgroundTransparency = 1,
         Parent = self.TabBar
     })
-    local tabLayout = CreateInstance("UIListLayout", {
-        FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Left,
-        VerticalAlignment = Enum.VerticalAlignment.Center,
-        Padding = UDim.new(0, 6),
-        Parent = self.TabContainer
-    })
+local tabLayout = CreateInstance("UIListLayout", {
+    FillDirection = Enum.FillDirection.Horizontal,
+    HorizontalAlignment = Enum.HorizontalAlignment.Left,
+    VerticalAlignment = Enum.VerticalAlignment.Center,
+    Padding = UDim.new(0, 0),
+    Parent = self.TabContainer
+})
 
     self.ContentArea = CreateInstance("Frame", {
         Name = "ContentArea",
@@ -1446,15 +1446,16 @@ Enum.ThumbnailSize.Size60x60
             AutoButtonColor = false,
             Parent = self.TabContainer
         })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tabButton})
-        local tabUnderline = CreateInstance("Frame", {
-            Name = "Underline",
-            Size = UDim2.new(0.8, 0, 0, 2),
-            Position = UDim2.new(0.1, 0, 1, -2),
-            BackgroundColor3 = WasUI.CurrentTheme.Accent,
-            Visible = false,
-            Parent = tabButton
-        })
+
+local tabUnderline = CreateInstance("Frame", {
+    Name = "Underline",
+    Size = UDim2.new(0, 0, 0, 2),
+    Position = UDim2.new(0.5, 0, 1, -2),
+    AnchorPoint = Vector2.new(0.5, 0),
+    BackgroundColor3 = Color3.fromRGB(20, 90, 180), -- 深蓝色
+    Visible = false,
+    Parent = tabButton
+})
 
         local tabFrame = CreateInstance("ScrollingFrame", {
             Name = "TabFrame_" .. tabName,
@@ -1498,17 +1499,20 @@ Enum.ThumbnailSize.Size60x60
         return tabFrame
     end
 
-    function self:SetActiveTab(tabName)
-        if self.ActiveTab then
-            local old = self.Tabs[self.ActiveTab]
-            old.Underline.Visible = false
-            old.Frame.Visible = false
-        end
-        local new = self.Tabs[tabName]
-        new.Underline.Visible = true
-        new.Frame.Visible = true
-        self.ActiveTab = tabName
+function self:SetActiveTab(tabName)
+    if self.ActiveTab then
+        local old = self.Tabs[self.ActiveTab]
+        old.Underline.Visible = false
+        Tween(old.Underline, {Size = UDim2.new(0,0,0,2)}, 0.15)
+        old.Frame.Visible = false
     end
+
+    local new = self.Tabs[tabName]
+    new.Underline.Visible = true
+    Tween(new.Underline, {Size = UDim2.new(1,0,0,2)}, 0.25)
+    new.Frame.Visible = true
+    self.ActiveTab = tabName
+end
 
     self.SnowEnabled = false
     self.SnowFlakes = {}
