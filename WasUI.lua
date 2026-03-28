@@ -304,7 +304,6 @@ function Control:SetVisible(visible)
     end
 end
 
--- 按钮高度恢复为 28，圆角 14
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick, size)
@@ -595,7 +594,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
     return self
 end
 
--- 滑动条修复：缩短轨道两侧长度，修复拖动逻辑
+-- 修复滑动条：扩大长度与宽度，修复拖动逻辑
 local Slider = setmetatable({}, {__index = Control})
 Slider.__index = Slider
 function Slider:New(name, parent, title, min, max, defaultValue, callback)
@@ -634,11 +633,11 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         TextXAlignment = Enum.TextXAlignment.Right,
         Parent = self.Container
     })
-    -- 轨道缩短两侧各 10px
+    -- 轨道缩短两侧各 8px，高度增加到 6，长度增加（减得更少）
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, -20, 0, 4),
-        Position = UDim2.new(0, 10, 0, 22),
+        Size = UDim2.new(1, -16, 0, 6),
+        Position = UDim2.new(0, 8, 0, 22),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -655,8 +654,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
     self.SliderKnob = CreateInstance("ImageButton", {
         Name = "Knob",
-        Size = UDim2.new(0, 12, 0, 12),
-        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -6, 0, -4),
+        Size = UDim2.new(0, 16, 0, 16),
+        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -8, 0, -5),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         Image = "",
         BorderSizePixel = 0,
@@ -680,7 +679,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             self.Value = newValue
             self.ValueLabel.Text = tostring(self.Value)
             self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
-            self.SliderKnob.Position = UDim2.new(t, -6, 0, -4)
+            self.SliderKnob.Position = UDim2.new(t, -8, 0, -5)
             if self.Callback then self.Callback(self.Value) end
         end
     end
@@ -1494,48 +1493,48 @@ function Panel:AddTab(tabName)
     return tabContent
 end
 
+-- 修复同行按钮：使用普通Frame，自动平分宽度，无滚动
 function Panel:AddButtonRow(buttons, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-    local container = CreateInstance("ScrollingFrame", {
+    local container = CreateInstance("Frame", {
         Name = "ButtonRow",
         Size = UDim2.new(1, 0, 0, 0),
         BackgroundTransparency = 1,
         AutomaticSize = Enum.AutomaticSize.Y,
-        ScrollBarThickness = 4,
-        ScrollingDirection = Enum.ScrollingDirection.X,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = targetContent
-    })
-    local inner = CreateInstance("Frame", {
-        Name = "Inner",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        AutomaticSize = Enum.AutomaticSize.X,
-        Parent = container
     })
     local layout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 8),
-        Parent = inner
+        Parent = container
     })
+    local buttonFrames = {}
     for i, btn in ipairs(buttons) do
         local btnFrame = CreateInstance("Frame", {
             Name = "Button_" .. i,
             Size = UDim2.new(0, 0, 1, 0),
             BackgroundTransparency = 1,
             AutomaticSize = Enum.AutomaticSize.X,
-            Parent = inner
+            Parent = container
         })
-        Button:New("Button_" .. i, btnFrame, btn.text, btn.onClick, UDim2.new(1, 0, 1, 0))
+        local button = Button:New("Button_" .. i, btnFrame, btn.text, btn.onClick, UDim2.new(1, 0, 1, 0))
+        buttonFrames[btnFrame] = button
     end
-    local function updateCanvas()
-        container.CanvasSize = UDim2.new(0, inner.AbsoluteSize.X, 0, 0)
+    local function updateWidths()
+        local count = #buttons
+        if count == 0 then return end
+        local eachWidth = UDim2.new(1 / count, 0, 1, 0)
+        for _, frame in ipairs(container:GetChildren()) do
+            if frame:IsA("Frame") and frame.Name:match("^Button_") then
+                frame.Size = eachWidth
+            end
+        end
     end
-    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
-    inner:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateCanvas)
-    updateCanvas()
+    updateWidths()
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateWidths)
+    container:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateWidths)
     return container
 end
 
