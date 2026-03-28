@@ -21,6 +21,7 @@ WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
 WasUI.NotificationWidth = 250
 WasUI.ActiveNotifications = {}
+WasUI.OpenDropdowns = {} -- 全局管理打开的Dropdown，彻底解决闭包问题
 
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
@@ -467,24 +468,29 @@ local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback, multiSelect)
     local self = Control:New(name, parent)
-    self.MultiSelect = multiSelect or false
-    self.Options = options or {}
+    self.MultiSelect = not not multiSelect
+    self.Options = {}
+    -- 强制拷贝options，避免引用只读表
+    for _, v in ipairs(options or {}) do
+        table.insert(self.Options, tostring(v))
+    end
+    -- 100% 确保是可写表，绝不引用外部表
     self.SelectedValues = {}
     self.SelectedValue = nil
 
     if self.MultiSelect then
         if type(defaultValue) == "table" then
             for _, v in ipairs(defaultValue) do
-                table.insert(self.SelectedValues, v)
+                table.insert(self.SelectedValues, tostring(v))
             end
         elseif defaultValue ~= nil then
-            table.insert(self.SelectedValues, defaultValue)
+            table.insert(self.SelectedValues, tostring(defaultValue))
         end
     else
         if type(defaultValue) == "table" then
-            self.SelectedValue = defaultValue[1] or nil
-        else
-            self.SelectedValue = defaultValue
+            self.SelectedValue = tostring(defaultValue[1] or "")
+        elseif defaultValue ~= nil then
+            self.SelectedValue = tostring(defaultValue)
         end
     end
     self.Callback = callback
@@ -672,6 +678,8 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     function self:Open()
         if self.IsOpen then return end
         self.IsOpen = true
+        -- 加入全局打开列表
+        table.insert(WasUI.OpenDropdowns, self)
         updateContainerSize()
         updatePosition()
         self.OptionsContainer.Visible = true
@@ -682,6 +690,13 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     function self:Close()
         if not self.IsOpen then return end
         self.IsOpen = false
+        -- 从全局打开列表移除
+        for i, dropdown in ipairs(WasUI.OpenDropdowns) do
+            if dropdown == self then
+                table.remove(WasUI.OpenDropdowns, i)
+                break
+            end
+        end
         Tween(self.OptionsContainer, {BackgroundTransparency = 1}, 0.2)
         Tween(shadow, {Transparency = 1}, 0.2)
         task.wait(0.2)
@@ -696,27 +711,37 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         end
     end)
 
-    UserInputService.InputBegan:Connect(function(input, processed)
-        if processed then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            if self.IsOpen then
-                local mousePos = input.Position
-                local menuPos = self.OptionsContainer.AbsolutePosition
-                local menuSize = self.OptionsContainer.AbsoluteSize
-                local inMenu = mousePos.X >= menuPos.X and mousePos.X <= menuPos.X + menuSize.X and
-                                mousePos.Y >= menuPos.Y and mousePos.Y <= menuPos.Y + menuSize.Y
-                if not inMenu then
-                    self:Close()
-                end
-            end
-        end
-    end)
-
     self:UpdateDisplayText()
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
     table.insert(WasUI.Objects, {Object = self.DropdownButton, Type = "DropdownButton"})
     return self
 end
+
+-- 全局唯一InputBegan事件，彻底解决重复绑定闭包问题
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        -- 倒序遍历，避免关闭时修改数组导致遍历异常
+        for i = #WasUI.OpenDropdowns, 1, -1 do
+            local dropdown = WasUI.OpenDropdowns[i]
+            if not dropdown or not dropdown.IsOpen then continue end
+            local mousePos = input.Position
+            local menuPos = dropdown.OptionsContainer.AbsolutePosition
+            local menuSize = dropdown.OptionsContainer.AbsoluteSize
+            local btnPos = dropdown.DropdownButton.AbsolutePosition
+            local btnSize = dropdown.DropdownButton.AbsoluteSize
+
+            local inMenu = mousePos.X >= menuPos.X and mousePos.X <= menuPos.X + menuSize.X and
+                            mousePos.Y >= menuPos.Y and mousePos.Y <= menuPos.Y + menuSize.Y
+            local inButton = mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and
+                            mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y
+
+            if not inMenu and not inButton then
+                dropdown:Close()
+            end
+        end
+    end
+end)
 
 local Slider = setmetatable({}, {__index = Control})
 Slider.__index = Slider
@@ -1278,7 +1303,7 @@ function Panel:New(name, parent, size, position)
         local headshot = Players:GetUserThumbnailAsync(
             player.UserId, 
             Enum.ThumbnailType.HeadShot, 
-            Enum.ThumbnailSize.Size60x60
+Enum.ThumbnailSize.Size60x60
         )
         if self.Avatar then
             self.Avatar.Image = headshot
@@ -1326,13 +1351,19 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     
-    local executorName = pcall(function() return getexecutorname() end) and getexecutorname() or (type(getExecutor) == "function" and getExecutor() or "未知")
+    local executorName = "Unknown Executor"
+    if typeof(getexecutorname) == "function" then
+        executorName = getexecutorname()
+    elseif typeof(getExecutor) == "function" then
+        executorName = getExecutor()
+    end
+    
     self.ExecutorLabel = CreateInstance("TextLabel", {
         Name = "ExecutorLabel",
         Size = UDim2.new(0.6, 0, 0, 16),
         Position = UDim2.new(0, 62, 0.35, 0),
         BackgroundTransparency = 1,
-        Text = "您使用的执行器为: " .. executorName,
+        Text = "执行器: " .. executorName,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -1518,7 +1549,7 @@ function Panel:New(name, parent, size, position)
             local pos = inst.Position
             local newY = pos.Y.Offset + data.Speed * 2
             local newX = pos.X.Scale + math.sin(data.Offset + tick() * 2) * 0.005
-            inst.Position = UDim2.new(newX, 0, 0, newY)
+            inst.Position = UDim2(newX, 0, 0, newY)
             if newY > self.Instance.AbsoluteSize.Y then
                 inst:Destroy()
                 table.remove(self.SnowFlakes, i)
