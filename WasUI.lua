@@ -467,7 +467,7 @@ function Category:New(name, parent, title)
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(0.9, 0, 1, 0),
-        Position = UDim2.new(0.05, 0, 0, 0),
+        Position = UDim2.new(0, 5, 0, 0),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = Color3.new(1, 1, 1),
@@ -480,8 +480,8 @@ function Category:New(name, parent, title)
     })
     local line = CreateInstance("Frame", {
         Name = "Line",
-        Size = UDim2.new(0.9, 0, 0, 1),
-        Position = UDim2.new(0.05, 0, 1, -2),
+        Size = UDim2.new(1, -10, 0, 1),
+        Position = UDim2.new(0, 5, 1, -2),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
@@ -546,7 +546,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     self.DropdownButton = CreateInstance("TextButton", {
         Name = "DropdownButton",
         Size = UDim2.new(0.3, 0, 0, 24),
-        Position = UDim2.new(0.7, 0, 0, 0),
+        Position = UDim2.new(0.7, -3, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
@@ -578,7 +578,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     self.OptionsContainer = CreateInstance("ScrollingFrame", {
         Name = "OptionsContainer",
         Size = UDim2.new(0.3, 0, 0, 0),
-        Position = UDim2.new(0.7, 0, 0, 24),
+        Position = UDim2.new(0.7, -3, 0, 24),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0.3,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
@@ -795,7 +795,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.ValueLabel = CreateInstance("TextLabel", {
         Name = "Value",
         Size = UDim2.new(0.3, 0, 0, 20),
-        Position = UDim2.new(0.7, 0, 0, 0),
+        Position = UDim2.new(0.7, -3, 0, 0),
         BackgroundTransparency = 1,
         Text = tostring(self.Value),
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -806,8 +806,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, -16, 0, 12),
-        Position = UDim2.new(0, 8, 0, 22),
+        Size = UDim2.new(1, -13, 0, 12),
+        Position = UDim2.new(0, 5, 0, 22),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -939,7 +939,7 @@ function Panel:New(name, parent, size, position)
         BackgroundTransparency = 1,
         Text = "",
         AutoButtonColor = false,
-        ZIndex = 1,
+        ZIndex = 100,
         Parent = self.TitleBar
     })
     
@@ -1251,10 +1251,29 @@ function Panel:New(name, parent, size, position)
     local startPos = UDim2.new()
     local function startDragging(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = self.Instance.Position
-            input:SetConsumed(true)
+            local mousePos = input.Position
+            local dotContainerPos = self.DotContainer.AbsolutePosition
+            local dotContainerSize = self.DotContainer.AbsoluteSize
+            local closeDotPos = self.CloseDot.AbsolutePosition
+            local closeDotSize = self.CloseDot.AbsoluteSize
+            local minDotPos = self.MinimizeDot.AbsolutePosition
+            local minDotSize = self.MinimizeDot.AbsoluteSize
+            local maxDotPos = self.MaximizeDot.AbsolutePosition
+            local maxDotSize = self.MaximizeDot.AbsoluteSize
+            
+            local hitDot = (mousePos.X >= closeDotPos.X and mousePos.X <= closeDotPos.X + closeDotSize.X and
+                            mousePos.Y >= closeDotPos.Y and mousePos.Y <= closeDotPos.Y + closeDotSize.Y) or
+                           (mousePos.X >= minDotPos.X and mousePos.X <= minDotPos.X + minDotSize.X and
+                            mousePos.Y >= minDotPos.Y and mousePos.Y <= minDotPos.Y + minDotSize.Y) or
+                           (mousePos.X >= maxDotPos.X and mousePos.X <= maxDotPos.X + maxDotSize.X and
+                            mousePos.Y >= maxDotPos.Y and mousePos.Y <= maxDotPos.Y + maxDotSize.Y)
+            
+            if not hitDot then
+                dragging = true
+                dragStart = input.Position
+                startPos = self.Instance.Position
+                input:SetConsumed(true)
+            end
         end
     end
     local function stopDragging()
@@ -1594,11 +1613,11 @@ function WasUI:Notify(options)
     updateAllNotificationPositions()
     Tween(frame, {Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, frame.Position.Y.Offset)}, 0.3)
     task.delay(duration, function()
+        WasUI.ActiveNotifications[notificationId] = nil
+        updateAllNotificationPositions()
         local fadeOut = Tween(frame, {BackgroundTransparency = 1, Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, frame.Position.Y.Offset)}, 0.3)
         fadeOut.Completed:Connect(function()
-            WasUI.ActiveNotifications[notificationId] = nil
             frame:Destroy()
-            updateAllNotificationPositions()
         end)
     end)
 end
