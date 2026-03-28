@@ -217,6 +217,59 @@ local function DestroyRainbowTextForFeature(featureName)
     end
 end
 
+-- 独立的彩虹文本创建（用于外部调用）
+local function CreateRainbowText(text, position)
+    if WasUI.ActiveRainbowTexts[text] then return end
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "RainbowText_" .. text,
+        ResetOnSpawn = false,
+        DisplayOrder = 100,
+        Parent = game:GetService("CoreGui")
+    })
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "RainbowText",
+        Size = UDim2.new(0, 180, 0, 0),
+        Position = position or UDim2.new(0.5, -90, 0.5, -10),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = Color3.fromRGB(255, 0, 0),
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextWrapped = true,
+        TextStrokeTransparency = 0.5,
+        TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+        Parent = screenGui
+    })
+    local bounds = textLabel.TextBounds
+    local height = bounds.Y + 4
+    textLabel.Size = UDim2.new(0, 180, 0, height)
+    local rainbowSpeed = 4
+    local time = 0
+    local connection = RunService.Heartbeat:Connect(function(deltaTime)
+        time = time + deltaTime * rainbowSpeed
+        local r = (math.sin(time) + 1) / 2
+        local g = (math.sin(time + math.pi/3) + 1) / 2
+        local b = (math.sin(time + 2*math.pi/3) + 1) / 2
+        textLabel.TextColor3 = Color3.new(r, g, b)
+    end)
+    WasUI.ActiveRainbowTexts[text] = {
+        ScreenGui = screenGui,
+        Connection = connection,
+        Label = textLabel
+    }
+    -- 不自动加入布局排序，因为是独立文本
+end
+
+local function RemoveRainbowText(text)
+    local data = WasUI.ActiveRainbowTexts[text]
+    if data then
+        if data.ScreenGui then data.ScreenGui:Destroy() end
+        if data.Connection then data.Connection:Disconnect() end
+        WasUI.ActiveRainbowTexts[text] = nil
+    end
+end
+
 local Control = {}
 Control.__index = Control
 function Control:New(name, parent)
@@ -1142,12 +1195,14 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     
+    -- 修复：安全获取执行器名称
+    local executorName = (type(getExecutor) == "function" and getExecutor()) or "未知"
     self.ExecutorLabel = CreateInstance("TextLabel", {
         Name = "ExecutorLabel",
         Size = UDim2.new(0.6, 0, 0, 16),
         Position = UDim2.new(0, 62, 0.35, 0),
         BackgroundTransparency = 1,
-        Text = "您使用的执行器为: " .. getExecutor(),
+        Text = "您使用的执行器为: " .. executorName,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -1580,6 +1635,7 @@ function WasUI.SetDisplayOrder(order)
     WasUI.DefaultDisplayOrder = order
 end
 
+-- 修复：使用正确的彩虹文本函数
 function WasUI.CreateRainbowText(text, position)
     return CreateRainbowText(text, position)
 end
