@@ -254,7 +254,6 @@ local function RemoveRainbowText(text)
     end
 end
 
--- 全局彩虹颜色更新
 local rainbowTime = 0
 local rainbowSpeed = 4
 local rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
@@ -452,6 +451,7 @@ function Category:New(name, parent, title)
     return self
 end
 
+-- 重构下拉菜单，参考 WindUI 样式
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback)
@@ -527,6 +527,12 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Parent = playerGui
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.OptionsContainer})
+    local shadow = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(0, 0, 0),
+        Thickness = 1,
+        Transparency = 1,
+        Parent = self.OptionsContainer
+    })
     self.OptionsListLayout = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 4),
@@ -576,14 +582,19 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         local btnPos = self.DropdownButton.AbsolutePosition
         local btnSize = self.DropdownButton.AbsoluteSize
         self.OptionsContainer.Position = UDim2.new(0, btnPos.X, 0, btnPos.Y + btnSize.Y)
-        self.OptionsContainer.Visible = true
         local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 8
         self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, totalHeight)
+        self.OptionsContainer.Visible = true
+        Tween(self.OptionsContainer, {BackgroundTransparency = 0.3}, 0.2)
+        Tween(shadow, {Transparency = 0.8}, 0.2)
     end
 
     function self:Close()
         if not self.IsOpen then return end
         self.IsOpen = false
+        Tween(self.OptionsContainer, {BackgroundTransparency = 1}, 0.2)
+        Tween(shadow, {Transparency = 1}, 0.2)
+        task.wait(0.2)
         self.OptionsContainer.Visible = false
         self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, 0)
     end
@@ -787,7 +798,7 @@ function Panel:New(name, parent, size, position)
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 28, 1, 0),
-        Position = UDim2.new(0, 9.5, 0, 1.1),
+        Position = UDim2.new(0, 10.5, 0, 0.8),
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = self.TitleBar
@@ -806,7 +817,7 @@ function Panel:New(name, parent, size, position)
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 1.2, 0.5, -5.7),
+        Position = UDim2.new(0, 1.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
@@ -817,7 +828,7 @@ function Panel:New(name, parent, size, position)
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 16.2, 0.5, -5.7),
+        Position = UDim2.new(0, 16.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
@@ -828,7 +839,7 @@ function Panel:New(name, parent, size, position)
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 31.2, 0.5, -5.7),
+        Position = UDim2.new(0, 31.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
