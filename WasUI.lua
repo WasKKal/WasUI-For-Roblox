@@ -1337,12 +1337,12 @@ function Panel:New(name, parent, size, position)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
-self.WelcomeLabel = CreateInstance("TextLabel", {
+    self.WelcomeLabel = CreateInstance("TextLabel", {
     Name = "WelcomeLabel",
     Size = UDim2.new(0.6, 0, 0, 14),
     Position = UDim2.new(0, 62, 0.55, 0),
     BackgroundTransparency = 1,
-    Text = "欢迎使用WasUI",
+    Text = "欢迎使用 WasUI",
     TextColor3 = WasUI.CurrentTheme.Text,
     Font = Enum.Font.Gotham,
     TextSize = 11,
