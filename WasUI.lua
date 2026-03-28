@@ -47,6 +47,19 @@ WasUI.Objects = {}
 WasUI.ActiveRainbowTexts = {}
 WasUI.RainbowOrder = {}
 
+-- 创建全局专用容器
+WasUI.DropdownGui = Instance.new("ScreenGui")
+WasUI.DropdownGui.Name = "WasUI_Dropdowns"
+WasUI.DropdownGui.ResetOnSpawn = false
+WasUI.DropdownGui.DisplayOrder = 1000
+WasUI.DropdownGui.Parent = game:GetService("CoreGui")
+
+WasUI.NotificationGui = Instance.new("ScreenGui")
+WasUI.NotificationGui.Name = "WasUI_Notifications"
+WasUI.NotificationGui.ResetOnSpawn = false
+WasUI.NotificationGui.DisplayOrder = 999
+WasUI.NotificationGui.Parent = game:GetService("CoreGui")
+
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
     for prop, value in pairs(properties) do
@@ -451,7 +464,7 @@ function Category:New(name, parent, title)
     return self
 end
 
--- 重构下拉菜单，参考 WindUI 样式
+-- 重构下拉菜单
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback)
@@ -512,7 +525,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
     self.Callback = callback
     self.IsOpen = false
 
-    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
     self.OptionsContainer = CreateInstance("Frame", {
         Name = "OptionsContainer",
         Size = UDim2.new(0.3, 0, 0, 0),
@@ -524,7 +536,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         ClipsDescendants = true,
         Visible = false,
         ZIndex = 9999,
-        Parent = playerGui
+        Parent = WasUI.DropdownGui
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.OptionsContainer})
     local shadow = CreateInstance("UIStroke", {
@@ -576,12 +588,21 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         end
     end)
 
-    function self:Open()
-        if self.IsOpen then return end
-        self.IsOpen = true
+    -- 位置更新函数
+    local function updatePosition()
+        if not self.IsOpen then return end
         local btnPos = self.DropdownButton.AbsolutePosition
         local btnSize = self.DropdownButton.AbsoluteSize
         self.OptionsContainer.Position = UDim2.new(0, btnPos.X, 0, btnPos.Y + btnSize.Y)
+    end
+
+    self.DropdownButton:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePosition)
+    self.DropdownButton:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
+
+    function self:Open()
+        if self.IsOpen then return end
+        self.IsOpen = true
+        updatePosition()
         local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 8
         self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, totalHeight)
         self.OptionsContainer.Visible = true
@@ -1094,6 +1115,11 @@ function Panel:New(name, parent, size, position)
                 WasUI.RainbowOrder = {}
                 self:SetVisible(false)
                 dialogGui:Destroy()
+                -- 销毁所有 WasUI 创建的全局 GUI
+                pcall(function() WasUI.DropdownGui:Destroy() end)
+                pcall(function() WasUI.NotificationGui:Destroy() end)
+                pcall(function() WasUI.DropdownGui = nil end)
+                pcall(function() WasUI.NotificationGui = nil end)
             end)
             cancelButton.MouseButton1Click:Connect(function()
                 Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
@@ -1684,13 +1710,15 @@ function WasUI:Notify(options)
         Type = options.Type or "Info"
     }
 
-    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "WasUI_Notification_" .. tick(),
-        ResetOnSpawn = false,
-        DisplayOrder = 999,
-        Parent = playerGui
-    })
+    local screenGui = WasUI.NotificationGui
+    if not screenGui or not screenGui.Parent then
+        screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "WasUI_Notifications"
+        screenGui.ResetOnSpawn = false
+        screenGui.DisplayOrder = 999
+        screenGui.Parent = game:GetService("CoreGui")
+        WasUI.NotificationGui = screenGui
+    end
 
     local notificationFrame = CreateInstance("Frame", {
         Name = "Notification",
