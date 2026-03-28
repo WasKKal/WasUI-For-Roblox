@@ -469,8 +469,10 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     local self = Control:New(name, parent)
     self.MultiSelect = multiSelect or false
     self.Options = options or {}
+    self.SelectedValues = {}
+    self.SelectedValue = nil
+
     if self.MultiSelect then
-        self.SelectedValues = {}
         if type(defaultValue) == "table" then
             for _, v in ipairs(defaultValue) do
                 table.insert(self.SelectedValues, v)
@@ -516,7 +518,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         BackgroundTransparency = 0.3,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
         BorderSizePixel = 1,
-        Text = self:GetDisplayText(),
+        Text = "",
         TextColor3 = WasUI.CurrentTheme.Text,
         TextTransparency = 0,
         Font = Enum.Font.Gotham,
@@ -600,7 +602,13 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         end)
         optionButton.MouseButton1Click:Connect(function()
             if self.MultiSelect then
-                local index = table.find(self.SelectedValues, option)
+                local index = nil
+                for i, v in ipairs(self.SelectedValues) do
+                    if v == option then
+                        index = i
+                        break
+                    end
+                end
                 if index then
                     table.remove(self.SelectedValues, index)
                 else
@@ -704,16 +712,10 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         end
     end)
 
+    self:UpdateDisplayText()
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
     table.insert(WasUI.Objects, {Object = self.DropdownButton, Type = "DropdownButton"})
     return self
-end
-
-function table.find(t, value)
-    for i, v in ipairs(t) do
-        if v == value then return i end
-    end
-    return nil
 end
 
 local Slider = setmetatable({}, {__index = Control})
@@ -1337,241 +1339,242 @@ function Panel:New(name, parent, size, position)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.AnnouncementBar
     })
+    
     self.WelcomeLabel = CreateInstance("TextLabel", {
-    Name = "WelcomeLabel",
-    Size = UDim2.new(0.6, 0, 0, 14),
-    Position = UDim2.new(0, 62, 0.55, 0),
-    BackgroundTransparency = 1,
-    Text = "欢迎使用 WasUI",
-    TextColor3 = WasUI.CurrentTheme.Text,
-    Font = Enum.Font.Gotham,
-    TextSize = 11,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    Parent = self.AnnouncementBar
-})
-
-self.TabBar = CreateInstance("Frame", {
-    Name = "TabBar",
-    Size = UDim2.new(1, 0, 0, 32),
-    Position = UDim2.new(0, 0, 0, 26 + 80),
-    BackgroundColor3 = WasUI.CurrentTheme.Primary,
-    BackgroundTransparency = 0.4,
-    Parent = self.Instance
-})
-local tabLine = CreateInstance("Frame", {
-    Name = "TabLine",
-    Size = UDim2.new(1, 0, 0, 1),
-    Position = UDim2.new(0, 0, 1, -1),
-    BackgroundColor3 = WasUI.CurrentTheme.TabBorder,
-    Parent = self.TabBar
-})
-self.TabContainer = CreateInstance("Frame", {
-    Name = "TabContainer",
-    Size = UDim2.new(1, -10, 1, 0),
-    Position = UDim2.new(0, 5, 0, 0),
-    BackgroundTransparency = 1,
-    Parent = self.TabBar
-})
-local tabLayout = CreateInstance("UIListLayout", {
-    FillDirection = Enum.FillDirection.Horizontal,
-    HorizontalAlignment = Enum.HorizontalAlignment.Left,
-    VerticalAlignment = Enum.VerticalAlignment.Center,
-    Padding = UDim.new(0, 6),
-    Parent = self.TabContainer
-})
-
-self.ContentArea = CreateInstance("Frame", {
-    Name = "ContentArea",
-    Size = UDim2.new(1, 0, 1, -(26 + 80 + 32)),
-    Position = UDim2.new(0, 0, 0, 26 + 80 + 32),
-    BackgroundTransparency = 1,
-    ClipsDescendants = true,
-    Parent = self.Instance
-})
-local contentPadding = CreateInstance("UIPadding", {
-    PaddingLeft = UDim.new(0, 8),
-    PaddingRight = UDim.new(0, 8),
-    PaddingTop = UDim.new(0, 6),
-    PaddingBottom = UDim.new(0, 6),
-    Parent = self.ContentArea
-})
-
-self.Tabs = {}
-self.ActiveTab = nil
-
-function self:AddTab(tabName, icon)
-    local tabButton = CreateInstance("TextButton", {
-        Name = "Tab_" .. tabName,
-        Size = UDim2.new(0, 90, 0, 24),
-        BackgroundColor3 = WasUI.CurrentTheme.TabButton,
-        BackgroundTransparency = 0.5,
-        Text = tabName,
+        Name = "WelcomeLabel",
+        Size = UDim2.new(0.6, 0, 0, 14),
+        Position = UDim2.new(0, 62, 0.55, 0),
+        BackgroundTransparency = 1,
+        Text = "欢迎使用 WasUI",
         TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 12,
-        AutoButtonColor = false,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.AnnouncementBar
+    })
+
+    self.TabBar = CreateInstance("Frame", {
+        Name = "TabBar",
+        Size = UDim2.new(1, 0, 0, 32),
+        Position = UDim2.new(0, 0, 0, 26 + 80),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.4,
+        Parent = self.Instance
+    })
+    local tabLine = CreateInstance("Frame", {
+        Name = "TabLine",
+        Size = UDim2.new(1, 0, 0, 1),
+        Position = UDim2.new(0, 0, 1, -1),
+        BackgroundColor3 = WasUI.CurrentTheme.TabBorder,
+        Parent = self.TabBar
+    })
+    self.TabContainer = CreateInstance("Frame", {
+        Name = "TabContainer",
+        Size = UDim2.new(1, -10, 1, 0),
+        Position = UDim2.new(0, 5, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = self.TabBar
+    })
+    local tabLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 6),
         Parent = self.TabContainer
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tabButton})
-    local tabUnderline = CreateInstance("Frame", {
-        Name = "Underline",
-        Size = UDim2.new(0.8, 0, 0, 2),
-        Position = UDim2.new(0.1, 0, 1, -2),
-        BackgroundColor3 = WasUI.CurrentTheme.Accent,
-        Visible = false,
-        Parent = tabButton
-    })
 
-    local tabFrame = CreateInstance("ScrollingFrame", {
-        Name = "TabFrame_" .. tabName,
-        Size = UDim2.new(1, 0, 1, 0),
+    self.ContentArea = CreateInstance("Frame", {
+        Name = "ContentArea",
+        Size = UDim2.new(1, 0, 1, -(26 + 80 + 32)),
+        Position = UDim2.new(0, 0, 0, 26 + 80 + 32),
         BackgroundTransparency = 1,
-        Visible = false,
-        ScrollBarThickness = 4,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
+        ClipsDescendants = true,
+        Parent = self.Instance
+    })
+    local contentPadding = CreateInstance("UIPadding", {
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8),
+        PaddingTop = UDim.new(0, 6),
+        PaddingBottom = UDim.new(0, 6),
         Parent = self.ContentArea
     })
-    local tabListLayout = CreateInstance("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 6),
-        Parent = tabFrame
-    })
-    local tabPadding = CreateInstance("UIPadding", {
-        PaddingLeft = UDim.new(0, 4),
-        PaddingRight = UDim.new(0, 4),
-        PaddingTop = UDim.new(0, 4),
-        PaddingBottom = UDim.new(0, 4),
-        Parent = tabFrame
-    })
-    tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        tabFrame.CanvasSize = UDim2.new(0, 0, 0, tabListLayout.AbsoluteContentSize.Y + 12)
-    end)
 
-    tabButton.MouseButton1Click:Connect(function()
-        self:SetActiveTab(tabName)
-    end)
+    self.Tabs = {}
+    self.ActiveTab = nil
 
-    self.Tabs[tabName] = {
-        Button = tabButton,
-        Underline = tabUnderline,
-        Frame = tabFrame
-    }
+    function self:AddTab(tabName, icon)
+        local tabButton = CreateInstance("TextButton", {
+            Name = "Tab_" .. tabName,
+            Size = UDim2.new(0, 90, 0, 24),
+            BackgroundColor3 = WasUI.CurrentTheme.TabButton,
+            BackgroundTransparency = 0.5,
+            Text = tabName,
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 12,
+            AutoButtonColor = false,
+            Parent = self.TabContainer
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tabButton})
+        local tabUnderline = CreateInstance("Frame", {
+            Name = "Underline",
+            Size = UDim2.new(0.8, 0, 0, 2),
+            Position = UDim2.new(0.1, 0, 1, -2),
+            BackgroundColor3 = WasUI.CurrentTheme.Accent,
+            Visible = false,
+            Parent = tabButton
+        })
 
-    if not self.ActiveTab then
-        self:SetActiveTab(tabName)
+        local tabFrame = CreateInstance("ScrollingFrame", {
+            Name = "TabFrame_" .. tabName,
+            Size = UDim2.new(1, 0, 1, 0),
+            BackgroundTransparency = 1,
+            Visible = false,
+            ScrollBarThickness = 4,
+            CanvasSize = UDim2.new(0, 0, 0, 0),
+            Parent = self.ContentArea
+        })
+        local tabListLayout = CreateInstance("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 6),
+            Parent = tabFrame
+        })
+        local tabPadding = CreateInstance("UIPadding", {
+            PaddingLeft = UDim.new(0, 4),
+            PaddingRight = UDim.new(0, 4),
+            PaddingTop = UDim.new(0, 4),
+            PaddingBottom = UDim.new(0, 4),
+            Parent = tabFrame
+        })
+        tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            tabFrame.CanvasSize = UDim2.new(0, 0, 0, tabListLayout.AbsoluteContentSize.Y + 12)
+        end)
+
+        tabButton.MouseButton1Click:Connect(function()
+            self:SetActiveTab(tabName)
+        end)
+
+        self.Tabs[tabName] = {
+            Button = tabButton,
+            Underline = tabUnderline,
+            Frame = tabFrame
+        }
+
+        if not self.ActiveTab then
+            self:SetActiveTab(tabName)
+        end
+
+        return tabFrame
     end
 
-    return tabFrame
-end
-
-function self:SetActiveTab(tabName)
-    if self.ActiveTab then
-        local old = self.Tabs[self.ActiveTab]
-        old.Underline.Visible = false
-        old.Frame.Visible = false
+    function self:SetActiveTab(tabName)
+        if self.ActiveTab then
+            local old = self.Tabs[self.ActiveTab]
+            old.Underline.Visible = false
+            old.Frame.Visible = false
+        end
+        local new = self.Tabs[tabName]
+        new.Underline.Visible = true
+        new.Frame.Visible = true
+        self.ActiveTab = tabName
     end
-    local new = self.Tabs[tabName]
-    new.Underline.Visible = true
-    new.Frame.Visible = true
-    self.ActiveTab = tabName
-end
 
-self.SnowEnabled = false
-self.SnowFlakes = {}
-self.SnowContainer = CreateInstance("Frame", {
-    Name = "SnowContainer",
-    Size = UDim2.new(1, 0, 1, 0),
-    BackgroundTransparency = 1,
-    ZIndex = 1000,
-    Visible = false,
-    Parent = self.Instance
-})
-
-function self:SpawnSnowflake()
-    local flake = CreateInstance("Frame", {
-        Name = "Snowflake",
-        Size = UDim2.new(0, 2, 0, 2),
-        Position = UDim2.new(math.random(), 0, 0, -4),
-        BackgroundColor3 = Color3.new(1, 1, 1),
-        BorderSizePixel = 0,
-        Parent = self.SnowContainer
+    self.SnowEnabled = false
+    self.SnowFlakes = {}
+    self.SnowContainer = CreateInstance("Frame", {
+        Name = "SnowContainer",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        ZIndex = 1000,
+        Visible = false,
+        Parent = self.Instance
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
-    table.insert(self.SnowFlakes, {
-        Instance = flake,
-        Speed = math.random(30, 70) / 100,
-        Offset = math.random() * math.pi * 2
-    })
-end
 
-function self:UpdateSnowflakes()
-    for i = #self.SnowFlakes, 1, -1 do
-        local data = self.SnowFlakes[i]
-        local inst = data.Instance
-        if not inst or not inst.Parent then
-            table.remove(self.SnowFlakes, i)
-            continue
-        end
-        local pos = inst.Position
-        local newY = pos.Y.Offset + data.Speed * 2
-        local newX = pos.X.Scale + math.sin(data.Offset + tick() * 2) * 0.005
-        inst.Position = UDim2.new(newX, 0, 0, newY)
-        if newY > self.Instance.AbsoluteSize.Y then
-            inst:Destroy()
-            table.remove(self.SnowFlakes, i)
-        end
+    function self:SpawnSnowflake()
+        local flake = CreateInstance("Frame", {
+            Name = "Snowflake",
+            Size = UDim2.new(0, 2, 0, 2),
+            Position = UDim2.new(math.random(), 0, 0, -4),
+            BackgroundColor3 = Color3.new(1, 1, 1),
+            BorderSizePixel = 0,
+            Parent = self.SnowContainer
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
+        table.insert(self.SnowFlakes, {
+            Instance = flake,
+            Speed = math.random(30, 70) / 100,
+            Offset = math.random() * math.pi * 2
+        })
     end
-end
 
-function self:SpawnSnowflakes()
-    if #self.SnowFlakes < 50 and math.random() < 0.1 then
-        self:SpawnSnowflake()
-    end
-end
-
-function self:EnableSnow(enabled)
-    self.SnowEnabled = enabled
-    self.SnowContainer.Visible = enabled
-    if enabled then
-        if not self.SnowConnection then
-            self.SnowConnection = RunService.Heartbeat:Connect(function()
-                if self.SnowContainer.Visible and self.Instance.Visible then
-                    self:UpdateSnowflakes()
-                    self:SpawnSnowflakes()
-                end
-            end)
-        end
-    else
-        if self.SnowConnection then
-            self.SnowConnection:Disconnect()
-            self.SnowConnection = nil
-        end
-        for _, flake in ipairs(self.SnowFlakes) do
-            if flake.Instance then
-                flake.Instance:Destroy()
+    function self:UpdateSnowflakes()
+        for i = #self.SnowFlakes, 1, -1 do
+            local data = self.SnowFlakes[i]
+            local inst = data.Instance
+            if not inst or not inst.Parent then
+                table.remove(self.SnowFlakes, i)
+                continue
+            end
+            local pos = inst.Position
+            local newY = pos.Y.Offset + data.Speed * 2
+            local newX = pos.X.Scale + math.sin(data.Offset + tick() * 2) * 0.005
+            inst.Position = UDim2.new(newX, 0, 0, newY)
+            if newY > self.Instance.AbsoluteSize.Y then
+                inst:Destroy()
+                table.remove(self.SnowFlakes, i)
             end
         end
-        self.SnowFlakes = {}
     end
-end
 
-function self:SetVisible(visible)
-    self.Instance.Visible = visible
-    if self.BorderEffect then
-        self.BorderEffect.Visible = visible
+    function self:SpawnSnowflakes()
+        if #self.SnowFlakes < 50 and math.random() < 0.1 then
+            self:SpawnSnowflake()
+        end
     end
-end
 
-function self:SetTitle(text)
-    self.Title.Text = text
-end
+    function self:EnableSnow(enabled)
+        self.SnowEnabled = enabled
+        self.SnowContainer.Visible = enabled
+        if enabled then
+            if not self.SnowConnection then
+                self.SnowConnection = RunService.Heartbeat:Connect(function()
+                    if self.SnowContainer.Visible and self.Instance.Visible then
+                        self:UpdateSnowflakes()
+                        self:SpawnSnowflakes()
+                    end
+                end)
+            end
+        else
+            if self.SnowConnection then
+                self.SnowConnection:Disconnect()
+                self.SnowConnection = nil
+            end
+            for _, flake in ipairs(self.SnowFlakes) do
+                if flake.Instance then
+                    flake.Instance:Destroy()
+                end
+            end
+            self.SnowFlakes = {}
+        end
+    end
 
-function self:SetWelcome(text)
-    self.WelcomeLabel.Text = text
-end
+    function self:SetVisible(visible)
+        self.Instance.Visible = visible
+        if self.BorderEffect then
+            self.BorderEffect.Visible = visible
+        end
+    end
 
-table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel"})
-return self
+    function self:SetTitle(text)
+        self.Title.Text = text
+    end
+
+    function self:SetWelcome(text)
+        self.WelcomeLabel.Text = text
+    end
+
+    table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel"})
+    return self
 end
 
 local function updateAllNotificationPositions()
