@@ -16,7 +16,6 @@ _G.WasUILoaded = true
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
 
--- 通知系统变量
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -305,7 +304,6 @@ function Control:SetVisible(visible)
     end
 end
 
--- 按钮高度改为 24
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick, size)
@@ -458,7 +456,6 @@ function Category:New(name, parent, title)
     return self
 end
 
--- 修复下拉菜单无法展开（简化逻辑）
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback)
@@ -710,8 +707,8 @@ function Panel:New(name, parent, size, position)
     local self = setmetatable({}, Panel)
     self.Instance = CreateInstance("Frame", {
         Name = name,
-        Size = size or UDim2.new(0, 380, 0, 350),
-        Position = position or UDim2.new(0.5, -190, 0.5, -175),
+        Size = size or UDim2.new(0, 420, 0, 350),
+        Position = position or UDim2.new(0.5, -210, 0.5, -175),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0.3,
         ClipsDescendants = true,
@@ -820,7 +817,7 @@ function Panel:New(name, parent, size, position)
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 0.2, 0.5, -5.4),
+        Position = UDim2.new(0, 1.2, 0.5, -5.7),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
@@ -831,7 +828,7 @@ function Panel:New(name, parent, size, position)
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 15.2, 0.5, -5.4),
+        Position = UDim2.new(0, 16.2, 0.5, -5.7),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
@@ -842,7 +839,7 @@ function Panel:New(name, parent, size, position)
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 30.2, 0.5, -5.4),
+        Position = UDim2.new(0, 31.2, 0.5, -5.7),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
@@ -1226,7 +1223,6 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     
-    -- 安全获取执行器
     local executorName = pcall(function() return getexecutorname() end) and getexecutorname() or (type(getExecutor) == "function" and getExecutor() or "未知")
     self.ExecutorLabel = CreateInstance("TextLabel", {
         Name = "ExecutorLabel",
@@ -1273,6 +1269,7 @@ function Panel:New(name, parent, size, position)
         BorderSizePixel = 0,
         ScrollBarThickness = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0),
+        ScrollingDirection = Enum.ScrollingDirection.Y,
         Parent = self.Instance
     })
     
@@ -1314,13 +1311,21 @@ function Panel:New(name, parent, size, position)
     
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
-        Size = UDim2.new(1, -10, 1, -announcementHeight - 28 - 31),
+        Size = UDim2.new(1, -20, 1, -announcementHeight - 28 - 31),
         Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 28),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0.3,
         ScrollBarThickness = 4,
         CanvasSize = UDim2.new(0, 0, 0, 0),
+        ScrollingDirection = Enum.ScrollingDirection.Y,
         Parent = self.Instance
+    })
+    CreateInstance("UIPadding", {
+        PaddingLeft = UDim.new(0, 5),
+        PaddingRight = UDim.new(0, 5),
+        PaddingTop = UDim.new(0, 0),
+        PaddingBottom = UDim.new(0, 0),
+        Parent = self.ContentArea
     })
     
     self.Tabs = {}
@@ -1426,6 +1431,7 @@ function Panel:AddTab(tabName)
         Visible = false,
         ScrollBarThickness = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0),
+        ScrollingDirection = Enum.ScrollingDirection.Y,
         Parent = self.ContentArea
     })
     local contentLayout = CreateInstance("UIListLayout", {
@@ -1602,7 +1608,7 @@ function WasUI:CreateWindow(title, size, position, displayOrder)
         DisplayOrder = displayOrder,
         Parent = playerGui
     })
-    local window = Panel:New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position)
+    local window = Panel:New(title, screenGui, size or UDim2.new(0, 420, 0, 350), position)
     self.CurrentWindow = window
     return window
 end
@@ -1691,7 +1697,6 @@ function WasUI:RefreshTheme()
     self:SetTheme("Dark")
 end
 
--- 通知系统
 function WasUI:Notify(options)
     local config = {
         Content = options.Content or "通知",
