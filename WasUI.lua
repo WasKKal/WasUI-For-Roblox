@@ -189,18 +189,9 @@ local function CreateRainbowTextForFeature(featureName)
     local bounds = textLabel.TextBounds
     local height = bounds.Y + 4
     textLabel.Size = UDim2.new(0, 180, 0, height)
-    local rainbowSpeed = 4
-    local time = 0
-    local connection = RunService.Heartbeat:Connect(function(deltaTime)
-        time = time + deltaTime * rainbowSpeed
-        local r = (math.sin(time) + 1) / 2
-        local g = (math.sin(time + math.pi/3) + 1) / 2
-        local b = (math.sin(time + 2*math.pi/3) + 1) / 2
-        textLabel.TextColor3 = Color3.new(r, g, b)
-    end)
     WasUI.ActiveRainbowTexts[featureName] = {
         ScreenGui = screenGui,
-        Connection = connection,
+        Connection = nil,
         Label = textLabel
     }
     table.insert(WasUI.RainbowOrder, featureName)
@@ -211,7 +202,6 @@ local function DestroyRainbowTextForFeature(featureName)
     local data = WasUI.ActiveRainbowTexts[featureName]
     if data then
         if data.ScreenGui then data.ScreenGui:Destroy() end
-        if data.Connection then data.Connection:Disconnect() end
         WasUI.ActiveRainbowTexts[featureName] = nil
         for i, name in ipairs(WasUI.RainbowOrder) do
             if name == featureName then
@@ -249,18 +239,9 @@ local function CreateRainbowText(text, position)
     local bounds = textLabel.TextBounds
     local height = bounds.Y + 4
     textLabel.Size = UDim2.new(0, 180, 0, height)
-    local rainbowSpeed = 4
-    local time = 0
-    local connection = RunService.Heartbeat:Connect(function(deltaTime)
-        time = time + deltaTime * rainbowSpeed
-        local r = (math.sin(time) + 1) / 2
-        local g = (math.sin(time + math.pi/3) + 1) / 2
-        local b = (math.sin(time + 2*math.pi/3) + 1) / 2
-        textLabel.TextColor3 = Color3.new(r, g, b)
-    end)
     WasUI.ActiveRainbowTexts[text] = {
         ScreenGui = screenGui,
-        Connection = connection,
+        Connection = nil,
         Label = textLabel
     }
 end
@@ -269,10 +250,25 @@ local function RemoveRainbowText(text)
     local data = WasUI.ActiveRainbowTexts[text]
     if data then
         if data.ScreenGui then data.ScreenGui:Destroy() end
-        if data.Connection then data.Connection:Disconnect() end
         WasUI.ActiveRainbowTexts[text] = nil
     end
 end
+
+-- 全局彩虹颜色更新
+local rainbowTime = 0
+local rainbowSpeed = 4
+local rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
+    rainbowTime = rainbowTime + deltaTime * rainbowSpeed
+    local r = (math.sin(rainbowTime) + 1) / 2
+    local g = (math.sin(rainbowTime + math.pi/3) + 1) / 2
+    local b = (math.sin(rainbowTime + 2*math.pi/3) + 1) / 2
+    local color = Color3.new(r, g, b)
+    for _, data in pairs(WasUI.ActiveRainbowTexts) do
+        if data.Label then
+            data.Label.TextColor3 = color
+        end
+    end
+end)
 
 local Control = {}
 Control.__index = Control
@@ -1082,7 +1078,6 @@ function Panel:New(name, parent, size, position)
                 end
                 for _, data in pairs(WasUI.ActiveRainbowTexts) do
                     if data.ScreenGui then data.ScreenGui:Destroy() end
-                    if data.Connection then data.Connection:Disconnect() end
                 end
                 WasUI.ActiveRainbowTexts = {}
                 WasUI.RainbowOrder = {}
@@ -1313,9 +1308,23 @@ function Panel:New(name, parent, size, position)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = self.TabHighlight})
     
+    local function updateHighlightPosition()
+        if not self.ActiveTab then return end
+        for _, tab in pairs(self.Tabs) do
+            if tab.Name == self.ActiveTab and tab.Button then
+                local targetPos = tab.Button.AbsolutePosition.X - self.TabContainer.AbsolutePosition.X
+                local targetWidth = tab.Button.AbsoluteSize.X
+                Tween(self.TabHighlight, {Position = UDim2.new(0, targetPos, 0, 0), Size = UDim2.new(0, targetWidth, 1, 0)}, 0.2, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out)
+                break
+            end
+        end
+    end
+    
     self.TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
+        updateHighlightPosition()
     end)
+    self.TabContainer:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateHighlightPosition)
     
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
@@ -1439,9 +1448,11 @@ function Panel:AddTab(tabName)
     contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         tabContent.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y)
     end)
-    tabButton.MouseButton1Click:Connect(function()
+    
+    local function switchTab()
         for _, tab in pairs(self.Tabs) do
             if tab.Button ~= tabButton and tab.Content.Visible then
+                tab.Content.Transparency = 1
                 tab.Content.Visible = false
                 tab.Button.BackgroundTransparency = 0.7
                 tab.Button.TextColor3 = Color3.fromRGB(100, 100, 105)
@@ -1449,20 +1460,22 @@ function Panel:AddTab(tabName)
             end
         end
         tabContent.Visible = true
+        tabContent.Transparency = 1
         tabButton.BackgroundTransparency = 0
         tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         tabButton.BackgroundColor3 = WasUI.CurrentTheme.Primary
-        
+        Tween(tabContent, {Transparency = 0}, 0.2, Enum.EasingStyle.Cubic)
+        self.ActiveTab = tabName
         local targetPos = tabButton.AbsolutePosition.X - self.TabContainer.AbsolutePosition.X
         local targetWidth = tabButton.AbsoluteSize.X
         Tween(self.TabHighlight, {Position = UDim2.new(0, targetPos, 0, 0), Size = UDim2.new(0, targetWidth, 1, 0)}, 0.2, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out)
-        self.ActiveTab = tabName
-    end)
+    end
+    
+    tabButton.MouseButton1Click:Connect(switchTab)
     local tab = {
         Name = tabName,
         Button = tabButton,
-        Content = tabContent,
-        Highlight = self.TabHighlight
+        Content = tabContent
     }
     table.insert(self.Tabs, tab)
     self.TabContents[tabName] = tabContent
@@ -1475,6 +1488,7 @@ function Panel:AddTab(tabName)
         local targetWidth = tabButton.AbsoluteSize.X
         self.TabHighlight.Position = UDim2.new(0, targetPos, 0, 0)
         self.TabHighlight.Size = UDim2.new(0, targetWidth, 1, 0)
+        self.ActiveTab = tabName
     end
     table.insert(WasUI.Objects, {Object = tabButton, Type = "TabButton"})
     return tabContent
@@ -1670,7 +1684,6 @@ function WasUI:Notify(options)
     local notificationFrame = CreateInstance("Frame", {
         Name = "Notification",
         Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
-        Position = UDim2.new(1, 10, 0, 20),
         BackgroundColor3 = Color3.fromRGB(30, 30, 35),
         BackgroundTransparency = 0.3,
         Parent = screenGui
@@ -1701,7 +1714,6 @@ function WasUI:Notify(options)
         ScreenGui = screenGui,
         Height = WasUI.NotificationHeight
     }
-    WasUI.ActiveNotifications[notificationId] = notificationData
 
     local function calculatePosition(index)
         return (index - 1) * (WasUI.NotificationHeight + WasUI.NotificationSpacing) + WasUI.NotificationTop
@@ -1727,7 +1739,13 @@ function WasUI:Notify(options)
         end
     end
 
+    local index = #WasUI.ActiveNotifications + 1
+    local targetY = calculatePosition(index)
+    notificationFrame.Position = UDim2.new(1, 10, 0, targetY)
+    WasUI.ActiveNotifications[notificationId] = notificationData
     updateAllNotificationPositions()
+
+    Tween(notificationFrame, {Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, targetY)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
     task.wait(config.Duration)
 
