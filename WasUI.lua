@@ -482,8 +482,154 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             Name = "Option_" .. option,
             Size = UDim2.new(1, 0, 0, 24),
             BackgroundColor3 = WasUI.CurrentTheme.Input,
-        BackgroundTransparency = 0.3, -- 主窗口半透明
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            Text = option,
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            AutoButtonColor = false,
+            Parent = self.OptionsContainer
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = optionButton})
+        optionButton.MouseButton1Click:Connect(function()
+            self.SelectedValue = option
+            self.DropdownButton.Text = option
+            if self.Callback then self.Callback(option) end
+            self.OptionsContainer.Visible = false
+            self.IsOpen = false
+        end)
+    end
+    self.DropdownButton.MouseButton1Click:Connect(function()
+        self.IsOpen = not self.IsOpen
+        self.OptionsContainer.Visible = self.IsOpen
+        if self.IsOpen then
+            local totalHeight = #self.Options * 24 + 2
+            self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, totalHeight)
+        end
+    end)
+    table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
+    table.insert(WasUI.Objects, {Object = self.DropdownButton, Type = "DropdownButton"})
+    return self
+end
+
+local Slider = setmetatable({}, {__index = Control})
+Slider.__index = Slider
+function Slider:New(name, parent, title, min, max, defaultValue, callback)
+    local self = Control.New(self, name, parent)
+    self.Min = min or 0
+    self.Max = max or 100
+    self.Value = math.clamp(defaultValue or self.Min, self.Min, self.Max)
+    self.Callback = callback
+    self.Container = CreateInstance("Frame", {
+        Name = name,
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Parent = parent
+    })
+    self.TitleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(0.7, 0, 0, 20),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = title or "滑动条",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.Container
+    })
+    self.ValueLabel = CreateInstance("TextLabel", {
+        Name = "Value",
+        Size = UDim2.new(0.3, 0, 0, 20),
+        Position = UDim2.new(0.7, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = tostring(self.Value),
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        Parent = self.Container
+    })
+    self.SliderTrack = CreateInstance("Frame", {
+        Name = "Track",
+        Size = UDim2.new(1, 0, 0, 4),
+        Position = UDim2.new(0, 0, 0, 22),
+        BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
+        Parent = self.Container
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderTrack})
+    self.SliderFill = CreateInstance("Frame", {
+        Name = "Fill",
+        Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BorderSizePixel = 0,
+        Parent = self.SliderTrack
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
+    self.SliderKnob = CreateInstance("ImageButton", {
+        Name = "Knob",
+        Size = UDim2.new(0, 12, 0, 12),
+        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -6, 0, -4),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        Image = "",
+        BorderSizePixel = 0,
+        AutoButtonColor = false,
+        ZIndex = 2,
+        Parent = self.SliderTrack
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderKnob})
+    local dragging = false
+    local function updateFromInput(input)
+        local trackSize = self.SliderTrack.AbsoluteSize.X
+        if trackSize <= 0 then return end
+        local mouseX = input.Position.X - self.SliderTrack.AbsolutePosition.X
+        local t = math.clamp(mouseX / trackSize, 0, 1)
+        local newValue = self.Min + t * (self.Max - self.Min)
+        newValue = math.round(newValue)  -- 可改为取整或保留小数
+        if newValue ~= self.Value then
+            self.Value = newValue
+            self.ValueLabel.Text = tostring(self.Value)
+            self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
+            self.SliderKnob.Position = UDim2.new(t, -6, 0, -4)
+            if self.Callback then self.Callback(self.Value) end
+        end
+    end
+    self.SliderKnob.MouseButton1Down:Connect(function()
+        dragging = true
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateFromInput(input)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    self.SliderTrack.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            updateFromInput(input)
+        end
+    end)
+    table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
+    return self
+end
+
+local Panel = {}
+Panel.__index = Panel
+
+function Panel:New(name, parent, size, position)
+    local self = setmetatable({}, Panel)
+    self.Instance = CreateInstance("Frame", {
+        Name = name,
+        Size = size or UDim2.new(0, 380, 0, 350),
+        Position = position or UDim2.new(0.5, -190, 0.5, -175),
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BackgroundTransparency = 0.3,
         ClipsDescendants = true,
         Parent = parent
     })
@@ -534,7 +680,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Size = UDim2.new(1, 0, 0, 26),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.3, -- 标题栏半透明
+        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         Parent = self.Instance
     })
@@ -938,7 +1084,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Size = UDim2.new(1, 0, 0, announcementHeight),
         Position = UDim2.new(0, 0, 0, 26),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
-        BackgroundTransparency = 0.4, -- 保留半透明
+        BackgroundTransparency = 0.4,
         BorderSizePixel = 0,
         Parent = self.Instance
     })
@@ -1037,7 +1183,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Size = UDim2.new(1, 0, 0, 24),
         Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
         BackgroundColor3 = Color3.fromRGB(50, 50, 55),
-        BackgroundTransparency = 0.3, -- 保留半透明
+        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         ScrollBarThickness = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0),
@@ -1080,13 +1226,12 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
     end)
     
-    -- 修复发白+保留半透明：ContentArea补主题背景+0.3透明度过渡
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
         Size = UDim2.new(1, -10, 1, -announcementHeight - 28 - 31),
         Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 28),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.3, -- 核心：保留半透明，不改为不透明
+        BackgroundTransparency = 0.3,
         ScrollBarThickness = 4,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
@@ -1187,12 +1332,11 @@ function Panel:AddTab(tabName)
         Parent = tabButton
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 1), Parent = underline})
-    -- 修复发白+保留半透明：TabContent补主题背景+0.3透明度
     local tabContent = CreateInstance("ScrollingFrame", {
         Name = tabName .. "Content",
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.3, -- 保留半透明
+        BackgroundTransparency = 0.3,
         Visible = false,
         ScrollBarThickness = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0),
