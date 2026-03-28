@@ -16,7 +16,7 @@ _G.WasUILoaded = true
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
 
--- 通知系统全局变量
+-- 通知系统变量
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -457,6 +457,7 @@ function Category:New(name, parent, title)
     return self
 end
 
+-- 增强的下拉菜单
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback)
@@ -516,30 +517,40 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
     self.SelectedValue = defaultValue
     self.Callback = callback
     self.IsOpen = false
+
     local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
     self.OptionsContainer = CreateInstance("Frame", {
         Name = "OptionsContainer",
         Size = UDim2.new(0.3, 0, 0, 0),
         Position = UDim2.new(0.7, 0, 0, 24),
-        BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0.3,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
-        BorderSizePixel = 1,
+        BorderSizePixel = 0,
         ClipsDescendants = true,
         Visible = false,
         ZIndex = 9999,
         Parent = playerGui
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = self.OptionsContainer})
-    self.OptionsListLayout = CreateInstance("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 1),
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.OptionsContainer})
+
+    local shadow = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(0, 0, 0),
+        Thickness = 0,
+        Transparency = 0.8,
         Parent = self.OptionsContainer
     })
+
+    self.OptionsListLayout = CreateInstance("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 4),
+        Parent = self.OptionsContainer
+    })
+
     for i, option in ipairs(self.Options) do
         local optionButton = CreateInstance("TextButton", {
             Name = "Option_" .. option,
-            Size = UDim2.new(1, 0, 0, 24),
+            Size = UDim2.new(1, 0, 0, 28),
             BackgroundColor3 = WasUI.CurrentTheme.Input,
             BackgroundTransparency = 0.3,
             BorderSizePixel = 0,
@@ -550,23 +561,49 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             AutoButtonColor = false,
             Parent = self.OptionsContainer
         })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = optionButton})
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = optionButton})
+        optionButton.MouseEnter:Connect(function()
+            Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
+        end)
+        optionButton.MouseLeave:Connect(function()
+            Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.1)
+        end)
         optionButton.MouseButton1Click:Connect(function()
             self.SelectedValue = option
             self.DropdownButton.Text = option
             if self.Callback then self.Callback(option) end
-            self.OptionsContainer.Visible = false
-            self.IsOpen = false
+            self:Close()
         end)
     end
+
     self.DropdownButton.MouseButton1Click:Connect(function()
-        self.IsOpen = not self.IsOpen
-        self.OptionsContainer.Visible = self.IsOpen
         if self.IsOpen then
-            local totalHeight = #self.Options * 24 + 2
-            self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, totalHeight)
+            self:Close()
+        else
+            self:Open()
         end
     end)
+
+    function self:Open()
+        if self.IsOpen then return end
+        self.IsOpen = true
+        self.OptionsContainer.Visible = true
+        local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 8
+        self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, totalHeight)
+        Tween(self.OptionsContainer, {BackgroundTransparency = 0.3}, 0.2)
+        Tween(shadow, {Thickness = 1}, 0.2)
+    end
+
+    function self:Close()
+        if not self.IsOpen then return end
+        self.IsOpen = false
+        Tween(self.OptionsContainer, {BackgroundTransparency = 1}, 0.2)
+        Tween(shadow, {Thickness = 0}, 0.2)
+        task.wait(0.2)
+        self.OptionsContainer.Visible = false
+        self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, 0)
+    end
+
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
     table.insert(WasUI.Objects, {Object = self.DropdownButton, Type = "DropdownButton"})
     return self
@@ -1667,7 +1704,7 @@ function WasUI:RefreshTheme()
     self:SetTheme("Dark")
 end
 
--- ========================= 通知系统 =========================
+-- 通知系统
 function WasUI:Notify(options)
     local config = {
         Content = options.Content or "通知",
