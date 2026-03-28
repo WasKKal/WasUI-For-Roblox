@@ -1,6 +1,5 @@
 local WasUI = {}
 WasUI.__index = WasUI
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -9,13 +8,13 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
 if _G.WasUILoaded then
-    warn("WasUI 已加载，跳过重复加载")
+    warn("WasUI å·²å è½½ï¼è·³è¿éå¤å è½½")
     return _G.WasUIModule
 end
 _G.WasUILoaded = true
 
 WasUI.DefaultDisplayOrder = 10
-WasUI.DialogTitle = "你要关闭WasUI吗?"
+WasUI.DialogTitle = "ä½ è¦å³é­WasUIå?"
 
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
@@ -75,14 +74,12 @@ end
 
 local function CreateRainbowTextForFeature(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
-
     local screenGui = CreateInstance("ScreenGui", {
         Name = "FeatureRainbowText_" .. featureName,
         ResetOnSpawn = false,
         DisplayOrder = 100,
         Parent = game:GetService("CoreGui")
     })
-
     local textLabel = CreateInstance("TextLabel", {
         Name = "RainbowText",
         Size = UDim2.new(0, 180, 0, 0),
@@ -98,11 +95,9 @@ local function CreateRainbowTextForFeature(featureName)
         TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
         Parent = screenGui
     })
-
     local bounds = textLabel.TextBounds
     local height = bounds.Y + 4
     textLabel.Size = UDim2.new(0, 180, 0, height)
-
     local rainbowSpeed = 4
     local time = 0
     local connection = RunService.Heartbeat:Connect(function(deltaTime)
@@ -112,14 +107,12 @@ local function CreateRainbowTextForFeature(featureName)
         local b = (math.sin(time + 2*math.pi/3) + 1) / 2
         textLabel.TextColor3 = Color3.new(r, g, b)
     end)
-
     WasUI.ActiveRainbowTexts[featureName] = {
         ScreenGui = screenGui,
         Connection = connection,
         Label = textLabel
     }
     table.insert(WasUI.RainbowOrder, featureName)
-
     RefreshRainbowLayout()
 end
 
@@ -129,14 +122,12 @@ local function DestroyRainbowTextForFeature(featureName)
         if data.ScreenGui then data.ScreenGui:Destroy() end
         if data.Connection then data.Connection:Disconnect() end
         WasUI.ActiveRainbowTexts[featureName] = nil
-
         for i, name in ipairs(WasUI.RainbowOrder) do
             if name == featureName then
                 table.remove(WasUI.RainbowOrder, i)
                 break
             end
         end
-
         RefreshRainbowLayout()
     end
 end
@@ -179,7 +170,7 @@ function Button:New(name, parent, text, onClick)
         Name = name,
         Size = UDim2.new(0, 0, 0, 28),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        Text = text or "按钮",
+        Text = text or "æé®",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
@@ -268,7 +259,7 @@ function Label:New(name, parent, text)
         Name = name,
         Size = UDim2.new(1, 0, 0, 20),
         BackgroundTransparency = 1,
-        Text = text or "标签",
+        Text = text or "æ ç­¾",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -334,7 +325,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Size = UDim2.new(0.7, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        Text = title or "下拉菜单",
+        Text = title or "ä¸æèå",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -348,7 +339,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
         BorderSizePixel = 1,
-        Text = defaultValue or "选择...",
+        Text = defaultValue or "éæ©...",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -408,7 +399,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             Parent = self.OptionsContainer
         })
         optionButton.MouseEnter:Connect(function()
-            Tween(optionButton, {BackgroundColor3 = Color3.fromRGB(240, 240, 245)}, 0.2)
+            Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
         end)
         optionButton.MouseLeave:Connect(function()
             Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.2)
@@ -445,6 +436,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Tween(self.OptionsContainer, {Size = UDim2.new(0, buttonSize.X, 0, optionHeight)}, 0.3)
         Tween(self.DropdownButton.ArrowIcon, {Rotation = 180}, 0.2)
         self.IsOpen = true
+
         local function closeIfClickedOutside(input, gameProcessed)
             if gameProcessed then return end
             if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -485,7 +477,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             self:OpenDropdown()
         end
     end)
-
     self.Instance = self.Container
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
     table.insert(WasUI.Objects, {Object = self.TitleLabel, Type = "Label"})
@@ -521,7 +512,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Size = UDim2.new(0.65, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        Text = title or "滑块",
+        Text = title or "æ»å",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -544,7 +535,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Name = "SliderTrack",
         Size = UDim2.new(0.85, 0, 0, 8),
         Position = UDim2.new(0.03, 0, 0, 30),
-        BackgroundColor3 = Color3.fromRGB(220, 220, 220),
+        BackgroundColor3 = WasUI.CurrentTheme.Secondary,
         BorderSizePixel = 0,
         Text = "",
         AutoButtonColor = false,
@@ -560,11 +551,13 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Parent = self.SliderTrack
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
+
     self.MinValue = min or 0
     self.MaxValue = max or 100
     self.CurrentValue = defaultValue or min or 0
     self.Callback = callback
     self.IsDragging = false
+
     local function calculateValueFromX(x)
         local trackWidth = self.SliderTrack.AbsoluteSize.X
         local relativeX = math.clamp(x, 0, trackWidth)
@@ -572,6 +565,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         local value = self.MinValue + (self.MaxValue - self.MinValue) * percentage
         return math.floor(value)
     end
+
     local function updateSlider(value)
         self.CurrentValue = math.clamp(value, self.MinValue, self.MaxValue)
         local percentage = (self.CurrentValue - self.MinValue) / (self.MaxValue - self.MinValue)
@@ -581,6 +575,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             self.Callback(self.CurrentValue)
         end
     end
+
     self.SliderTrack.MouseButton1Down:Connect(function()
         self.IsDragging = true
         local mousePos = UserInputService:GetMouseLocation()
@@ -589,6 +584,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         local newValue = calculateValueFromX(relativeX)
         updateSlider(newValue)
     end)
+
     UserInputService.InputChanged:Connect(function(input)
         if self.IsDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local mousePos = input.Position
@@ -598,11 +594,13 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             updateSlider(newValue)
         end
     end)
+
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             self.IsDragging = false
         end
     end)
+
     self.Instance = self.Container
     updateSlider(self.CurrentValue)
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
@@ -627,7 +625,6 @@ end
 
 WasUI.RainbowTexts = {}
 local rainbowConnections = {}
-
 local function CreateRainbowText(text, position)
     local screenGui = CreateInstance("ScreenGui", {
         Name = "RainbowText_" .. text,
@@ -681,10 +678,9 @@ WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
 WasUI.NotificationWidth = 250
-
 function WasUI:Notify(options)
     local config = {
-        Content = options.Content or "通知",
+        Content = options.Content or "éç¥",
         Duration = options.Duration or 3,
         Type = options.Type or "Info"
     }
@@ -728,9 +724,11 @@ function WasUI:Notify(options)
         Height = WasUI.NotificationHeight
     }
     WasUI.ActiveNotifications[notificationId] = notificationData
+
     local function calculatePosition(index)
         return (index - 1) * (WasUI.NotificationHeight + WasUI.NotificationSpacing) + WasUI.NotificationTop
     end
+
     local function updateAllNotificationPositions()
         local sortedIds = {}
         for id, _ in pairs(WasUI.ActiveNotifications) do
@@ -749,6 +747,7 @@ function WasUI:Notify(options)
             end
         end
     end
+
     updateAllNotificationPositions()
     task.wait(config.Duration)
     local fadeOut = Tween(notificationFrame, {BackgroundTransparency = 1}, 0.5)
@@ -770,13 +769,12 @@ local function getExecutor()
     elseif identifyexecutor then
         return identifyexecutor()
     else
-        return "未知执行器"
+        return "æªç¥æ§è¡å¨"
     end
 end
 
 local Panel = setmetatable({}, {__index = Control})
 Panel.__index = Panel
-
 function Panel:New(name, parent, size, position)
     local self = setmetatable({}, Panel)
     local windowWidth = 380
@@ -823,6 +821,7 @@ function Panel:New(name, parent, size, position)
     self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
     self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
     updateBorder()
+
     local borderTime = 0
     self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
         borderTime = borderTime + deltaTime * 4
@@ -940,7 +939,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0, 22, 0, 22),
         Position = UDim2.new(1, -28, 0, 2),
         BackgroundTransparency = 1,
-        Text = "×",
+        Text = "Ã",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamBold,
         TextSize = 16,
@@ -1099,7 +1098,7 @@ function Panel:New(name, parent, size, position)
                 Size = UDim2.new(0, 110, 0, 36),
                 BackgroundColor3 = WasUI.CurrentTheme.Section,
                 BackgroundTransparency = 0.3,
-                Text = "确认关闭",
+                Text = "ç¡®è®¤å³é­",
                 TextColor3 = Color3.fromRGB(255, 100, 100),
                 Font = Enum.Font.GothamSemibold,
                 TextSize = 14,
@@ -1111,7 +1110,7 @@ function Panel:New(name, parent, size, position)
                 Size = UDim2.new(0, 110, 0, 36),
                 BackgroundColor3 = WasUI.CurrentTheme.Section,
                 BackgroundTransparency = 0.3,
-                Text = "取消",
+                Text = "åæ¶",
                 TextColor3 = Color3.fromRGB(255, 255, 255),
                 Font = Enum.Font.GothamSemibold,
                 TextSize = 14,
@@ -1276,7 +1275,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 18),
         Position = UDim2.new(0, 62, 0.12, 0),
         BackgroundTransparency = 1,
-        Text = "当前用户: " .. player.Name,
+        Text = "å½åç¨æ·: " .. player.Name,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 13,
@@ -1289,7 +1288,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 16),
         Position = UDim2.new(0, 62, 0.35, 0),
         BackgroundTransparency = 1,
-        Text = "您使用的执行器为: " .. getExecutor(),
+        Text = "æ¨ä½¿ç¨çæ§è¡å¨ä¸º: " .. getExecutor(),
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -1302,7 +1301,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 14),
         Position = UDim2.new(0, 62, 0.55, 0),
         BackgroundTransparency = 1,
-        Text = "欢迎使用WasUI",
+        Text = "æ¬¢è¿ä½¿ç¨WasUI",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 11,
@@ -1328,7 +1327,7 @@ function Panel:New(name, parent, size, position)
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         ScrollBarThickness = 0,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
+               CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
     })
     
@@ -1368,11 +1367,13 @@ function Panel:New(name, parent, size, position)
         self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
     end)
     
+    -- ä¿®å¤åç½ï¼è¡¥å¨èæ¯è²+éæåº¦è¿æ¸¡
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
         Size = UDim2.new(1, -10, 1, -announcementHeight - 28 - 31),
         Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 28),
-        BackgroundTransparency = 1,
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BackgroundTransparency = 0.3,
         ScrollBarThickness = 4,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
@@ -1448,7 +1449,7 @@ function Panel:SetWelcomeText(text)
 end
 
 function Panel:AddTab(tabName)
-    assert(self and self.TabContainer and self.Tabs and self.TabContents, "AddTab 必须使用 : 调用，格式为 window:AddTab(\"标签名\")")
+    assert(self and self.TabContainer and self.Tabs and self.TabContents, "AddTab å¿é¡»ä½¿ç¨ : è°ç¨ï¼æ ¼å¼ä¸º window:AddTab(\"æ ç­¾å\")")
     local tabButtonBg = WasUI.CurrentTheme.TabButton
     local tabButton = CreateInstance("TextButton", {
         Name = tabName .. "Tab",
@@ -1473,11 +1474,12 @@ function Panel:AddTab(tabName)
         Parent = tabButton
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 1), Parent = underline})
-
+    -- ä¿®å¤åç½ï¼TabContentè¡¥å¨ä¸»é¢èæ¯è²
     local tabContent = CreateInstance("ScrollingFrame", {
         Name = tabName .. "Content",
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BackgroundTransparency = 0.3,
         Visible = false,
         ScrollBarThickness = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0),
@@ -1491,7 +1493,6 @@ function Panel:AddTab(tabName)
     contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         tabContent.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y)
     end)
-
     tabButton.MouseButton1Click:Connect(function()
         for _, tab in pairs(self.Tabs) do
             if tab.Button ~= tabButton and tab.Content.Visible then
@@ -1505,17 +1506,13 @@ function Panel:AddTab(tabName)
                 end
             end
         end
-
         tabContent.Visible = true
         tabContent.Transparency = 1
         Tween(tabContent, {Transparency = 0}, 0.2, Enum.EasingStyle.Cubic)
-
         Tween(tabButton, {BackgroundTransparency = 0, TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2, Enum.EasingStyle.Cubic)
         Tween(underline, {Size = UDim2.new(0.8, 0, 0, 2), BackgroundTransparency = 0}, 0.2, Enum.EasingStyle.Cubic)
-
         self.ActiveTab = tabName
     end)
-
     local tab = {
         Name = tabName,
         Button = tabButton,
@@ -1524,7 +1521,6 @@ function Panel:AddTab(tabName)
     }
     table.insert(self.Tabs, tab)
     self.TabContents[tabName] = tabContent
-
     if #self.Tabs == 1 then
         tabButton.BackgroundTransparency = 0
         tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1534,7 +1530,6 @@ function Panel:AddTab(tabName)
         tabContent.Visible = true
         tabContent.Transparency = 0
     end
-
     table.insert(WasUI.Objects, {Object = tabButton, Type = "TabButton"})
     table.insert(WasUI.Objects, {Object = underline, Type = "TabUnderline"})
     return tabContent
@@ -1671,7 +1666,7 @@ function WasUI:CreateWindow(title, size, position, displayOrder)
 end
 
 function WasUI:SetDialogTitle(title)
-    WasUI.DialogTitle = title or "你要关闭WasUI吗?"
+    WasUI.DialogTitle = title or "ä½ è¦å³é­WasUIå?"
 end
 
 function WasUI:SetTheme(themeName)
