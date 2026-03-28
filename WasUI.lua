@@ -1,3 +1,4 @@
+-- WasUI 库（修复选项卡顺序与雪花飘落问题）
 local WasUI = {}
 WasUI.__index = WasUI
 local Players = game:GetService("Players")
@@ -1470,73 +1471,74 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
 
     self.Tabs = {}
     self.ActiveTab = nil
+    self.TabOrderCounter = 0  -- 初始化计数器
 
-function self:AddTab(tabName, icon)
-    self.TabOrderCounter = self.TabOrderCounter + 1
-    local tabButton = CreateInstance("TextButton", {
-        Name = "Tab_" .. tabName,
-        Size = UDim2.new(0, 90, 0, 24),
-        BackgroundColor3 = WasUI.CurrentTheme.TabButton,
-        BackgroundTransparency = 0.5,
-        Text = tabName,
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 12,
-        AutoButtonColor = false,
-        LayoutOrder = self.TabOrderCounter,
-        Parent = self.TabContainer
-    })
-    local tabUnderline = CreateInstance("Frame", {
-        Name = "Underline",
-        Size = UDim2.new(0, 0, 0, 2),
-        Position = UDim2.new(0.5, 0, 1, -2),
-        AnchorPoint = Vector2.new(0.5, 0),
-        BackgroundColor3 = Color3.fromRGB(128, 0, 128),
-        Visible = false,
-        Parent = tabButton
-    })
+    function self:AddTab(tabName, icon)
+        self.TabOrderCounter = self.TabOrderCounter + 1
+        local tabButton = CreateInstance("TextButton", {
+            Name = "Tab_" .. tabName,
+            Size = UDim2.new(0, 90, 0, 24),
+            BackgroundColor3 = WasUI.CurrentTheme.TabButton,
+            BackgroundTransparency = 0.5,
+            Text = tabName,
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 12,
+            AutoButtonColor = false,
+            LayoutOrder = self.TabOrderCounter,
+            Parent = self.TabContainer
+        })
+        local tabUnderline = CreateInstance("Frame", {
+            Name = "Underline",
+            Size = UDim2.new(0, 0, 0, 2),
+            Position = UDim2.new(0.5, 0, 1, -2),
+            AnchorPoint = Vector2.new(0.5, 0),
+            BackgroundColor3 = Color3.fromRGB(128, 0, 128),
+            Visible = false,
+            Parent = tabButton
+        })
 
-    local tabFrame = CreateInstance("ScrollingFrame", {
-        Name = "TabFrame_" .. tabName,
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Visible = false,
-        ScrollBarThickness = 4,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        Parent = self.ContentArea
-    })
-    local tabListLayout = CreateInstance("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 4),
-        Parent = tabFrame
-    })
-    local tabPadding = CreateInstance("UIPadding", {
-        PaddingLeft = UDim.new(0, 4),
-        PaddingRight = UDim.new(0, 4),
-        PaddingTop = UDim.new(0, 4),
-        PaddingBottom = UDim.new(0, 4),
-        Parent = tabFrame
-    })
-    tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        tabFrame.CanvasSize = UDim2.new(0, 0, 0, tabListLayout.AbsoluteContentSize.Y + 8)
-    end)
+        local tabFrame = CreateInstance("ScrollingFrame", {
+            Name = "TabFrame_" .. tabName,
+            Size = UDim2.new(1, 0, 1, 0),
+            BackgroundTransparency = 1,
+            Visible = false,
+            ScrollBarThickness = 4,
+            CanvasSize = UDim2.new(0, 0, 0, 0),
+            Parent = self.ContentArea
+        })
+        local tabListLayout = CreateInstance("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 4),
+            Parent = tabFrame
+        })
+        local tabPadding = CreateInstance("UIPadding", {
+            PaddingLeft = UDim.new(0, 4),
+            PaddingRight = UDim.new(0, 4),
+            PaddingTop = UDim.new(0, 4),
+            PaddingBottom = UDim.new(0, 4),
+            Parent = tabFrame
+        })
+        tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            tabFrame.CanvasSize = UDim2.new(0, 0, 0, tabListLayout.AbsoluteContentSize.Y + 8)
+        end)
 
-    tabButton.MouseButton1Click:Connect(function()
-        self:SetActiveTab(tabName)
-    end)
+        tabButton.MouseButton1Click:Connect(function()
+            self:SetActiveTab(tabName)
+        end)
 
-    self.Tabs[tabName] = {
-        Button = tabButton,
-        Underline = tabUnderline,
-        Frame = tabFrame
-    }
+        self.Tabs[tabName] = {
+            Button = tabButton,
+            Underline = tabUnderline,
+            Frame = tabFrame
+        }
 
-    if not self.ActiveTab then
-        self:SetActiveTab(tabName)
+        if not self.ActiveTab then
+            self:SetActiveTab(tabName)
+        end
+
+        return tabFrame
     end
-
-    return tabFrame
-end
 
     function self:SetActiveTab(tabName)
         if self.ActiveTab then
