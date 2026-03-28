@@ -825,12 +825,13 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
 
-    local dragging = false
+    self.dragging = false
     local function updateFromInput()
         local mousePos = UserInputService:GetMouseLocation()
         local trackPos = self.SliderTrack.AbsolutePosition
         local trackSize = self.SliderTrack.AbsoluteSize.X
         if trackSize <= 0 then return end
+
         local mouseX = mousePos.X - trackPos.X
         local t = math.clamp(mouseX / trackSize, 0, 1)
         local newValue = self.Min + t * (self.Max - self.Min)
@@ -842,25 +843,30 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             if self.Callback then self.Callback(self.Value) end
         end
     end
-
     self.SliderTrack.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
+            self.dragging = true
             updateFromInput()
             input:SetConsumed(true)
         end
     end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+
+    self.SliderTrack.InputChanged:Connect(function(input)
+        if self.dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             updateFromInput()
         end
     end)
-    UserInputService.InputEnded:Connect(function(input)
+    self.SliderTrack.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
+            self.dragging = false
         end
     end)
 
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            self.dragging = false
+        end
+    end)
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
     return self
 end
