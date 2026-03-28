@@ -1403,12 +1403,12 @@ function Panel:AddTab(tabName)
         Size = UDim2.new(0, 0, 0, 2),
         Position = UDim2.new(0.5, 0, 1, 0),
         AnchorPoint = Vector2.new(0.5, 0),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundColor3 = Color3.fromRGB(128, 0, 128),
         BackgroundTransparency = 1,
         ZIndex = 5,
         Parent = tabButton
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 1), Parent = underline})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 2), Parent = underline})
     local tabContent = CreateInstance("ScrollingFrame", {
         Name = tabName .. "Content",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1443,8 +1443,7 @@ function Panel:AddTab(tabName)
                 tab.Button.TextColor3 = Color3.fromRGB(100, 100, 105)
                 tab.Button.BackgroundColor3 = WasUI.CurrentTheme.TabButton
                 if tab.Underline then
-                    tab.Underline.Size = UDim2.new(0, 0, 0, 2)
-                    tab.Underline.BackgroundTransparency = 1
+                    Tween(tab.Underline, {Size = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1}, 0.2, Enum.EasingStyle.Cubic)
                 end
             end
         end
@@ -1452,8 +1451,7 @@ function Panel:AddTab(tabName)
         tabButton.BackgroundTransparency = 0
         tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         tabButton.BackgroundColor3 = WasUI.CurrentTheme.Primary
-        underline.Size = UDim2.new(0.8, 0, 0, 2)
-        underline.BackgroundTransparency = 0
+        Tween(underline, {Size = UDim2.new(1, 0, 0, 2), BackgroundTransparency = 0}, 0.2, Enum.EasingStyle.Cubic)
         self.ActiveTab = tabName
     end)
     local tab = {
@@ -1468,7 +1466,7 @@ function Panel:AddTab(tabName)
         tabButton.BackgroundTransparency = 0
         tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         tabButton.BackgroundColor3 = WasUI.CurrentTheme.Primary
-        underline.Size = UDim2.new(0.8, 0, 0, 2)
+        underline.Size = UDim2.new(1, 0, 0, 2)
         underline.BackgroundTransparency = 0
         tabContent.Visible = true
     end
@@ -1477,7 +1475,6 @@ function Panel:AddTab(tabName)
     return tabContent
 end
 
--- 移除 AddButtonRow 方法
 function Panel:AddTitle(text, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     local titleLabel = CreateInstance("TextLabel", {
