@@ -308,7 +308,7 @@ local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick, size)
     local self = Control.New(self, name, parent)
-    local buttonSize = size or UDim2.new(0, 0, 0, 10)
+    local buttonSize = size or UDim2.new(1, 0, 0, 28)
     self.Instance = CreateInstance("TextButton", {
         Name = name,
         Size = buttonSize,
@@ -318,15 +318,15 @@ function Button:New(name, parent, text, onClick, size)
         TextColor3 = Color3.fromRGB(255, 255, 255),
         TextTransparency = 0,
         Font = Enum.Font.GothamSemibold,
-        TextSize = 10,
+        TextSize = 12,
         AutoButtonColor = false,
         Parent = parent,
-        AutomaticSize = buttonSize == UDim2.new(0, 0, 0, 10) and Enum.AutomaticSize.X or Enum.AutomaticSize.None
+        AutomaticSize = Enum.AutomaticSize.None
     })
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 5), Parent = self.Instance})
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
     local padding = CreateInstance("UIPadding", {
-        PaddingLeft = UDim.new(0, 8),
-        PaddingRight = UDim.new(0, 8),
+        PaddingLeft = UDim.new(0, 12),
+        PaddingRight = UDim.new(0, 12),
         Parent = self.Instance
     })
     self.Instance.MouseEnter:Connect(function() 
@@ -970,7 +970,7 @@ function Panel:New(name, parent, size, position)
                 Name = "Overlay",
                 Size = UDim2.new(1, 0, 1, 0),
                 BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-                BackgroundTransparency = 0.5,
+                BackgroundTransparency = 1,
                 Visible = true,
                 AutoButtonColor = false,
                 Text = "",
@@ -980,8 +980,8 @@ function Panel:New(name, parent, size, position)
             })
             local dialogFrame = CreateInstance("Frame", {
                 Name = "Dialog",
-                Size = UDim2.new(0, 340, 0, 180),
-                Position = UDim2.new(0.5, -170, 0.5, -90),
+                Size = UDim2.new(0, 400, 0, 220),
+                Position = UDim2.new(0.5, -200, 0.5, -130),
                 BackgroundColor3 = WasUI.CurrentTheme.Background,
                 BackgroundTransparency = 0.3,
                 BorderSizePixel = 0,
@@ -1058,6 +1058,7 @@ function Panel:New(name, parent, size, position)
             end
             dialogFrame.BackgroundTransparency = 1
             Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
+            Tween(overlay, {BackgroundTransparency = 0.5}, 0.3)
             confirmButton.MouseButton1Click:Connect(function()
                 if self.SnowConnection then
                     self.SnowConnection:Disconnect()
@@ -1087,6 +1088,7 @@ function Panel:New(name, parent, size, position)
             end)
             cancelButton.MouseButton1Click:Connect(function()
                 Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+                Tween(overlay, {BackgroundTransparency = 1}, 0.2)
                 task.wait(0.2)
                 dialogGui:Destroy()
             end)
@@ -1097,6 +1099,7 @@ function Panel:New(name, parent, size, position)
                 if not (mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
                         mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y) then
                     Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+                    Tween(overlay, {BackgroundTransparency = 1}, 0.2)
                     task.wait(0.2)
                     dialogGui:Destroy()
                 end
@@ -1435,21 +1438,22 @@ function Panel:AddTab(tabName)
     tabButton.MouseButton1Click:Connect(function()
         for _, tab in pairs(self.Tabs) do
             if tab.Button ~= tabButton and tab.Content.Visible then
-                Tween(tab.Content, {Transparency = 1}, 0.2, Enum.EasingStyle.Cubic)
-                task.wait(0.2)
                 tab.Content.Visible = false
-                tab.Content.Transparency = 0
-                Tween(tab.Button, {BackgroundTransparency = 0.7, TextColor3 = Color3.fromRGB(100, 100, 105), BackgroundColor3 = WasUI.CurrentTheme.TabButton}, 0.2, Enum.EasingStyle.Cubic)
+                tab.Button.BackgroundTransparency = 0.7
+                tab.Button.TextColor3 = Color3.fromRGB(100, 100, 105)
+                tab.Button.BackgroundColor3 = WasUI.CurrentTheme.TabButton
                 if tab.Underline then
-                    Tween(tab.Underline, {Size = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1}, 0.2, Enum.EasingStyle.Cubic)
+                    tab.Underline.Size = UDim2.new(0, 0, 0, 2)
+                    tab.Underline.BackgroundTransparency = 1
                 end
             end
         end
         tabContent.Visible = true
-        tabContent.Transparency = 1
-        Tween(tabContent, {Transparency = 0}, 0.2, Enum.EasingStyle.Cubic)
-        Tween(tabButton, {BackgroundTransparency = 0, TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2, Enum.EasingStyle.Cubic)
-        Tween(underline, {Size = UDim2.new(0.8, 0, 0, 2), BackgroundTransparency = 0}, 0.2, Enum.EasingStyle.Cubic)
+        tabButton.BackgroundTransparency = 0
+        tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        tabButton.BackgroundColor3 = WasUI.CurrentTheme.Primary
+        underline.Size = UDim2.new(0.8, 0, 0, 2)
+        underline.BackgroundTransparency = 0
         self.ActiveTab = tabName
     end)
     local tab = {
@@ -1467,57 +1471,13 @@ function Panel:AddTab(tabName)
         underline.Size = UDim2.new(0.8, 0, 0, 2)
         underline.BackgroundTransparency = 0
         tabContent.Visible = true
-        tabContent.Transparency = 0
     end
     table.insert(WasUI.Objects, {Object = tabButton, Type = "TabButton"})
     table.insert(WasUI.Objects, {Object = underline, Type = "TabUnderline"})
     return tabContent
 end
 
-function Panel:AddButtonRow(buttons, tabName)
-    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-    local container = CreateInstance("Frame", {
-        Name = "ButtonRow",
-        Size = UDim2.new(1, 0, 0, 0),
-        BackgroundTransparency = 1,
-        AutomaticSize = Enum.AutomaticSize.Y,
-        Parent = targetContent
-    })
-    local layout = CreateInstance("UIListLayout", {
-        FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Center,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 8),
-        Parent = container
-    })
-    local buttonFrames = {}
-    for i, btn in ipairs(buttons) do
-        local btnFrame = CreateInstance("Frame", {
-            Name = "Button_" .. i,
-            Size = UDim2.new(0, 0, 1, 0),
-            BackgroundTransparency = 1,
-            AutomaticSize = Enum.AutomaticSize.X,
-            Parent = container
-        })
-        local button = Button:New("Button_" .. i, btnFrame, btn.text, btn.onClick, UDim2.new(1, 0, 1, 0))
-        buttonFrames[btnFrame] = button
-    end
-    local function updateWidths()
-        local count = #buttons
-        if count == 0 then return end
-        local eachWidth = UDim2.new(1 / count, 0, 1, 0)
-        for _, frame in ipairs(container:GetChildren()) do
-            if frame:IsA("Frame") and frame.Name:match("^Button_") then
-                frame.Size = eachWidth
-            end
-        end
-    end
-    updateWidths()
-    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateWidths)
-    container:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateWidths)
-    return container
-end
-
+-- 移除 AddButtonRow 方法
 function Panel:AddTitle(text, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     local titleLabel = CreateInstance("TextLabel", {
