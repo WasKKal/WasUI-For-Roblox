@@ -471,22 +471,24 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     local self = Control.New(self, name, parent)
     self.MultiSelect = multiSelect or false
     self.Options = options or {}
-    -- 类型安全初始化
-    if self.MultiSelect then
-        if type(defaultValue) == "table" then
-            self.SelectedValues = defaultValue
-        elseif defaultValue ~= nil then
-            self.SelectedValues = {defaultValue}
-        else
-            self.SelectedValues = {}
+if self.MultiSelect then
+    if type(defaultValue) == "table" then
+        self.SelectedValues = {}
+        for _, v in ipairs(defaultValue) do
+            table.insert(self.SelectedValues, v)
         end
+    elseif defaultValue ~= nil then
+        self.SelectedValues = {defaultValue}
     else
-        if type(defaultValue) == "table" then
-            self.SelectedValue = defaultValue[1] or nil
-        else
-            self.SelectedValue = defaultValue
-        end
+        self.SelectedValues = {}
     end
+else
+    if type(defaultValue) == "table" then
+        self.SelectedValue = defaultValue[1] or nil
+    else
+        self.SelectedValue = defaultValue
+    end
+end
     self.Callback = callback
     self.IsOpen = false
 
