@@ -217,7 +217,6 @@ local function DestroyRainbowTextForFeature(featureName)
     end
 end
 
--- 独立的彩虹文本创建（用于外部调用）
 local function CreateRainbowText(text, position)
     if WasUI.ActiveRainbowTexts[text] then return end
     local screenGui = CreateInstance("ScreenGui", {
@@ -258,7 +257,6 @@ local function CreateRainbowText(text, position)
         Connection = connection,
         Label = textLabel
     }
-    -- 不自动加入布局排序，因为是独立文本
 end
 
 local function RemoveRainbowText(text)
@@ -300,13 +298,15 @@ function Control:SetVisible(visible)
     end
 end
 
+-- 修改 Button:New 支持自定义尺寸
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
-function Button:New(name, parent, text, onClick)
+function Button:New(name, parent, text, onClick, size)
     local self = Control.New(self, name, parent)
+    local buttonSize = size or UDim2.new(0, 0, 0, 28)
     self.Instance = CreateInstance("TextButton", {
         Name = name,
-        Size = UDim2.new(0, 0, 0, 28),
+        Size = buttonSize,
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.3,
         Text = text or "按钮",
@@ -316,7 +316,7 @@ function Button:New(name, parent, text, onClick)
         TextSize = 12,
         AutoButtonColor = false,
         Parent = parent,
-        AutomaticSize = Enum.AutomaticSize.X
+        AutomaticSize = buttonSize == UDim2.new(0, 0, 0, 28) and Enum.AutomaticSize.X or Enum.AutomaticSize.None
     })
     local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
     local padding = CreateInstance("UIPadding", {
@@ -641,7 +641,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         local mouseX = input.Position.X - self.SliderTrack.AbsolutePosition.X
         local t = math.clamp(mouseX / trackSize, 0, 1)
         local newValue = self.Min + t * (self.Max - self.Min)
-        newValue = math.round(newValue)  -- 可改为取整或保留小数
+        newValue = math.round(newValue)
         if newValue ~= self.Value then
             self.Value = newValue
             self.ValueLabel.Text = tostring(self.Value)
@@ -1195,7 +1195,6 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     
-    -- 修复：安全获取执行器名称
     local executorName = (type(getExecutor) == "function" and getExecutor()) or "未知"
     self.ExecutorLabel = CreateInstance("TextLabel", {
         Name = "ExecutorLabel",
@@ -1447,13 +1446,15 @@ function Panel:AddTab(tabName)
     return tabContent
 end
 
-function Panel:AddButtonRow(buttons)
+-- 修复 AddButtonRow：支持选项卡参数，按钮填满父容器
+function Panel:AddButtonRow(buttons, tabName)
+    local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     local container = CreateInstance("Frame", {
         Name = "ButtonRow",
         Size = UDim2.new(1, 0, 0, 0),
         BackgroundTransparency = 1,
         AutomaticSize = Enum.AutomaticSize.Y,
-        Parent = self.CurrentTabContent or self.ContentArea
+        Parent = targetContent
     })
     local layout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
@@ -1471,7 +1472,8 @@ function Panel:AddButtonRow(buttons)
             AutomaticSize = Enum.AutomaticSize.X,
             Parent = container
         })
-        local button = Button:New("Button_" .. i, btnFrame, btn.text, btn.onClick)
+        -- 按钮填满父容器
+        local button = Button:New("Button_" .. i, btnFrame, btn.text, btn.onClick, UDim2.new(1, 0, 1, 0))
         buttonFrames[btnFrame] = button
     end
     local function updateWidths()
@@ -1635,7 +1637,6 @@ function WasUI.SetDisplayOrder(order)
     WasUI.DefaultDisplayOrder = order
 end
 
--- 修复：使用正确的彩虹文本函数
 function WasUI.CreateRainbowText(text, position)
     return CreateRainbowText(text, position)
 end
