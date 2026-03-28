@@ -1470,7 +1470,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
 
     self.Tabs = {}
     self.ActiveTab = nil
-    self.TabOrderCounter = 0  -- 初始化计数器
+    self.TabOrderCounter = 0
 
     function self:AddTab(tabName, icon)
         self.TabOrderCounter = self.TabOrderCounter + 1
@@ -1616,7 +1616,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                     Parent = self.SnowContainer
                 })
                 CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
-                local speedY = math.random(150, 120) / 100
+                local speedY = math.random(150, 200) / 100
                 local speedX = (math.random() - 0.5) * 0.7
                 table.insert(self.Snowflakes, {
                     Instance = flake,
@@ -1631,7 +1631,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 self.SnowChangeTimer = 0
                 for _, data in ipairs(self.Snowflakes) do
                     data.SpeedX = (math.random() - 0.5) * 0.8
-                    data.SpeedY = math.random(40, 90) / 100
+                    data.SpeedY = math.random(150, 200) / 100
                 end
             end
             
@@ -1651,7 +1651,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
                 flake.BackgroundTransparency = 1 - alpha
                 
-                if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.2 or newX > 1.2 or data.Age > 3.5 then
+                if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
                     flake:Destroy()
                     table.remove(self.Snowflakes, i)
                 end
