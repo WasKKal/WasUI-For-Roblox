@@ -441,7 +441,7 @@ function Category:New(name, parent, title)
         Position = UDim2.new(0.05, 0, 0, 0),
         BackgroundTransparency = 1,
         Text = title,
-        TextColor3 = WasUI.CurrentTheme.Primary,
+        TextColor3 = Color3.new(1,1,1),
         TextTransparency = 0,
         Font = Enum.Font.GothamBold,
         TextSize = 16,
