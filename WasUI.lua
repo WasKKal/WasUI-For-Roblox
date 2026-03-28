@@ -8,13 +8,13 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
 if _G.WasUILoaded then
-    warn("WasUI å·²å è½½ï¼è·³è¿éå¤å è½½")
+    warn("WasUI 已加载，跳过重复加载")
     return _G.WasUIModule
 end
 _G.WasUILoaded = true
 
 WasUI.DefaultDisplayOrder = 10
-WasUI.DialogTitle = "ä½ è¦å³é­WasUIå?"
+WasUI.DialogTitle = "你要关闭WasUI吗?"
 
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
@@ -170,7 +170,7 @@ function Button:New(name, parent, text, onClick)
         Name = name,
         Size = UDim2.new(0, 0, 0, 28),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        Text = text or "æé®",
+        Text = text or "按钮",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
@@ -259,7 +259,7 @@ function Label:New(name, parent, text)
         Name = name,
         Size = UDim2.new(1, 0, 0, 20),
         BackgroundTransparency = 1,
-        Text = text or "æ ç­¾",
+        Text = text or "标签",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -325,7 +325,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Size = UDim2.new(0.7, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        Text = title or "ä¸æèå",
+        Text = title or "下拉菜单",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -339,7 +339,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
         BorderSizePixel = 1,
-        Text = defaultValue or "éæ©...",
+        Text = defaultValue or "选择...",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -512,7 +512,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Size = UDim2.new(0.65, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        Text = title or "æ»å",
+        Text = title or "滑块",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -680,7 +680,7 @@ WasUI.NotificationHeight = 30
 WasUI.NotificationWidth = 250
 function WasUI:Notify(options)
     local config = {
-        Content = options.Content or "éç¥",
+        Content = options.Content or "通知",
         Duration = options.Duration or 3,
         Type = options.Type or "Info"
     }
@@ -769,7 +769,7 @@ local function getExecutor()
     elseif identifyexecutor then
         return identifyexecutor()
     else
-        return "æªç¥æ§è¡å¨"
+        return "未知执行器"
     end
 end
 
@@ -784,7 +784,7 @@ function Panel:New(name, parent, size, position)
         Size = size or UDim2.new(0, windowWidth, 0, windowHeight),
         Position = position or UDim2.new(0.5, -windowWidth/2, 0.5, -windowHeight/2),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0.3, -- 保留半透明
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Parent = parent
@@ -836,7 +836,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(1, 0, 0, 26),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0.3, -- 保留半透明
         BorderSizePixel = 0,
         Parent = self.Instance
     })
@@ -939,7 +939,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0, 22, 0, 22),
         Position = UDim2.new(1, -28, 0, 2),
         BackgroundTransparency = 1,
-        Text = "Ã",
+        Text = "×",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamBold,
         TextSize = 16,
@@ -1043,7 +1043,7 @@ function Panel:New(name, parent, size, position)
                 Name = "CloseDialog",
                 ResetOnSpawn = false,
                 DisplayOrder = 1000,
-                Parent = self.Instance
+                Parent = game:GetService("CoreGui") -- 修复：父级改为CoreGui，避免层级遮挡
             })
             local overlay = CreateInstance("TextButton", {
                 Name = "Overlay",
@@ -1054,16 +1054,18 @@ function Panel:New(name, parent, size, position)
                 AutoButtonColor = false,
                 Text = "",
                 Parent = dialogGui,
-                Active = true
+                Active = true,
+                ZIndex = 9999 -- 底层遮罩层级
             })
             local dialogFrame = CreateInstance("Frame", {
                 Name = "Dialog",
                 Size = UDim2.new(0, 340, 0, 180),
                 Position = UDim2.new(0.5, -170, 0.5, -90),
                 BackgroundColor3 = WasUI.CurrentTheme.Background,
-                BackgroundTransparency = 0.3,
+                BackgroundTransparency = 0.3, -- 保留半透明
                 BorderSizePixel = 0,
-                Parent = overlay
+                Parent = overlay,
+                ZIndex = 10000 -- 弹窗层级高于遮罩
             })
             CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
             local titleText = CreateInstance("TextLabel", {
@@ -1077,14 +1079,16 @@ function Panel:New(name, parent, size, position)
                 TextSize = 16,
                 TextXAlignment = Enum.TextXAlignment.Center,
                 TextYAlignment = Enum.TextYAlignment.Center,
-                Parent = dialogFrame
+                Parent = dialogFrame,
+                ZIndex = 10001
             })
             local buttonContainer = CreateInstance("Frame", {
                 Name = "ButtonContainer",
                 Size = UDim2.new(1, -20, 0, 50),
                 Position = UDim2.new(0, 10, 1, -60),
                 BackgroundTransparency = 1,
-                Parent = dialogFrame
+                Parent = dialogFrame,
+                ZIndex = 10001
             })
             local buttonLayout = CreateInstance("UIListLayout", {
                 FillDirection = Enum.FillDirection.Horizontal,
@@ -1093,29 +1097,32 @@ function Panel:New(name, parent, size, position)
                 Padding = UDim.new(0, 15),
                 Parent = buttonContainer
             })
+            -- 修复：按钮设置ZIndex+取消AutoButtonColor=false导致的点击失效
             local confirmButton = CreateInstance("TextButton", {
                 Name = "Confirm",
                 Size = UDim2.new(0, 110, 0, 36),
                 BackgroundColor3 = WasUI.CurrentTheme.Section,
                 BackgroundTransparency = 0.3,
-                Text = "ç¡®è®¤å³é­",
+                Text = "确认关闭",
                 TextColor3 = Color3.fromRGB(255, 100, 100),
                 Font = Enum.Font.GothamSemibold,
                 TextSize = 14,
-                AutoButtonColor = false,
-                Parent = buttonContainer
+                AutoButtonColor = true, -- 启用按钮交互
+                Parent = buttonContainer,
+                ZIndex = 10002 -- 按钮层级最高
             })
             local cancelButton = CreateInstance("TextButton", {
                 Name = "Cancel",
                 Size = UDim2.new(0, 110, 0, 36),
                 BackgroundColor3 = WasUI.CurrentTheme.Section,
                 BackgroundTransparency = 0.3,
-                Text = "åæ¶",
+                Text = "取消",
                 TextColor3 = Color3.fromRGB(255, 255, 255),
                 Font = Enum.Font.GothamSemibold,
                 TextSize = 14,
-                AutoButtonColor = false,
-                Parent = buttonContainer
+                AutoButtonColor = true, -- 启用按钮交互
+                Parent = buttonContainer,
+                ZIndex = 10002 -- 按钮层级最高
             })
             for _, btn in ipairs({confirmButton, cancelButton}) do
                 CreateInstance("UICorner", {CornerRadius = UDim.new(0, 18), Parent = btn})
@@ -1225,7 +1232,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(1, 0, 0, announcementHeight),
         Position = UDim2.new(0, 0, 0, 26),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
-        BackgroundTransparency = 0.4,
+        BackgroundTransparency = 0.4, -- 保留半透明
         BorderSizePixel = 0,
         Parent = self.Instance
     })
@@ -1275,7 +1282,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 18),
         Position = UDim2.new(0, 62, 0.12, 0),
         BackgroundTransparency = 1,
-        Text = "å½åç¨æ·: " .. player.Name,
+        Text = "当前用户: " .. player.Name,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 13,
@@ -1288,7 +1295,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 16),
         Position = UDim2.new(0, 62, 0.35, 0),
         BackgroundTransparency = 1,
-        Text = "æ¨ä½¿ç¨çæ§è¡å¨ä¸º: " .. getExecutor(),
+        Text = "您使用的执行器为: " .. getExecutor(),
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -1301,7 +1308,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0.6, 0, 0, 14),
         Position = UDim2.new(0, 62, 0.55, 0),
         BackgroundTransparency = 1,
-        Text = "æ¬¢è¿ä½¿ç¨WasUI",
+        Text = "欢迎使用WasUI",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 11,
@@ -1324,10 +1331,10 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(1, 0, 0, 24),
         Position = UDim2.new(0, 0, 0, 26 + announcementHeight),
         BackgroundColor3 = Color3.fromRGB(50, 50, 55),
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0.3, -- 保留半透明
         BorderSizePixel = 0,
         ScrollBarThickness = 0,
-               CanvasSize = UDim2.new(0, 0, 0, 0),
+        CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
     })
     
@@ -1367,7 +1374,7 @@ function Panel:New(name, parent, size, position)
         self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
     end)
     
-    -- ä¿®å¤åç½ï¼è¡¥å¨èæ¯è²+éæåº¦è¿æ¸¡
+    -- 修复发白+保留半透明：ContentArea补主题背景+0.3透明度过渡
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
         Size = UDim2.new(1, -10, 1, -announcementHeight - 28 - 31),
@@ -1449,7 +1456,7 @@ function Panel:SetWelcomeText(text)
 end
 
 function Panel:AddTab(tabName)
-    assert(self and self.TabContainer and self.Tabs and self.TabContents, "AddTab å¿é¡»ä½¿ç¨ : è°ç¨ï¼æ ¼å¼ä¸º window:AddTab(\"æ ç­¾å\")")
+    assert(self and self.TabContainer and self.Tabs and self.TabContents, "AddTab 必须使用 : 调用，格式为 window:AddTab(\"标签名\")")
     local tabButtonBg = WasUI.CurrentTheme.TabButton
     local tabButton = CreateInstance("TextButton", {
         Name = tabName .. "Tab",
@@ -1474,12 +1481,12 @@ function Panel:AddTab(tabName)
         Parent = tabButton
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 1), Parent = underline})
-    -- ä¿®å¤åç½ï¼TabContentè¡¥å¨ä¸»é¢èæ¯è²
+    -- 修复发白+保留半透明：TabContent补主题背景+0.3透明度
     local tabContent = CreateInstance("ScrollingFrame", {
         Name = tabName .. "Content",
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0.3, -- 保留半透明
         Visible = false,
         ScrollBarThickness = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0),
@@ -1666,7 +1673,7 @@ function WasUI:CreateWindow(title, size, position, displayOrder)
 end
 
 function WasUI:SetDialogTitle(title)
-    WasUI.DialogTitle = title or "ä½ è¦å³é­WasUIå?"
+    WasUI.DialogTitle = title or "你要关闭WasUI吗?"
 end
 
 function WasUI:SetTheme(themeName)
@@ -1728,7 +1735,7 @@ function WasUI.CreateRainbowText(text, position)
 end
 
 function WasUI.RemoveRainbowText(text)
-    RemoveRainbowText(text)
+    return RemoveRainbowText(text)
 end
 
 function WasUI:ToggleSnowfall(enabled)
