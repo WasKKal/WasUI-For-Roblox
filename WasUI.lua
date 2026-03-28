@@ -304,11 +304,12 @@ function Control:SetVisible(visible)
     end
 end
 
+-- 按钮高度改为21（缩小3/4）
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick, size)
     local self = Control.New(self, name, parent)
-    local buttonSize = size or UDim2.new(0, 0, 0, 28)
+    local buttonSize = size or UDim2.new(0, 0, 0, 21)
     self.Instance = CreateInstance("TextButton", {
         Name = name,
         Size = buttonSize,
@@ -321,9 +322,9 @@ function Button:New(name, parent, text, onClick, size)
         TextSize = 12,
         AutoButtonColor = false,
         Parent = parent,
-        AutomaticSize = buttonSize == UDim2.new(0, 0, 0, 28) and Enum.AutomaticSize.X or Enum.AutomaticSize.None
+        AutomaticSize = buttonSize == UDim2.new(0, 0, 0, 21) and Enum.AutomaticSize.X or Enum.AutomaticSize.None
     })
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
     local padding = CreateInstance("UIPadding", {
         PaddingLeft = UDim.new(0, 12),
         PaddingRight = UDim.new(0, 12),
@@ -594,7 +595,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
     return self
 end
 
--- 修复滑动条：扩大长度与宽度，修复拖动逻辑
+-- 滑动条：轨道高度增加到12，滑块位置调整
 local Slider = setmetatable({}, {__index = Control})
 Slider.__index = Slider
 function Slider:New(name, parent, title, min, max, defaultValue, callback)
@@ -633,10 +634,9 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         TextXAlignment = Enum.TextXAlignment.Right,
         Parent = self.Container
     })
-    -- 轨道缩短两侧各 8px，高度增加到 6，长度增加（减得更少）
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, -16, 0, 6),
+        Size = UDim2.new(1, -16, 0, 12),
         Position = UDim2.new(0, 8, 0, 22),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
@@ -655,7 +655,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.SliderKnob = CreateInstance("ImageButton", {
         Name = "Knob",
         Size = UDim2.new(0, 16, 0, 16),
-        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -8, 0, -5),
+        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -8, 0, -8),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         Image = "",
         BorderSizePixel = 0,
@@ -679,7 +679,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             self.Value = newValue
             self.ValueLabel.Text = tostring(self.Value)
             self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
-            self.SliderKnob.Position = UDim2.new(t, -8, 0, -5)
+            self.SliderKnob.Position = UDim2.new(t, -8, 0, -8)
             if self.Callback then self.Callback(self.Value) end
         end
     end
@@ -1318,6 +1318,7 @@ function Panel:New(name, parent, size, position)
         self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
     end)
     
+    -- 内容区背景完全透明
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
         Size = UDim2.new(1, -20, 1, -announcementHeight - 28 - 31),
@@ -1493,7 +1494,6 @@ function Panel:AddTab(tabName)
     return tabContent
 end
 
--- 修复同行按钮：使用普通Frame，自动平分宽度，无滚动
 function Panel:AddButtonRow(buttons, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     local container = CreateInstance("Frame", {
