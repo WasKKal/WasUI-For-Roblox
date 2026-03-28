@@ -47,7 +47,7 @@ WasUI.Objects = {}
 WasUI.ActiveRainbowTexts = {}
 WasUI.RainbowOrder = {}
 
--- 创建全局专用容器
+-- 全局容器
 WasUI.DropdownGui = Instance.new("ScreenGui")
 WasUI.DropdownGui.Name = "WasUI_Dropdowns"
 WasUI.DropdownGui.ResetOnSpawn = false
@@ -464,11 +464,33 @@ function Category:New(name, parent, title)
     return self
 end
 
--- 重构下拉菜单
+-- 下拉菜单（支持多选、滚动、防超出屏幕）
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
-function Dropdown:New(name, parent, title, options, defaultValue, callback)
+function Dropdown:New(name, parent, title, options, defaultValue, callback, multiSelect)
     local self = Control.New(self, name, parent)
+    self.MultiSelect = multiSelect or false
+    self.Options = options or {}
+    -- 类型安全初始化
+    if self.MultiSelect then
+        if type(defaultValue) == "table" then
+            self.SelectedValues = defaultValue
+        elseif defaultValue ~= nil then
+            self.SelectedValues = {defaultValue}
+        else
+            self.SelectedValues = {}
+        end
+    else
+        if type(defaultValue) == "table" then
+            self.SelectedValue = defaultValue[1] or nil
+        else
+            self.SelectedValue = defaultValue
+        end
+    end
+    self.Callback = callback
+    self.IsOpen = false
+
+    -- 创建容器
     self.Container = CreateInstance("Frame", {
         Name = name,
         Size = UDim2.new(1, 0, 0, 40),
@@ -497,7 +519,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         BackgroundTransparency = 0.3,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
         BorderSizePixel = 1,
-        Text = defaultValue or "选择...",
+        Text = self:GetDisplayText(),
         TextColor3 = WasUI.CurrentTheme.Text,
         TextTransparency = 0,
         Font = Enum.Font.Gotham,
@@ -520,12 +542,9 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         ImageTransparency = 0,
         Parent = self.DropdownButton
     })
-    self.Options = options or {}
-    self.SelectedValue = defaultValue
-    self.Callback = callback
-    self.IsOpen = false
 
-    self.OptionsContainer = CreateInstance("Frame", {
+    -- 下拉菜单容器（带滚动）
+    self.OptionsContainer = CreateInstance("ScrollingFrame", {
         Name = "OptionsContainer",
         Size = UDim2.new(0.3, 0, 0, 0),
         Position = UDim2.new(0.7, 0, 0, 24),
@@ -536,6 +555,8 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         ClipsDescendants = true,
         Visible = false,
         ZIndex = 9999,
+        ScrollBarThickness = 4,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = WasUI.DropdownGui
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.OptionsContainer})
@@ -545,12 +566,23 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Transparency = 1,
         Parent = self.OptionsContainer
     })
-    self.OptionsListLayout = CreateInstance("UIListLayout", {
+
+    -- 选项列表布局
+    local optionsList = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 4),
         Parent = self.OptionsContainer
     })
+    local optionsPadding = CreateInstance("UIPadding", {
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8),
+        PaddingTop = UDim.new(0, 8),
+        PaddingBottom = UDim.new(0, 8),
+        Parent = self.OptionsContainer
+    })
 
+    -- 创建选项按钮
+    self.OptionButtons = {}
     for i, option in ipairs(self.Options) do
         local optionButton = CreateInstance("TextButton", {
             Name = "Option_" .. option,
@@ -573,38 +605,74 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.1)
         end)
         optionButton.MouseButton1Click:Connect(function()
-            self.SelectedValue = option
-            self.DropdownButton.Text = option
-            if self.Callback then self.Callback(option) end
-            self:Close()
+            if self.MultiSelect then
+                local index = table.find(self.SelectedValues, option)
+                if index then
+                    table.remove(self.SelectedValues, index)
+                else
+                    table.insert(self.SelectedValues, option)
+                end
+                self:UpdateDisplayText()
+                if self.Callback then self.Callback(self.SelectedValues) end
+            else
+                self.SelectedValue = option
+                self:UpdateDisplayText()
+                if self.Callback then self.Callback(option) end
+                self:Close()
+            end
         end)
+        self.OptionButtons[option] = optionButton
     end
 
-    self.DropdownButton.MouseButton1Click:Connect(function()
-        if self.IsOpen then
-            self:Close()
-        else
-            self:Open()
-        end
-    end)
+    -- 更新容器尺寸并防止超出屏幕
+    local function updateContainerSize()
+        local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 16
+        local maxHeight = 300
+        local finalHeight = math.min(totalHeight, maxHeight)
+        self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
+        task.wait()
+        self.OptionsContainer.CanvasSize = UDim2.new(0, 0, 0, optionsList.AbsoluteContentSize.Y)
+    end
 
-    -- 位置更新函数
     local function updatePosition()
         if not self.IsOpen then return end
         local btnPos = self.DropdownButton.AbsolutePosition
         local btnSize = self.DropdownButton.AbsoluteSize
-        self.OptionsContainer.Position = UDim2.new(0, btnPos.X, 0, btnPos.Y + btnSize.Y)
+        local viewportSize = game:GetService("CoreGui").AbsoluteSize
+        local menuHeight = self.OptionsContainer.AbsoluteSize.Y
+        local x = btnPos.X
+        local y = btnPos.Y + btnSize.Y
+        if y + menuHeight > viewportSize.Y then
+            y = btnPos.Y - menuHeight
+        end
+        local menuWidth = self.OptionsContainer.AbsoluteSize.X
+        if x + menuWidth > viewportSize.X then
+            x = viewportSize.X - menuWidth - 5
+        end
+        self.OptionsContainer.Position = UDim2.new(0, x, 0, y)
     end
 
     self.DropdownButton:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePosition)
     self.DropdownButton:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
 
+    function self:GetDisplayText()
+        if self.MultiSelect then
+            if #self.SelectedValues == 0 then return "选择..." end
+            return table.concat(self.SelectedValues, ", ")
+        else
+            return self.SelectedValue and tostring(self.SelectedValue) or "选择..."
+        end
+    end
+
+    function self:UpdateDisplayText()
+        self.DropdownButton.Text = self:GetDisplayText()
+    end
+
     function self:Open()
         if self.IsOpen then return end
         self.IsOpen = true
+        updateContainerSize()
         updatePosition()
-        local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 8
-        self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, totalHeight)
         self.OptionsContainer.Visible = true
         Tween(self.OptionsContainer, {BackgroundTransparency = 0.3}, 0.2)
         Tween(shadow, {Transparency = 0.8}, 0.2)
@@ -617,12 +685,44 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Tween(shadow, {Transparency = 1}, 0.2)
         task.wait(0.2)
         self.OptionsContainer.Visible = false
-        self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, 0)
     end
+
+    self.DropdownButton.MouseButton1Click:Connect(function()
+        if self.IsOpen then
+            self:Close()
+        else
+            self:Open()
+        end
+    end)
+
+    -- 点击外部关闭
+    UserInputService.InputBegan:Connect(function(input, processed)
+        if processed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            if self.IsOpen then
+                local mousePos = input.Position
+                local menuPos = self.OptionsContainer.AbsolutePosition
+                local menuSize = self.OptionsContainer.AbsoluteSize
+                local inMenu = mousePos.X >= menuPos.X and mousePos.X <= menuPos.X + menuSize.X and
+                                mousePos.Y >= menuPos.Y and mousePos.Y <= menuPos.Y + menuSize.Y
+                if not inMenu then
+                    self:Close()
+                end
+            end
+        end
+    end)
 
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
     table.insert(WasUI.Objects, {Object = self.DropdownButton, Type = "DropdownButton"})
     return self
+end
+
+-- 辅助函数：查找表元素
+function table.find(t, value)
+    for i, v in ipairs(t) do
+        if v == value then return i end
+    end
+    return nil
 end
 
 local Slider = setmetatable({}, {__index = Control})
@@ -991,33 +1091,26 @@ function Panel:New(name, parent, size, position)
     self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
     self.CloseButton.MouseButton1Click:Connect(function() 
         local function showCloseDialog()
-            local dialogGui = CreateInstance("ScreenGui", {
-                Name = "CloseDialog",
-                ResetOnSpawn = false,
-                DisplayOrder = 1000,
-                Parent = game:GetService("CoreGui")
-            })
-            local overlay = CreateInstance("TextButton", {
+            local overlay = CreateInstance("Frame", {
                 Name = "Overlay",
                 Size = UDim2.new(1, 0, 1, 0),
                 BackgroundColor3 = Color3.fromRGB(0, 0, 0),
                 BackgroundTransparency = 1,
+                BorderSizePixel = 0,
                 Visible = true,
-                AutoButtonColor = false,
-                Text = "",
-                Parent = dialogGui,
                 Active = true,
-                ZIndex = 9999
+                ZIndex = 10000,
+                Parent = self.Instance
             })
             local dialogFrame = CreateInstance("Frame", {
                 Name = "Dialog",
                 Size = UDim2.new(0, 400, 0, 220),
-                Position = UDim2.new(0.5, -200, 0.5, -130),
+                Position = UDim2.new(0.5, -200, 0.5, -110),
                 BackgroundColor3 = WasUI.CurrentTheme.Background,
                 BackgroundTransparency = 0.3,
                 BorderSizePixel = 0,
                 Parent = overlay,
-                ZIndex = 10000
+                ZIndex = 10001
             })
             CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
             local titleText = CreateInstance("TextLabel", {
@@ -1033,7 +1126,7 @@ function Panel:New(name, parent, size, position)
                 TextXAlignment = Enum.TextXAlignment.Center,
                 TextYAlignment = Enum.TextYAlignment.Center,
                 Parent = dialogFrame,
-                ZIndex = 10001
+                ZIndex = 10002
             })
             local buttonContainer = CreateInstance("Frame", {
                 Name = "ButtonContainer",
@@ -1041,7 +1134,7 @@ function Panel:New(name, parent, size, position)
                 Position = UDim2.new(0, 10, 1, -60),
                 BackgroundTransparency = 1,
                 Parent = dialogFrame,
-                ZIndex = 10001
+                ZIndex = 10002
             })
             local buttonLayout = CreateInstance("UIListLayout", {
                 FillDirection = Enum.FillDirection.Horizontal,
@@ -1062,7 +1155,7 @@ function Panel:New(name, parent, size, position)
                 TextSize = 14,
                 AutoButtonColor = true,
                 Parent = buttonContainer,
-                ZIndex = 10002
+                ZIndex = 10003
             })
             local cancelButton = CreateInstance("TextButton", {
                 Name = "Cancel",
@@ -1076,7 +1169,7 @@ function Panel:New(name, parent, size, position)
                 TextSize = 14,
                 AutoButtonColor = true,
                 Parent = buttonContainer,
-                ZIndex = 10002
+                ZIndex = 10003
             })
             for _, btn in ipairs({confirmButton, cancelButton}) do
                 CreateInstance("UICorner", {CornerRadius = UDim.new(0, 18), Parent = btn})
@@ -1114,8 +1207,7 @@ function Panel:New(name, parent, size, position)
                 WasUI.ActiveRainbowTexts = {}
                 WasUI.RainbowOrder = {}
                 self:SetVisible(false)
-                dialogGui:Destroy()
-                -- 销毁所有 WasUI 创建的全局 GUI
+                overlay:Destroy()
                 pcall(function() WasUI.DropdownGui:Destroy() end)
                 pcall(function() WasUI.NotificationGui:Destroy() end)
                 pcall(function() WasUI.DropdownGui = nil end)
@@ -1125,7 +1217,7 @@ function Panel:New(name, parent, size, position)
                 Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
                 Tween(overlay, {BackgroundTransparency = 1}, 0.2)
                 task.wait(0.2)
-                dialogGui:Destroy()
+                overlay:Destroy()
             end)
             overlay.MouseButton1Click:Connect(function(input)
                 local mousePos = input.Position
@@ -1136,18 +1228,7 @@ function Panel:New(name, parent, size, position)
                     Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
                     Tween(overlay, {BackgroundTransparency = 1}, 0.2)
                     task.wait(0.2)
-                    dialogGui:Destroy()
-                end
-            end)
-            overlay.Active = true
-            overlay.InputBegan:Connect(function(input)
-                local mousePos = input.Position
-                local framePos = dialogFrame.AbsolutePosition
-                local frameSize = dialogFrame.AbsoluteSize
-                local inDialog = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
-                                 mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
-                if not inDialog then
-                    input:SetConsumed(true)
+                    overlay:Destroy()
                 end
             end)
         end
@@ -1289,6 +1370,7 @@ function Panel:New(name, parent, size, position)
         Parent = self.Instance
     })
     
+    -- 选项卡栏（左侧无空白）
     self.TabBar = CreateInstance("ScrollingFrame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 24),
@@ -1585,9 +1667,9 @@ function Panel:AddToggle(text, initialState, onToggle, tabName)
     return toggleSwitch
 end
 
-function Panel:AddDropdown(title, options, defaultValue, callback, tabName)
+function Panel:AddDropdown(title, options, defaultValue, callback, tabName, multiSelect)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
-    local dropdown = Dropdown:New("Dropdown_" .. title, targetContent, title, options, defaultValue, callback)
+    local dropdown = Dropdown:New("Dropdown_" .. title, targetContent, title, options, defaultValue, callback, multiSelect)
     return dropdown
 end
 
