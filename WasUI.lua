@@ -307,13 +307,45 @@ function ToggleSwitch:New(name, parent, initialState, onToggle, featureName)
         Name = name .. "_BG",
         Size = UDim2.new(0, 36, 0, 18),
         Position = UDim2.new(1, -40, 0.5, -9),
-        BackgroundColor3 = self.Toggled and Was = 0,
+        -- 修复：还原正确的三目运算，移除错误的 = 0
+        BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or Color3.fromRGB(200, 200, 200),
         Image = "",
         BorderSizePixel = 0,
         AutoButtonColor = false,
         ZIndex = 3,
         Parent = parent
     })
+    local bgCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Background})
+    self.Knob = CreateInstance("Frame", {
+        Name = name .. "_Knob",
+        Size = UDim2.new(0, 16, 0, 16),
+        Position = self.Toggled and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = 0,
+        ZIndex = 4,
+        Parent = self.Background
+    })
+    local knobCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Knob})
+    if self.Toggled then
+        CreateRainbowTextForFeature(self.FeatureName)
+    end
+    self.Background.MouseButton1Click:Connect(function()
+        self.Toggled = not self.Toggled
+        if self.Toggled then
+            Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+            Tween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.2)
+            CreateRainbowTextForFeature(self.FeatureName)
+        else
+            Tween(self.Background, {BackgroundColor3 = Color3.fromRGB(200, 200, 200)}, 0.2)
+            Tween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.2)
+            DestroyRainbowTextForFeature(self.FeatureName)
+        end
+        if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
+    end)
+    table.insert(WasUI.Objects, {Object = self.Background, Type = "Toggle"})
+    table.insert(WasUI.Objects, {Object = self.Knob, Type = "ToggleKnob"})
+    return self
+end
     local bgCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Background})
     self.Knob = CreateInstance("Frame", {
         Name = name .. "_Knob",
