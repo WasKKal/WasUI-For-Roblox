@@ -16,6 +16,13 @@ _G.WasUILoaded = true
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
 
+-- 通知系统全局变量
+WasUI.NotificationTop = 20
+WasUI.NotificationSpacing = 8
+WasUI.NotificationHeight = 30
+WasUI.NotificationWidth = 250
+WasUI.ActiveNotifications = {}
+
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
 WasUI_Folder.Parent = ReplicatedStorage
@@ -298,7 +305,6 @@ function Control:SetVisible(visible)
     end
 end
 
--- 修改 Button:New 支持自定义尺寸
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick, size)
@@ -1446,7 +1452,6 @@ function Panel:AddTab(tabName)
     return tabContent
 end
 
--- 修复 AddButtonRow：支持选项卡参数，按钮填满父容器
 function Panel:AddButtonRow(buttons, tabName)
     local targetContent = tabName and self.TabContents[tabName] or self.ContentArea
     local container = CreateInstance("Frame", {
@@ -1472,7 +1477,6 @@ function Panel:AddButtonRow(buttons, tabName)
             AutomaticSize = Enum.AutomaticSize.X,
             Parent = container
         })
-        -- 按钮填满父容器
         local button = Button:New("Button_" .. i, btnFrame, btn.text, btn.onClick, UDim2.new(1, 0, 1, 0))
         buttonFrames[btnFrame] = button
     end
@@ -1661,6 +1665,98 @@ end
 
 function WasUI:RefreshTheme()
     self:SetTheme("Dark")
+end
+
+-- ========================= 通知系统 =========================
+function WasUI:Notify(options)
+    local config = {
+        Content = options.Content or "通知",
+        Duration = options.Duration or 3,
+        Type = options.Type or "Info"
+    }
+
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "WasUI_Notification_" .. tick(),
+        ResetOnSpawn = false,
+        DisplayOrder = 999,
+        Parent = playerGui
+    })
+
+    local notificationFrame = CreateInstance("Frame", {
+        Name = "Notification",
+        Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
+        Position = UDim2.new(1, 10, 0, 20),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 35),
+        BackgroundTransparency = 0.3,
+        Parent = screenGui
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = notificationFrame})
+    local stroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(60, 60, 65),
+        Thickness = 1,
+        Parent = notificationFrame
+    })
+
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "Content",
+        Size = UDim2.new(0.9, 0, 0.8, 0),
+        Position = UDim2.new(0.05, 0, 0.1, 0),
+        BackgroundTransparency = 1,
+        Text = config.Content,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 12,
+        TextWrapped = true,
+        Parent = notificationFrame
+    })
+
+    local notificationId = tostring(tick())
+    local notificationData = {
+        Instance = notificationFrame,
+        ScreenGui = screenGui,
+        Height = WasUI.NotificationHeight
+    }
+    WasUI.ActiveNotifications[notificationId] = notificationData
+
+    local function calculatePosition(index)
+        return (index - 1) * (WasUI.NotificationHeight + WasUI.NotificationSpacing) + WasUI.NotificationTop
+    end
+
+    local function updateAllNotificationPositions()
+        local sortedIds = {}
+        for id, _ in pairs(WasUI.ActiveNotifications) do
+            table.insert(sortedIds, id)
+        end
+        table.sort(sortedIds, function(a, b)
+            return tonumber(a) < tonumber(b)
+        end)
+
+        for i, id in ipairs(sortedIds) do
+            local notification = WasUI.ActiveNotifications[id]
+            if notification and notification.Instance and notification.Instance.Parent then
+                local targetY = calculatePosition(i)
+                Tween(notification.Instance, {
+                    Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, targetY)
+                }, 0.3)
+            end
+        end
+    end
+
+    updateAllNotificationPositions()
+
+    task.wait(config.Duration)
+
+    local fadeOut = Tween(notificationFrame, {BackgroundTransparency = 1}, 0.5)
+    Tween(textLabel, {TextTransparency = 1}, 0.5)
+    Tween(stroke, {Transparency = 1}, 0.5)
+
+    fadeOut.Completed:Connect(function()
+        screenGui:Destroy()
+        WasUI.ActiveNotifications[notificationId] = nil
+        task.wait(0.1)
+        updateAllNotificationPositions()
+    end)
 end
 
 _G.WasUIModule = WasUI
