@@ -1130,6 +1130,7 @@ function Panel:New(name, parent, size, position)
             dragging = true
             dragStart = input.Position
             startPos = self.Instance.Position
+            input:SetConsumed(true)
         end
     end
     local function stopDragging()
@@ -1301,6 +1302,17 @@ function Panel:New(name, parent, size, position)
         Parent = self.TabContainer
     })
     
+    self.TabHighlight = CreateInstance("Frame", {
+        Name = "TabHighlight",
+        Size = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 0.7,
+        BorderSizePixel = 0,
+        ZIndex = 5,
+        Parent = self.TabContainer
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = self.TabHighlight})
+    
     self.TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         self.TabBar.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
     end)
@@ -1401,17 +1413,6 @@ function Panel:AddTab(tabName)
         AutoButtonColor = false,
         Parent = self.TabContainer
     })
-    local underline = CreateInstance("Frame", {
-        Name = "Underline",
-        Size = UDim2.new(0, 0, 0, 2),
-        Position = UDim2.new(0.5, 0, 1, 0),
-        AnchorPoint = Vector2.new(0.5, 0),
-        BackgroundColor3 = Color3.fromRGB(128, 0, 128),
-        BackgroundTransparency = 1,
-        ZIndex = 10,
-        Parent = tabButton
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 2), Parent = underline})
     local tabContent = CreateInstance("ScrollingFrame", {
         Name = tabName .. "Content",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1426,13 +1427,13 @@ function Panel:AddTab(tabName)
     CreateInstance("UIPadding", {
         PaddingLeft = UDim.new(0, 12),
         PaddingRight = UDim.new(0, 12),
-        PaddingTop = UDim.new(0, 8),
-        PaddingBottom = UDim.new(0, 8),
+        PaddingTop = UDim.new(0, 4),
+        PaddingBottom = UDim.new(0, 4),
         Parent = tabContent
     })
     local contentLayout = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 4),
+        Padding = UDim.new(0, 2),
         Parent = tabContent
     })
     contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -1445,23 +1446,23 @@ function Panel:AddTab(tabName)
                 tab.Button.BackgroundTransparency = 0.7
                 tab.Button.TextColor3 = Color3.fromRGB(100, 100, 105)
                 tab.Button.BackgroundColor3 = WasUI.CurrentTheme.TabButton
-                if tab.Underline then
-                    Tween(tab.Underline, {Size = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1}, 0.2, Enum.EasingStyle.Cubic)
-                end
             end
         end
         tabContent.Visible = true
         tabButton.BackgroundTransparency = 0
         tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         tabButton.BackgroundColor3 = WasUI.CurrentTheme.Primary
-        Tween(underline, {Size = UDim2.new(1, 0, 0, 2), BackgroundTransparency = 0}, 0.2, Enum.EasingStyle.Cubic)
+        
+        local targetPos = tabButton.AbsolutePosition.X - self.TabContainer.AbsolutePosition.X
+        local targetWidth = tabButton.AbsoluteSize.X
+        Tween(self.TabHighlight, {Position = UDim2.new(0, targetPos, 0, 0), Size = UDim2.new(0, targetWidth, 1, 0)}, 0.2, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out)
         self.ActiveTab = tabName
     end)
     local tab = {
         Name = tabName,
         Button = tabButton,
         Content = tabContent,
-        Underline = underline
+        Highlight = self.TabHighlight
     }
     table.insert(self.Tabs, tab)
     self.TabContents[tabName] = tabContent
@@ -1469,12 +1470,13 @@ function Panel:AddTab(tabName)
         tabButton.BackgroundTransparency = 0
         tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         tabButton.BackgroundColor3 = WasUI.CurrentTheme.Primary
-        underline.Size = UDim2.new(1, 0, 0, 2)
-        underline.BackgroundTransparency = 0
         tabContent.Visible = true
+        local targetPos = tabButton.AbsolutePosition.X - self.TabContainer.AbsolutePosition.X
+        local targetWidth = tabButton.AbsoluteSize.X
+        self.TabHighlight.Position = UDim2.new(0, targetPos, 0, 0)
+        self.TabHighlight.Size = UDim2.new(0, targetWidth, 1, 0)
     end
     table.insert(WasUI.Objects, {Object = tabButton, Type = "TabButton"})
-    table.insert(WasUI.Objects, {Object = underline, Type = "TabUnderline"})
     return tabContent
 end
 
