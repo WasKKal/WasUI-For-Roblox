@@ -58,6 +58,99 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     return tween
 end
 
+-- 通用渐隐动画（适配所有控件类型）
+local function FadeOut(container, duration)
+    duration = duration or 0.3
+    local tweens = {}
+    for _, child in ipairs(container:GetChildren()) do
+        local props = {}
+        -- 根据控件类型设置对应透明度属性
+        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+            props.TextTransparency = 1
+            if child:IsA("TextButton") then
+                props.BackgroundTransparency = 1
+            end
+        elseif child:IsA("Frame") or child:IsA("ImageLabel") or child:IsA("ImageButton") then
+            props.BackgroundTransparency = 1
+            if child:IsA("ImageLabel") or child:IsA("ImageButton") then
+                props.ImageTransparency = 1
+            end
+        elseif child:IsA("UIStroke") then
+            props.Transparency = 1
+        end
+        if next(props) then
+            table.insert(tweens, Tween(child, props, duration))
+        end
+        -- 递归处理子控件
+        local childTweens = FadeOut(child, duration)
+        for _, tween in ipairs(childTweens) do
+            table.insert(tweens, tween)
+        end
+    end
+    return tweens
+end
+
+-- 通用渐显动画（适配所有控件类型）
+local function FadeIn(container, duration)
+    duration = duration or 0.3
+    local tweens = {}
+    for _, child in ipairs(container:GetChildren()) do
+        local props = {}
+        -- 根据控件类型恢复对应透明度属性
+        if child:IsA("TextLabel") then
+            props.TextTransparency = 0
+        elseif child:IsA("TextButton") then
+            props.TextTransparency = 0
+            props.BackgroundTransparency = child:GetAttribute("OriginalBackgroundTransparency") or 0.3
+        elseif child:IsA("TextBox") then
+            props.TextTransparency = 0
+            props.BackgroundTransparency = child:GetAttribute("OriginalBackgroundTransparency") or 0.3
+        elseif child:IsA("Frame") then
+            props.BackgroundTransparency = child:GetAttribute("OriginalBackgroundTransparency") or 0.3
+        elseif child:IsA("ImageLabel") then
+            props.ImageTransparency = 0
+            props.BackgroundTransparency = child:GetAttribute("OriginalBackgroundTransparency") or 1
+        elseif child:IsA("ImageButton") then
+            props.ImageTransparency = 0
+            props.BackgroundTransparency = child:GetAttribute("OriginalBackgroundTransparency") or 1
+        elseif child:IsA("UIStroke") then
+            props.Transparency = child:GetAttribute("OriginalTransparency") or 0
+        end
+        if next(props) then
+            table.insert(tweens, Tween(child, props, duration))
+        end
+        -- 递归处理子控件
+        local childTweens = FadeIn(child, duration)
+        for _, tween in ipairs(childTweens) do
+            table.insert(tweens, tween)
+        end
+    end
+    return tweens
+end
+
+-- 记录控件原始透明度（用于渐显时恢复）
+local function RecordOriginalTransparency(container)
+    for _, child in ipairs(container:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:SetAttribute("OriginalBackgroundTransparency", child.BackgroundTransparency)
+        elseif child:IsA("TextBox") then
+            child:SetAttribute("OriginalBackgroundTransparency", child.BackgroundTransparency)
+        elseif child:IsA("Frame") then
+            child:SetAttribute("OriginalBackgroundTransparency", child.BackgroundTransparency)
+        elseif child:IsA("ImageLabel") then
+            child:SetAttribute("OriginalBackgroundTransparency", child.BackgroundTransparency)
+            child:SetAttribute("OriginalImageTransparency", child.ImageTransparency)
+        elseif child:IsA("ImageButton") then
+            child:SetAttribute("OriginalBackgroundTransparency", child.BackgroundTransparency)
+            child:SetAttribute("OriginalImageTransparency", child.ImageTransparency)
+        elseif child:IsA("UIStroke") then
+            child:SetAttribute("OriginalTransparency", child.Transparency)
+        end
+        -- 递归处理子控件
+        RecordOriginalTransparency(child)
+    end
+end
+
 local function RefreshRainbowLayout()
     local startY = 10
     local spacing = 5
@@ -170,8 +263,10 @@ function Button:New(name, parent, text, onClick)
         Name = name,
         Size = UDim2.new(0, 0, 0, 28),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.3, -- 按钮半透明
         Text = text or "按钮",
         TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextTransparency = 0,
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
         AutoButtonColor = false,
@@ -212,7 +307,7 @@ function ToggleSwitch:New(name, parent, initialState, onToggle, featureName)
         Name = name .. "_BG",
         Size = UDim2.new(0, 36, 0, 18),
         Position = UDim2.new(1, -40, 0.5, -9),
-        BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or Color3.fromRGB(200, 200, 200),
+        BackgroundColor3 = self.Toggled and Was = 0,
         Image = "",
         BorderSizePixel = 0,
         AutoButtonColor = false,
@@ -225,6 +320,7 @@ function ToggleSwitch:New(name, parent, initialState, onToggle, featureName)
         Size = UDim2.new(0, 16, 0, 16),
         Position = self.Toggled and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 0,
         BorderSizePixel = 0,
         ZIndex = 4,
         Parent = self.Background
@@ -261,6 +357,7 @@ function Label:New(name, parent, text)
         BackgroundTransparency = 1,
         Text = text or "标签",
         TextColor3 = WasUI.CurrentTheme.Text,
+        TextTransparency = 0,
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextWrapped = true,
@@ -288,6 +385,7 @@ function Category:New(name, parent, title)
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = WasUI.CurrentTheme.Primary,
+        TextTransparency = 0,
         Font = Enum.Font.GothamBold,
         TextSize = 16,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -327,6 +425,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         BackgroundTransparency = 1,
         Text = title or "下拉菜单",
         TextColor3 = WasUI.CurrentTheme.Text,
+        TextTransparency = 0,
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -337,10 +436,12 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Size = UDim2.new(0.3, 0, 0, 24),
         Position = UDim2.new(0.7, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BackgroundTransparency = 0.3, -- 下拉按钮半透明
         BorderColor3 = Color3.fromRGB(200, 200, 200),
         BorderSizePixel = 1,
         Text = defaultValue or "选择...",
         TextColor3 = WasUI.CurrentTheme.Text,
+        TextTransparency = 0,
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextTruncate = Enum.TextTruncate.AtEnd,
@@ -358,6 +459,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         ImageRectOffset = Vector2.new(0, 0),
         ImageRectSize = Vector2.new(24, 24),
         ImageColor3 = WasUI.CurrentTheme.Text,
+        ImageTransparency = 0,
         Parent = self.DropdownButton
     })
     self.Options = options or {}
@@ -370,6 +472,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Size = UDim2.new(0.3, 0, 0, 0),
         Position = UDim2.new(0.7, 0, 0, 24),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BackgroundTransparency = 0.3, -- 选项容器半透明
         BorderColor3 = Color3.fromRGB(200, 200, 200),
         BorderSizePixel = 1,
         ClipsDescendants = true,
@@ -388,9 +491,11 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
             Name = "Option_" .. option,
             Size = UDim2.new(1, 0, 0, 24),
             BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3, -- 选项按钮半透明
             BorderSizePixel = 0,
             Text = option,
             TextColor3 = WasUI.CurrentTheme.Text,
+            TextTransparency = 0,
             Font = Enum.Font.Gotham,
             TextSize = 12,
             AutoButtonColor = false,
@@ -514,6 +619,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         BackgroundTransparency = 1,
         Text = title or "滑块",
         TextColor3 = WasUI.CurrentTheme.Text,
+        TextTransparency = 0,
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -526,6 +632,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         BackgroundTransparency = 1,
         Text = tostring(defaultValue or min),
         TextColor3 = WasUI.CurrentTheme.Text,
+        TextTransparency = 0,
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Right,
@@ -536,6 +643,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Size = UDim2.new(0.85, 0, 0, 8),
         Position = UDim2.new(0.03, 0, 0, 30),
         BackgroundColor3 = WasUI.CurrentTheme.Secondary,
+        BackgroundTransparency = 0.3, -- 滑块轨道半透明
         BorderSizePixel = 0,
         Text = "",
         AutoButtonColor = false,
@@ -547,6 +655,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Size = UDim2.new(0, 0, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.3, -- 滑块填充半透明
         BorderSizePixel = 0,
         Parent = self.SliderTrack
     })
@@ -639,6 +748,7 @@ local function CreateRainbowText(text, position)
         BackgroundTransparency = 1,
         Text = text,
         TextColor3 = Color3.fromRGB(255, 0, 0),
+        TextTransparency = 0,
         Font = Enum.Font.GothamBold,
         TextSize = 18,
         TextXAlignment = Enum.TextXAlignment.Right,
@@ -703,6 +813,7 @@ function WasUI:Notify(options)
     local stroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(60, 60, 65),
         Thickness = 1,
+        Transparency = 0.5,
         Parent = notificationFrame
     })
     local textLabel = CreateInstance("TextLabel", {
@@ -712,6 +823,7 @@ function WasUI:Notify(options)
         BackgroundTransparency = 1,
         Text = config.Content,
         TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextTransparency = 0,
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
         TextWrapped = true,
@@ -784,7 +896,7 @@ function Panel:New(name, parent, size, position)
         Size = size or UDim2.new(0, windowWidth, 0, windowHeight),
         Position = position or UDim2.new(0.5, -windowWidth/2, 0.5, -windowHeight/2),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.3, -- 保留半透明
+        BackgroundTransparency = 0.3, -- 主窗口半透明
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Parent = parent
@@ -836,14 +948,11 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(1, 0, 0, 26),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.3, -- 保留半透明
+        BackgroundTransparency = 0.3, -- 标题栏半透明
         BorderSizePixel = 0,
         Parent = self.Instance
     })
-    CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 10),
-        Parent = self.TitleBar
-    })
+    CreateInstance("
     
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
@@ -863,6 +972,7 @@ function Panel:New(name, parent, size, position)
         BackgroundTransparency = 1,
         Text = name,
         TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextTransparency = 0,
         Font = Enum.Font.GothamSemibold,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -893,6 +1003,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 0.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
+        BackgroundTransparency = 0,
         BorderSizePixel = 0,
         ZIndex = 3,
         Parent = self.DotContainer
@@ -903,6 +1014,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 15.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
+        BackgroundTransparency = 0,
         BorderSizePixel = 0,
         ZIndex = 3,
         Parent = self.DotContainer
@@ -913,6 +1025,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 30.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
+        BackgroundTransparency = 0,
         BorderSizePixel = 0,
         ZIndex = 3,
         Parent = self.DotContainer
@@ -929,6 +1042,7 @@ function Panel:New(name, parent, size, position)
         BackgroundTransparency = 1,
         Text = "-",
         TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextTransparency = 0,
         Font = Enum.Font.GothamBold,
         TextSize = 18,
         Parent = self.TitleBar
@@ -941,6 +1055,7 @@ function Panel:New(name, parent, size, position)
         BackgroundTransparency = 1,
         Text = "×",
         TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextTransparency = 0,
         Font = Enum.Font.GothamBold,
         TextSize = 16,
         Parent = self.TitleBar
@@ -1043,7 +1158,7 @@ function Panel:New(name, parent, size, position)
                 Name = "CloseDialog",
                 ResetOnSpawn = false,
                 DisplayOrder = 1000,
-                Parent = game:GetService("CoreGui") -- 修复：父级改为CoreGui，避免层级遮挡
+                Parent = game:GetService("CoreGui")
             })
             local overlay = CreateInstance("TextButton", {
                 Name = "Overlay",
@@ -1055,17 +1170,17 @@ function Panel:New(name, parent, size, position)
                 Text = "",
                 Parent = dialogGui,
                 Active = true,
-                ZIndex = 9999 -- 底层遮罩层级
+                ZIndex = 9999
             })
             local dialogFrame = CreateInstance("Frame", {
                 Name = "Dialog",
                 Size = UDim2.new(0, 340, 0, 180),
                 Position = UDim2.new(0.5, -170, 0.5, -90),
                 BackgroundColor3 = WasUI.CurrentTheme.Background,
-                BackgroundTransparency = 0.3, -- 保留半透明
+                BackgroundTransparency = 0.3,
                 BorderSizePixel = 0,
                 Parent = overlay,
-                ZIndex = 10000 -- 弹窗层级高于遮罩
+                ZIndex = 10000
             })
             CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
             local titleText = CreateInstance("TextLabel", {
@@ -1075,6 +1190,7 @@ function Panel:New(name, parent, size, position)
                 BackgroundTransparency = 1,
                 Text = WasUI.DialogTitle,
                 TextColor3 = WasUI.CurrentTheme.Text,
+                TextTransparency = 0,
                 Font = Enum.Font.GothamBold,
                 TextSize = 16,
                 TextXAlignment = Enum.TextXAlignment.Center,
@@ -1097,7 +1213,6 @@ function Panel:New(name, parent, size, position)
                 Padding = UDim.new(0, 15),
                 Parent = buttonContainer
             })
-            -- 修复：按钮设置ZIndex+取消AutoButtonColor=false导致的点击失效
             local confirmButton = CreateInstance("TextButton", {
                 Name = "Confirm",
                 Size = UDim2.new(0, 110, 0, 36),
@@ -1105,11 +1220,12 @@ function Panel:New(name, parent, size, position)
                 BackgroundTransparency = 0.3,
                 Text = "确认关闭",
                 TextColor3 = Color3.fromRGB(255, 100, 100),
+                TextTransparency = 0,
                 Font = Enum.Font.GothamSemibold,
                 TextSize = 14,
-                AutoButtonColor = true, -- 启用按钮交互
+                AutoButtonColor = true,
                 Parent = buttonContainer,
-                ZIndex = 10002 -- 按钮层级最高
+                ZIndex = 10002
             })
             local cancelButton = CreateInstance("TextButton", {
                 Name = "Cancel",
@@ -1118,11 +1234,12 @@ function Panel:New(name, parent, size, position)
                 BackgroundTransparency = 0.3,
                 Text = "取消",
                 TextColor3 = Color3.fromRGB(255, 255, 255),
+                TextTransparency = 0,
                 Font = Enum.Font.GothamSemibold,
                 TextSize = 14,
-                AutoButtonColor = true, -- 启用按钮交互
+                AutoButtonColor = true,
                 Parent = buttonContainer,
-                ZIndex = 10002 -- 按钮层级最高
+                ZIndex = 10002
             })
             for _, btn in ipairs({confirmButton, cancelButton}) do
                 CreateInstance("UICorner", {CornerRadius = UDim.new(0, 18), Parent = btn})
@@ -1226,6 +1343,8 @@ function Panel:New(name, parent, size, position)
         end
     end)
     
+    local announcementHeight = 80
+
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
         Name = "AnnouncementBar",
@@ -1380,7 +1499,7 @@ function Panel:New(name, parent, size, position)
         Size = UDim2.new(1, -10, 1, -announcementHeight - 28 - 31),
         Position = UDim2.new(0, 5, 0, 26 + announcementHeight + 28),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0.3, -- 核心：保留半透明，不改为不透明
         ScrollBarThickness = 4,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
@@ -1735,7 +1854,7 @@ function WasUI.CreateRainbowText(text, position)
 end
 
 function WasUI.RemoveRainbowText(text)
-    return RemoveRainbowText(text)
+    RemoveRainbowText(text)
 end
 
 function WasUI:ToggleSnowfall(enabled)
