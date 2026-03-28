@@ -305,11 +305,12 @@ function Control:SetVisible(visible)
     end
 end
 
+-- 按钮高度改为 24
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick, size)
     local self = Control.New(self, name, parent)
-    local buttonSize = size or UDim2.new(0, 0, 0, 28)
+    local buttonSize = size or UDim2.new(0, 0, 0, 24)
     self.Instance = CreateInstance("TextButton", {
         Name = name,
         Size = buttonSize,
@@ -322,9 +323,9 @@ function Button:New(name, parent, text, onClick, size)
         TextSize = 12,
         AutoButtonColor = false,
         Parent = parent,
-        AutomaticSize = buttonSize == UDim2.new(0, 0, 0, 28) and Enum.AutomaticSize.X or Enum.AutomaticSize.None
+        AutomaticSize = buttonSize == UDim2.new(0, 0, 0, 24) and Enum.AutomaticSize.X or Enum.AutomaticSize.None
     })
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.Instance})
     local padding = CreateInstance("UIPadding", {
         PaddingLeft = UDim.new(0, 12),
         PaddingRight = UDim.new(0, 12),
@@ -457,7 +458,7 @@ function Category:New(name, parent, title)
     return self
 end
 
--- 增强的下拉菜单
+-- 修复下拉菜单无法展开（简化逻辑）
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback)
@@ -533,14 +534,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         Parent = playerGui
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.OptionsContainer})
-
-    local shadow = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(0, 0, 0),
-        Thickness = 0,
-        Transparency = 0.8,
-        Parent = self.OptionsContainer
-    })
-
     self.OptionsListLayout = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 4),
@@ -590,16 +583,11 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback)
         self.OptionsContainer.Visible = true
         local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 8
         self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, totalHeight)
-        Tween(self.OptionsContainer, {BackgroundTransparency = 0.3}, 0.2)
-        Tween(shadow, {Thickness = 1}, 0.2)
     end
 
     function self:Close()
         if not self.IsOpen then return end
         self.IsOpen = false
-        Tween(self.OptionsContainer, {BackgroundTransparency = 1}, 0.2)
-        Tween(shadow, {Thickness = 0}, 0.2)
-        task.wait(0.2)
         self.OptionsContainer.Visible = false
         self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, 0)
     end
@@ -1238,7 +1226,8 @@ function Panel:New(name, parent, size, position)
         Parent = self.AnnouncementBar
     })
     
-    local executorName = (type(getExecutor) == "function" and getExecutor()) or "未知"
+    -- 安全获取执行器
+    local executorName = pcall(function() return getexecutorname() end) and getexecutorname() or (type(getExecutor) == "function" and getExecutor() or "未知")
     self.ExecutorLabel = CreateInstance("TextLabel", {
         Name = "ExecutorLabel",
         Size = UDim2.new(0.6, 0, 0, 16),
@@ -1505,7 +1494,6 @@ function Panel:AddButtonRow(buttons, tabName)
         Padding = UDim.new(0, 8),
         Parent = container
     })
-    local buttonFrames = {}
     for i, btn in ipairs(buttons) do
         local btnFrame = CreateInstance("Frame", {
             Name = "Button_" .. i,
@@ -1514,8 +1502,7 @@ function Panel:AddButtonRow(buttons, tabName)
             AutomaticSize = Enum.AutomaticSize.X,
             Parent = container
         })
-        local button = Button:New("Button_" .. i, btnFrame, btn.text, btn.onClick, UDim2.new(1, 0, 1, 0))
-        buttonFrames[btnFrame] = button
+        Button:New("Button_" .. i, btnFrame, btn.text, btn.onClick, UDim2.new(1, 0, 1, 0))
     end
     local function updateWidths()
         local count = #buttons
