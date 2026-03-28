@@ -957,7 +957,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundTransparency = 1,
         Text = "",
         AutoButtonColor = false,
-        ZIndex = 100,
+        ZIndex = 1,
         Parent = self.TitleBar
     })
     
@@ -1041,6 +1041,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         TextTransparency = 0,
         Font = Enum.Font.GothamBold,
         TextSize = 18,
+        ZIndex = 2,
         Parent = self.TitleBar
     })
     
@@ -1054,6 +1055,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         TextTransparency = 0,
         Font = Enum.Font.GothamBold,
         TextSize = 16,
+        ZIndex = 2,
         Parent = self.TitleBar
     })
     
@@ -1075,6 +1077,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.MinimizeButton.Visible = false
         self.DraggableArea.Visible = true
         self.DotContainer.Visible = true
+        if self.SnowContainer then
+            self.SnowContainer.Visible = false
+        end
         self.IsMinimized = true
     end
     
@@ -1092,6 +1097,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.MinimizeButton.Visible = true
         self.DraggableArea.Visible = true
         self.DotContainer.Visible = true
+        if self.SnowContainer then
+            self.SnowContainer.Visible = true
+        end
         self.IsMinimized = false
     end
     
@@ -1548,6 +1556,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         if self.BorderEffect then
             self.BorderEffect.Visible = visible
         end
+        if self.SnowContainer then
+            self.SnowContainer.Visible = visible
+        end
     end
 
     function self:SetTitle(text)
@@ -1561,11 +1572,22 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     if snowEnabled then
         self.SnowContainer = CreateInstance("Frame", {
             Name = "SnowContainer",
-            Size = UDim2.new(1, 0, 1, 0),
+            Size = self.Instance.Size,
+            Position = self.Instance.Position,
             BackgroundTransparency = 1,
             ZIndex = 100000,
-            Parent = self.Instance
+            Parent = parent
         })
+        
+        local function updateSnowContainer()
+            if self.SnowContainer and self.Instance then
+                self.SnowContainer.Position = self.Instance.Position
+                self.SnowContainer.Size = self.Instance.Size
+            end
+        end
+        
+        self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
+        self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
         
         self.Snowflakes = {}
         self.SnowTimer = 0
@@ -1573,6 +1595,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         
         self.SnowConnection = RunService.Heartbeat:Connect(function(deltaTime)
             if not self.Instance.Visible then return end
+            if not self.SnowContainer.Visible then return end
             
             self.SnowTimer = self.SnowTimer + deltaTime
             self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
@@ -1632,6 +1655,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             end
         end)
     else
+        self.SnowContainer = nil
         self.SnowConnection = nil
     end
 
