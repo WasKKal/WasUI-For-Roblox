@@ -1411,141 +1411,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Tween(avatarScale, {Scale = 1}, 0.1)
     end)
     
-    self.Avatar.MouseButton1Click:Connect(function()
-        if WasUI.SettingsPanel and WasUI.SettingsPanel.Parent then
-            WasUI.SettingsPanel.Visible = not WasUI.SettingsPanel.Visible
-            return
-        end
-        
-        local settingsFrame = CreateInstance("Frame", {
-            Name = "SettingsPanel",
-            Size = UDim2.new(0, 300, 0, 200),
-            Position = UDim2.new(0.5, -150, 0.5, -100),
-            BackgroundColor3 = WasUI.CurrentTheme.Background,
-            BackgroundTransparency = 0.2,
-            BorderSizePixel = 0,
-            ClipsDescendants = true,
-            ZIndex = 1000,
-            Parent = self.Instance
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
-        
-        local titleBar = CreateInstance("Frame", {
-            Name = "TitleBar",
-            Size = UDim2.new(1, 0, 0, 30),
-            BackgroundColor3 = WasUI.CurrentTheme.Primary,
-            BackgroundTransparency = 0.3,
-            BorderSizePixel = 0,
-            Parent = settingsFrame
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = titleBar})
-        
-        local titleLabel = CreateInstance("TextLabel", {
-            Name = "Title",
-            Size = UDim2.new(1, -30, 1, 0),
-            Position = UDim2.new(0, 10, 0, 0),
-            BackgroundTransparency = 1,
-            Text = "UI设置",
-            TextColor3 = Color3.fromRGB(255, 255, 255),
-            Font = Enum.Font.GothamBold,
-            TextSize = 14,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 1001,
-            Parent = titleBar
-        })
-        
-        local closeBtn = CreateInstance("TextButton", {
-            Name = "Close",
-            Size = UDim2.new(0, 24, 0, 24),
-            Position = UDim2.new(1, -28, 0, 3),
-            BackgroundTransparency = 1,
-            Text = "×",
-            TextColor3 = Color3.fromRGB(255, 255, 255),
-            Font = Enum.Font.GothamBold,
-            TextSize = 18,
-            ZIndex = 1001,
-            Parent = titleBar
-        })
-        closeBtn.MouseButton1Click:Connect(function()
-            settingsFrame:Destroy()
-            WasUI.SettingsPanel = nil
-        end)
-        
-        local contentFrame = CreateInstance("Frame", {
-            Name = "Content",
-            Size = UDim2.new(1, -20, 1, -40),
-            Position = UDim2.new(0, 10, 0, 40),
-            BackgroundTransparency = 1,
-            Parent = settingsFrame
-        })
-        
-        local themeLabel = CreateInstance("TextLabel", {
-            Name = "ThemeLabel",
-            Size = UDim2.new(1, 0, 0, 24),
-            Position = UDim2.new(0, 0, 0, 0),
-            BackgroundTransparency = 1,
-            Text = "窗口风格",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 14,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 1001,
-            Parent = contentFrame
-        })
-        
-        local themeDropdown = CreateInstance("TextButton", {
-            Name = "ThemeDropdown",
-            Size = UDim2.new(0, 120, 0, 28),
-            Position = UDim2.new(1, -130, 0, -2),
-            BackgroundColor3 = WasUI.CurrentTheme.Input,
-            BackgroundTransparency = 0.3,
-            Text = "Dark",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            AutoButtonColor = false,
-            ZIndex = 1001,
-            Parent = contentFrame
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
-        
-        themeDropdown.MouseButton1Click:Connect(function()
-            WasUI:Notify({Title = "提示", Content = "当前仅支持Dark主题", Duration = 2})
-        end)
-        
-        local groupButton = CreateInstance("TextButton", {
-            Name = "GroupButton",
-            Size = UDim2.new(0, 200, 0, 32),
-            Position = UDim2.new(0.5, -100, 1, -40),
-            BackgroundColor3 = WasUI.CurrentTheme.Success,
-            BackgroundTransparency = 0.3,
-            Text = WasUI.GroupButtonText,
-            TextColor3 = Color3.fromRGB(255, 255, 255),
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 12,
-            AutoButtonColor = false,
-            ZIndex = 1001,
-            Parent = contentFrame
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = groupButton})
-        groupButton.MouseEnter:Connect(function()
-            Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-        end)
-        groupButton.MouseLeave:Connect(function()
-            Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Success, BackgroundTransparency = 0.3}, 0.2)
-        end)
-        groupButton.MouseButton1Click:Connect(function()
-            local copied = copyToClipboard(WasUI.GroupCopyContent)
-            if copied then
-                WasUI:Notify({Title = "复制成功", Content = "已复制：" .. WasUI.GroupCopyContent, Duration = 2})
-            else
-                WasUI:Notify({Title = "复制失败", Content = "当前环境不支持复制到剪贴板", Duration = 2})
-            end
-        end)
-        
-        WasUI.SettingsPanel = settingsFrame
-    end)
-    
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0.6, 0, 0, 18),
@@ -1592,13 +1457,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.AnnouncementBar
     })
 
+    -- 选项卡栏：贴合左侧，高度自适应
     self.TabBar = CreateInstance("Frame", {
         Name = "TabBar",
-        Size = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(1, 0, 0, 0),          -- 高度暂时为0，后面动态调整
         Position = UDim2.new(0, 0, 0, 26 + 80),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.4,
-        AutomaticSize = Enum.AutomaticSize.Y,
+        AutomaticSize = Enum.AutomaticSize.Y,   -- 自动高度
         Parent = self.Instance
     })
     local tabLine = CreateInstance("Frame", {
@@ -1609,6 +1475,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.TabBar
     })
     
+    -- 横向滚动的 TabContainer，贴合左侧，无额外间距
     self.TabContainer = CreateInstance("ScrollingFrame", {
         Name = "TabContainer",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1638,6 +1505,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.TabContainer.CanvasSize = UDim2.new(0, tabListLayout.AbsoluteContentSize.X + 8, 0, 0)
     end)
 
+    -- 内容区域（仅垂直滚动，禁用横向）
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
         Size = UDim2.new(1, 0, 1, -(26 + 80 + self.TabBar.AbsoluteSize.Y)),
@@ -1649,6 +1517,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
     })
+    -- 监听 TabBar 高度变化，调整 ContentArea 位置和大小
     self.TabBar:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
         local tabHeight = self.TabBar.AbsoluteSize.Y
         self.ContentArea.Position = UDim2.new(0, 0, 0, 26 + 80 + tabHeight)
@@ -1700,6 +1569,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = tabButton
         })
 
+        -- 每个选项卡对应的内容框架
         local tabFrame = CreateInstance("Frame", {
             Name = "TabFrame_" .. tabName,
             Size = UDim2.new(1, 0, 0, 0),
@@ -1720,10 +1590,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             PaddingBottom = UDim.new(0, 4),
             Parent = tabFrame
         })
+        -- 当内部内容变化时，触发外层布局更新
         tabInnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() end)
-            contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Wait()
-            contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() end)
+            -- 重新触发 ContentArea 的 CanvasSize 更新
+            contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Fire()
         end)
 
         tabButton.MouseButton1Click:Connect(function()
@@ -1869,7 +1739,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel"})
     return self
 end
-
 local function updateAllNotificationPositions()
     local sorted = {}
     for id, data in pairs(WasUI.ActiveNotifications) do
