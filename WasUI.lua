@@ -1457,14 +1457,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.AnnouncementBar
     })
 
-    -- 选项卡栏：贴合左侧，高度自适应
-    self.TabBar = CreateInstance("Frame", {
+self.TabBar = CreateInstance("Frame", {
         Name = "TabBar",
-        Size = UDim2.new(1, 0, 0, 0),          -- 高度暂时为0，后面动态调整
+        Size = UDim2.new(1, 0, 0, 0),
         Position = UDim2.new(0, 0, 0, 26 + 80),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.4,
-        AutomaticSize = Enum.AutomaticSize.Y,   -- 自动高度
+        ClipsDescendants = false,
         Parent = self.Instance
     })
     local tabLine = CreateInstance("Frame", {
@@ -1475,16 +1474,16 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.TabBar
     })
     
-    -- 横向滚动的 TabContainer，贴合左侧，无额外间距
     self.TabContainer = CreateInstance("ScrollingFrame", {
         Name = "TabContainer",
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2.new(1, 0, 0, 0),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
         ScrollBarThickness = 4,
         ScrollBarImageColor3 = WasUI.CurrentTheme.Text,
         ScrollingDirection = Enum.ScrollingDirection.X,
         VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Left,
+        AutomaticSize = Enum.AutomaticSize.Y,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.TabBar
     })
@@ -1501,11 +1500,40 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         PaddingRight = UDim.new(0, 4),
         Parent = self.TabContainer
     })
+    
+    local function updateTabBarHeight()
+        local containerHeight = self.TabContainer.AbsoluteSize.Y
+        if containerHeight > 0 then
+            self.TabBar.Size = UDim2.new(1, 0, 0, containerHeight)
+            -- 触发 ContentArea 位置更新
+            local tabHeight = self.TabBar.AbsoluteSize.Y
+            self.ContentArea.Position = UDim2.new(0, 0, 0, 26 + 80 + tabHeight)
+            self.ContentArea.Size = UDim2.new(1, 0, 1, -(26 + 80 + tabHeight))
+        end
+    end
+    
+    self.TabContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateTabBarHeight)
     tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         self.TabContainer.CanvasSize = UDim2.new(0, tabListLayout.AbsoluteContentSize.X + 8, 0, 0)
+        task.wait() -- 等待布局更新
+        updateTabBarHeight()
     end)
+    -- 初始更新
+    task.wait()
+    updateTabBarHeight()
 
-    -- 内容区域（仅垂直滚动，禁用横向）
+    self.ContentArea = CreateInstance("ScrollingFrame", {
+        Name = "ContentArea",
+        Size = UDim2.new(1, 0, 1, -(26 + 80 + self.TabBar.AbsoluteSize.Y)),
+        Position = UDim2.new(0, 0, 0, 26 + 80 + self.TabBar.AbsoluteSize.Y),
+        BackgroundTransparency = 1,
+        ClipsDescendants = true,
+        ScrollBarThickness = 4,
+        ScrollingDirection = Enum.ScrollingDirection.Y,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        Parent = self.Instance
+    })
+
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
         Size = UDim2.new(1, 0, 1, -(26 + 80 + self.TabBar.AbsoluteSize.Y)),
