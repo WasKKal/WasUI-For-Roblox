@@ -8,13 +8,22 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
-local Clipboard = game:GetService("Clipboard")
 
 if _G.WasUILoaded then
     warn("WasUI 已加载，跳过重复加载")
     return _G.WasUIModule
 end
 _G.WasUILoaded = true
+
+local function copyToClipboard(text)
+    if type(setclipboard) == "function" then
+        setclipboard(text)
+        return true
+    elseif pcall(function() game:GetService("Selection"):SetTextAsync(text) end) then
+        return true
+    end
+    return false
+end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
@@ -26,7 +35,6 @@ WasUI.NotificationWidth = 250
 WasUI.ActiveNotifications = {}
 WasUI.OpenDropdowns = {}
 
--- 全局设置面板相关
 WasUI.SettingsPanel = nil
 WasUI.GroupButtonText = "加入WasUI主群"
 WasUI.GroupCopyContent = "1085475284"
@@ -1403,7 +1411,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Tween(avatarScale, {Scale = 1}, 0.1)
     end)
     
-    -- 头像点击打开设置面板
     self.Avatar.MouseButton1Click:Connect(function()
         if WasUI.SettingsPanel and WasUI.SettingsPanel.Parent then
             WasUI.SettingsPanel.Visible = not WasUI.SettingsPanel.Visible
@@ -1498,7 +1505,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
         
-        -- 固定只有Dark，不可更改
         themeDropdown.MouseButton1Click:Connect(function()
             WasUI:Notify({Title = "提示", Content = "当前仅支持Dark主题", Duration = 2})
         end)
@@ -1524,8 +1530,12 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Success, BackgroundTransparency = 0.3}, 0.2)
         end)
         groupButton.MouseButton1Click:Connect(function()
-            Clipboard:set(WasUI.GroupCopyContent)
-            WasUI:Notify({Title = "复制成功", Content = "已复制：" .. WasUI.GroupCopyContent, Duration = 2})
+            local copied = copyToClipboard(WasUI.GroupCopyContent)
+            if copied then
+                WasUI:Notify({Title = "复制成功", Content = "已复制：" .. WasUI.GroupCopyContent, Duration = 2})
+            else
+                WasUI:Notify({Title = "复制失败", Content = "当前环境不支持复制到剪贴板", Duration = 2})
+            end
         end)
         
         WasUI.SettingsPanel = settingsFrame
