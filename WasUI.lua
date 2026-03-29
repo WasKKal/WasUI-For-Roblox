@@ -985,6 +985,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.TitleBar
     })
     
+    -- 拖动区域覆盖整个标题栏（除红黄绿点区域外，通过事件判断排除）
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
         Size = UDim2.new(1, 0, 1, 0),
@@ -992,7 +993,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundTransparency = 1,
         Text = "",
         AutoButtonColor = false,
-        ZIndex = 1,
+        ZIndex = 100,
         Parent = self.TitleBar
     })
     
@@ -1307,29 +1308,30 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         showCloseDialog()
     end)
     
+    -- 窗口拖动逻辑（修复：排除点击红黄绿点和按钮区域）
     local dragging = false
     local dragStart = Vector2.new()
     local startPos = UDim2.new()
+    
+    local function isPointOverButton(btn, point)
+        if not btn or not btn.Parent then return false end
+        local absPos = btn.AbsolutePosition
+        local absSize = btn.AbsoluteSize
+        return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
+               point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y
+    end
+    
     local function startDragging(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             local mousePos = input.Position
-            local dotContainerPos = self.DotContainer.AbsolutePosition
-            local dotContainerSize = self.DotContainer.AbsoluteSize
-            local closeDotPos = self.CloseDot.AbsolutePosition
-            local closeDotSize = self.CloseDot.AbsoluteSize
-            local minDotPos = self.MinimizeDot.AbsolutePosition
-            local minDotSize = self.MinimizeDot.AbsoluteSize
-            local maxDotPos = self.MaximizeDot.AbsolutePosition
-            local maxDotSize = self.MaximizeDot.AbsoluteSize
+            -- 检查是否点击到红黄绿点区域或最小化/关闭按钮
+            local hitCloseDot = isPointOverButton(self.CloseDot, mousePos)
+            local hitMinimizeDot = isPointOverButton(self.MinimizeDot, mousePos)
+            local hitMaximizeDot = isPointOverButton(self.MaximizeDot, mousePos)
+            local hitMinimizeBtn = isPointOverButton(self.MinimizeButton, mousePos)
+            local hitCloseBtn = isPointOverButton(self.CloseButton, mousePos)
             
-            local hitDot = (mousePos.X >= closeDotPos.X and mousePos.X <= closeDotPos.X + closeDotSize.X and
-                            mousePos.Y >= closeDotPos.Y and mousePos.Y <= closeDotPos.Y + closeDotSize.Y) or
-                           (mousePos.X >= minDotPos.X and mousePos.X <= minDotPos.X + minDotSize.X and
-                            mousePos.Y >= minDotPos.Y and mousePos.Y <= minDotPos.Y + minDotSize.Y) or
-                           (mousePos.X >= maxDotPos.X and mousePos.X <= maxDotPos.X + maxDotSize.X and
-                            mousePos.Y >= maxDotPos.Y and mousePos.Y <= maxDotPos.Y + maxDotSize.Y)
-            
-            if not hitDot then
+            if not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitMinimizeBtn or hitCloseBtn) then
                 dragging = true
                 dragStart = input.Position
                 startPos = self.Instance.Position
@@ -1337,6 +1339,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             end
         end
     end
+    
     local function stopDragging()
         dragging = false
     end
@@ -1411,6 +1414,141 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Tween(avatarScale, {Scale = 1}, 0.1)
     end)
     
+    self.Avatar.MouseButton1Click:Connect(function()
+        if WasUI.SettingsPanel and WasUI.SettingsPanel.Parent then
+            WasUI.SettingsPanel.Visible = not WasUI.SettingsPanel.Visible
+            return
+        end
+        
+        local settingsFrame = CreateInstance("Frame", {
+            Name = "SettingsPanel",
+            Size = UDim2.new(0, 300, 0, 200),
+            Position = UDim2.new(0.5, -150, 0.5, -100),
+            BackgroundColor3 = WasUI.CurrentTheme.Background,
+            BackgroundTransparency = 0.2,
+            BorderSizePixel = 0,
+            ClipsDescendants = true,
+            ZIndex = 1000,
+            Parent = self.Instance
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
+        
+        local titleBar = CreateInstance("Frame", {
+            Name = "TitleBar",
+            Size = UDim2.new(1, 0, 0, 30),
+            BackgroundColor3 = WasUI.CurrentTheme.Primary,
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            Parent = settingsFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = titleBar})
+        
+        local titleLabel = CreateInstance("TextLabel", {
+            Name = "Title",
+            Size = UDim2.new(1, -30, 1, 0),
+            Position = UDim2.new(0, 10, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "UI设置",
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            Font = Enum.Font.GothamBold,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1001,
+            Parent = titleBar
+        })
+        
+        local closeBtn = CreateInstance("TextButton", {
+            Name = "Close",
+            Size = UDim2.new(0, 24, 0, 24),
+            Position = UDim2.new(1, -28, 0, 3),
+            BackgroundTransparency = 1,
+            Text = "×",
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            Font = Enum.Font.GothamBold,
+            TextSize = 18,
+            ZIndex = 1001,
+            Parent = titleBar
+        })
+        closeBtn.MouseButton1Click:Connect(function()
+            settingsFrame:Destroy()
+            WasUI.SettingsPanel = nil
+        end)
+        
+        local contentFrame = CreateInstance("Frame", {
+            Name = "Content",
+            Size = UDim2.new(1, -20, 1, -40),
+            Position = UDim2.new(0, 10, 0, 40),
+            BackgroundTransparency = 1,
+            Parent = settingsFrame
+        })
+        
+        local themeLabel = CreateInstance("TextLabel", {
+            Name = "ThemeLabel",
+            Size = UDim2.new(1, 0, 0, 24),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "窗口风格",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1001,
+            Parent = contentFrame
+        })
+        
+        local themeDropdown = CreateInstance("TextButton", {
+            Name = "ThemeDropdown",
+            Size = UDim2.new(0, 120, 0, 28),
+            Position = UDim2.new(1, -130, 0, -2),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            Text = "Dark",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            AutoButtonColor = false,
+            ZIndex = 1001,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
+        
+        themeDropdown.MouseButton1Click:Connect(function()
+            WasUI:Notify({Title = "提示", Content = "当前仅支持Dark主题", Duration = 2})
+        end)
+        
+        local groupButton = CreateInstance("TextButton", {
+            Name = "GroupButton",
+            Size = UDim2.new(0, 200, 0, 32),
+            Position = UDim2.new(0.5, -100, 1, -40),
+            BackgroundColor3 = WasUI.CurrentTheme.Success,
+            BackgroundTransparency = 0.3,
+            Text = WasUI.GroupButtonText,
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 12,
+            AutoButtonColor = false,
+            ZIndex = 1001,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = groupButton})
+        groupButton.MouseEnter:Connect(function()
+            Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+        end)
+        groupButton.MouseLeave:Connect(function()
+            Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Success, BackgroundTransparency = 0.3}, 0.2)
+        end)
+        groupButton.MouseButton1Click:Connect(function()
+            local copied = copyToClipboard(WasUI.GroupCopyContent)
+            if copied then
+                WasUI:Notify({Title = "复制成功", Content = "已复制：" .. WasUI.GroupCopyContent, Duration = 2})
+            else
+                WasUI:Notify({Title = "复制失败", Content = "当前环境不支持复制到剪贴板", Duration = 2})
+            end
+        end)
+        
+        WasUI.SettingsPanel = settingsFrame
+    end)
+    
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0.6, 0, 0, 18),
@@ -1457,7 +1595,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.AnnouncementBar
     })
 
-self.TabBar = CreateInstance("Frame", {
+    self.TabBar = CreateInstance("Frame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 0),
         Position = UDim2.new(0, 0, 0, 26 + 80),
@@ -1505,7 +1643,6 @@ self.TabBar = CreateInstance("Frame", {
         local containerHeight = self.TabContainer.AbsoluteSize.Y
         if containerHeight > 0 then
             self.TabBar.Size = UDim2.new(1, 0, 0, containerHeight)
-            -- 触发 ContentArea 位置更新
             local tabHeight = self.TabBar.AbsoluteSize.Y
             self.ContentArea.Position = UDim2.new(0, 0, 0, 26 + 80 + tabHeight)
             self.ContentArea.Size = UDim2.new(1, 0, 1, -(26 + 80 + tabHeight))
@@ -1515,10 +1652,9 @@ self.TabBar = CreateInstance("Frame", {
     self.TabContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateTabBarHeight)
     tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         self.TabContainer.CanvasSize = UDim2.new(0, tabListLayout.AbsoluteContentSize.X + 8, 0, 0)
-        task.wait() -- 等待布局更新
+        task.wait()
         updateTabBarHeight()
     end)
-    -- 初始更新
     task.wait()
     updateTabBarHeight()
 
@@ -1533,24 +1669,6 @@ self.TabBar = CreateInstance("Frame", {
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
     })
-
-    self.ContentArea = CreateInstance("ScrollingFrame", {
-        Name = "ContentArea",
-        Size = UDim2.new(1, 0, 1, -(26 + 80 + self.TabBar.AbsoluteSize.Y)),
-        Position = UDim2.new(0, 0, 0, 26 + 80 + self.TabBar.AbsoluteSize.Y),
-        BackgroundTransparency = 1,
-        ClipsDescendants = true,
-        ScrollBarThickness = 4,
-        ScrollingDirection = Enum.ScrollingDirection.Y,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        Parent = self.Instance
-    })
-    -- 监听 TabBar 高度变化，调整 ContentArea 位置和大小
-    self.TabBar:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-        local tabHeight = self.TabBar.AbsoluteSize.Y
-        self.ContentArea.Position = UDim2.new(0, 0, 0, 26 + 80 + tabHeight)
-        self.ContentArea.Size = UDim2.new(1, 0, 1, -(26 + 80 + tabHeight))
-    end)
     
     local contentPadding = CreateInstance("UIPadding", {
         PaddingLeft = UDim.new(0, 8),
@@ -1564,9 +1682,16 @@ self.TabBar = CreateInstance("Frame", {
         Padding = UDim.new(0, 4),
         Parent = self.ContentArea
     })
-    contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    
+    local function refreshContentCanvas()
         self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, contentListLayout.AbsoluteContentSize.Y + 8)
-    end)
+    end
+    contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshContentCanvas)
+    refreshContentCanvas()
+    
+    local function refreshOuterCanvas()
+        refreshContentCanvas()
+    end
 
     self.Tabs = {}
     self.ActiveTab = nil
@@ -1597,7 +1722,6 @@ self.TabBar = CreateInstance("Frame", {
             Parent = tabButton
         })
 
-        -- 每个选项卡对应的内容框架
         local tabFrame = CreateInstance("Frame", {
             Name = "TabFrame_" .. tabName,
             Size = UDim2.new(1, 0, 0, 0),
@@ -1618,11 +1742,7 @@ self.TabBar = CreateInstance("Frame", {
             PaddingBottom = UDim.new(0, 4),
             Parent = tabFrame
         })
-        -- 当内部内容变化时，触发外层布局更新
-        tabInnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            -- 重新触发 ContentArea 的 CanvasSize 更新
-            contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Fire()
-        end)
+        tabInnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshOuterCanvas)
 
         tabButton.MouseButton1Click:Connect(function()
             self:SetActiveTab(tabName)
@@ -1767,6 +1887,7 @@ self.TabBar = CreateInstance("Frame", {
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel"})
     return self
 end
+
 local function updateAllNotificationPositions()
     local sorted = {}
     for id, data in pairs(WasUI.ActiveNotifications) do
