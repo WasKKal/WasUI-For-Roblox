@@ -776,15 +776,12 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.Max = max or 100
     self.Value = math.clamp(defaultValue or self.Min, self.Min, self.Max)
     self.Callback = callback
-    self.dragging = false
-
     self.Container = CreateInstance("Frame", {
         Name = name,
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
         Parent = parent
     })
-
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(0.7, 0, 0, 20),
@@ -797,7 +794,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.Container
     })
-
     self.ValueLabel = CreateInstance("TextLabel", {
         Name = "Value",
         Size = UDim2.new(0.3, 0, 0, 20),
@@ -810,89 +806,60 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         TextXAlignment = Enum.TextXAlignment.Right,
         Parent = self.Container
     })
-
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, -13, 0, 6),
-        Position = UDim2.new(0, 5, 0, 26),
+        Size = UDim2.new(1, -13, 0, 12),
+        Position = UDim2.new(0, 5, 0, 22),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
-        Parent = self.Container,
-        ZIndex = 1
+        Parent = self.Container
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderTrack})
-
     self.SliderFill = CreateInstance("Frame", {
         Name = "Fill",
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
-        BackgroundColor3 = WasUI.CurrentTheme.Accent,
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BorderSizePixel = 0,
-        Parent = self.SliderTrack,
-        ZIndex = 2
+        Parent = self.SliderTrack
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
 
-    self.SliderKnob = CreateInstance("Frame", {
-        Name = "Knob",
-        Size = UDim2.new(0, 16, 0, 16),
-        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -8, 0.5, -8),
-        BackgroundColor3 = Color3.new(1, 1, 1),
-        BorderSizePixel = 0,
-        Parent = self.SliderTrack,
-        ZIndex = 3
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderKnob})
-
-    local function updateSlider(inputX)
-        local trackAbsPos = self.SliderTrack.AbsolutePosition
-        local trackAbsSize = self.SliderTrack.AbsoluteSize.X
-        if trackAbsSize <= 0 then return end
-        local relX = math.clamp(inputX - trackAbsPos.X, 0, trackAbsSize)
-        local t = relX / trackAbsSize
-        local newValue = math.round(self.Min + t * (self.Max - self.Min))
+    local dragging = false
+    local function updateFromInput()
+        local mousePos = UserInputService:GetMouseLocation()
+        local trackPos = self.SliderTrack.AbsolutePosition
+        local trackSize = self.SliderTrack.AbsoluteSize.X
+        if trackSize <= 0 then return end
+        local mouseX = mousePos.X - trackPos.X
+        local t = math.clamp(mouseX / trackSize, 0, 1)
+        local newValue = self.Min + t * (self.Max - self.Min)
+        newValue = math.round(newValue)
         if newValue ~= self.Value then
             self.Value = newValue
-            self.ValueLabel.Text = tostring(newValue)
+            self.ValueLabel.Text = tostring(self.Value)
             self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
-            self.SliderKnob.Position = UDim2.new(t, -8, 0.5, -8)
             if self.Callback then self.Callback(self.Value) end
         end
     end
 
-    local function getInputX(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            return input.Position.X
-        else
-            return input.Position.X
-        end
-    end
-
-    local function onInputDown(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            self.dragging = true
-            updateSlider(getInputX(input))
+    self.SliderTrack.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            updateFromInput()
             input:SetConsumed(true)
         end
-    end
-
-    local function onInputMove(input)
-        if self.dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            updateSlider(getInputX(input))
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateFromInput()
         end
-    end
-
-    local function onInputUp(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            self.dragging = false
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
         end
-    end
-
-    self.SliderTrack.InputBegan:Connect(onInputDown)
-    self.SliderKnob.InputBegan:Connect(onInputDown)
-    UserInputService.InputChanged:Connect(onInputMove)
-    UserInputService.InputEnded:Connect(onInputUp)
-    UserInputService.TouchEnded:Connect(onInputUp)
+    end)
 
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
     return self
@@ -1482,6 +1449,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
         VerticalAlignment = Enum.VerticalAlignment.Center,
         Padding = UDim.new(0, 0),
+        SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = self.TabContainer
     })
 
@@ -1684,7 +1652,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
                 flake.BackgroundTransparency = 1 - alpha
                 
-                if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
+                -- 修改消失条件：雪花至少下落窗口一半高度才消失
+                if newY > self.Instance.AbsoluteSize.Y * 0.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
                     flake:Destroy()
                     table.remove(self.Snowflakes, i)
                 end
