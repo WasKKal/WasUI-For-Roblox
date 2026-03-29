@@ -1444,13 +1444,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.AnnouncementBar
     })
 
-    -- 选项卡栏（支持横向滚动）
+    -- 选项卡栏：贴合左侧，高度自适应
     self.TabBar = CreateInstance("Frame", {
         Name = "TabBar",
-        Size = UDim2.new(1, 0, 0, 32),
+        Size = UDim2.new(1, 0, 0, 0),          -- 高度暂时为0，后面动态调整
         Position = UDim2.new(0, 0, 0, 26 + 80),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.4,
+        AutomaticSize = Enum.AutomaticSize.Y,   -- 自动高度
         Parent = self.Instance
     })
     local tabLine = CreateInstance("Frame", {
@@ -1461,11 +1462,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.TabBar
     })
     
-    -- 横向滚动的 TabContainer
+    -- 横向滚动的 TabContainer，贴合左侧，无额外间距
     self.TabContainer = CreateInstance("ScrollingFrame", {
         Name = "TabContainer",
-        Size = UDim2.new(1, -10, 1, 0),
-        Position = UDim2.new(0, 5, 0, 0),
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
         ScrollBarThickness = 4,
         ScrollBarImageColor3 = WasUI.CurrentTheme.Text,
@@ -1494,8 +1495,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     -- 内容区域（仅垂直滚动，禁用横向）
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
-        Size = UDim2.new(1, 0, 1, -(26 + 80 + 32)),
-        Position = UDim2.new(0, 0, 0, 26 + 80 + 32),
+        Size = UDim2.new(1, 0, 1, -(26 + 80 + self.TabBar.AbsoluteSize.Y)),
+        Position = UDim2.new(0, 0, 0, 26 + 80 + self.TabBar.AbsoluteSize.Y),
         BackgroundTransparency = 1,
         ClipsDescendants = true,
         ScrollBarThickness = 4,
@@ -1503,6 +1504,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
     })
+    -- 监听 TabBar 高度变化，调整 ContentArea 位置和大小
+    self.TabBar:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+        local tabHeight = self.TabBar.AbsoluteSize.Y
+        self.ContentArea.Position = UDim2.new(0, 0, 0, 26 + 80 + tabHeight)
+        self.ContentArea.Size = UDim2.new(1, 0, 1, -(26 + 80 + tabHeight))
+    end)
+    
     local contentPadding = CreateInstance("UIPadding", {
         PaddingLeft = UDim.new(0, 8),
         PaddingRight = UDim.new(0, 8),
@@ -1548,15 +1556,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = tabButton
         })
 
-        -- 每个选项卡对应的内容框架（实际存放控件的地方，不再是 ScrollingFrame，因为外层 ContentArea 已经是滚动区域）
+        -- 每个选项卡对应的内容框架
         local tabFrame = CreateInstance("Frame", {
             Name = "TabFrame_" .. tabName,
-            Size = UDim2.new(1, 0, 1, 0),
+            Size = UDim2.new(1, 0, 0, 0),
             BackgroundTransparency = 1,
             Visible = false,
+            AutomaticSize = Enum.AutomaticSize.Y,
             Parent = self.ContentArea
         })
-        -- 内部使用 UIListLayout 自动布局
         local tabInnerLayout = CreateInstance("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
             Padding = UDim.new(0, 4),
@@ -1569,9 +1577,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             PaddingBottom = UDim.new(0, 4),
             Parent = tabFrame
         })
+        -- 当内部内容变化时，触发外层布局更新
         tabInnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            tabFrame.Size = UDim2.new(1, 0, 0, tabInnerLayout.AbsoluteContentSize.Y + 8)
-            -- 触发外层 CanvasSize 更新
+            -- 重新触发 ContentArea 的 CanvasSize 更新
             contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Fire()
         end)
 
