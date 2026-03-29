@@ -817,73 +817,68 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderTrack})
     
-    -- 进度条填充（深紫色）
     self.SliderFill = CreateInstance("Frame", {
         Name = "Fill",
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(128, 0, 128),  -- 深紫色
+        BackgroundColor3 = Color3.fromRGB(128, 0, 128),
         BorderSizePixel = 0,
         Parent = self.SliderTrack
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
     
-    -- 添加可拖拽的滑块（Knob）
+    -- 完全透明的 Knob（仅用于接收输入）
     self.Knob = CreateInstance("Frame", {
         Name = "Knob",
-        Size = UDim2.new(0, 14, 0, 14),
-        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -7, 0.5, -7),
-        BackgroundColor3 = Color3.fromRGB(128, 0, 128),
-        BackgroundTransparency = 0.3,
+        Size = UDim2.new(0, 20, 0, 20),          -- 比轨道稍大，便于触摸
+        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -10, 0.5, -10),
+        BackgroundTransparency = 1,              -- 完全透明
         BorderSizePixel = 0,
         ZIndex = 2,
         Parent = self.SliderTrack
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Knob})
 
     local dragging = false
-    local function updateFromMousePosition(mouseX)
+    local function updateFromMousePosition(inputX)
         local trackPos = self.SliderTrack.AbsolutePosition
         local trackSize = self.SliderTrack.AbsoluteSize.X
         if trackSize <= 0 then return end
-        local t = math.clamp((mouseX - trackPos.X) / trackSize, 0, 1)
+        local t = math.clamp((inputX - trackPos.X) / trackSize, 0, 1)
         local newValue = self.Min + t * (self.Max - self.Min)
         newValue = math.round(newValue)
         if newValue ~= self.Value then
             self.Value = newValue
             self.ValueLabel.Text = tostring(self.Value)
             self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
-            self.Knob.Position = UDim2.new(t, -7, 0.5, -7)
+            self.Knob.Position = UDim2.new(t, -10, 0.5, -10)
             if self.Callback then self.Callback(self.Value) end
         end
     end
 
-    -- 点击轨道直接跳转
     self.SliderTrack.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local mousePos = UserInputService:GetMouseLocation()
-            updateFromMousePosition(mousePos.X)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            local pos = input.Position
+            updateFromMousePosition(pos.X)
             dragging = true
             input:SetConsumed(true)
         end
     end)
-    
-    -- 拖拽 Knob 或轨道时更新
+
     self.Knob.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             input:SetConsumed(true)
         end
     end)
     
     UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local mousePos = UserInputService:GetMouseLocation()
-            updateFromMousePosition(mousePos.X)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local pos = input.Position
+            updateFromMousePosition(pos.X)
         end
     end)
     
     UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
     end)
