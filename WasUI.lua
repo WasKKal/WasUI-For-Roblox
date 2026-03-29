@@ -985,7 +985,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.TitleBar
     })
     
-    -- 拖动区域覆盖整个标题栏（除红黄绿点区域外，通过事件判断排除）
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1111,7 +1110,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.ContentArea.Visible = false
         self.CloseButton.Visible = false
         self.MinimizeButton.Visible = false
-        self.DraggableArea.Visible = true
+        self.DraggableArea.Visible = false   -- 修复：隐藏拖动区域，避免遮挡点区域
         self.DotContainer.Visible = true
         if self.SnowContainer then
             self.SnowContainer.Visible = false
@@ -1131,7 +1130,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.ContentArea.Visible = true
         self.CloseButton.Visible = true
         self.MinimizeButton.Visible = true
-        self.DraggableArea.Visible = true
+        self.DraggableArea.Visible = true   -- 恢复拖动区域
         self.DotContainer.Visible = true
         if self.SnowContainer then
             self.SnowContainer.Visible = true
