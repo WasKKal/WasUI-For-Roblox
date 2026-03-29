@@ -1450,6 +1450,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Font = Enum.Font.GothamBold,
             TextSize = 14,
             TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1001,
             Parent = titleBar
         })
         
@@ -1462,6 +1463,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             TextColor3 = Color3.fromRGB(255, 255, 255),
             Font = Enum.Font.GothamBold,
             TextSize = 18,
+            ZIndex = 1001,
             Parent = titleBar
         })
         closeBtn.MouseButton1Click:Connect(function()
@@ -1487,6 +1489,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Font = Enum.Font.Gotham,
             TextSize = 14,
             TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1001,
             Parent = contentFrame
         })
         
@@ -1501,6 +1504,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Font = Enum.Font.Gotham,
             TextSize = 12,
             AutoButtonColor = false,
+            ZIndex = 1001,
             Parent = contentFrame
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
@@ -1520,6 +1524,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Font = Enum.Font.GothamSemibold,
             TextSize = 12,
             AutoButtonColor = false,
+            ZIndex = 1001,
             Parent = contentFrame
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = groupButton})
@@ -1716,7 +1721,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = tabFrame
         })
         tabInnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Fire()
+            contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() end)
+            contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Wait()
+            contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() end)
         end)
 
         tabButton.MouseButton1Click:Connect(function()
