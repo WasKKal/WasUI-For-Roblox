@@ -1449,6 +1449,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.AnnouncementBar
     })
 
+    -- 选项卡栏（支持横向滚动）
     self.TabBar = CreateInstance("Frame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 32),
@@ -1464,14 +1465,21 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundColor3 = WasUI.CurrentTheme.TabBorder,
         Parent = self.TabBar
     })
-    self.TabContainer = CreateInstance("Frame", {
+    
+    -- 横向滚动的 TabContainer
+    self.TabContainer = CreateInstance("ScrollingFrame", {
         Name = "TabContainer",
         Size = UDim2.new(1, -10, 1, 0),
         Position = UDim2.new(0, 5, 0, 0),
         BackgroundTransparency = 1,
+        ScrollBarThickness = 4,
+        ScrollBarImageColor3 = WasUI.CurrentTheme.Text,
+        ScrollingDirection = Enum.ScrollingDirection.X,
+        VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Left,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.TabBar
     })
-    local tabLayout = CreateInstance("UIListLayout", {
+    local tabListLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
         VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -1479,13 +1487,25 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = self.TabContainer
     })
+    local tabPadding = CreateInstance("UIPadding", {
+        PaddingLeft = UDim.new(0, 4),
+        PaddingRight = UDim.new(0, 4),
+        Parent = self.TabContainer
+    })
+    tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        self.TabContainer.CanvasSize = UDim2.new(0, tabListLayout.AbsoluteContentSize.X + 8, 0, 0)
+    end)
 
-    self.ContentArea = CreateInstance("Frame", {
+    -- 内容区域（仅垂直滚动，禁用横向）
+    self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
         Size = UDim2.new(1, 0, 1, -(26 + 80 + 32)),
         Position = UDim2.new(0, 0, 0, 26 + 80 + 32),
         BackgroundTransparency = 1,
         ClipsDescendants = true,
+        ScrollBarThickness = 4,
+        ScrollingDirection = Enum.ScrollingDirection.Y,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
     })
     local contentPadding = CreateInstance("UIPadding", {
@@ -1495,6 +1515,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         PaddingBottom = UDim.new(0, 4),
         Parent = self.ContentArea
     })
+    local contentListLayout = CreateInstance("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 4),
+        Parent = self.ContentArea
+    })
+    contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, contentListLayout.AbsoluteContentSize.Y + 8)
+    end)
 
     self.Tabs = {}
     self.ActiveTab = nil
@@ -1525,29 +1553,31 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = tabButton
         })
 
-        local tabFrame = CreateInstance("ScrollingFrame", {
+        -- 每个选项卡对应的内容框架（实际存放控件的地方，不再是 ScrollingFrame，因为外层 ContentArea 已经是滚动区域）
+        local tabFrame = CreateInstance("Frame", {
             Name = "TabFrame_" .. tabName,
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
             Visible = false,
-            ScrollBarThickness = 4,
-            CanvasSize = UDim2.new(0, 0, 0, 0),
             Parent = self.ContentArea
         })
-        local tabListLayout = CreateInstance("UIListLayout", {
+        -- 内部使用 UIListLayout 自动布局
+        local tabInnerLayout = CreateInstance("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
             Padding = UDim.new(0, 4),
             Parent = tabFrame
         })
-        local tabPadding = CreateInstance("UIPadding", {
+        local tabInnerPadding = CreateInstance("UIPadding", {
             PaddingLeft = UDim.new(0, 4),
             PaddingRight = UDim.new(0, 4),
             PaddingTop = UDim.new(0, 4),
             PaddingBottom = UDim.new(0, 4),
             Parent = tabFrame
         })
-        tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            tabFrame.CanvasSize = UDim2.new(0, 0, 0, tabListLayout.AbsoluteContentSize.Y + 8)
+        tabInnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            tabFrame.Size = UDim2.new(1, 0, 0, tabInnerLayout.AbsoluteContentSize.Y + 8)
+            -- 触发外层 CanvasSize 更新
+            contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Fire()
         end)
 
         tabButton.MouseButton1Click:Connect(function()
@@ -1679,8 +1709,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
                 flake.BackgroundTransparency = 1 - alpha
                 
-                -- 修改消失条件：雪花至少下落窗口一半高度才消失
-                if newY > self.Instance.AbsoluteSize.Y * 0.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
+                if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
                     flake:Destroy()
                     table.remove(self.Snowflakes, i)
                 end
