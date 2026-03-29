@@ -669,7 +669,8 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                 self.SelectedValue = option
                 self:UpdateDisplayText()
                 if self.Callback then self.Callback(option) end
-                self:Close()
+                -- 单选：立即关闭，不等待淡出动画
+                self:Close(true)
             end
         end)
         self.OptionButtons[option] = optionButton
@@ -729,7 +730,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         Tween(shadow, {Transparency = 0.8}, 0.2)
     end
 
-    function self:Close()
+    function self:Close(instant)
         if not self.IsOpen then return end
         self.IsOpen = false
         for i, dropdown in ipairs(WasUI.OpenDropdowns) do
@@ -738,10 +739,16 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                 break
             end
         end
-        Tween(self.OptionsContainer, {BackgroundTransparency = 1}, 0.2)
-        Tween(shadow, {Transparency = 1}, 0.2)
-        task.wait(0.2)
-        self.OptionsContainer.Visible = false
+        if instant then
+            self.OptionsContainer.Visible = false
+            self.OptionsContainer.BackgroundTransparency = 1
+            shadow.Transparency = 1
+        else
+            Tween(self.OptionsContainer, {BackgroundTransparency = 1}, 0.2)
+            Tween(shadow, {Transparency = 1}, 0.2)
+            task.wait(0.2)
+            self.OptionsContainer.Visible = false
+        end
     end
 
     self.DropdownButton.MouseButton1Click:Connect(function()
@@ -985,6 +992,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.TitleBar
     })
     
+    -- 拖动区域（ZIndex 低，不干扰按钮）
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
         Size = UDim2.new(1, 0, 1, 0),
@@ -992,7 +1000,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundTransparency = 1,
         Text = "",
         AutoButtonColor = false,
-        ZIndex = 100,
+        ZIndex = 1,
         Parent = self.TitleBar
     })
     
@@ -1007,6 +1015,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Font = Enum.Font.GothamSemibold,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 2,
         Parent = self.TitleBar
     })
     
@@ -1076,7 +1085,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         TextTransparency = 0,
         Font = Enum.Font.GothamBold,
         TextSize = 18,
-        ZIndex = 2,
+        ZIndex = 3,
         Parent = self.TitleBar
     })
     
@@ -1090,7 +1099,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         TextTransparency = 0,
         Font = Enum.Font.GothamBold,
         TextSize = 16,
-        ZIndex = 2,
+        ZIndex = 3,
         Parent = self.TitleBar
     })
     
@@ -1110,7 +1119,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.ContentArea.Visible = false
         self.CloseButton.Visible = false
         self.MinimizeButton.Visible = false
-        self.DraggableArea.Visible = false   -- 修复：隐藏拖动区域，避免遮挡点区域
+        self.DraggableArea.Visible = false
         self.DotContainer.Visible = true
         if self.SnowContainer then
             self.SnowContainer.Visible = false
@@ -1130,7 +1139,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.ContentArea.Visible = true
         self.CloseButton.Visible = true
         self.MinimizeButton.Visible = true
-        self.DraggableArea.Visible = true   -- 恢复拖动区域
+        self.DraggableArea.Visible = true
         self.DotContainer.Visible = true
         if self.SnowContainer then
             self.SnowContainer.Visible = true
@@ -1307,7 +1316,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         showCloseDialog()
     end)
     
-    -- 窗口拖动逻辑（修复：排除点击红黄绿点和按钮区域）
+    -- 窗口拖动逻辑（排除红黄绿点和按钮）
     local dragging = false
     local dragStart = Vector2.new()
     local startPos = UDim2.new()
@@ -1323,7 +1332,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local function startDragging(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             local mousePos = input.Position
-            -- 检查是否点击到红黄绿点区域或最小化/关闭按钮
             local hitCloseDot = isPointOverButton(self.CloseDot, mousePos)
             local hitMinimizeDot = isPointOverButton(self.MinimizeDot, mousePos)
             local hitMaximizeDot = isPointOverButton(self.MaximizeDot, mousePos)
@@ -1430,6 +1438,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             ZIndex = 1000,
             Parent = self.Instance
         })
+        -- 设置面板动画：淡入 + 轻微缩放
+        settingsFrame.BackgroundTransparency = 1
+        settingsFrame.Size = UDim2.new(0, 280, 0, 180)
+        settingsFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
         
         local titleBar = CreateInstance("Frame", {
@@ -1469,6 +1481,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = titleBar
         })
         closeBtn.MouseButton1Click:Connect(function()
+            Tween(settingsFrame, {BackgroundTransparency = 1, Size = UDim2.new(0, 280, 0, 180), Position = UDim2.new(0.5, -140, 0.5, -90)}, 0.2)
+            task.wait(0.2)
             settingsFrame:Destroy()
             WasUI.SettingsPanel = nil
         end)
@@ -1544,6 +1558,12 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 WasUI:Notify({Title = "复制失败", Content = "当前环境不支持复制到剪贴板", Duration = 2})
             end
         end)
+        
+        -- 播放动画
+        settingsFrame.BackgroundTransparency = 1
+        settingsFrame.Size = UDim2.new(0, 280, 0, 180)
+        settingsFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
+        Tween(settingsFrame, {BackgroundTransparency = 0.2, Size = UDim2.new(0, 300, 0, 200), Position = UDim2.new(0.5, -150, 0.5, -100)}, 0.25)
         
         WasUI.SettingsPanel = settingsFrame
     end)
