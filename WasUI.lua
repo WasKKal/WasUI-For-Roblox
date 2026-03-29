@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
+local Clipboard = game:GetService("Clipboard")
 
 if _G.WasUILoaded then
     warn("WasUI 已加载，跳过重复加载")
@@ -24,6 +25,11 @@ WasUI.NotificationHeight = 30
 WasUI.NotificationWidth = 250
 WasUI.ActiveNotifications = {}
 WasUI.OpenDropdowns = {}
+
+-- 全局设置面板相关
+WasUI.SettingsPanel = nil
+WasUI.GroupButtonText = "加入WasUI主群"
+WasUI.GroupCopyContent = "1085475284"
 
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
@@ -826,12 +832,11 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
     
-    -- 完全透明的 Knob（仅用于接收输入）
     self.Knob = CreateInstance("Frame", {
         Name = "Knob",
-        Size = UDim2.new(0, 20, 0, 20),          -- 比轨道稍大，便于触摸
+        Size = UDim2.new(0, 20, 0, 20),
         Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -10, 0.5, -10),
-        BackgroundTransparency = 1,              -- 完全透明
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ZIndex = 2,
         Parent = self.SliderTrack
@@ -862,7 +867,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             input:SetConsumed(true)
         end
     end)
-
+    
     self.Knob.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -1398,6 +1403,134 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Tween(avatarScale, {Scale = 1}, 0.1)
     end)
     
+    -- 头像点击打开设置面板
+    self.Avatar.MouseButton1Click:Connect(function()
+        if WasUI.SettingsPanel and WasUI.SettingsPanel.Parent then
+            WasUI.SettingsPanel.Visible = not WasUI.SettingsPanel.Visible
+            return
+        end
+        
+        local settingsFrame = CreateInstance("Frame", {
+            Name = "SettingsPanel",
+            Size = UDim2.new(0, 300, 0, 200),
+            Position = UDim2.new(0.5, -150, 0.5, -100),
+            BackgroundColor3 = WasUI.CurrentTheme.Background,
+            BackgroundTransparency = 0.2,
+            BorderSizePixel = 0,
+            ClipsDescendants = true,
+            ZIndex = 1000,
+            Parent = self.Instance
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
+        
+        local titleBar = CreateInstance("Frame", {
+            Name = "TitleBar",
+            Size = UDim2.new(1, 0, 0, 30),
+            BackgroundColor3 = WasUI.CurrentTheme.Primary,
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            Parent = settingsFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = titleBar})
+        
+        local titleLabel = CreateInstance("TextLabel", {
+            Name = "Title",
+            Size = UDim2.new(1, -30, 1, 0),
+            Position = UDim2.new(0, 10, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "UI设置",
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            Font = Enum.Font.GothamBold,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = titleBar
+        })
+        
+        local closeBtn = CreateInstance("TextButton", {
+            Name = "Close",
+            Size = UDim2.new(0, 24, 0, 24),
+            Position = UDim2.new(1, -28, 0, 3),
+            BackgroundTransparency = 1,
+            Text = "×",
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            Font = Enum.Font.GothamBold,
+            TextSize = 18,
+            Parent = titleBar
+        })
+        closeBtn.MouseButton1Click:Connect(function()
+            settingsFrame:Destroy()
+            WasUI.SettingsPanel = nil
+        end)
+        
+        local contentFrame = CreateInstance("Frame", {
+            Name = "Content",
+            Size = UDim2.new(1, -20, 1, -40),
+            Position = UDim2.new(0, 10, 0, 40),
+            BackgroundTransparency = 1,
+            Parent = settingsFrame
+        })
+        
+        local themeLabel = CreateInstance("TextLabel", {
+            Name = "ThemeLabel",
+            Size = UDim2.new(1, 0, 0, 24),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "窗口风格",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = contentFrame
+        })
+        
+        local themeDropdown = CreateInstance("TextButton", {
+            Name = "ThemeDropdown",
+            Size = UDim2.new(0, 120, 0, 28),
+            Position = UDim2.new(1, -130, 0, -2),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            Text = "Dark",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            AutoButtonColor = false,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
+        
+        -- 固定只有Dark，不可更改
+        themeDropdown.MouseButton1Click:Connect(function()
+            WasUI:Notify({Title = "提示", Content = "当前仅支持Dark主题", Duration = 2})
+        end)
+        
+        local groupButton = CreateInstance("TextButton", {
+            Name = "GroupButton",
+            Size = UDim2.new(0, 200, 0, 32),
+            Position = UDim2.new(0.5, -100, 1, -40),
+            BackgroundColor3 = WasUI.CurrentTheme.Success,
+            BackgroundTransparency = 0.3,
+            Text = WasUI.GroupButtonText,
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 12,
+            AutoButtonColor = false,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = groupButton})
+        groupButton.MouseEnter:Connect(function()
+            Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+        end)
+        groupButton.MouseLeave:Connect(function()
+            Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Success, BackgroundTransparency = 0.3}, 0.2)
+        end)
+        groupButton.MouseButton1Click:Connect(function()
+            Clipboard:set(WasUI.GroupCopyContent)
+            WasUI:Notify({Title = "复制成功", Content = "已复制：" .. WasUI.GroupCopyContent, Duration = 2})
+        end)
+        
+        WasUI.SettingsPanel = settingsFrame
+    end)
+    
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0.6, 0, 0, 18),
@@ -1444,14 +1577,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.AnnouncementBar
     })
 
-    -- 选项卡栏：贴合左侧，高度自适应
     self.TabBar = CreateInstance("Frame", {
         Name = "TabBar",
-        Size = UDim2.new(1, 0, 0, 0),          -- 高度暂时为0，后面动态调整
+        Size = UDim2.new(1, 0, 0, 0),
         Position = UDim2.new(0, 0, 0, 26 + 80),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.4,
-        AutomaticSize = Enum.AutomaticSize.Y,   -- 自动高度
+        AutomaticSize = Enum.AutomaticSize.Y,
         Parent = self.Instance
     })
     local tabLine = CreateInstance("Frame", {
@@ -1462,7 +1594,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.TabBar
     })
     
-    -- 横向滚动的 TabContainer，贴合左侧，无额外间距
     self.TabContainer = CreateInstance("ScrollingFrame", {
         Name = "TabContainer",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1492,7 +1623,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.TabContainer.CanvasSize = UDim2.new(0, tabListLayout.AbsoluteContentSize.X + 8, 0, 0)
     end)
 
-    -- 内容区域（仅垂直滚动，禁用横向）
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
         Size = UDim2.new(1, 0, 1, -(26 + 80 + self.TabBar.AbsoluteSize.Y)),
@@ -1504,7 +1634,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = self.Instance
     })
-    -- 监听 TabBar 高度变化，调整 ContentArea 位置和大小
     self.TabBar:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
         local tabHeight = self.TabBar.AbsoluteSize.Y
         self.ContentArea.Position = UDim2.new(0, 0, 0, 26 + 80 + tabHeight)
@@ -1556,7 +1685,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = tabButton
         })
 
-        -- 每个选项卡对应的内容框架
         local tabFrame = CreateInstance("Frame", {
             Name = "TabFrame_" .. tabName,
             Size = UDim2.new(1, 0, 0, 0),
@@ -1577,9 +1705,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             PaddingBottom = UDim.new(0, 4),
             Parent = tabFrame
         })
-        -- 当内部内容变化时，触发外层布局更新
         tabInnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            -- 重新触发 ContentArea 的 CanvasSize 更新
             contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Fire()
         end)
 
@@ -1844,6 +1970,18 @@ end
 
 function WasUI:CreateSlider(parent, title, min, max, defaultValue, callback)
     return Slider:New("Slider", parent, title, min, max, defaultValue, callback)
+end
+
+function WasUI:SetGroupButtonText(text)
+    WasUI.GroupButtonText = text
+    if WasUI.SettingsPanel then
+        local btn = WasUI.SettingsPanel:FindFirstChild("Content") and WasUI.SettingsPanel.Content:FindFirstChild("GroupButton")
+        if btn then btn.Text = text end
+    end
+end
+
+function WasUI:SetGroupCopyContent(content)
+    WasUI.GroupCopyContent = content
 end
 
 _G.WasUIModule = WasUI
