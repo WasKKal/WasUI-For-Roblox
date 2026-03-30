@@ -850,7 +850,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderTrack})
     
-    -- 进度条颜色改为亮蓝色
     self.SliderFill = CreateInstance("Frame", {
         Name = "Fill",
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
@@ -1469,17 +1468,17 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     end)
     
 self.Avatar.MouseButton1Click:Connect(function()
-    -- 单例：如果已存在设置面板，则切换显示/隐藏
-    if WasUI.SettingsPanel and WasUI.SettingsPanel.Parent then
-        local newVisible = not WasUI.SettingsPanel.Visible
-        WasUI.SettingsPanel.Visible = newVisible
-        local mask = WasUI.SettingsPanel:FindFirstChild("Mask")
-        if mask then mask.Visible = newVisible end
+    if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
+        WasUI.SettingsGui.Visible = not WasUI.SettingsGui.Visible
         return
     end
     
-    local screenGui = parent  -- parent 是主窗口所在的 ScreenGui
-    -- 创建全屏遮罩（位于屏幕级，拦截所有输入）
+    local settingsGui = Instance.new("ScreenGui")
+    settingsGui.Name = "WasUI_Settings"
+    settingsGui.ResetOnSpawn = false
+    settingsGui.DisplayOrder = 1001
+    settingsGui.Parent = game:GetService("CoreGui")
+    
     local mask = CreateInstance("Frame", {
         Name = "SettingsMask",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1488,13 +1487,12 @@ self.Avatar.MouseButton1Click:Connect(function()
         BorderSizePixel = 0,
         Visible = true,
         ZIndex = 999,
-        Parent = screenGui
+        Parent = settingsGui
     })
     mask.InputBegan:Connect(function(input)
-        input:SetConsumed(true)  -- 阻止点击穿透到主窗口
+        input:SetConsumed(true)
     end)
     
-    -- 设置面板主体
     local settingsFrame = CreateInstance("Frame", {
         Name = "SettingsPanel",
         Size = UDim2.new(0, 300, 0, 280),
@@ -1504,15 +1502,15 @@ self.Avatar.MouseButton1Click:Connect(function()
         BorderSizePixel = 0,
         ClipsDescendants = true,
         ZIndex = 1000,
-        Parent = screenGui
+        Parent = settingsGui
     })
     settingsFrame.BackgroundTransparency = 1
     settingsFrame.Size = UDim2.new(0, 280, 0, 260)
     settingsFrame.Position = UDim2.new(0.5, -140, 0.5, -130)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
     
-    -- 将遮罩附加到设置面板，方便关闭时一并销毁
     settingsFrame.Mask = mask
+    WasUI.SettingsGui = settingsGui
     
     local titleBar = CreateInstance("Frame", {
         Name = "TitleBar",
@@ -1551,14 +1549,19 @@ self.Avatar.MouseButton1Click:Connect(function()
         Parent = titleBar
     })
     closeBtn.MouseButton1Click:Connect(function()
-        Tween(settingsFrame, {BackgroundTransparency = 1, Size = UDim2.new(0, 280, 0, 260), Position = UDim2.new(0.5, -140, 0.5, -130)}, 0.2)
+        Tween(settingsFrame, {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(0, 280, 0, 260),
+            Position = UDim2.new(0.5, -140, 0.5, -130)
+        }, 0.2)
         task.wait(0.2)
-        settingsFrame:Destroy()
-        if mask then mask:Destroy() end
+        if WasUI.SettingsGui then
+            WasUI.SettingsGui:Destroy()
+            WasUI.SettingsGui = nil
+        end
         WasUI.SettingsPanel = nil
     end)
     
-    -- 内容区域（可滚动）
     local contentFrame = CreateInstance("ScrollingFrame", {
         Name = "Content",
         Size = UDim2.new(1, -20, 1, -40),
@@ -1585,7 +1588,6 @@ self.Avatar.MouseButton1Click:Connect(function()
         contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 8)
     end)
     
-    -- 主题选择
     local themeLabel = CreateInstance("TextLabel", {
         Name = "ThemeLabel",
         Size = UDim2.new(1, 0, 0, 24),
@@ -1598,7 +1600,6 @@ self.Avatar.MouseButton1Click:Connect(function()
         ZIndex = 1001,
         Parent = contentFrame
     })
-    
     local themeDropdown = CreateInstance("TextButton", {
         Name = "ThemeDropdown",
         Size = UDim2.new(0, 120, 0, 28),
@@ -1618,7 +1619,6 @@ self.Avatar.MouseButton1Click:Connect(function()
         WasUI:Notify({Title = "提示", Content = "当前仅支持Dark主题", Duration = 2})
     end)
     
-    -- 窗口位置调节
     local posLabel = CreateInstance("TextLabel", {
         Name = "PosLabel",
         Size = UDim2.new(1, 0, 0, 20),
@@ -1632,7 +1632,6 @@ self.Avatar.MouseButton1Click:Connect(function()
         Parent = contentFrame
     })
     
-    -- 临时断开位置监听，避免抖动
     local updating = false
     local function updateWindowPosition(x, y)
         if updating then return end
@@ -1641,7 +1640,6 @@ self.Avatar.MouseButton1Click:Connect(function()
         updating = false
     end
     
-    -- X轴滑动条（范围 -400 到 0）
     local xSlider = WasUI:CreateSlider(contentFrame, "X轴位置", -400, 0, self.Instance.Position.X.Offset, function(value)
         updateWindowPosition(value, self.Instance.Position.Y.Offset)
     end)
@@ -1651,7 +1649,6 @@ self.Avatar.MouseButton1Click:Connect(function()
     xSlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
     xSlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, 0)
     
-    -- Y轴滑动条（范围 -300 到 300）
     local ySlider = WasUI:CreateSlider(contentFrame, "Y轴位置", -300, 300, self.Instance.Position.Y.Offset, function(value)
         updateWindowPosition(self.Instance.Position.X.Offset, value)
     end)
@@ -1661,7 +1658,6 @@ self.Avatar.MouseButton1Click:Connect(function()
     ySlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
     ySlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, 0)
     
-    -- 同步滑块数值（仅当窗口位置由外部改变时）
     local function syncSliderValues()
         if updating then return end
         local xVal = self.Instance.Position.X.Offset
@@ -1683,7 +1679,6 @@ self.Avatar.MouseButton1Click:Connect(function()
     self.Instance:GetPropertyChangedSignal("Position"):Connect(syncSliderValues)
     syncSliderValues()
     
-    -- 群按钮（撑满宽度，左右留 15px）
     local groupButton = CreateInstance("TextButton", {
         Name = "GroupButton",
         Size = UDim2.new(1, -30, 0, 32),
@@ -1714,7 +1709,6 @@ self.Avatar.MouseButton1Click:Connect(function()
         end
     end)
     
-    -- 播放动画
     Tween(settingsFrame, {BackgroundTransparency = 0.2, Size = UDim2.new(0, 300, 0, 280), Position = UDim2.new(0.5, -150, 0.5, -140)}, 0.25)
     
     WasUI.SettingsPanel = settingsFrame
@@ -2064,6 +2058,44 @@ end)
         self.SnowContainer = nil
         self.SnowConnection = nil
     end
+
+    local originalSize = self.Instance.Size
+    local originalPos = self.Instance.Position
+    local originalTransparency = self.Instance.BackgroundTransparency
+
+    self.Instance.BackgroundTransparency = 1
+    self.Instance.Size = UDim2.new(0, 0, 0, 0)
+    self.Instance.Position = UDim2.new(0.5, 0, 0.5, 0)
+
+    if self.BorderEffect then
+        local stroke = self.BorderEffect:FindFirstChildOfClass("UIStroke")
+        if stroke then
+            stroke.Transparency = 1
+        end
+    end
+
+    if self.SnowContainer then
+        self.SnowContainer.Visible = false
+    end
+
+    local windowTween = Tween(self.Instance, {
+        BackgroundTransparency = originalTransparency,
+        Size = originalSize,
+        Position = originalPos
+    }, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+    if self.BorderEffect then
+        local stroke = self.BorderEffect:FindFirstChildOfClass("UIStroke")
+        if stroke then
+            Tween(stroke, {Transparency = 0}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        end
+    end
+
+    windowTween.Completed:Connect(function()
+        if self.SnowContainer then
+            self.SnowContainer.Visible = true
+        end
+    end)
 
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel"})
     return self
