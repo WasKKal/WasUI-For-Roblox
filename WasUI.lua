@@ -1479,19 +1479,15 @@ self.Avatar.MouseButton1Click:Connect(function()
     settingsGui.DisplayOrder = 1001
     settingsGui.Parent = game:GetService("CoreGui")
     
-    local mask = CreateInstance("Frame", {
-        Name = "SettingsMask",
+    local clickCatcher = CreateInstance("Frame", {
+        Name = "ClickCatcher",
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-        BackgroundTransparency = 0.5,
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Visible = true,
-        ZIndex = 999,
+        ZIndex = 1,
         Parent = settingsGui
     })
-    mask.InputBegan:Connect(function(input)
-        input:SetConsumed(true)
-    end)
     
     local settingsFrame = CreateInstance("Frame", {
         Name = "SettingsPanel",
@@ -1511,7 +1507,6 @@ self.Avatar.MouseButton1Click:Connect(function()
     scale.Parent = settingsFrame
     settingsFrame.BackgroundTransparency = 1
     
-    settingsFrame.Mask = mask
     WasUI.SettingsGui = settingsGui
     
     local titleBar = CreateInstance("Frame", {
@@ -1583,9 +1578,10 @@ self.Avatar.MouseButton1Click:Connect(function()
         PaddingBottom = UDim.new(0, 4),
         Parent = contentFrame
     })
-    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    local function refreshCanvas()
         contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 8)
-    end)
+    end
+    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshCanvas)
     
     local themeLabel = CreateInstance("TextLabel", {
         Name = "ThemeLabel",
@@ -1708,8 +1704,31 @@ self.Avatar.MouseButton1Click:Connect(function()
         end
     end)
     
+    refreshCanvas()
+    
     Tween(settingsFrame, {BackgroundTransparency = 0.2}, 0.25)
     Tween(scale, {Scale = 1}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    
+    local function onScreenClick(input)
+        if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+        local mousePos = input.Position
+        local framePos = settingsFrame.AbsolutePosition
+        local frameSize = settingsFrame.AbsoluteSize
+        local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
+                        mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
+        if not inPanel then
+            Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+            Tween(scale, {Scale = 0.8}, 0.2)
+            task.wait(0.2)
+            if WasUI.SettingsGui then
+                WasUI.SettingsGui:Destroy()
+                WasUI.SettingsGui = nil
+            end
+            WasUI.SettingsPanel = nil
+        end
+    end
+    
+    clickCatcher.InputBegan:Connect(onScreenClick)
     
     WasUI.SettingsPanel = settingsFrame
 end)
