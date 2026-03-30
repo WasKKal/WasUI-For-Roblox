@@ -1504,10 +1504,12 @@ self.Avatar.MouseButton1Click:Connect(function()
         ZIndex = 1000,
         Parent = settingsGui
     })
-    settingsFrame.BackgroundTransparency = 1
-    settingsFrame.Size = UDim2.new(0, 280, 0, 260)
-    settingsFrame.Position = UDim2.new(0.5, -140, 0.5, -130)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
+    
+    local scale = Instance.new("UIScale")
+    scale.Scale = 0.8
+    scale.Parent = settingsFrame
+    settingsFrame.BackgroundTransparency = 1
     
     settingsFrame.Mask = mask
     WasUI.SettingsGui = settingsGui
@@ -1549,11 +1551,8 @@ self.Avatar.MouseButton1Click:Connect(function()
         Parent = titleBar
     })
     closeBtn.MouseButton1Click:Connect(function()
-        Tween(settingsFrame, {
-            BackgroundTransparency = 1,
-            Size = UDim2.new(0, 280, 0, 260),
-            Position = UDim2.new(0.5, -140, 0.5, -130)
-        }, 0.2)
+        Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+        Tween(scale, {Scale = 0.8}, 0.2)
         task.wait(0.2)
         if WasUI.SettingsGui then
             WasUI.SettingsGui:Destroy()
@@ -1709,7 +1708,8 @@ self.Avatar.MouseButton1Click:Connect(function()
         end
     end)
     
-    Tween(settingsFrame, {BackgroundTransparency = 0.2, Size = UDim2.new(0, 300, 0, 280), Position = UDim2.new(0.5, -150, 0.5, -140)}, 0.25)
+    Tween(settingsFrame, {BackgroundTransparency = 0.2}, 0.25)
+    Tween(scale, {Scale = 1}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     
     WasUI.SettingsPanel = settingsFrame
 end)
