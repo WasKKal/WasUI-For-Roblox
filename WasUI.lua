@@ -10,7 +10,7 @@ local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
 
 if _G.WasUILoaded then
-    warn("WasUI 已加载，跳过重复加载")
+    warn("WasUI已加载 请勿重复加载")
     return _G.WasUIModule
 end
 _G.WasUILoaded = true
@@ -669,7 +669,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                 self.SelectedValue = option
                 self:UpdateDisplayText()
                 if self.Callback then self.Callback(option) end
-                -- 单选：立即关闭，不等待淡出动画
                 self:Close(true)
             end
         end)
@@ -797,7 +796,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.Max = max or 100
     self.Value = math.clamp(defaultValue or self.Min, self.Min, self.Max)
     self.Callback = callback
-    self.AnimationTween = nil   -- 用于存储当前动画
+    self.AnimationTween = nil
     self.Container = CreateInstance("Frame", {
         Name = name,
         Size = UDim2.new(1, 0, 0, 40),
@@ -919,7 +918,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         end
     end
 
-    -- 点击轨道：启动动画
     self.SliderTrack.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             local pos = input.Position
@@ -935,7 +933,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         end
     end)
     
-    -- 拖拽 Knob：直接更新，无动画
     self.Knob.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -1046,7 +1043,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.TitleBar
     })
     
-    -- 拖动区域（ZIndex 低，不干扰按钮）
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1129,20 +1125,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
     
-    self.MinimizeButton = CreateInstance("TextButton", {
-        Name = "MinimizeButton",
-        Size = UDim2.new(0, 22, 0, 22),
-        Position = UDim2.new(1, -54, 0, 2),
-        BackgroundTransparency = 1,
-        Text = "-",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextTransparency = 0,
-        Font = Enum.Font.GothamBold,
-        TextSize = 18,
-        ZIndex = 3,
-        Parent = self.TitleBar
-    })
-    
+    -- 仅保留关闭按钮（右上角 ×），移除最小化按钮（-）
     self.CloseButton = CreateInstance("TextButton", {
         Name = "CloseButton",
         Size = UDim2.new(0, 22, 0, 22),
@@ -1172,7 +1155,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.TabBar.Visible = false
         self.ContentArea.Visible = false
         self.CloseButton.Visible = false
-        self.MinimizeButton.Visible = false
         self.DraggableArea.Visible = false
         self.DotContainer.Visible = true
         if self.SnowContainer then
@@ -1192,7 +1174,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.TabBar.Visible = true
         self.ContentArea.Visible = true
         self.CloseButton.Visible = true
-        self.MinimizeButton.Visible = true
         self.DraggableArea.Visible = true
         self.DotContainer.Visible = true
         if self.SnowContainer then
@@ -1233,7 +1214,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end
     end)
     
-    self.MinimizeButton.MouseButton1Click:Connect(self.MinimizeToDots)
+    -- 关闭按钮事件
     self.CloseButton.MouseButton1Click:Connect(function() 
         local function showCloseDialog()
             local overlay = CreateInstance("Frame", {
@@ -1370,7 +1351,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         showCloseDialog()
     end)
     
-    -- 窗口拖动逻辑（排除红黄绿点和按钮）
+    -- 窗口拖动逻辑
     local dragging = false
     local dragStart = Vector2.new()
     local startPos = UDim2.new()
@@ -1389,10 +1370,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             local hitCloseDot = isPointOverButton(self.CloseDot, mousePos)
             local hitMinimizeDot = isPointOverButton(self.MinimizeDot, mousePos)
             local hitMaximizeDot = isPointOverButton(self.MaximizeDot, mousePos)
-            local hitMinimizeBtn = isPointOverButton(self.MinimizeButton, mousePos)
             local hitCloseBtn = isPointOverButton(self.CloseButton, mousePos)
             
-            if not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitMinimizeBtn or hitCloseBtn) then
+            if not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn) then
                 dragging = true
                 dragStart = input.Position
                 startPos = self.Instance.Position
@@ -1483,8 +1463,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 300, 0, 200),
-            Position = UDim2.new(0.5, -150, 0.5, -100),
+            Size = UDim2.new(0, 300, 0, 280),
+            Position = UDim2.new(0.5, -150, 0.5, -140),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 0.2,
             BorderSizePixel = 0,
@@ -1492,10 +1472,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             ZIndex = 1000,
             Parent = self.Instance
         })
-        -- 设置面板动画：淡入 + 轻微缩放
         settingsFrame.BackgroundTransparency = 1
-        settingsFrame.Size = UDim2.new(0, 280, 0, 180)
-        settingsFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
+        settingsFrame.Size = UDim2.new(0, 280, 0, 260)
+        settingsFrame.Position = UDim2.new(0.5, -140, 0.5, -130)
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
         
         local titleBar = CreateInstance("Frame", {
@@ -1535,24 +1514,41 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = titleBar
         })
         closeBtn.MouseButton1Click:Connect(function()
-            Tween(settingsFrame, {BackgroundTransparency = 1, Size = UDim2.new(0, 280, 0, 180), Position = UDim2.new(0.5, -140, 0.5, -90)}, 0.2)
+            Tween(settingsFrame, {BackgroundTransparency = 1, Size = UDim2.new(0, 280, 0, 260), Position = UDim2.new(0.5, -140, 0.5, -130)}, 0.2)
             task.wait(0.2)
             settingsFrame:Destroy()
             WasUI.SettingsPanel = nil
         end)
         
-        local contentFrame = CreateInstance("Frame", {
+        local contentFrame = CreateInstance("ScrollingFrame", {
             Name = "Content",
             Size = UDim2.new(1, -20, 1, -40),
             Position = UDim2.new(0, 10, 0, 40),
             BackgroundTransparency = 1,
+            ScrollBarThickness = 4,
+            CanvasSize = UDim2.new(0, 0, 0, 0),
             Parent = settingsFrame
         })
+        local contentLayout = CreateInstance("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 8),
+            Parent = contentFrame
+        })
+        local contentPadding = CreateInstance("UIPadding", {
+            PaddingLeft = UDim.new(0, 4),
+            PaddingRight = UDim.new(0, 4),
+            PaddingTop = UDim.new(0, 4),
+            PaddingBottom = UDim.new(0, 4),
+            Parent = contentFrame
+        })
+        contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 8)
+        end)
         
+        -- 主题选择
         local themeLabel = CreateInstance("TextLabel", {
             Name = "ThemeLabel",
             Size = UDim2.new(1, 0, 0, 24),
-            Position = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
             Text = "窗口风格",
             TextColor3 = WasUI.CurrentTheme.Text,
@@ -1578,11 +1574,82 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = contentFrame
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
-        
         themeDropdown.MouseButton1Click:Connect(function()
             WasUI:Notify({Title = "提示", Content = "当前仅支持Dark主题", Duration = 2})
         end)
         
+        -- 窗口位置调节
+        local posLabel = CreateInstance("TextLabel", {
+            Name = "PosLabel",
+            Size = UDim2.new(1, 0, 0, 20),
+            BackgroundTransparency = 1,
+            Text = "窗口位置偏移",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1001,
+            Parent = contentFrame
+        })
+        
+        -- X轴滑动条
+        local xSlider = WasUI:CreateSlider(contentFrame, "X轴位置", -400, 400, self.Instance.Position.X.Offset, function(value)
+            local pos = self.Instance.Position
+            self.Instance.Position = UDim2.new(pos.X.Scale, value, pos.Y.Scale, pos.Y.Offset)
+        end)
+        xSlider.TitleLabel.Text = "X轴"
+        xSlider.TitleLabel.Size = UDim2.new(0.3, 0, 1, 0)
+        xSlider.ValueLabel.Text = tostring(xSlider.Value)
+        
+        -- Y轴滑动条
+        local ySlider = WasUI:CreateSlider(contentFrame, "Y轴位置", -300, 300, self.Instance.Position.Y.Offset, function(value)
+            local pos = self.Instance.Position
+            self.Instance.Position = UDim2.new(pos.X.Scale, pos.X.Offset, pos.Y.Scale, value)
+        end)
+        ySlider.TitleLabel.Text = "Y轴"
+        ySlider.TitleLabel.Size = UDim2.new(0.3, 0, 1, 0)
+        ySlider.ValueLabel.Text = tostring(ySlider.Value)
+        
+        -- 实时同步数值显示
+        local function updateXLabel()
+            xSlider.ValueLabel.Text = tostring(xSlider.Value)
+        end
+        local function updateYLabel()
+            ySlider.ValueLabel.Text = tostring(ySlider.Value)
+        end
+        xSlider.Callback = function(value)
+            local pos = self.Instance.Position
+            self.Instance.Position = UDim2.new(pos.X.Scale, value, pos.Y.Scale, pos.Y.Offset)
+            updateXLabel()
+        end
+        ySlider.Callback = function(value)
+            local pos = self.Instance.Position
+            self.Instance.Position = UDim2.new(pos.X.Scale, pos.X.Offset, pos.Y.Scale, value)
+            updateYLabel()
+        end
+        
+        -- 监听窗口移动，同步滑块数值
+        local function syncSliderValues()
+            local xVal = self.Instance.Position.X.Offset
+            local yVal = self.Instance.Position.Y.Offset
+            if xSlider then
+                xSlider.Value = xVal
+                xSlider.ValueLabel.Text = tostring(xVal)
+                xSlider.SliderFill.Size = UDim2.new((xVal - xSlider.Min) / (xSlider.Max - xSlider.Min), 0, 1, 0)
+                xSlider.Knob.Position = UDim2.new((xVal - xSlider.Min) / (xSlider.Max - xSlider.Min), -10, 0.5, -10)
+            end
+            if ySlider then
+                ySlider.Value = yVal
+                ySlider.ValueLabel.Text = tostring(yVal)
+                ySlider.SliderFill.Size = UDim2.new((yVal - ySlider.Min) / (ySlider.Max - ySlider.Min), 0, 1, 0)
+                ySlider.Knob.Position = UDim2.new((yVal - ySlider.Min) / (ySlider.Max - ySlider.Min), -10, 0.5, -10)
+            end
+        end
+        
+        self.Instance:GetPropertyChangedSignal("Position"):Connect(syncSliderValues)
+        syncSliderValues()
+        
+        -- 群按钮
         local groupButton = CreateInstance("TextButton", {
             Name = "GroupButton",
             Size = UDim2.new(0, 200, 0, 32),
@@ -1614,10 +1681,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end)
         
         -- 播放动画
-        settingsFrame.BackgroundTransparency = 1
-        settingsFrame.Size = UDim2.new(0, 280, 0, 180)
-        settingsFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
-        Tween(settingsFrame, {BackgroundTransparency = 0.2, Size = UDim2.new(0, 300, 0, 200), Position = UDim2.new(0.5, -150, 0.5, -100)}, 0.25)
+        Tween(settingsFrame, {BackgroundTransparency = 0.2, Size = UDim2.new(0, 300, 0, 280), Position = UDim2.new(0.5, -150, 0.5, -140)}, 0.25)
         
         WasUI.SettingsPanel = settingsFrame
     end)
