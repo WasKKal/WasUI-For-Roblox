@@ -347,7 +347,8 @@ function Button:New(name, parent, text, onClick, size)
         TextSize = 12,
         AutoButtonColor = false,
         Parent = parent,
-        AutomaticSize = Enum.AutomaticSize.None
+        AutomaticSize = Enum.AutomaticSize.None,
+        ZIndex = 2
     })
     local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
     local padding = CreateInstance("UIPadding", {
@@ -385,7 +386,8 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         Name = name .. "_Container",
         Size = UDim2.new(1, 0, 0, 28),
         BackgroundTransparency = 1,
-        Parent = parent
+        Parent = parent,
+        ZIndex = 2
     })
     
     if title then
@@ -400,6 +402,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             TextSize = 12,
             TextXAlignment = Enum.TextXAlignment.Left,
             TextYAlignment = Enum.TextYAlignment.Center,
+            ZIndex = 2,
             Parent = self.Container
         })
     end
@@ -462,6 +465,7 @@ function Label:New(name, parent, text, textColor)
         TextSize = 12,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 2,
         Parent = parent
     })
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Label"})
@@ -476,7 +480,8 @@ function Category:New(name, parent, title)
         Name = name,
         Size = UDim2.new(1, 0, 0, 28),
         BackgroundTransparency = 1,
-        Parent = parent
+        Parent = parent,
+        ZIndex = 2
     })
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
@@ -490,6 +495,7 @@ function Category:New(name, parent, title)
         TextSize = 16,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
+        ZIndex = 2,
         Parent = self.Instance
     })
     local line = CreateInstance("Frame", {
@@ -499,6 +505,7 @@ function Category:New(name, parent, title)
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
+        ZIndex = 2,
         Parent = self.Instance
     })
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Category"})
@@ -555,6 +562,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 2,
         Parent = self.Container
     })
     self.DropdownButton = CreateInstance("TextButton", {
@@ -801,11 +809,12 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Name = name,
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
+        ZIndex = 2,
         Parent = parent
     })
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(0.7, 0, 0, 20),
+        Size = UDim2.new(0.5, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
         Text = title or "滑动条",
@@ -813,18 +822,20 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 2,
         Parent = self.Container
     })
     self.ValueLabel = CreateInstance("TextLabel", {
         Name = "Value",
         Size = UDim2.new(0.3, 0, 0, 20),
-        Position = UDim2.new(0.7, -3, 0, 0),
+        Position = UDim2.new(0.7, 0, 0, 0),
         BackgroundTransparency = 1,
         Text = tostring(self.Value),
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Right,
+        ZIndex = 2,
         Parent = self.Container
     })
     self.SliderTrack = CreateInstance("Frame", {
@@ -834,6 +845,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
+        ZIndex = 2,
         Parent = self.Container
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderTrack})
@@ -843,6 +855,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(128, 0, 128),
         BorderSizePixel = 0,
+        ZIndex = 2,
         Parent = self.SliderTrack
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
@@ -853,7 +866,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -10, 0.5, -10),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        ZIndex = 2,
+        ZIndex = 3,
         Parent = self.SliderTrack
     })
 
@@ -985,6 +998,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0.3,
         ClipsDescendants = true,
+        ZIndex = 1,
         Parent = parent
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
@@ -1036,6 +1050,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
+        ZIndex = 2,
         Parent = self.Instance
     })
     CreateInstance("UICorner", {
@@ -1125,7 +1140,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
     
-    -- 仅保留关闭按钮（右上角 ×），移除最小化按钮（-）
     self.CloseButton = CreateInstance("TextButton", {
         Name = "CloseButton",
         Size = UDim2.new(0, 22, 0, 22),
@@ -1214,7 +1228,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end
     end)
     
-    -- 关闭按钮事件
     self.CloseButton.MouseButton1Click:Connect(function() 
         local function showCloseDialog()
             local overlay = CreateInstance("Frame", {
@@ -1351,7 +1364,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         showCloseDialog()
     end)
     
-    -- 窗口拖动逻辑
     local dragging = false
     local dragStart = Vector2.new()
     local startPos = UDim2.new()
@@ -1412,6 +1424,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundColor3 = WasUI.CurrentTheme.Section,
         BackgroundTransparency = 0.4,
         BorderSizePixel = 0,
+        ZIndex = 2,
         Parent = self.Instance
     })
     
@@ -1434,6 +1447,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Image = "",
         BorderSizePixel = 0,
         AutoButtonColor = false,
+        ZIndex = 2,
         Parent = self.AnnouncementBar
     })
     local avatarScale = CreateInstance("UIScale", {
@@ -1455,12 +1469,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Tween(avatarScale, {Scale = 1}, 0.1)
     end)
     
+    -- 设置面板（独立于主窗口，固定在屏幕中心）
     self.Avatar.MouseButton1Click:Connect(function()
         if WasUI.SettingsPanel and WasUI.SettingsPanel.Parent then
             WasUI.SettingsPanel.Visible = not WasUI.SettingsPanel.Visible
             return
         end
         
+        -- 创建在 ScreenGui 上，确保不受主窗口移动影响
+        local screenGui = parent
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
             Size = UDim2.new(0, 300, 0, 280),
@@ -1470,7 +1487,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             BorderSizePixel = 0,
             ClipsDescendants = true,
             ZIndex = 1000,
-            Parent = self.Instance
+            Parent = screenGui
         })
         settingsFrame.BackgroundTransparency = 1
         settingsFrame.Size = UDim2.new(0, 280, 0, 260)
@@ -1527,6 +1544,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             BackgroundTransparency = 1,
             ScrollBarThickness = 4,
             CanvasSize = UDim2.new(0, 0, 0, 0),
+            ZIndex = 1001,
             Parent = settingsFrame
         })
         local contentLayout = CreateInstance("UIListLayout", {
@@ -1592,44 +1610,34 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = contentFrame
         })
         
-        -- X轴滑动条
-        local xSlider = WasUI:CreateSlider(contentFrame, "X轴位置", -400, 400, self.Instance.Position.X.Offset, function(value)
-            local pos = self.Instance.Position
-            self.Instance.Position = UDim2.new(pos.X.Scale, value, pos.Y.Scale, pos.Y.Offset)
+        -- 临时断开位置监听，避免抖动
+        local updating = false
+        local function updateWindowPosition(x, y)
+            if updating then return end
+            updating = true
+            self.Instance.Position = UDim2.new(self.Instance.Position.X.Scale, x, self.Instance.Position.Y.Scale, y)
+            updating = false
+        end
+        
+        -- X轴滑动条（范围 -400 到 0）
+        local xSlider = WasUI:CreateSlider(contentFrame, "X轴位置", -400, 0, self.Instance.Position.X.Offset, function(value)
+            updateWindowPosition(value, self.Instance.Position.Y.Offset)
         end)
         xSlider.TitleLabel.Text = "X轴"
-        xSlider.TitleLabel.Size = UDim2.new(0.3, 0, 1, 0)
+        xSlider.TitleLabel.Size = UDim2.new(0.5, 0, 1, 0)
         xSlider.ValueLabel.Text = tostring(xSlider.Value)
         
-        -- Y轴滑动条
+        -- Y轴滑动条（范围 -300 到 300）
         local ySlider = WasUI:CreateSlider(contentFrame, "Y轴位置", -300, 300, self.Instance.Position.Y.Offset, function(value)
-            local pos = self.Instance.Position
-            self.Instance.Position = UDim2.new(pos.X.Scale, pos.X.Offset, pos.Y.Scale, value)
+            updateWindowPosition(self.Instance.Position.X.Offset, value)
         end)
         ySlider.TitleLabel.Text = "Y轴"
-        ySlider.TitleLabel.Size = UDim2.new(0.3, 0, 1, 0)
+        ySlider.TitleLabel.Size = UDim2.new(0.5, 0, 1, 0)
         ySlider.ValueLabel.Text = tostring(ySlider.Value)
         
-        -- 实时同步数值显示
-        local function updateXLabel()
-            xSlider.ValueLabel.Text = tostring(xSlider.Value)
-        end
-        local function updateYLabel()
-            ySlider.ValueLabel.Text = tostring(ySlider.Value)
-        end
-        xSlider.Callback = function(value)
-            local pos = self.Instance.Position
-            self.Instance.Position = UDim2.new(pos.X.Scale, value, pos.Y.Scale, pos.Y.Offset)
-            updateXLabel()
-        end
-        ySlider.Callback = function(value)
-            local pos = self.Instance.Position
-            self.Instance.Position = UDim2.new(pos.X.Scale, pos.X.Offset, pos.Y.Scale, value)
-            updateYLabel()
-        end
-        
-        -- 监听窗口移动，同步滑块数值
+        -- 同步滑块数值（仅当窗口位置由外部改变时）
         local function syncSliderValues()
+            if updating then return end
             local xVal = self.Instance.Position.X.Offset
             local yVal = self.Instance.Position.Y.Offset
             if xSlider then
@@ -1649,11 +1657,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.Instance:GetPropertyChangedSignal("Position"):Connect(syncSliderValues)
         syncSliderValues()
         
-        -- 群按钮
+        -- 群按钮（撑满宽度，左右留 15px）
         local groupButton = CreateInstance("TextButton", {
             Name = "GroupButton",
-            Size = UDim2.new(0, 200, 0, 32),
-            Position = UDim2.new(0.5, -100, 1, -40),
+            Size = UDim2.new(1, -30, 0, 32),
+            Position = UDim2.new(0, 15, 1, -40),
             BackgroundColor3 = WasUI.CurrentTheme.Success,
             BackgroundTransparency = 0.3,
             Text = WasUI.GroupButtonText,
@@ -1696,6 +1704,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Font = Enum.Font.GothamSemibold,
         TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 2,
         Parent = self.AnnouncementBar
     })
     
@@ -1716,6 +1725,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 2,
         Parent = self.AnnouncementBar
     })
     
@@ -1729,6 +1739,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 2,
         Parent = self.AnnouncementBar
     })
 
@@ -1739,6 +1750,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.4,
         ClipsDescendants = false,
+        ZIndex = 2,
         Parent = self.Instance
     })
     local tabLine = CreateInstance("Frame", {
@@ -1746,6 +1758,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Size = UDim2.new(1, 0, 0, 1),
         Position = UDim2.new(0, 0, 1, -1),
         BackgroundColor3 = WasUI.CurrentTheme.TabBorder,
+        ZIndex = 2,
         Parent = self.TabBar
     })
     
@@ -1760,6 +1773,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Left,
         AutomaticSize = Enum.AutomaticSize.Y,
         CanvasSize = UDim2.new(0, 0, 0, 0),
+        ZIndex = 2,
         Parent = self.TabBar
     })
     local tabListLayout = CreateInstance("UIListLayout", {
@@ -1804,6 +1818,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ScrollBarThickness = 4,
         ScrollingDirection = Enum.ScrollingDirection.Y,
         CanvasSize = UDim2.new(0, 0, 0, 0),
+        ZIndex = 2,
         Parent = self.Instance
     })
     
@@ -1847,6 +1862,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             TextSize = 12,
             AutoButtonColor = false,
             LayoutOrder = self.TabOrderCounter,
+            ZIndex = 2,
             Parent = self.TabContainer
         })
         local tabUnderline = CreateInstance("Frame", {
@@ -1856,6 +1872,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             AnchorPoint = Vector2.new(0.5, 0),
             BackgroundColor3 = Color3.fromRGB(128, 0, 128),
             Visible = false,
+            ZIndex = 2,
             Parent = tabButton
         })
 
@@ -1865,6 +1882,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             BackgroundTransparency = 1,
             Visible = false,
             AutomaticSize = Enum.AutomaticSize.Y,
+            ZIndex = 2,
             Parent = self.ContentArea
         })
         local tabInnerLayout = CreateInstance("UIListLayout", {
