@@ -1469,30 +1469,32 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     end)
     
 self.Avatar.MouseButton1Click:Connect(function()
+    -- 单例：如果已存在设置面板，则切换显示/隐藏
     if WasUI.SettingsPanel and WasUI.SettingsPanel.Parent then
-        WasUI.SettingsPanel.Visible = not WasUI.SettingsPanel.Visible
-        -- 同时控制遮罩层
+        local newVisible = not WasUI.SettingsPanel.Visible
+        WasUI.SettingsPanel.Visible = newVisible
         local mask = WasUI.SettingsPanel:FindFirstChild("Mask")
-        if mask then mask.Visible = WasUI.SettingsPanel.Visible end
+        if mask then mask.Visible = newVisible end
         return
     end
     
-    -- 创建全屏遮罩，拦截所有输入，防止穿透到主窗口
+    local screenGui = parent  -- parent 是主窗口所在的 ScreenGui
+    -- 创建全屏遮罩（位于屏幕级，拦截所有输入）
     local mask = CreateInstance("Frame", {
-        Name = "Mask",
+        Name = "SettingsMask",
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(0, 0, 0),
         BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
         Visible = true,
         ZIndex = 999,
-        Parent = parent
+        Parent = screenGui
     })
     mask.InputBegan:Connect(function(input)
-        input:SetConsumed(true)
+        input:SetConsumed(true)  -- 阻止点击穿透到主窗口
     end)
     
-    local screenGui = parent
+    -- 设置面板主体
     local settingsFrame = CreateInstance("Frame", {
         Name = "SettingsPanel",
         Size = UDim2.new(0, 300, 0, 280),
@@ -1509,7 +1511,7 @@ self.Avatar.MouseButton1Click:Connect(function()
     settingsFrame.Position = UDim2.new(0.5, -140, 0.5, -130)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
     
-    -- 保存遮罩到设置面板，方便后续关闭
+    -- 将遮罩附加到设置面板，方便关闭时一并销毁
     settingsFrame.Mask = mask
     
     local titleBar = CreateInstance("Frame", {
@@ -1556,6 +1558,7 @@ self.Avatar.MouseButton1Click:Connect(function()
         WasUI.SettingsPanel = nil
     end)
     
+    -- 内容区域（可滚动）
     local contentFrame = CreateInstance("ScrollingFrame", {
         Name = "Content",
         Size = UDim2.new(1, -20, 1, -40),
@@ -1711,6 +1714,7 @@ self.Avatar.MouseButton1Click:Connect(function()
         end
     end)
     
+    -- 播放动画
     Tween(settingsFrame, {BackgroundTransparency = 0.2, Size = UDim2.new(0, 300, 0, 280), Position = UDim2.new(0.5, -150, 0.5, -140)}, 0.25)
     
     WasUI.SettingsPanel = settingsFrame
