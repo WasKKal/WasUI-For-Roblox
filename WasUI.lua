@@ -1592,7 +1592,7 @@ self.Avatar.MouseButton1Click:Connect(function()
         Font = Enum.Font.Gotham,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 1001,
+        ZIndex = 1002,
         Parent = contentFrame
     })
     local themeDropdown = CreateInstance("TextButton", {
@@ -1606,7 +1606,7 @@ self.Avatar.MouseButton1Click:Connect(function()
         Font = Enum.Font.Gotham,
         TextSize = 12,
         AutoButtonColor = false,
-        ZIndex = 1001,
+        ZIndex = 1002,
         Parent = contentFrame
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
@@ -1623,7 +1623,7 @@ self.Avatar.MouseButton1Click:Connect(function()
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 1001,
+        ZIndex = 1002,
         Parent = contentFrame
     })
     
@@ -1638,6 +1638,11 @@ self.Avatar.MouseButton1Click:Connect(function()
     local xSlider = WasUI:CreateSlider(contentFrame, "X轴位置", -400, 0, self.Instance.Position.X.Offset, function(value)
         updateWindowPosition(value, self.Instance.Position.Y.Offset)
     end)
+    xSlider.TitleLabel.ZIndex = 1002
+    xSlider.ValueLabel.ZIndex = 1002
+    xSlider.SliderTrack.ZIndex = 1002
+    xSlider.SliderFill.ZIndex = 1002
+    xSlider.Knob.ZIndex = 1002
     xSlider.TitleLabel.Text = "X轴"
     xSlider.TitleLabel.Size = UDim2.new(0.4, 0, 1, 0)
     xSlider.ValueLabel.Text = tostring(xSlider.Value)
@@ -1647,6 +1652,11 @@ self.Avatar.MouseButton1Click:Connect(function()
     local ySlider = WasUI:CreateSlider(contentFrame, "Y轴位置", -300, 300, self.Instance.Position.Y.Offset, function(value)
         updateWindowPosition(self.Instance.Position.X.Offset, value)
     end)
+    ySlider.TitleLabel.ZIndex = 1002
+    ySlider.ValueLabel.ZIndex = 1002
+    ySlider.SliderTrack.ZIndex = 1002
+    ySlider.SliderFill.ZIndex = 1002
+    ySlider.Knob.ZIndex = 1002
     ySlider.TitleLabel.Text = "Y轴"
     ySlider.TitleLabel.Size = UDim2.new(0.4, 0, 1, 0)
     ySlider.ValueLabel.Text = tostring(ySlider.Value)
@@ -1676,8 +1686,8 @@ self.Avatar.MouseButton1Click:Connect(function()
     
     local groupButton = CreateInstance("TextButton", {
         Name = "GroupButton",
-        Size = UDim2.new(1, -30, 0, 32),
-        Position = UDim2.new(0, 15, 1, -40),
+        Size = UDim2.new(1, 0, 0, 32),
+        Position = UDim2.new(0, 0, 1, -40),
         BackgroundColor3 = WasUI.CurrentTheme.Success,
         BackgroundTransparency = 0.3,
         Text = WasUI.GroupButtonText,
@@ -1685,7 +1695,7 @@ self.Avatar.MouseButton1Click:Connect(function()
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
         AutoButtonColor = false,
-        ZIndex = 1001,
+        ZIndex = 1002,
         Parent = contentFrame
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = groupButton})
@@ -1717,6 +1727,7 @@ self.Avatar.MouseButton1Click:Connect(function()
         local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
                         mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
         if not inPanel then
+            input:SetConsumed(true)
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
             Tween(scale, {Scale = 0.8}, 0.2)
             task.wait(0.2)
