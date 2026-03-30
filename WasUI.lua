@@ -797,6 +797,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.Max = max or 100
     self.Value = math.clamp(defaultValue or self.Min, self.Min, self.Max)
     self.Callback = callback
+    self.AnimationTween = nil   -- 用于存储当前动画
     self.Container = CreateInstance("Frame", {
         Name = name,
         Size = UDim2.new(1, 0, 0, 40),
@@ -857,6 +858,53 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Parent = self.SliderTrack
     })
 
+    local function stopAnimation()
+        if self.AnimationTween then
+            self.AnimationTween:Cancel()
+            self.AnimationTween = nil
+        end
+    end
+
+    local function setValueImmediately(newValue)
+        newValue = math.clamp(newValue, self.Min, self.Max)
+        if newValue == self.Value then return end
+        self.Value = newValue
+        self.ValueLabel.Text = tostring(self.Value)
+        local t = (self.Value - self.Min) / (self.Max - self.Min)
+        self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
+        self.Knob.Position = UDim2.new(t, -10, 0.5, -10)
+        if self.Callback then self.Callback(self.Value) end
+    end
+
+    local function animateToValue(targetValue)
+        targetValue = math.clamp(targetValue, self.Min, self.Max)
+        if targetValue == self.Value then return end
+        local startValue = self.Value
+        local startT = (startValue - self.Min) / (self.Max - self.Min)
+        local targetT = (targetValue - self.Min) / (self.Max - self.Min)
+        
+        stopAnimation()
+        
+        local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local fillTween = TweenService:Create(self.SliderFill, tweenInfo, {Size = UDim2.new(targetT, 0, 1, 0)})
+        local knobTween = TweenService:Create(self.Knob, tweenInfo, {Position = UDim2.new(targetT, -10, 0.5, -10)})
+        
+        local completed = false
+        local function onFinish()
+            if completed then return end
+            completed = true
+            self.AnimationTween = nil
+            setValueImmediately(targetValue)
+        end
+        
+        fillTween.Completed:Connect(onFinish)
+        knobTween.Completed:Connect(onFinish)
+        
+        fillTween:Play()
+        knobTween:Play()
+        self.AnimationTween = fillTween
+    end
+
     local dragging = false
     local function updateFromMousePosition(inputX)
         local trackPos = self.SliderTrack.AbsolutePosition
@@ -866,26 +914,32 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         local newValue = self.Min + t * (self.Max - self.Min)
         newValue = math.round(newValue)
         if newValue ~= self.Value then
-            self.Value = newValue
-            self.ValueLabel.Text = tostring(self.Value)
-            self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
-            self.Knob.Position = UDim2.new(t, -10, 0.5, -10)
-            if self.Callback then self.Callback(self.Value) end
+            stopAnimation()
+            setValueImmediately(newValue)
         end
     end
 
+    -- 点击轨道：启动动画
     self.SliderTrack.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             local pos = input.Position
-            updateFromMousePosition(pos.X)
+            local trackPos = self.SliderTrack.AbsolutePosition
+            local trackSize = self.SliderTrack.AbsoluteSize.X
+            if trackSize <= 0 then return end
+            local t = math.clamp((pos.X - trackPos.X) / trackSize, 0, 1)
+            local targetValue = self.Min + t * (self.Max - self.Min)
+            targetValue = math.round(targetValue)
+            animateToValue(targetValue)
             dragging = true
             input:SetConsumed(true)
         end
     end)
     
+    -- 拖拽 Knob：直接更新，无动画
     self.Knob.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
+            stopAnimation()
             input:SetConsumed(true)
         end
     end)
