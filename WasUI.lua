@@ -419,7 +419,7 @@ function Button:New(name, parent, text, onClick, size, iconName)
             icon.Parent = self.Instance
             icon.Position = UDim2.new(0, 6, 0.5, -7)
             icon.ZIndex = 3
-            self.Instance.Text = "   " .. (text or "按钮")
+            padding.PaddingLeft = UDim.new(0, 24)
             self.Instance.TextXAlignment = Enum.TextXAlignment.Left
         end
     end
@@ -1271,10 +1271,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local searchContainer = CreateInstance("Frame", {
         Name = "SearchContainer",
         Size = UDim2.new(0, 0, 0, 20),
-        Position = UDim2.new(1, -136, 0, 3),
+        Position = UDim2.new(1, -156, 0, 3),
         BackgroundTransparency = 1,
         ClipsDescendants = true,
-        ZIndex = 8,
+        ZIndex = 5,
         Parent = self.TitleBar
     })
     local searchBox = CreateInstance("TextBox", {
@@ -1290,7 +1290,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Font = Enum.Font.Gotham,
         TextSize = 12,
         ClearTextOnFocus = false,
-        ZIndex = 9,
+        ZIndex = 6,
         Parent = searchContainer
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = searchBox})
@@ -1466,6 +1466,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     
     self.MinimizeToDots = function()
         if self.IsMinimized then return end
+        if isSearchActive then
+            expandSearchBox(false)
+            isSearchActive = false
+        end
         Tween(self.Instance, {
             Size = self.MinimizedSize,
             Position = self.Instance.Position
@@ -1497,10 +1501,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.ContentArea.Visible = true
         closeButton.Visible = true
         searchButton.Visible = true
-        if isSearchActive then
-            searchContainer.Visible = true
-            Tween(searchContainer, {Size = UDim2.new(0, 120, 0, 20)}, 0.25)
-        end
         self.DraggableArea.Visible = true
         self.DotContainer.Visible = true
         if self.SnowContainer then
