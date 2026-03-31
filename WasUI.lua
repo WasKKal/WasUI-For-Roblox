@@ -1543,10 +1543,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
     
-    -- 最小化时显示的文本标签（居中，可改颜色）
     self.MinimizedTextLabel = CreateInstance("TextLabel", {
         Name = "MinimizedText",
         Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0.5, 5, 0.5, 0),
         BackgroundTransparency = 1,
         Text = "",
         TextColor3 = WasUI.CurrentTheme.Text,
