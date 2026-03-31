@@ -1346,6 +1346,50 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local isSearchActive = false
     local autoCloseTimer = nil
     local searchResultTab = nil
+    local originalTabButtons = {}
+    local originalTabFrames = {}
+    
+    local function storeOriginalTabs()
+        originalTabButtons = {}
+        originalTabFrames = {}
+        for tabName, tabData in pairs(self.Tabs) do
+            originalTabButtons[tabName] = tabData.Button
+            originalTabFrames[tabName] = tabData.Frame
+        end
+    end
+    
+    local function restoreOriginalTabs()
+        if searchResultTab then
+            if searchResultTab.Button then
+                searchResultTab.Button:Destroy()
+            end
+            if searchResultTab.Frame then
+                searchResultTab.Frame:Destroy()
+            end
+            searchResultTab = nil
+        end
+        
+        self.Tabs = {}
+        for tabName, btn in pairs(originalTabButtons) do
+            local frame = originalTabFrames[tabName]
+            frame.Parent = self.ContentArea
+            btn.Parent = self.TabContainer
+            self.Tabs[tabName] = {
+                Button = btn,
+                Underline = btn:FindFirstChild("Underline"),
+                Frame = frame
+            }
+        end
+        originalTabButtons = {}
+        originalTabFrames = {}
+        
+        if self.ActiveTab and self.Tabs[self.ActiveTab] then
+            self:SetActiveTab(self.ActiveTab)
+        elseif next(self.Tabs) then
+            local firstTab = next(self.Tabs)
+            self:SetActiveTab(firstTab)
+        end
+    end
     
     local function collectSearchableControls()
         local controls = {}
@@ -1364,7 +1408,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                             if searchText and searchText ~= "" then
                                 table.insert(controls, {
                                     Instance = child,
-                                    OriginalParent = child.Parent,
                                     SearchText = searchText,
                                     TabName = tabName
                                 })
@@ -1381,47 +1424,80 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         return controls
     end
     
-    local function hideAllOriginalTabs()
-        for tabName, tabData in pairs(self.Tabs) do
-            tabData.Frame.Visible = false
-            tabData.Button.Visible = false
-        end
-    end
-    
-    local function showAllOriginalTabs()
-        for tabName, tabData in pairs(self.Tabs) do
-            if tabName ~= "搜索结果" then
-                tabData.Frame.Visible = true
-                tabData.Button.Visible = true
-            end
-        end
-        if self.ActiveTab and self.Tabs[self.ActiveTab] then
-            self:SetActiveTab(self.ActiveTab)
-        elseif next(self.Tabs) then
-            local firstTab = next(self.Tabs)
-            self:SetActiveTab(firstTab)
-        end
-    end
-    
     local function performSearch(keyword)
         if keyword == "" then
             if isSearchActive then
-                if searchResultTab then
-                    searchResultTab.Frame:Destroy()
-                    searchResultTab = nil
-                end
-                showAllOriginalTabs()
+                restoreOriginalTabs()
                 isSearchActive = false
             end
             return
         end
         
         if not isSearchActive then
-            hideAllOriginalTabs()
-            searchResultTab = self:AddTab("搜索结果")
-            isSearchActive = true
+            storeOriginalTabs()
+            for tabName, tabData in pairs(self.Tabs) do
+                tabData.Button.Parent = nil
+                tabData.Frame.Parent = nil
+            end
+            self.Tabs = {}
+            
+            local resultButton = CreateInstance("TextButton", {
+                Name = "Tab_搜索结果",
+                Size = UDim2.new(0, 90, 0, 24),
+                BackgroundColor3 = WasUI.CurrentTheme.TabButton,
+                BackgroundTransparency = 0.5,
+                Text = "搜索结果",
+                TextColor3 = WasUI.CurrentTheme.Text,
+                Font = Enum.Font.GothamSemibold,
+                TextSize = 12,
+                AutoButtonColor = false,
+                LayoutOrder = 999,
+                ZIndex = 2,
+                Parent = self.TabContainer
+            })
+            local resultUnderline = CreateInstance("Frame", {
+                Name = "Underline",
+                Size = UDim2.new(0, 0, 0, 2),
+                Position = UDim2.new(0.5, 0, 1, -2),
+                AnchorPoint = Vector2.new(0.5, 0),
+                BackgroundColor3 = Color3.fromRGB(128, 0, 128),
+                Visible = true,
+                ZIndex = 2,
+                Parent = resultButton
+            })
+            local resultFrame = CreateInstance("Frame", {
+                Name = "TabFrame_搜索结果",
+                Size = UDim2.new(1, 0, 0, 0),
+                BackgroundTransparency = 1,
+                Visible = true,
+                AutomaticSize = Enum.AutomaticSize.Y,
+                ZIndex = 2,
+                Parent = self.ContentArea
+            })
+            local resultLayout = CreateInstance("UIListLayout", {
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Padding = UDim.new(0, 4),
+                Parent = resultFrame
+            })
+            local resultPadding = CreateInstance("UIPadding", {
+                PaddingLeft = UDim.new(0, 4),
+                PaddingRight = UDim.new(0, 4),
+                PaddingTop = UDim.new(0, 4),
+                PaddingBottom = UDim.new(0, 4),
+                Parent = resultFrame
+            })
+            
+            searchResultTab = {
+                Button = resultButton,
+                Underline = resultUnderline,
+                Frame = resultFrame
+            }
+            self.Tabs["搜索结果"] = searchResultTab
             self:SetActiveTab("搜索结果")
+            isSearchActive = true
         end
+        
+        if not searchResultTab or not searchResultTab.Frame then return end
         
         for _, child in ipairs(searchResultTab.Frame:GetChildren()) do
             if child.Name ~= "Spacing" then
@@ -2360,17 +2436,25 @@ end)
     function self:SetActiveTab(tabName)
         if self.ActiveTab and self.Tabs[self.ActiveTab] then
             local old = self.Tabs[self.ActiveTab]
-            old.Underline.Visible = false
-            Tween(old.Underline, {Size = UDim2.new(0, 0, 0, 2)}, 0.15)
-            old.Frame.Visible = false
+            if old.Underline then
+                old.Underline.Visible = false
+                Tween(old.Underline, {Size = UDim2.new(0, 0, 0, 2)}, 0.15)
+            end
+            if old.Frame then
+                old.Frame.Visible = false
+            end
         end
 
         if not self.Tabs[tabName] then return end
         
         local new = self.Tabs[tabName]
-        new.Underline.Visible = true
-        Tween(new.Underline, {Size = UDim2.new(1, 0, 0, 2)}, 0.25)
-        new.Frame.Visible = true
+        if new.Underline then
+            new.Underline.Visible = true
+            Tween(new.Underline, {Size = UDim2.new(1, 0, 0, 2)}, 0.25)
+        end
+        if new.Frame then
+            new.Frame.Visible = true
+        end
         self.ActiveTab = tabName
     end
 
