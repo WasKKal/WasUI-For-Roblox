@@ -1345,23 +1345,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     
     local isSearchActive = false
     local autoCloseTimer = nil
-    local originalTabs = {}  
-    local resultTab = nil
-    
-    local function restoreOriginalTabs()
-        if resultTab then
-            if resultTab.Frame then
-                resultTab.Frame:Destroy()
-            end
-            resultTab = nil
-        end
-        for tabName, tabData in pairs(originalTabs) do
-            tabData.Frame.Parent = self.ContentArea
-            tabData.Frame.Visible = tabName == self.ActiveTab
-            self.Tabs[tabName] = tabData
-        end
-        originalTabs = {}
-    end
+    local searchResultTab = nil
     
     local function collectSearchableControls()
         local controls = {}
@@ -1397,26 +1381,49 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         return controls
     end
     
+    local function hideAllOriginalTabs()
+        for tabName, tabData in pairs(self.Tabs) do
+            tabData.Frame.Visible = false
+            tabData.Button.Visible = false
+        end
+    end
+    
+    local function showAllOriginalTabs()
+        for tabName, tabData in pairs(self.Tabs) do
+            if tabName ~= "搜索结果" then
+                tabData.Frame.Visible = true
+                tabData.Button.Visible = true
+            end
+        end
+        if self.ActiveTab and self.Tabs[self.ActiveTab] then
+            self:SetActiveTab(self.ActiveTab)
+        elseif next(self.Tabs) then
+            local firstTab = next(self.Tabs)
+            self:SetActiveTab(firstTab)
+        end
+    end
+    
     local function performSearch(keyword)
         if keyword == "" then
             if isSearchActive then
-                restoreOriginalTabs()
+                if searchResultTab then
+                    searchResultTab.Frame:Destroy()
+                    searchResultTab = nil
+                end
+                showAllOriginalTabs()
                 isSearchActive = false
             end
             return
         end
         
         if not isSearchActive then
-            for tabName, tabData in pairs(self.Tabs) do
-                originalTabs[tabName] = tabData
-                tabData.Frame.Parent = nil
-            end
-            self.Tabs = {}
-            resultTab = self:AddTab("搜索结果")
+            hideAllOriginalTabs()
+            searchResultTab = self:AddTab("搜索结果")
             isSearchActive = true
+            self:SetActiveTab("搜索结果")
         end
         
-        for _, child in ipairs(resultTab.Frame:GetChildren()) do
+        for _, child in ipairs(searchResultTab.Frame:GetChildren()) do
             if child.Name ~= "Spacing" then
                 child:Destroy()
             end
@@ -1432,17 +1439,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         
         for _, control in ipairs(matchedControls) do
             local newInstance = control.Instance:Clone()
-            newInstance.Parent = resultTab.Frame
+            newInstance.Parent = searchResultTab.Frame
             newInstance.Visible = true
             if newInstance:IsA("TextButton") then
-                newInstance.MouseButton1Click:Connect(function()
-                    if control.Instance and control.Instance:IsA("TextButton") then
-                        local clickEvent = control.Instance:FindFirstChild("__ClickEvent")
-                        if clickEvent then
-                            clickEvent:Fire()
-                        end
-                    end
-                end)
+                local originalClick = control.Instance.MouseButton1Click
+                if originalClick then
+                    newInstance.MouseButton1Click:Connect(function()
+                        originalClick:Fire()
+                    end)
+                end
             end
         end
         
@@ -1450,7 +1455,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         spacing.Name = "Spacing"
         spacing.Size = UDim2.new(1, 0, 0, 4)
         spacing.BackgroundTransparency = 1
-        spacing.Parent = resultTab.Frame
+        spacing.Parent = searchResultTab.Frame
     end
     
     local function resetAutoCloseTimer()
@@ -1462,7 +1467,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             autoCloseTimer = task.delay(2.5, function()
                 if searchBox.Text == "" then
                     expandSearchBox(false)
-                    isSearchActive = false
                 end
                 autoCloseTimer = nil
             end)
@@ -1528,7 +1532,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         if self.IsMinimized then return end
         if isSearchActive then
             expandSearchBox(false)
-            isSearchActive = false
         end
         Tween(self.Instance, {
             Size = self.MinimizedSize,
@@ -2078,7 +2081,7 @@ self.Avatar.MouseButton1Click:Connect(function()
         Name = "GroupButton",
         Size = UDim2.new(1, 0, 0, 32),
         Position = UDim2.new(0, 0, 1, -40),
-        BackgroundColor3 = WasUI.CurrentTheme.Success,
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.3,
         Text = WasUI.GroupButtonText,
         TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -2090,10 +2093,10 @@ self.Avatar.MouseButton1Click:Connect(function()
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = groupButton})
     groupButton.MouseEnter:Connect(function()
-        Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+        Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
     end)
     groupButton.MouseLeave:Connect(function()
-        Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Success, BackgroundTransparency = 0.3}, 0.2)
+        Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
     end)
     groupButton.MouseButton1Click:Connect(function()
         local copied = copyToClipboard(WasUI.GroupCopyContent)
@@ -2355,13 +2358,15 @@ end)
     end
 
     function self:SetActiveTab(tabName)
-        if self.ActiveTab then
+        if self.ActiveTab and self.Tabs[self.ActiveTab] then
             local old = self.Tabs[self.ActiveTab]
             old.Underline.Visible = false
             Tween(old.Underline, {Size = UDim2.new(0, 0, 0, 2)}, 0.15)
             old.Frame.Visible = false
         end
 
+        if not self.Tabs[tabName] then return end
+        
         local new = self.Tabs[tabName]
         new.Underline.Visible = true
         Tween(new.Underline, {Size = UDim2.new(1, 0, 0, 2)}, 0.25)
