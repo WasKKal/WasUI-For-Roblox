@@ -1086,7 +1086,10 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             targetValue = math.round(targetValue)
             animateToValue(targetValue)
             dragging = true
-            input:SetConsumed(true)
+            -- 安全调用 SetConsumed
+            if input and input.SetConsumed then
+                input:SetConsumed(true)
+            end
         end
     end)
     
@@ -1094,7 +1097,9 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             stopAnimation()
-            input:SetConsumed(true)
+            if input and input.SetConsumed then
+                input:SetConsumed(true)
+            end
         end
     end)
     
@@ -1102,7 +1107,9 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local pos = input.Position
             updateFromMousePosition(pos.X)
-            input:SetConsumed(true)
+            if input and input.SetConsumed then
+                input:SetConsumed(true)
+            end
         end
     end)
     
@@ -1536,7 +1543,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
     
-    -- 最小化时显示的文本标签
+    -- 最小化时显示的文本标签（居中，可改颜色）
     self.MinimizedTextLabel = CreateInstance("TextLabel", {
         Name = "MinimizedText",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1553,11 +1560,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     })
     
     self.MinimizedCustomText = ""
-    self.MinimizedTextLabel.Text = ""
     
     function self:SetMinimizedText(text)
         self.MinimizedCustomText = text or ""
         self.MinimizedTextLabel.Text = text or ""
+    end
+    
+    function self:SetMinimizedTextColor(color)
+        self.MinimizedTextLabel.TextColor3 = color or WasUI.CurrentTheme.Text
     end
     
     local searchContainer = CreateInstance("Frame", {
@@ -1990,14 +2000,18 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     
     self.CloseDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            input:SetConsumed(true)
+            if input and input.SetConsumed then
+                input:SetConsumed(true)
+            end
             self:SetVisible(false)
         end
     end)
     
     self.MinimizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            input:SetConsumed(true)
+            if input and input.SetConsumed then
+                input:SetConsumed(true)
+            end
             if self.IsMinimized then
                 self:RestoreFromDots()
             else
@@ -2008,7 +2022,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     
     self.MaximizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            input:SetConsumed(true)
+            if input and input.SetConsumed then
+                input:SetConsumed(true)
+            end
         end
     end)
     
@@ -2174,7 +2190,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 dragging = true
                 dragStart = input.Position
                 startPos = self.Instance.Position
-                input:SetConsumed(true)
+                if input and input.SetConsumed then
+                    input:SetConsumed(true)
+                end
             end
         end
     end
@@ -2279,7 +2297,9 @@ self.Avatar.MouseButton1Click:Connect(function()
         Parent = settingsGui
     })
     clickCatcher.InputBegan:Connect(function(input)
-        input:SetConsumed(true)
+        if input and input.SetConsumed then
+            input:SetConsumed(true)
+        end
     end)
     
     local settingsFrame = CreateInstance("Frame", {
@@ -2535,7 +2555,9 @@ self.Avatar.MouseButton1Click:Connect(function()
         local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
                         mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
         if not inPanel then
-            input:SetConsumed(true)
+            if input and input.SetConsumed then
+                input:SetConsumed(true)
+            end
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
             Tween(scale, {Scale = 0.8}, 0.2)
             task.wait(0.2)
