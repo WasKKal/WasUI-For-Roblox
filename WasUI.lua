@@ -60,7 +60,7 @@ WasUI.Themes = {
         SnowColor = Color3.fromRGB(255, 255, 255)
     },
     Light = {
-        Primary = Color3.fromRGB(230, 230, 235),
+        Primary = Color3.fromRGB(240, 240, 245),
         Secondary = Color3.fromRGB(245, 245, 250),
         Background = Color3.fromRGB(255, 255, 255),
         Text = Color3.fromRGB(30, 30, 35),
@@ -71,7 +71,7 @@ WasUI.Themes = {
         Section = Color3.fromRGB(240, 240, 245),
         Input = Color3.fromRGB(240, 240, 245),
         TabBorder = Color3.fromRGB(200, 200, 205),
-        TabButton = Color3.fromRGB(255, 255, 255),
+        TabButton = Color3.fromRGB(248, 248, 250),
         SnowColor = Color3.fromRGB(0, 0, 0)
     }
 }
@@ -1123,14 +1123,29 @@ local function UpdateAllThemeColors()
             if obj.Type == "Button" then
                 instance.BackgroundColor3 = WasUI.CurrentTheme.Primary
                 instance.TextColor3 = WasUI.CurrentTheme.Text
+                local icon = instance:FindFirstChildOfClass("ImageLabel")
+                if icon then
+                    icon.ImageColor3 = WasUI.CurrentTheme.Text
+                end
             elseif obj.Type == "Toggle" then
                 if instance:GetAttribute("Toggled") then
                     instance.BackgroundColor3 = WasUI.CurrentTheme.Success
                 else
                     instance.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
                 end
+                local container = instance.Parent
+                if container and container:IsA("Frame") then
+                    local titleLabel = container:FindFirstChild("Title")
+                    if titleLabel and titleLabel:IsA("TextLabel") then
+                        titleLabel.TextColor3 = WasUI.CurrentTheme.Text
+                    end
+                end
             elseif obj.Type == "ToggleKnob" then
                 instance.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                local knobIcon = instance:FindFirstChildOfClass("ImageLabel")
+                if knobIcon then
+                    knobIcon.ImageColor3 = WasUI.CurrentTheme.Text
+                end
             elseif obj.Type == "Label" then
                 instance.TextColor3 = WasUI.CurrentTheme.Text
             elseif obj.Type == "Line" then
@@ -1174,6 +1189,13 @@ local function UpdateAllThemeColors()
                 end
                 if line and line:IsA("Frame") then
                     line.BackgroundColor3 = WasUI.CurrentTheme.Primary
+                end
+            elseif obj.Type == "TextInput" then
+                local textBox = instance:FindFirstChild("TextBox")
+                if textBox and textBox:IsA("TextBox") then
+                    textBox.BackgroundColor3 = WasUI.CurrentTheme.Input
+                    textBox.TextColor3 = WasUI.CurrentTheme.Text
+                    textBox.PlaceholderColor3 = WasUI.CurrentTheme.Text
                 end
             elseif obj.Type == "Panel" then
                 instance.BackgroundColor3 = WasUI.CurrentTheme.Background
@@ -2505,7 +2527,7 @@ end)
         Size = UDim2.new(1, 0, 0, 0),
         Position = UDim2.new(0, 0, 0, 26 + 80),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.4,
+        BackgroundTransparency = 0.8,
         ClipsDescendants = false,
         ZIndex = 2,
         Parent = self.Instance
