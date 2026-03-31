@@ -684,7 +684,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         ZIndex = 11,
         Parent = self.Container
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.DropdownButton})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.DropdownButton})
     local arrowIcon = CreateInstance("ImageLabel", {
         Name = "ArrowIcon",
         Size = UDim2.new(0, 12, 0, 12),
@@ -714,7 +714,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = WasUI.DropdownGui
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.OptionsContainer})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.OptionsContainer})
     local shadow = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(0, 0, 0),
         Thickness = 1,
@@ -736,52 +736,95 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     })
 
     self.OptionButtons = {}
-    for i, option in ipairs(self.Options) do
-        local optionButton = CreateInstance("TextButton", {
-            Name = "Option_" .. option,
-            Size = UDim2.new(1, 0, 0, 28),
-            BackgroundColor3 = WasUI.CurrentTheme.Input,
-            BackgroundTransparency = 0.3,
-            BorderSizePixel = 0,
-            Text = option,
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            AutoButtonColor = false,
-            ZIndex = 10000,
-            Parent = self.OptionsContainer
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = optionButton})
-        optionButton.MouseEnter:Connect(function()
-            Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
-        end)
-        optionButton.MouseLeave:Connect(function()
-            Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.1)
-        end)
-        optionButton.MouseButton1Click:Connect(function()
-            if self.MultiSelect then
-                local index = nil
-                for i, v in ipairs(self.SelectedValues) do
-                    if v == option then
-                        index = i
-                        break
+    local function rebuildOptions()
+        for _, btn in pairs(self.OptionButtons) do
+            btn:Destroy()
+        end
+        self.OptionButtons = {}
+        for i, option in ipairs(self.Options) do
+            local optionButton = CreateInstance("TextButton", {
+                Name = "Option_" .. option,
+                Size = UDim2.new(1, 0, 0, 28),
+                BackgroundColor3 = WasUI.CurrentTheme.Input,
+                BackgroundTransparency = 0.3,
+                BorderSizePixel = 0,
+                Text = option,
+                TextColor3 = WasUI.CurrentTheme.Text,
+                Font = Enum.Font.Gotham,
+                TextSize = 12,
+                AutoButtonColor = false,
+                ZIndex = 10000,
+                Parent = self.OptionsContainer
+            })
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = optionButton})
+            optionButton.MouseEnter:Connect(function()
+                Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
+            end)
+            optionButton.MouseLeave:Connect(function()
+                Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.1)
+            end)
+            optionButton.MouseButton1Click:Connect(function()
+                if self.MultiSelect then
+                    local index = nil
+                    for i, v in ipairs(self.SelectedValues) do
+                        if v == option then
+                            index = i
+                            break
+                        end
                     end
-                end
-                if index then
-                    table.remove(self.SelectedValues, index)
+                    if index then
+                        table.remove(self.SelectedValues, index)
+                    else
+                        table.insert(self.SelectedValues, option)
+                    end
+                    self:UpdateDisplayText()
+                    if self.Callback then self.Callback(self.SelectedValues) end
                 else
-                    table.insert(self.SelectedValues, option)
+                    self.SelectedValue = option
+                    self:UpdateDisplayText()
+                    if self.Callback then self.Callback(option) end
+                    self:Close(true)
                 end
-                self:UpdateDisplayText()
-                if self.Callback then self.Callback(self.SelectedValues) end
-            else
-                self.SelectedValue = option
-                self:UpdateDisplayText()
-                if self.Callback then self.Callback(option) end
-                self:Close(true)
+            end)
+            self.OptionButtons[option] = optionButton
+        end
+        local function updateContainerSize()
+            local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 16
+            local maxHeight = 300
+            local finalHeight = math.min(totalHeight, maxHeight)
+            self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
+            task.wait()
+            self.OptionsContainer.CanvasSize = UDim2.new(0, 0, 0, optionsList.AbsoluteContentSize.Y + 8)
+        end
+        updateContainerSize()
+        if self.IsOpen then
+            updatePosition()
+        end
+    end
+
+    function self:UpdateOptions(newOptions, newDefaultValue)
+        self.Options = {}
+        for _, v in ipairs(newOptions or {}) do
+            table.insert(self.Options, tostring(v))
+        end
+        if self.MultiSelect then
+            self.SelectedValues = {}
+            if type(newDefaultValue) == "table" then
+                for _, v in ipairs(newDefaultValue) do
+                    table.insert(self.SelectedValues, tostring(v))
+                end
+            elseif newDefaultValue ~= nil then
+                table.insert(self.SelectedValues, tostring(newDefaultValue))
             end
-        end)
-        self.OptionButtons[option] = optionButton
+        else
+            if type(newDefaultValue) == "table" then
+                self.SelectedValue = tostring(newDefaultValue[1] or "")
+            elseif newDefaultValue ~= nil then
+                self.SelectedValue = tostring(newDefaultValue)
+            end
+        end
+        rebuildOptions()
+        self:UpdateDisplayText()
     end
 
     local function updateContainerSize()
@@ -790,7 +833,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         local finalHeight = math.min(totalHeight, maxHeight)
         self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
         task.wait()
-        self.OptionsContainer.CanvasSize = UDim2.new(0, 0, 0, optionsList.AbsoluteContentSize.Y)
+        self.OptionsContainer.CanvasSize = UDim2.new(0, 0, 0, optionsList.AbsoluteContentSize.Y + 8)
     end
 
     local function updatePosition()
@@ -867,6 +910,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         end
     end)
 
+    rebuildOptions()
     self:UpdateDisplayText()
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
     table.insert(WasUI.Objects, {Object = self.DropdownButton, Type = "DropdownButton"})
@@ -1492,6 +1536,30 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
     
+    -- 最小化时显示的文本标签
+    self.MinimizedTextLabel = CreateInstance("TextLabel", {
+        Name = "MinimizedText",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Visible = false,
+        ZIndex = 4,
+        Parent = self.DotContainer
+    })
+    
+    self.MinimizedCustomText = ""
+    self.MinimizedTextLabel.Text = ""
+    
+    function self:SetMinimizedText(text)
+        self.MinimizedCustomText = text or ""
+        self.MinimizedTextLabel.Text = text or ""
+    end
+    
     local searchContainer = CreateInstance("Frame", {
         Name = "SearchContainer",
         Size = UDim2.new(0, 0, 0, 20),
@@ -1845,10 +1913,24 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         if isSearchActive then
             expandSearchBox(false)
         end
+        
+        -- 动画：三色点渐隐，文字渐显（如果有自定义文字）
+        local tweenDuration = 0.3
+        local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
+        for _, dot in ipairs(dots) do
+            Tween(dot, {BackgroundTransparency = 1}, tweenDuration)
+        end
+        if self.MinimizedCustomText ~= "" then
+            self.MinimizedTextLabel.Visible = true
+            self.MinimizedTextLabel.TextTransparency = 1
+            Tween(self.MinimizedTextLabel, {TextTransparency = 0}, tweenDuration)
+        end
+        
         Tween(self.Instance, {
             Size = self.MinimizedSize,
             Position = self.Instance.Position
-        }, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        
         self.Title.Visible = false
         self.AnnouncementBar.Visible = false
         self.TabBar.Visible = false
@@ -1866,10 +1948,24 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     
     self.RestoreFromDots = function()
         if not self.IsMinimized then return end
+        
+        local tweenDuration = 0.3
+        local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
+        for _, dot in ipairs(dots) do
+            Tween(dot, {BackgroundTransparency = 0}, tweenDuration)
+        end
+        if self.MinimizedCustomText ~= "" then
+            Tween(self.MinimizedTextLabel, {TextTransparency = 1}, tweenDuration)
+            task.delay(tweenDuration, function()
+                self.MinimizedTextLabel.Visible = false
+            end)
+        end
+        
         Tween(self.Instance, {
             Size = self.OriginalSize,
             Position = self.Instance.Position
-        }, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        
         self.Title.Visible = true
         self.AnnouncementBar.Visible = true
         self.TabBar.Visible = true
