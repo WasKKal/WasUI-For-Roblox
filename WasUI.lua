@@ -56,7 +56,23 @@ WasUI.Themes = {
         Section = Color3.fromRGB(45, 45, 50),
         Input = Color3.fromRGB(45, 45, 50),
         TabBorder = Color3.fromRGB(60, 60, 65),
-        TabButton = Color3.fromRGB(0, 0, 0)
+        TabButton = Color3.fromRGB(0, 0, 0),
+        SnowColor = Color3.fromRGB(255, 255, 255)
+    },
+    Light = {
+        Primary = Color3.fromRGB(230, 230, 235),
+        Secondary = Color3.fromRGB(245, 245, 250),
+        Background = Color3.fromRGB(255, 255, 255),
+        Text = Color3.fromRGB(30, 30, 35),
+        Accent = Color3.fromRGB(66, 133, 244),
+        Success = Color3.fromRGB(52, 168, 83),
+        Warning = Color3.fromRGB(251, 188, 5),
+        Error = Color3.fromRGB(234, 67, 53),
+        Section = Color3.fromRGB(240, 240, 245),
+        Input = Color3.fromRGB(240, 240, 245),
+        TabBorder = Color3.fromRGB(200, 200, 205),
+        TabButton = Color3.fromRGB(255, 255, 255),
+        SnowColor = Color3.fromRGB(0, 0, 0)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
@@ -397,7 +413,7 @@ function Button:New(name, parent, text, onClick, size, iconName)
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.3,
         Text = text or "按钮",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextColor3 = WasUI.CurrentTheme.Text,
         TextTransparency = 0,
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
@@ -414,7 +430,7 @@ function Button:New(name, parent, text, onClick, size, iconName)
     })
     
     if iconName then
-        local icon = WasUI:CreateIcon(iconName, UDim2.new(0, 14, 0, 14), Color3.fromRGB(255, 255, 255))
+        local icon = WasUI:CreateIcon(iconName, UDim2.new(0, 14, 0, 14), WasUI.CurrentTheme.Text)
         if icon then
             icon.Parent = self.Instance
             icon.Position = UDim2.new(0, -34, 0.5, -7)
@@ -500,7 +516,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     local knobCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Knob})
     
     if iconName then
-        local knobIcon = WasUI:CreateIcon(iconName, UDim2.new(0, 10, 0, 10), Color3.fromRGB(100, 100, 100))
+        local knobIcon = WasUI:CreateIcon(iconName, UDim2.new(0, 10, 0, 10), WasUI.CurrentTheme.Text)
         if knobIcon then
             knobIcon.Parent = self.Knob
             knobIcon.Position = UDim2.new(0.5, -5, 0.5, -5)
@@ -570,7 +586,7 @@ function Category:New(name, parent, title)
         Position = UDim2.new(0, 2, 0, 0),
         BackgroundTransparency = 1,
         Text = title,
-        TextColor3 = Color3.new(1, 1, 1),
+        TextColor3 = WasUI.CurrentTheme.Text,
         TextTransparency = 0,
         Font = Enum.Font.GothamBold,
         TextSize = 16,
@@ -935,7 +951,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.SliderFill = CreateInstance("Frame", {
         Name = "Fill",
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(0, 120, 255),
+        BackgroundColor3 = WasUI.CurrentTheme.Accent,
         BorderSizePixel = 0,
         ZIndex = 3,
         Parent = self.SliderTrack
@@ -1098,6 +1114,155 @@ end
 
 function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback)
     return TextInput:New("TextInput", parent, placeholder, defaultValue, callback)
+end
+
+local function UpdateAllThemeColors()
+    for _, obj in ipairs(WasUI.Objects) do
+        local instance = obj.Object
+        if instance and instance.Parent then
+            if obj.Type == "Button" then
+                instance.BackgroundColor3 = WasUI.CurrentTheme.Primary
+                instance.TextColor3 = WasUI.CurrentTheme.Text
+            elseif obj.Type == "Toggle" then
+                if instance:GetAttribute("Toggled") then
+                    instance.BackgroundColor3 = WasUI.CurrentTheme.Success
+                else
+                    instance.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+                end
+            elseif obj.Type == "ToggleKnob" then
+                instance.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            elseif obj.Type == "Label" then
+                instance.TextColor3 = WasUI.CurrentTheme.Text
+            elseif obj.Type == "Line" then
+                instance.BackgroundColor3 = WasUI.CurrentTheme.Primary
+            elseif obj.Type == "Slider" then
+                local titleLabel = instance:FindFirstChild("Title")
+                local valueLabel = instance:FindFirstChild("Value")
+                local track = instance:FindFirstChild("Track")
+                if titleLabel and titleLabel:IsA("TextLabel") then
+                    titleLabel.TextColor3 = WasUI.CurrentTheme.Text
+                end
+                if valueLabel and valueLabel:IsA("TextLabel") then
+                    valueLabel.TextColor3 = WasUI.CurrentTheme.Text
+                end
+                if track and track:IsA("Frame") then
+                    track.BackgroundColor3 = WasUI.CurrentTheme.Input
+                    local fill = track:FindFirstChild("Fill")
+                    if fill and fill:IsA("Frame") then
+                        fill.BackgroundColor3 = WasUI.CurrentTheme.Accent
+                    end
+                end
+            elseif obj.Type == "Dropdown" then
+                local titleLabel = instance:FindFirstChild("Title")
+                local dropdownButton = instance:FindFirstChild("DropdownButton")
+                if titleLabel and titleLabel:IsA("TextLabel") then
+                    titleLabel.TextColor3 = WasUI.CurrentTheme.Text
+                end
+                if dropdownButton and dropdownButton:IsA("TextButton") then
+                    dropdownButton.BackgroundColor3 = WasUI.CurrentTheme.Input
+                    dropdownButton.TextColor3 = WasUI.CurrentTheme.Text
+                    local arrow = dropdownButton:FindFirstChild("ArrowIcon")
+                    if arrow and arrow:IsA("ImageLabel") then
+                        arrow.ImageColor3 = WasUI.CurrentTheme.Text
+                    end
+                end
+            elseif obj.Type == "Category" then
+                local titleLabel = instance:FindFirstChild("Title")
+                local line = instance:FindFirstChild("Line")
+                if titleLabel and titleLabel:IsA("TextLabel") then
+                    titleLabel.TextColor3 = WasUI.CurrentTheme.Text
+                end
+                if line and line:IsA("Frame") then
+                    line.BackgroundColor3 = WasUI.CurrentTheme.Primary
+                end
+            elseif obj.Type == "Panel" then
+                instance.BackgroundColor3 = WasUI.CurrentTheme.Background
+                local titleBar = instance:FindFirstChild("TitleBar")
+                if titleBar then
+                    titleBar.BackgroundColor3 = WasUI.CurrentTheme.Primary
+                    local title = titleBar:FindFirstChild("Title")
+                    if title and title:IsA("TextLabel") then
+                        title.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    end
+                    local closeBtn = titleBar:FindFirstChild("CloseButton")
+                    if closeBtn and closeBtn:IsA("ImageButton") then
+                        local icon = closeBtn:FindFirstChildOfClass("ImageLabel")
+                        if icon then
+                            icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+                        else
+                            closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        end
+                    end
+                    local searchBtn = titleBar:FindFirstChild("SearchButton")
+                    if searchBtn and searchBtn:IsA("ImageButton") then
+                        local icon = searchBtn:FindFirstChildOfClass("ImageLabel")
+                        if icon then
+                            icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+                        end
+                    end
+                end
+                local announcementBar = instance:FindFirstChild("AnnouncementBar")
+                if announcementBar then
+                    announcementBar.BackgroundColor3 = WasUI.CurrentTheme.Section
+                    local username = announcementBar:FindFirstChild("Username")
+                    local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
+                    local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
+                    if username and username:IsA("TextLabel") then
+                        username.TextColor3 = WasUI.CurrentTheme.Text
+                    end
+                    if executorLabel and executorLabel:IsA("TextLabel") then
+                        executorLabel.TextColor3 = WasUI.CurrentTheme.Text
+                    end
+                    if welcomeLabel and welcomeLabel:IsA("TextLabel") then
+                        welcomeLabel.TextColor3 = WasUI.CurrentTheme.Text
+                    end
+                    local avatar = announcementBar:FindFirstChild("Avatar")
+                    if avatar and avatar:IsA("ImageButton") then
+                        local stroke = avatar:FindFirstChildOfClass("UIStroke")
+                        if stroke then
+                            stroke.Color = WasUI.CurrentTheme.Text
+                        end
+                    end
+                end
+                local tabBar = instance:FindFirstChild("TabBar")
+                if tabBar then
+                    tabBar.BackgroundColor3 = WasUI.CurrentTheme.Primary
+                    local tabContainer = tabBar:FindFirstChild("TabContainer")
+                    if tabContainer then
+                        for _, btn in ipairs(tabContainer:GetChildren()) do
+                            if btn:IsA("TextButton") then
+                                btn.BackgroundColor3 = WasUI.CurrentTheme.TabButton
+                                btn.TextColor3 = WasUI.CurrentTheme.Text
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    if WasUI.SnowContainer then
+        for _, flake in ipairs(WasUI.Snowflakes or {}) do
+            if flake.Instance then
+                flake.Instance.BackgroundColor3 = WasUI.CurrentTheme.SnowColor
+            end
+        end
+    end
+end
+
+function WasUI:SetTheme(themeName)
+    if self.Themes[themeName] then
+        self.CurrentTheme = self.Themes[themeName]
+        UpdateAllThemeColors()
+        if self.SettingsPanel then
+            local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
+            if themeDropdown and themeDropdown:IsA("TextButton") then
+                themeDropdown.Text = themeName
+            end
+        end
+        return true
+    end
+    return false
 end
 
 local Panel = {}
@@ -1517,12 +1682,53 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             local newInstance = control.Instance:Clone()
             newInstance.Parent = searchResultTab.Frame
             newInstance.Visible = true
-            if newInstance:IsA("TextButton") and control.Instance:IsA("TextButton") then
+            
+            if newInstance:IsA("TextButton") then
+                local originalClick = control.Instance.MouseButton1Click
+                if originalClick then
+                    local connections = {}
+                    local function connectClick()
+                        local conn = newInstance.MouseButton1Click:Connect(function()
+                            originalClick:Fire()
+                        end)
+                        table.insert(connections, conn)
+                    end
+                    connectClick()
+                end
+            elseif newInstance:IsA("TextBox") then
+                local originalChanged = control.Instance:GetPropertyChangedSignal("Text")
+                if originalChanged then
+                    local conn = newInstance:GetPropertyChangedSignal("Text"):Connect(function()
+                        if control.Instance and control.Instance:IsA("TextBox") then
+                            control.Instance.Text = newInstance.Text
+                            local callback = control.Instance:GetAttribute("Callback")
+                            if callback then
+                                callback(newInstance.Text)
+                            end
+                        end
+                    end)
+                end
+            elseif newInstance:IsA("ImageButton") then
                 local originalClick = control.Instance.MouseButton1Click
                 if originalClick then
                     newInstance.MouseButton1Click:Connect(function()
                         originalClick:Fire()
                     end)
+                end
+            end
+            
+            if control.Instance:IsA("Frame") and control.Instance:FindFirstChildWhichIsA("TextButton") then
+                local originalBtn = control.Instance:FindFirstChildWhichIsA("TextButton")
+                if originalBtn then
+                    local newBtn = newInstance:FindFirstChildWhichIsA("TextButton")
+                    if newBtn then
+                        local originalClick = originalBtn.MouseButton1Click
+                        if originalClick then
+                            newBtn.MouseButton1Click:Connect(function()
+                                originalClick:Fire()
+                            end)
+                        end
+                    end
                 end
             end
         end
@@ -1739,7 +1945,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             BackgroundColor3 = WasUI.CurrentTheme.Section,
             BackgroundTransparency = 0.3,
             Text = "确认关闭",
-            TextColor3 = Color3.fromRGB(255, 100, 100),
+            TextColor3 = WasUI.CurrentTheme.Error,
             TextTransparency = 0,
             Font = Enum.Font.GothamSemibold,
             TextSize = 14,
@@ -1753,7 +1959,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             BackgroundColor3 = WasUI.CurrentTheme.Section,
             BackgroundTransparency = 0.3,
             Text = "取消",
-            TextColor3 = Color3.fromRGB(255, 255, 255),
+            TextColor3 = WasUI.CurrentTheme.Text,
             TextTransparency = 0,
             Font = Enum.Font.GothamSemibold,
             TextSize = 14,
@@ -1910,7 +2116,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
     local avatarStroke = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(220, 220, 225),
+        Color = WasUI.CurrentTheme.Text,
         Thickness = 1,
         Parent = self.Avatar
     })
@@ -2073,7 +2279,15 @@ self.Avatar.MouseButton1Click:Connect(function()
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
     themeDropdown.MouseButton1Click:Connect(function()
-        WasUI:Notify({Title = "提示", Content = "当前仅支持Dark主题", Duration = 2})
+        local currentTheme = nil
+        for name, _ in pairs(WasUI.Themes) do
+            if WasUI.CurrentTheme == WasUI.Themes[name] then
+                currentTheme = name
+                break
+            end
+        end
+        local newTheme = (currentTheme == "Dark") and "Light" or "Dark"
+        WasUI:SetTheme(newTheme)
     end)
     
     local posLabel = CreateInstance("TextLabel", {
@@ -2159,7 +2373,7 @@ self.Avatar.MouseButton1Click:Connect(function()
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.3,
         Text = WasUI.GroupButtonText,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
         AutoButtonColor = false,
@@ -2512,7 +2726,7 @@ end)
                 local flake = CreateInstance("Frame", {
                     Size = UDim2.new(0, size, 0, size),
                     Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.1, 0),
-                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                    BackgroundColor3 = WasUI.CurrentTheme.SnowColor,
                     BackgroundTransparency = 0,
                     BorderSizePixel = 0,
                     ZIndex = 100001,
@@ -2630,7 +2844,7 @@ function WasUI:Notify(options)
         Name = "Notification_" .. notificationId,
         Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
         Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, WasUI.NotificationTop),
-        BackgroundColor3 = Color3.fromRGB(30, 30, 35),
+        BackgroundColor3 = WasUI.CurrentTheme.Section,
         BackgroundTransparency = 0.2,
         ClipsDescendants = true,
         Visible = true,
@@ -2639,8 +2853,9 @@ function WasUI:Notify(options)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = frame})
     local stroke = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(0, 0, 0),
+        Color = WasUI.CurrentTheme.Text,
         Thickness = 1,
+        Transparency = 0.5,
         Parent = frame
     })
     local titleLabel = CreateInstance("TextLabel", {
@@ -2649,7 +2864,7 @@ function WasUI:Notify(options)
         Position = UDim2.new(0, 5, 0, 2),
         BackgroundTransparency = 1,
         Text = title,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -2662,7 +2877,7 @@ function WasUI:Notify(options)
         Position = UDim2.new(0, 5, 0, 16),
         BackgroundTransparency = 1,
         Text = content,
-        TextColor3 = Color3.fromRGB(220, 220, 220),
+        TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 10,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -2676,7 +2891,7 @@ function WasUI:Notify(options)
     }
     WasUI.ActiveNotifications[notificationId] = data
     updateAllNotificationPositions()
-    Tween(frame, {Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, frame.Position.Y.Offset)}, 0.3)
+    Tween(frame, {Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, frame.Position.Y.Offset)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
     task.delay(duration, function()
         WasUI.ActiveNotifications[notificationId] = nil
         updateAllNotificationPositions()
