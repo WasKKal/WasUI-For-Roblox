@@ -76,6 +76,64 @@ WasUI.NotificationGui.ResetOnSpawn = false
 WasUI.NotificationGui.DisplayOrder = 999
 WasUI.NotificationGui.Parent = game:GetService("CoreGui")
 
+-- ==================== Lucide 图标库支持 ====================
+WasUI.LucideManager = {
+    Module = nil,
+    Loaded = false,
+}
+
+function WasUI:LoadLucide()
+    if self.LucideManager.Loaded then
+        return self.LucideManager.Module
+    end
+    
+    local success, module = pcall(function()
+        local url = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
+        return loadstring(game:HttpGet(url))()
+    end)
+    
+    if success and module then
+        self.LucideManager.Module = module
+        self.LucideManager.Loaded = true
+        return module
+    end
+    
+    return nil
+end
+
+function WasUI:GetIcon(iconName)
+    local lucide = self:LoadLucide()
+    if lucide then
+        local success, icon = pcall(lucide.GetAsset, iconName)
+        if success and icon then
+            return icon
+        end
+    end
+    return nil
+end
+
+function WasUI:CreateIcon(iconName, size, color)
+    local icon = self:GetIcon(iconName)
+    if not icon then
+        return nil
+    end
+    
+    local imageLabel = Instance.new("ImageLabel")
+    imageLabel.Image = icon.Url
+    imageLabel.Size = size or UDim2.new(0, 20, 0, 20)
+    imageLabel.BackgroundTransparency = 1
+    imageLabel.ImageColor3 = color or Color3.fromRGB(255, 255, 255)
+    imageLabel.ScaleType = Enum.ScaleType.Fit
+    
+    if icon.ImageRectOffset then
+        imageLabel.ImageRectOffset = icon.ImageRectOffset
+        imageLabel.ImageRectSize = icon.ImageRectSize
+    end
+    
+    return imageLabel
+end
+-- ========================================================
+
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
     for prop, value in pairs(properties) do
@@ -583,7 +641,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         ZIndex = 11,
         Parent = self.Container
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.DropdownButton})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.DropdownButton})
     local arrowIcon = CreateInstance("ImageLabel", {
         Name = "ArrowIcon",
         Size = UDim2.new(0, 12, 0, 12),
@@ -613,7 +671,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         CanvasSize = UDim2.new(0, 0, 0, 0),
         Parent = WasUI.DropdownGui
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.OptionsContainer})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.OptionsContainer})
     local shadow = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(0, 0, 0),
         Thickness = 1,
@@ -969,6 +1027,56 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     return self
 end
 
+-- ==================== 输入框控件 ====================
+local TextInput = setmetatable({}, {__index = Control})
+TextInput.__index = TextInput
+function TextInput:New(name, parent, placeholder, defaultValue, callback)
+    local self = Control:New(name, parent)
+    self.Callback = callback
+    self.Container = CreateInstance("Frame", {
+        Name = name,
+        Size = UDim2.new(1, 0, 0, 32),
+        BackgroundTransparency = 1,
+        ZIndex = 2,
+        Parent = parent
+    })
+    self.TextBox = CreateInstance("TextBox", {
+        Name = "TextBox",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        Text = defaultValue or "",
+        PlaceholderText = placeholder or "输入...",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        PlaceholderColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ClearTextOnFocus = false,
+        ZIndex = 2,
+        Parent = self.Container
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.TextBox})
+    local padding = CreateInstance("UIPadding", {
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8),
+        Parent = self.TextBox
+    })
+    self.TextBox:GetPropertyChangedSignal("Text"):Connect(function()
+        if self.Callback then
+            self.Callback(self.TextBox.Text)
+        end
+    end)
+    table.insert(WasUI.Objects, {Object = self.Container, Type = "TextInput"})
+    return self
+end
+
+function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback)
+    return TextInput:New("TextInput", parent, placeholder, defaultValue, callback)
+end
+-- ====================================================
+
 local Panel = {}
 Panel.__index = Panel
 
@@ -1138,6 +1246,189 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
     
+    -- 搜索框容器（初始宽度0，隐藏）
+    local searchContainer = CreateInstance("Frame", {
+        Name = "SearchContainer",
+        Size = UDim2.new(0, 0, 0, 26),
+        Position = UDim2.new(1, -86, 0, 0),
+        BackgroundTransparency = 1,
+        ClipsDescendants = true,
+        ZIndex = 10,
+        Parent = self.TitleBar
+    })
+    local searchBox = CreateInstance("TextBox", {
+        Name = "SearchBox",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(60, 60, 70),
+        BackgroundTransparency = 0,
+        BorderSizePixel = 0,
+        PlaceholderText = "搜索...",
+        Text = "",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        PlaceholderColor3 = Color3.fromRGB(180, 180, 180),
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        ClearTextOnFocus = false,
+        ZIndex = 11,
+        Parent = searchContainer
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = searchBox})
+    local searchPadding = CreateInstance("UIPadding", {
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8),
+        Parent = searchBox
+    })
+    
+    -- 搜索按钮
+    local searchButton = CreateInstance("ImageButton", {
+        Name = "SearchButton",
+        Size = UDim2.new(0, 22, 0, 22),
+        Position = UDim2.new(1, -56, 0, 2),
+        BackgroundTransparency = 1,
+        Image = "",
+        AutoButtonColor = false,
+        ZIndex = 3,
+        Parent = self.TitleBar
+    })
+    local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), Color3.fromRGB(255, 255, 255))
+    if searchIcon then
+        searchIcon.Parent = searchButton
+        searchIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
+    else
+        searchButton.Text = "🔍"
+        searchButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        searchButton.TextSize = 14
+        searchButton.Font = Enum.Font.GothamBold
+    end
+    
+    -- 搜索功能状态
+    local isSearchActive = false
+    local originalTabVisibility = {} -- 存储原始选项卡可见性
+    
+    -- 获取控件的文本内容（用于搜索匹配）
+    local function getControlText(control)
+        local texts = {}
+        if control.Instance then
+            if control.Instance:IsA("TextButton") then
+                table.insert(texts, control.Instance.Text)
+            elseif control.Instance:IsA("TextLabel") then
+                table.insert(texts, control.Instance.Text)
+            elseif control.Instance:IsA("TextBox") then
+                table.insert(texts, control.Instance.Text)
+            elseif control.TitleLabel then
+                table.insert(texts, control.TitleLabel.Text)
+            elseif control.Title then
+                table.insert(texts, control.Title)
+            end
+        end
+        if control.TitleLabel and control.TitleLabel.Text then
+            table.insert(texts, control.TitleLabel.Text)
+        end
+        if control.Name and control.Name ~= "Spacing" then
+            table.insert(texts, control.Name)
+        end
+        return texts
+    end
+    
+    -- 递归获取所有控件
+    local allControls = {}
+    local function collectControls(container, tabName)
+        for _, child in ipairs(container:GetChildren()) do
+            if child:IsA("Frame") and child.Name ~= "Spacing" then
+                collectControls(child, tabName)
+            elseif child:IsA("TextButton") or child:IsA("TextLabel") or child:IsA("TextBox") then
+                table.insert(allControls, {Instance = child, Tab = tabName})
+            end
+        end
+    end
+    
+    -- 过滤函数
+    local function filterBySearch(keyword)
+        keyword = keyword:lower()
+        local tabHasMatch = {}
+        for tabName, tabData in pairs(self.Tabs) do
+            tabHasMatch[tabName] = false
+        end
+        -- 隐藏所有控件
+        for _, control in ipairs(allControls) do
+            if control.Instance and control.Instance.Parent then
+                control.Instance.Visible = false
+            end
+        end
+        if keyword == "" then
+            -- 恢复所有
+            for _, control in ipairs(allControls) do
+                if control.Instance and control.Instance.Parent then
+                    control.Instance.Visible = true
+                end
+            end
+            for tabName, tabData in pairs(self.Tabs) do
+                tabData.Frame.Visible = true
+            end
+            return
+        end
+        -- 搜索匹配
+        for _, control in ipairs(allControls) do
+            local text = ""
+            if control.Instance:IsA("TextButton") then
+                text = control.Instance.Text
+            elseif control.Instance:IsA("TextLabel") then
+                text = control.Instance.Text
+            elseif control.Instance:IsA("TextBox") then
+                text = control.Instance.Text
+            end
+            if text and text:lower():find(keyword) then
+                control.Instance.Visible = true
+                tabHasMatch[control.Tab] = true
+            else
+                control.Instance.Visible = false
+            end
+        end
+        -- 显示有匹配控件的选项卡
+        for tabName, tabData in pairs(self.Tabs) do
+            tabData.Frame.Visible = tabHasMatch[tabName]
+        end
+    end
+    
+    -- 展开/收起搜索框动画
+    local function expandSearchBox(expand)
+        local targetWidth = expand and 150 or 0
+        local tween = Tween(searchContainer, {Size = UDim2.new(0, targetWidth, 0, 26)}, 0.25)
+        if expand then
+            searchContainer.Visible = true
+            tween.Completed:Connect(function()
+                searchBox:CaptureFocus()
+            end)
+        else
+            tween.Completed:Connect(function()
+                searchContainer.Visible = false
+                searchBox.Text = ""
+                filterBySearch("")
+            end)
+        end
+    end
+    
+    searchButton.MouseButton1Click:Connect(function()
+        if isSearchActive then
+            expandSearchBox(false)
+            isSearchActive = false
+        else
+            expandSearchBox(true)
+            isSearchActive = true
+        end
+    end)
+    
+    searchBox.FocusLost:Connect(function(enterPressed)
+        if not enterPressed and searchBox.Text == "" then
+            expandSearchBox(false)
+            isSearchActive = false
+        end
+    end)
+    
+    searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        filterBySearch(searchBox.Text)
+    end)
+    
     self.CloseButton = CreateInstance("TextButton", {
         Name = "CloseButton",
         Size = UDim2.new(0, 22, 0, 22),
@@ -1167,6 +1458,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.TabBar.Visible = false
         self.ContentArea.Visible = false
         self.CloseButton.Visible = false
+        searchButton.Visible = false
+        searchContainer.Visible = false
         self.DraggableArea.Visible = false
         self.DotContainer.Visible = true
         if self.SnowContainer then
@@ -1186,6 +1479,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.TabBar.Visible = true
         self.ContentArea.Visible = true
         self.CloseButton.Visible = true
+        searchButton.Visible = true
+        if isSearchActive then
+            searchContainer.Visible = true
+        end
         self.DraggableArea.Visible = true
         self.DotContainer.Visible = true
         if self.SnowContainer then
@@ -1381,8 +1678,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             local hitMinimizeDot = isPointOverButton(self.MinimizeDot, mousePos)
             local hitMaximizeDot = isPointOverButton(self.MaximizeDot, mousePos)
             local hitCloseBtn = isPointOverButton(self.CloseButton, mousePos)
+            local hitSearchBtn = isPointOverButton(searchButton, mousePos)
             
-            if not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn) then
+            if not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn) then
                 dragging = true
                 dragStart = input.Position
                 startPos = self.Instance.Position
@@ -1962,6 +2260,18 @@ end)
         if not self.ActiveTab then
             self:SetActiveTab(tabName)
         end
+        
+        -- 收集控件用于搜索
+        local function collectFromFrame(frame, tabName)
+            for _, child in ipairs(frame:GetChildren()) do
+                if child:IsA("TextButton") or child:IsA("TextLabel") or child:IsA("TextBox") then
+                    table.insert(allControls, {Instance = child, Tab = tabName})
+                elseif child:IsA("Frame") and child.Name ~= "Spacing" then
+                    collectFromFrame(child, tabName)
+                end
+            end
+        end
+        collectFromFrame(tabFrame, tabName)
 
         return tabFrame
     end
@@ -2248,6 +2558,10 @@ end
 
 function WasUI:CreateSlider(parent, title, min, max, defaultValue, callback)
     return Slider:New("Slider", parent, title, min, max, defaultValue, callback)
+end
+
+function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback)
+    return TextInput:New("TextInput", parent, placeholder, defaultValue, callback)
 end
 
 function WasUI:SetGroupButtonText(text)
