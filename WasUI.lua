@@ -492,17 +492,19 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         })
     end
     
+    local offColor = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
     self.Background = CreateInstance("ImageButton", {
         Name = name .. "_BG",
         Size = UDim2.new(0, 36, 0, 18),
         Position = title and UDim2.new(1, -40, 0.5, -9) or UDim2.new(1, -40, 0.5, -9),
-        BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or Color3.fromRGB(200, 200, 200),
+        BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or offColor,
         Image = "",
         BorderSizePixel = 0,
         AutoButtonColor = false,
         ZIndex = 3,
         Parent = self.Container
     })
+    self.Background:SetAttribute("Toggled", self.Toggled)
     local bgCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Background})
     self.Knob = CreateInstance("Frame", {
         Name = name .. "_Knob",
@@ -529,12 +531,14 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     end
     self.Background.MouseButton1Click:Connect(function()
         self.Toggled = not self.Toggled
+        self.Background:SetAttribute("Toggled", self.Toggled)
         if self.Toggled then
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
             Tween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.2)
             CreateRainbowTextForFeature(self.RainbowName)
         else
-            Tween(self.Background, {BackgroundColor3 = Color3.fromRGB(200, 200, 200)}, 0.2)
+            local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+            Tween(self.Background, {BackgroundColor3 = offCol}, 0.2)
             Tween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.2)
             DestroyRainbowTextForFeature(self.RainbowName)
         end
@@ -1128,10 +1132,15 @@ local function UpdateAllThemeColors()
                     icon.ImageColor3 = WasUI.CurrentTheme.Text
                 end
             elseif obj.Type == "Toggle" then
-                if instance:GetAttribute("Toggled") then
+                local toggled = instance:GetAttribute("Toggled")
+                if toggled then
                     instance.BackgroundColor3 = WasUI.CurrentTheme.Success
                 else
-                    instance.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+                    if WasUI.CurrentTheme == WasUI.Themes.Dark then
+                        instance.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+                    else
+                        instance.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+                    end
                 end
                 local container = instance.Parent
                 if container and container:IsA("Frame") then
@@ -2878,10 +2887,12 @@ local function updateAllNotificationPositions()
     table.sort(sorted, function(a, b)
         return a.CreationTime < b.CreationTime
     end)
+    local targetPositions = {}
     for i, data in ipairs(sorted) do
         local targetY = WasUI.NotificationTop + (i-1)*(WasUI.NotificationHeight + WasUI.NotificationSpacing)
-        data.Frame.Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, targetY)
+        targetPositions[data] = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, targetY)
     end
+    return targetPositions
 end
 
 function WasUI:Notify(options)
@@ -2889,6 +2900,7 @@ function WasUI:Notify(options)
     local content = options.Content or ""
     local duration = options.Duration or 3
     local notificationId = HttpService:GenerateGUID(false)
+    
     local frame = CreateInstance("Frame", {
         Name = "Notification_" .. notificationId,
         Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
@@ -2933,17 +2945,25 @@ function WasUI:Notify(options)
         ZIndex = 10000,
         Parent = frame
     })
+    
     local data = {
         Frame = frame,
         Id = notificationId,
         CreationTime = tick()
     }
     WasUI.ActiveNotifications[notificationId] = data
-    updateAllNotificationPositions()
-    Tween(frame, {Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, frame.Position.Y.Offset)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    
+    local targetPositions = updateAllNotificationPositions()
+    for notif, targetPos in pairs(targetPositions) do
+        Tween(notif.Frame, {Position = targetPos}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    end
+    
     task.delay(duration, function()
         WasUI.ActiveNotifications[notificationId] = nil
-        updateAllNotificationPositions()
+        local newTargets = updateAllNotificationPositions()
+        for notif, targetPos in pairs(newTargets) do
+            Tween(notif.Frame, {Position = targetPos}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        end
         local fadeOut = Tween(frame, {BackgroundTransparency = 1, Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, frame.Position.Y.Offset)}, 0.3)
         fadeOut.Completed:Connect(function()
             frame:Destroy()
