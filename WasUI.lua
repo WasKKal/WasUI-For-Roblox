@@ -137,7 +137,7 @@ function WasUI:CreateIcon(iconName, size, color)
     imageLabel.Image = icon.Url
     imageLabel.Size = size or UDim2.new(0, 20, 0, 20)
     imageLabel.BackgroundTransparency = 1
-    imageLabel.ImageColor3 = color or Color3.fromRGB(255, 255, 255)
+    imageLabel.ImageColor3 = color or WasUI.CurrentTheme.Text
     imageLabel.ScaleType = Enum.ScaleType.Fit
     
     if icon.ImageRectOffset then
@@ -358,7 +358,7 @@ local function RemoveRainbowText(text)
 end
 
 local rainbowTime = 0
-local rainbowSpeed = 4
+local rainbowSpeed = 2
 local rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
     rainbowTime = rainbowTime + deltaTime * rainbowSpeed
     local r = (math.sin(rainbowTime) + 1) / 2
@@ -1182,22 +1182,31 @@ local function UpdateAllThemeColors()
                     titleBar.BackgroundColor3 = WasUI.CurrentTheme.Primary
                     local title = titleBar:FindFirstChild("Title")
                     if title and title:IsA("TextLabel") then
-                        title.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        title.TextColor3 = WasUI.CurrentTheme.Text
                     end
                     local closeBtn = titleBar:FindFirstChild("CloseButton")
                     if closeBtn and closeBtn:IsA("ImageButton") then
                         local icon = closeBtn:FindFirstChildOfClass("ImageLabel")
                         if icon then
-                            icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+                            icon.ImageColor3 = WasUI.CurrentTheme.Text
                         else
-                            closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            closeBtn.TextColor3 = WasUI.CurrentTheme.Text
                         end
                     end
                     local searchBtn = titleBar:FindFirstChild("SearchButton")
                     if searchBtn and searchBtn:IsA("ImageButton") then
                         local icon = searchBtn:FindFirstChildOfClass("ImageLabel")
                         if icon then
-                            icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+                            icon.ImageColor3 = WasUI.CurrentTheme.Text
+                        end
+                    end
+                    local searchContainer = titleBar:FindFirstChild("SearchContainer")
+                    if searchContainer then
+                        local searchBox = searchContainer:FindFirstChild("SearchBox")
+                        if searchBox and searchBox:IsA("TextBox") then
+                            searchBox.BackgroundColor3 = WasUI.CurrentTheme.Input
+                            searchBox.TextColor3 = WasUI.CurrentTheme.Text
+                            searchBox.PlaceholderColor3 = WasUI.CurrentTheme.Text
                         end
                     end
                 end
@@ -1233,6 +1242,24 @@ local function UpdateAllThemeColors()
                             if btn:IsA("TextButton") then
                                 btn.BackgroundColor3 = WasUI.CurrentTheme.TabButton
                                 btn.TextColor3 = WasUI.CurrentTheme.Text
+                                local underline = btn:FindFirstChild("Underline")
+                                if underline and underline:IsA("Frame") then
+                                    underline.BackgroundColor3 = Color3.fromRGB(66, 133, 244)
+                                end
+                            end
+                        end
+                    end
+                end
+                local dropdownGui = WasUI.DropdownGui
+                if dropdownGui then
+                    for _, container in ipairs(dropdownGui:GetChildren()) do
+                        if container:IsA("ScrollingFrame") then
+                            container.BackgroundColor3 = WasUI.CurrentTheme.Background
+                            for _, btn in ipairs(container:GetChildren()) do
+                                if btn:IsA("TextButton") then
+                                    btn.BackgroundColor3 = WasUI.CurrentTheme.Input
+                                    btn.TextColor3 = WasUI.CurrentTheme.Text
+                                end
                             end
                         end
                     end
@@ -1369,7 +1396,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Position = UDim2.new(0, 54, 0, 0),
         BackgroundTransparency = 1,
         Text = name,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextColor3 = WasUI.CurrentTheme.Text,
         TextTransparency = 0,
         Font = Enum.Font.GothamSemibold,
         TextSize = 14,
@@ -1381,7 +1408,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 28, 1, 0),
-        Position = UDim2.new(0, 10.5, 0, 0.8),
+        Position = UDim2.new(0, 10, 0, 0.8),
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = self.TitleBar
@@ -1446,13 +1473,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local searchBox = CreateInstance("TextBox", {
         Name = "SearchBox",
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(50, 50, 60),
+        BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
         PlaceholderText = "搜索...",
         Text = "",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        PlaceholderColor3 = Color3.fromRGB(180, 180, 180),
+        TextColor3 = WasUI.CurrentTheme.Text,
+        PlaceholderColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
         ClearTextOnFocus = false,
@@ -1476,13 +1503,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ZIndex = 10,
         Parent = self.TitleBar
     })
-    local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), Color3.fromRGB(255, 255, 255))
+    local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
     if closeIcon then
         closeIcon.Parent = closeButton
         closeIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     else
         closeButton.Text = "×"
-        closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        closeButton.TextColor3 = WasUI.CurrentTheme.Text
         closeButton.TextSize = 16
         closeButton.Font = Enum.Font.GothamBold
     end
@@ -1497,13 +1524,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ZIndex = 10,
         Parent = self.TitleBar
     })
-    local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), Color3.fromRGB(255, 255, 255))
+    local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
     if searchIcon then
         searchIcon.Parent = searchButton
         searchIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     else
         searchButton.Text = "🔍"
-        searchButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        searchButton.TextColor3 = WasUI.CurrentTheme.Text
         searchButton.TextSize = 14
         searchButton.Font = Enum.Font.GothamBold
     end
@@ -1625,7 +1652,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 Size = UDim2.new(0, 0, 0, 2),
                 Position = UDim2.new(0.5, 0, 1, -2),
                 AnchorPoint = Vector2.new(0.5, 0),
-                BackgroundColor3 = Color3.fromRGB(128, 0, 128),
+                BackgroundColor3 = Color3.fromRGB(66, 133, 244),
                 Visible = true,
                 ZIndex = 2,
                 Parent = resultButton
@@ -2193,7 +2220,7 @@ self.Avatar.MouseButton1Click:Connect(function()
         Position = UDim2.new(0, 10, 0, 0),
         BackgroundTransparency = 1,
         Text = "UI设置",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamBold,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -2207,7 +2234,7 @@ self.Avatar.MouseButton1Click:Connect(function()
         Position = UDim2.new(1, -28, 0, 3),
         BackgroundTransparency = 1,
         Text = "×",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamBold,
         TextSize = 18,
         ZIndex = 1001,
@@ -2600,7 +2627,7 @@ end)
             Size = UDim2.new(0, 0, 0, 2),
             Position = UDim2.new(0.5, 0, 1, -2),
             AnchorPoint = Vector2.new(0.5, 0),
-            BackgroundColor3 = Color3.fromRGB(128, 0, 128),
+            BackgroundColor3 = Color3.fromRGB(66, 133, 244),
             Visible = false,
             ZIndex = 2,
             Parent = tabButton
