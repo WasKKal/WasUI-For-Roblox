@@ -417,9 +417,9 @@ function Button:New(name, parent, text, onClick, size, iconName)
         local icon = WasUI:CreateIcon(iconName, UDim2.new(0, 14, 0, 14), Color3.fromRGB(255, 255, 255))
         if icon then
             icon.Parent = self.Instance
-            icon.Position = UDim2.new(0, 6, 0.5, -7)
+            icon.Position = UDim2.new(0, -34, 0.5, -7)
             icon.ZIndex = 3
-            padding.PaddingLeft = UDim.new(0, 24)
+            padding.PaddingLeft = UDim.new(0, 64)
             self.Instance.TextXAlignment = Enum.TextXAlignment.Left
         end
     end
