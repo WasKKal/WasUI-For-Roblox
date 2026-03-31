@@ -1571,6 +1571,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local searchResultTab = nil
     local originalTabButtons = {}
     local originalTabFrames = {}
+    local originalActiveTab = nil
+    local movedControls = {}
     
     local function storeOriginalTabs()
         originalTabButtons = {}
@@ -1579,6 +1581,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             originalTabButtons[tabName] = tabData.Button
             originalTabFrames[tabName] = tabData.Frame
         end
+        originalActiveTab = self.ActiveTab
     end
     
     local function restoreOriginalTabs()
@@ -1591,6 +1594,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             end
             searchResultTab = nil
         end
+        
+        for _, moved in ipairs(movedControls) do
+            if moved.control and moved.control.Parent then
+                moved.control.Parent = moved.originalParent
+            end
+        end
+        movedControls = {}
         
         self.Tabs = {}
         for tabName, btn in pairs(originalTabButtons) do
@@ -1606,8 +1616,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         originalTabButtons = {}
         originalTabFrames = {}
         
-        if self.ActiveTab and self.Tabs[self.ActiveTab] then
-            self:SetActiveTab(self.ActiveTab)
+        if originalActiveTab and self.Tabs[originalActiveTab] then
+            self:SetActiveTab(originalActiveTab)
         elseif next(self.Tabs) then
             local firstTab = next(self.Tabs)
             self:SetActiveTab(firstTab)
@@ -1632,7 +1642,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                                 table.insert(controls, {
                                     Instance = child,
                                     SearchText = searchText,
-                                    TabName = tabName
+                                    TabName = tabName,
+                                    OriginalParent = child.Parent
                                 })
                             end
                         end
@@ -1722,6 +1733,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         
         if not searchResultTab or not searchResultTab.Frame then return end
         
+        for _, moved in ipairs(movedControls) do
+            if moved.control and moved.control.Parent then
+                moved.control.Parent = moved.originalParent
+            end
+        end
+        movedControls = {}
+        
         for _, child in ipairs(searchResultTab.Frame:GetChildren()) do
             if child.Name ~= "Spacing" then
                 child:Destroy()
@@ -1737,58 +1755,12 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end
         
         for _, control in ipairs(matchedControls) do
-            local newInstance = control.Instance:Clone()
-            newInstance.Parent = searchResultTab.Frame
-            newInstance.Visible = true
-            
-            if newInstance:IsA("TextButton") then
-                local originalClick = control.Instance.MouseButton1Click
-                if originalClick then
-                    local connections = {}
-                    local function connectClick()
-                        local conn = newInstance.MouseButton1Click:Connect(function()
-                            originalClick:Fire()
-                        end)
-                        table.insert(connections, conn)
-                    end
-                    connectClick()
-                end
-            elseif newInstance:IsA("TextBox") then
-                local originalChanged = control.Instance:GetPropertyChangedSignal("Text")
-                if originalChanged then
-                    local conn = newInstance:GetPropertyChangedSignal("Text"):Connect(function()
-                        if control.Instance and control.Instance:IsA("TextBox") then
-                            control.Instance.Text = newInstance.Text
-                            local callback = control.Instance:GetAttribute("Callback")
-                            if callback then
-                                callback(newInstance.Text)
-                            end
-                        end
-                    end)
-                end
-            elseif newInstance:IsA("ImageButton") then
-                local originalClick = control.Instance.MouseButton1Click
-                if originalClick then
-                    newInstance.MouseButton1Click:Connect(function()
-                        originalClick:Fire()
-                    end)
-                end
-            end
-            
-            if control.Instance:IsA("Frame") and control.Instance:FindFirstChildWhichIsA("TextButton") then
-                local originalBtn = control.Instance:FindFirstChildWhichIsA("TextButton")
-                if originalBtn then
-                    local newBtn = newInstance:FindFirstChildWhichIsA("TextButton")
-                    if newBtn then
-                        local originalClick = originalBtn.MouseButton1Click
-                        if originalClick then
-                            newBtn.MouseButton1Click:Connect(function()
-                                originalClick:Fire()
-                            end)
-                        end
-                    end
-                end
-            end
+            local originalParent = control.Instance.Parent
+            control.Instance.Parent = searchResultTab.Frame
+            table.insert(movedControls, {
+                control = control.Instance,
+                originalParent = originalParent
+            })
         end
         
         local spacing = Instance.new("Frame")
