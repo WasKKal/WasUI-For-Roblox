@@ -417,9 +417,9 @@ function Button:New(name, parent, text, onClick, size, iconName)
         local icon = WasUI:CreateIcon(iconName, UDim2.new(0, 14, 0, 14), Color3.fromRGB(255, 255, 255))
         if icon then
             icon.Parent = self.Instance
-            icon.Position = UDim2.new(0, 8, 0.5, -7)
+            icon.Position = UDim2.new(0, 6, 0.5, -7)
             icon.ZIndex = 3
-            self.Instance.Text = "  " .. (text or "按钮")
+            self.Instance.Text = "   " .. (text or "按钮")
             self.Instance.TextXAlignment = Enum.TextXAlignment.Left
         end
     end
@@ -457,6 +457,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         Parent = parent,
         ZIndex = 2
     })
+    self.Container:SetAttribute("SearchText", title or "")
     
     if title then
         self.TitleLabel = CreateInstance("TextLabel", {
@@ -546,6 +547,7 @@ function Label:New(name, parent, text, textColor)
         ZIndex = 2,
         Parent = parent
     })
+    self.Instance:SetAttribute("SearchText", text or "")
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Label"})
     return self
 end
@@ -890,6 +892,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         ZIndex = 3,
         Parent = parent
     })
+    self.Container:SetAttribute("SearchText", title or "")
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(0.4, 0, 0, 20),
@@ -1268,7 +1271,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local searchContainer = CreateInstance("Frame", {
         Name = "SearchContainer",
         Size = UDim2.new(0, 0, 0, 20),
-        Position = UDim2.new(1, -86, 0, 3),
+        Position = UDim2.new(1, -136, 0, 3),
         BackgroundTransparency = 1,
         ClipsDescendants = true,
         ZIndex = 8,
@@ -1364,8 +1367,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             local function collectFromFrame(frame)
                 for _, child in ipairs(frame:GetChildren()) do
                     if child:IsA("TextButton") or child:IsA("TextLabel") or child:IsA("TextBox") then
-                        table.insert(allControls, {Instance = child, Tab = tabName})
+                        local searchText = child:GetAttribute("SearchText") or (child:IsA("TextButton") and child.Text) or (child:IsA("TextLabel") and child.Text) or (child:IsA("TextBox") and child.Text) or ""
+                        table.insert(allControls, {Instance = child, Tab = tabName, SearchText = searchText})
                     elseif child:IsA("Frame") and child.Name ~= "Spacing" then
+                        local searchText = child:GetAttribute("SearchText")
+                        if searchText then
+                            table.insert(allControls, {Instance = child, Tab = tabName, SearchText = searchText})
+                        end
                         collectFromFrame(child)
                     end
                 end
@@ -1397,15 +1405,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             return
         end
         for _, control in ipairs(allControls) do
-            local text = ""
-            if control.Instance:IsA("TextButton") then
-                text = control.Instance.Text
-            elseif control.Instance:IsA("TextLabel") then
-                text = control.Instance.Text
-            elseif control.Instance:IsA("TextBox") then
-                text = control.Instance.Text
-            end
-            if text and text:lower():find(keyword) then
+            local text = control.SearchText or ""
+            if text:lower():find(keyword) then
                 control.Instance.Visible = true
                 tabHasMatch[control.Tab] = true
             end
@@ -1967,6 +1968,8 @@ self.Avatar.MouseButton1Click:Connect(function()
     xSlider.ValueLabel.Text = tostring(xSlider.Value)
     xSlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
     xSlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
+    xSlider.SliderTrack.Size = UDim2.new(1, 7, 0, 12)
+    xSlider.SliderTrack.Position = UDim2.new(0, -5, 0, 22)
     
     local ySlider = WasUI:CreateSlider(contentFrame, "Y轴位置", -300, -110, self.Instance.Position.Y.Offset, function(value)
         updateWindowPosition(self.Instance.Position.X.Offset, value)
@@ -1982,6 +1985,8 @@ self.Avatar.MouseButton1Click:Connect(function()
     ySlider.ValueLabel.Text = tostring(ySlider.Value)
     ySlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
     ySlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
+    ySlider.SliderTrack.Size = UDim2.new(1, 7, 0, 12)
+    ySlider.SliderTrack.Position = UDim2.new(0, -5, 0, 22)
     
     local function syncSliderValues()
         if updating then return end
