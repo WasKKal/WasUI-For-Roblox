@@ -548,6 +548,7 @@ function Label:New(name, parent, text, textColor)
         Parent = parent
     })
     self.Instance:SetAttribute("SearchText", text or "")
+    self.Instance:SetAttribute("IsLabel", true)
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Label"})
     return self
 end
@@ -1344,7 +1345,114 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     
     local isSearchActive = false
     local autoCloseTimer = nil
-    local allControls = {}
+    local originalTabs = {}  
+    local resultTab = nil
+    
+    local function restoreOriginalTabs()
+        if resultTab then
+            if resultTab.Frame then
+                resultTab.Frame:Destroy()
+            end
+            resultTab = nil
+        end
+        for tabName, tabData in pairs(originalTabs) do
+            tabData.Frame.Parent = self.ContentArea
+            tabData.Frame.Visible = tabName == self.ActiveTab
+            self.Tabs[tabName] = tabData
+        end
+        originalTabs = {}
+    end
+    
+    local function collectSearchableControls()
+        local controls = {}
+        for tabName, tabData in pairs(self.Tabs) do
+            local function collectFromFrame(frame)
+                for _, child in ipairs(frame:GetChildren()) do
+                    if child:IsA("TextButton") or child:IsA("Frame") or child:IsA("TextBox") then
+                        local isLabel = child:IsA("TextLabel") and child:GetAttribute("IsLabel")
+                        if not isLabel then
+                            local searchText = child:GetAttribute("SearchText")
+                            if not searchText and child:IsA("TextButton") then
+                                searchText = child.Text
+                            elseif not searchText and child:IsA("TextBox") then
+                                searchText = child.Text
+                            end
+                            if searchText and searchText ~= "" then
+                                table.insert(controls, {
+                                    Instance = child,
+                                    OriginalParent = child.Parent,
+                                    SearchText = searchText,
+                                    TabName = tabName
+                                })
+                            end
+                        end
+                        if child:IsA("Frame") and child.Name ~= "Spacing" then
+                            collectFromFrame(child)
+                        end
+                    end
+                end
+            end
+            collectFromFrame(tabData.Frame)
+        end
+        return controls
+    end
+    
+    local function performSearch(keyword)
+        if keyword == "" then
+            if isSearchActive then
+                restoreOriginalTabs()
+                isSearchActive = false
+            end
+            return
+        end
+        
+        if not isSearchActive then
+            for tabName, tabData in pairs(self.Tabs) do
+                originalTabs[tabName] = tabData
+                tabData.Frame.Parent = nil
+            end
+            self.Tabs = {}
+            resultTab = self:AddTab("搜索结果")
+            isSearchActive = true
+        end
+        
+        for _, child in ipairs(resultTab.Frame:GetChildren()) do
+            if child.Name ~= "Spacing" then
+                child:Destroy()
+            end
+        end
+        
+        local allControls = collectSearchableControls()
+        local matchedControls = {}
+        for _, control in ipairs(allControls) do
+            if control.SearchText and control.SearchText:lower():find(keyword:lower()) then
+                table.insert(matchedControls, control)
+            end
+        end
+        
+        for _, control in ipairs(matchedControls) do
+            local newInstance = control.Instance:Clone()
+            newInstance.Parent = resultTab.Frame
+            newInstance.Visible = true
+            if newInstance:IsA("TextButton") then
+                newInstance.MouseButton1Click:Connect(function()
+                    if control.Instance and control.Instance:IsA("TextButton") then
+                        local clickEvent = control.Instance:FindFirstChild("__ClickEvent")
+                        if clickEvent then
+                            clickEvent:Fire()
+                        end
+                    end
+                end)
+            end
+        end
+        
+        local spacing = Instance.new("Frame")
+        spacing.Name = "Spacing"
+        spacing.Size = UDim2.new(1, 0, 0, 4)
+        spacing.BackgroundTransparency = 1
+        spacing.Parent = resultTab.Frame
+    end
+    
     local function resetAutoCloseTimer()
         if autoCloseTimer then
             task.cancel(autoCloseTimer)
@@ -1358,61 +1466,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 end
                 autoCloseTimer = nil
             end)
-        end
-    end
-    
-    local function collectControls()
-        allControls = {}
-        for tabName, tabData in pairs(self.Tabs) do
-            local function collectFromFrame(frame)
-                for _, child in ipairs(frame:GetChildren()) do
-                    if child:IsA("TextButton") or child:IsA("TextLabel") or child:IsA("TextBox") then
-                        local searchText = child:GetAttribute("SearchText") or (child:IsA("TextButton") and child.Text) or (child:IsA("TextLabel") and child.Text) or (child:IsA("TextBox") and child.Text) or ""
-                        table.insert(allControls, {Instance = child, Tab = tabName, SearchText = searchText})
-                    elseif child:IsA("Frame") and child.Name ~= "Spacing" then
-                        local searchText = child:GetAttribute("SearchText")
-                        if searchText then
-                            table.insert(allControls, {Instance = child, Tab = tabName, SearchText = searchText})
-                        end
-                        collectFromFrame(child)
-                    end
-                end
-            end
-            collectFromFrame(tabData.Frame)
-        end
-    end
-    
-    local function filterBySearch(keyword)
-        keyword = keyword:lower()
-        local tabHasMatch = {}
-        for tabName, tabData in pairs(self.Tabs) do
-            tabHasMatch[tabName] = false
-        end
-        for _, control in ipairs(allControls) do
-            if control.Instance and control.Instance.Parent then
-                control.Instance.Visible = false
-            end
-        end
-        if keyword == "" then
-            for _, control in ipairs(allControls) do
-                if control.Instance and control.Instance.Parent then
-                    control.Instance.Visible = true
-                end
-            end
-            for tabName, tabData in pairs(self.Tabs) do
-                tabData.Frame.Visible = true
-            end
-            return
-        end
-        for _, control in ipairs(allControls) do
-            local text = control.SearchText or ""
-            if text:lower():find(keyword) then
-                control.Instance.Visible = true
-                tabHasMatch[control.Tab] = true
-            end
-        end
-        for tabName, tabData in pairs(self.Tabs) do
-            tabData.Frame.Visible = tabHasMatch[tabName]
         end
     end
     
@@ -1436,17 +1489,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             task.wait(0.25)
             searchContainer.Visible = false
             searchBox.Text = ""
-            filterBySearch("")
+            performSearch("")
         end
     end
     
     searchButton.MouseButton1Click:Connect(function()
         if isSearchActive then
             expandSearchBox(false)
-            isSearchActive = false
         else
             expandSearchBox(true)
-            isSearchActive = true
             resetAutoCloseTimer()
         end
     end)
@@ -1458,7 +1509,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     end)
     
     searchBox:GetPropertyChangedSignal("Text"):Connect(function()
-        filterBySearch(searchBox.Text)
+        performSearch(searchBox.Text)
         if searchBox.Text == "" then
             resetAutoCloseTimer()
         else
@@ -1482,7 +1533,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Tween(self.Instance, {
             Size = self.MinimizedSize,
             Position = self.Instance.Position
-        }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        }, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         self.Title.Visible = false
         self.AnnouncementBar.Visible = false
         self.TabBar.Visible = false
@@ -1503,7 +1554,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Tween(self.Instance, {
             Size = self.OriginalSize,
             Position = self.Instance.Position
-        }, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        }, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         self.Title.Visible = true
         self.AnnouncementBar.Visible = true
         self.TabBar.Visible = true
@@ -1796,7 +1847,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     
 self.Avatar.MouseButton1Click:Connect(function()
     if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
-        WasUI.SettingsGui.Visible = not WasUI.SettingsGui.Visible
+        WasUI.SettingsGui:Destroy()
+        WasUI.SettingsGui = nil
+        WasUI.SettingsPanel = nil
         return
     end
     
@@ -1838,6 +1891,7 @@ self.Avatar.MouseButton1Click:Connect(function()
     settingsFrame.BackgroundTransparency = 1
     
     WasUI.SettingsGui = settingsGui
+    WasUI.SettingsPanel = settingsFrame
     
     local titleBar = CreateInstance("Frame", {
         Name = "TitleBar",
@@ -2076,8 +2130,6 @@ self.Avatar.MouseButton1Click:Connect(function()
     end
     
     clickCatcher.InputBegan:Connect(onScreenClick)
-    
-    WasUI.SettingsPanel = settingsFrame
 end)
     
     self.Username = CreateInstance("TextLabel", {
@@ -2461,7 +2513,6 @@ end)
         if self.SnowContainer then
             self.SnowContainer.Visible = true
         end
-        collectControls()
     end)
 
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel"})
