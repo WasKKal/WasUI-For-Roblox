@@ -1347,7 +1347,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local allControls = {}
     local function resetAutoCloseTimer()
         if autoCloseTimer then
-            autoCloseTimer:Disconnect()
+            task.cancel(autoCloseTimer)
             autoCloseTimer = nil
         end
         if isSearchActive and searchBox.Text == "" then
@@ -1418,14 +1418,20 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     
     local function expandSearchBox(expand)
         if expand then
-            if autoCloseTimer then autoCloseTimer:Disconnect() end
+            if autoCloseTimer then
+                task.cancel(autoCloseTimer)
+                autoCloseTimer = nil
+            end
             searchContainer.Visible = true
             local targetWidth = 120
             Tween(searchContainer, {Size = UDim2.new(0, targetWidth, 0, 20)}, 0.25)
             task.wait(0.25)
             searchBox:CaptureFocus()
         else
-            if autoCloseTimer then autoCloseTimer:Disconnect() end
+            if autoCloseTimer then
+                task.cancel(autoCloseTimer)
+                autoCloseTimer = nil
+            end
             Tween(searchContainer, {Size = UDim2.new(0, 0, 0, 20)}, 0.25)
             task.wait(0.25)
             searchContainer.Visible = false
@@ -1456,7 +1462,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         if searchBox.Text == "" then
             resetAutoCloseTimer()
         else
-            if autoCloseTimer then autoCloseTimer:Disconnect() end
+            if autoCloseTimer then
+                task.cancel(autoCloseTimer)
+                autoCloseTimer = nil
+            end
         end
     end)
     
@@ -1661,16 +1670,18 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 task.wait(0.2)
                 overlay:Destroy()
             end)
-            overlay.MouseButton1Click:Connect(function(input)
-                local mousePos = input.Position
-                local framePos = dialogFrame.AbsolutePosition
-                local frameSize = dialogFrame.AbsoluteSize
-                if not (mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
-                        mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y) then
-                    Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
-                    Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-                    task.wait(0.2)
-                    overlay:Destroy()
+            overlay.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    local mousePos = input.Position
+                    local framePos = dialogFrame.AbsolutePosition
+                    local frameSize = dialogFrame.AbsoluteSize
+                    if not (mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
+                            mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y) then
+                        Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+                        Tween(overlay, {BackgroundTransparency = 1}, 0.2)
+                        task.wait(0.2)
+                        overlay:Destroy()
+                    end
                 end
             end)
         end
