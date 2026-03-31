@@ -49,7 +49,7 @@ WasUI.Themes = {
         Secondary = Color3.fromRGB(25, 25, 30),
         Background = Color3.fromRGB(28, 28, 34),
         Text = Color3.fromRGB(220, 220, 220),
-        Accent = Color3.fromRGB(97, 175, 239),
+        Accent = Color3.fromRGB(153, 51, 255),
         Success = Color3.fromRGB(83, 227, 136),
         Warning = Color3.fromRGB(255, 213, 92),
         Error = Color3.fromRGB(255, 123, 123),
@@ -64,7 +64,7 @@ WasUI.Themes = {
         Secondary = Color3.fromRGB(245, 245, 250),
         Background = Color3.fromRGB(255, 255, 255),
         Text = Color3.fromRGB(30, 30, 35),
-        Accent = Color3.fromRGB(66, 133, 244),
+        Accent = Color3.fromRGB(52, 86, 139),
         Success = Color3.fromRGB(52, 168, 83),
         Warning = Color3.fromRGB(251, 188, 5),
         Error = Color3.fromRGB(234, 67, 53),
@@ -1275,7 +1275,7 @@ local function UpdateAllThemeColors()
                                 btn.TextColor3 = WasUI.CurrentTheme.Text
                                 local underline = btn:FindFirstChild("Underline")
                                 if underline and underline:IsA("Frame") then
-                                    underline.BackgroundColor3 = Color3.fromRGB(66, 133, 244)
+                                    underline.BackgroundColor3 = WasUI.CurrentTheme.Accent
                                 end
                             end
                         end
@@ -1694,7 +1694,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 Size = UDim2.new(0, 0, 0, 2),
                 Position = UDim2.new(0.5, 0, 1, -2),
                 AnchorPoint = Vector2.new(0.5, 0),
-                BackgroundColor3 = Color3.fromRGB(66, 133, 244),
+                BackgroundColor3 = WasUI.CurrentTheme.Accent,
                 Visible = true,
                 ZIndex = 2,
                 Parent = resultButton
@@ -2630,7 +2630,7 @@ end)
             Size = UDim2.new(0, 0, 0, 2),
             Position = UDim2.new(0.5, 0, 1, -2),
             AnchorPoint = Vector2.new(0.5, 0),
-            BackgroundColor3 = Color3.fromRGB(66, 133, 244),
+            BackgroundColor3 = WasUI.CurrentTheme.Accent,
             Visible = false,
             ZIndex = 2,
             Parent = tabButton
@@ -2927,7 +2927,7 @@ function WasUI:Notify(options)
     
     local targetPositions = updateAllNotificationPositions()
     for notif, targetPos in pairs(targetPositions) do
-        Tween(notif.Frame, {Position = targetPos}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        Tween(notif.Frame, {Position = targetPos}, 0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     end
     
     task.delay(duration, function()
