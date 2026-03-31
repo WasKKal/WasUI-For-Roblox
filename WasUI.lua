@@ -76,7 +76,6 @@ WasUI.NotificationGui.ResetOnSpawn = false
 WasUI.NotificationGui.DisplayOrder = 999
 WasUI.NotificationGui.Parent = game:GetService("CoreGui")
 
--- ==================== Lucide 图标库支持 ====================
 WasUI.LucideManager = {
     Module = nil,
     Loaded = false,
@@ -132,7 +131,6 @@ function WasUI:CreateIcon(iconName, size, color)
     
     return imageLabel
 end
--- ========================================================
 
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
@@ -1036,6 +1034,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local pos = input.Position
             updateFromMousePosition(pos.X)
+            input:SetConsumed(true)
         end
     end)
     
@@ -1049,7 +1048,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     return self
 end
 
--- ==================== 输入框控件 ====================
 local TextInput = setmetatable({}, {__index = Control})
 TextInput.__index = TextInput
 function TextInput:New(name, parent, placeholder, defaultValue, callback)
@@ -1097,7 +1095,6 @@ end
 function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback)
     return TextInput:New("TextInput", parent, placeholder, defaultValue, callback)
 end
--- ====================================================
 
 local Panel = {}
 Panel.__index = Panel
@@ -1268,7 +1265,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
     
-    -- 搜索框容器（初始宽度0，位于搜索按钮左侧）
     local searchContainer = CreateInstance("Frame", {
         Name = "SearchContainer",
         Size = UDim2.new(0, 0, 0, 20),
@@ -1301,11 +1297,31 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = searchBox
     })
     
-    -- 搜索按钮
+    local closeButton = CreateInstance("ImageButton", {
+        Name = "CloseButton",
+        Size = UDim2.new(0, 22, 0, 22),
+        Position = UDim2.new(1, -28, 0, 2),
+        BackgroundTransparency = 1,
+        Image = "",
+        AutoButtonColor = false,
+        ZIndex = 10,
+        Parent = self.TitleBar
+    })
+    local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), Color3.fromRGB(255, 255, 255))
+    if closeIcon then
+        closeIcon.Parent = closeButton
+        closeIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
+    else
+        closeButton.Text = "×"
+        closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        closeButton.TextSize = 16
+        closeButton.Font = Enum.Font.GothamBold
+    end
+    
     local searchButton = CreateInstance("ImageButton", {
         Name = "SearchButton",
         Size = UDim2.new(0, 22, 0, 22),
-        Position = UDim2.new(1, -28, 0, 2),
+        Position = UDim2.new(1, -56, 0, 2),
         BackgroundTransparency = 1,
         Image = "",
         AutoButtonColor = false,
@@ -1323,7 +1339,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         searchButton.Font = Enum.Font.GothamBold
     end
     
-    -- 搜索功能状态
     local isSearchActive = false
     local autoCloseTimer = nil
     local allControls = {}
@@ -1344,6 +1359,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     end
     
     local function collectControls()
+        allControls = {}
         for tabName, tabData in pairs(self.Tabs) do
             local function collectFromFrame(frame)
                 for _, child in ipairs(frame:GetChildren()) do
@@ -1443,20 +1459,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end
     end)
     
-    self.CloseButton = CreateInstance("TextButton", {
-        Name = "CloseButton",
-        Size = UDim2.new(0, 22, 0, 22),
-        Position = UDim2.new(1, -56, 0, 2),
-        BackgroundTransparency = 1,
-        Text = "×",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextTransparency = 0,
-        Font = Enum.Font.GothamBold,
-        TextSize = 16,
-        ZIndex = 3,
-        Parent = self.TitleBar
-    })
-    
     self.IsMinimized = false
     self.OriginalSize = self.Instance.Size
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
@@ -1471,7 +1473,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.AnnouncementBar.Visible = false
         self.TabBar.Visible = false
         self.ContentArea.Visible = false
-        self.CloseButton.Visible = false
+        closeButton.Visible = false
         searchButton.Visible = false
         searchContainer.Visible = false
         self.DraggableArea.Visible = false
@@ -1492,7 +1494,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.AnnouncementBar.Visible = true
         self.TabBar.Visible = true
         self.ContentArea.Visible = true
-        self.CloseButton.Visible = true
+        closeButton.Visible = true
         searchButton.Visible = true
         if isSearchActive then
             searchContainer.Visible = true
@@ -1538,7 +1540,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end
     end)
     
-    self.CloseButton.MouseButton1Click:Connect(function() 
+    closeButton.MouseButton1Click:Connect(function() 
         local function showCloseDialog()
             local overlay = CreateInstance("Frame", {
                 Name = "Overlay",
@@ -1692,7 +1694,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             local hitCloseDot = isPointOverButton(self.CloseDot, mousePos)
             local hitMinimizeDot = isPointOverButton(self.MinimizeDot, mousePos)
             local hitMaximizeDot = isPointOverButton(self.MaximizeDot, mousePos)
-            local hitCloseBtn = isPointOverButton(self.CloseButton, mousePos)
+            local hitCloseBtn = isPointOverButton(closeButton, mousePos)
             local hitSearchBtn = isPointOverButton(searchButton, mousePos)
             
             if not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn) then
@@ -1798,9 +1800,12 @@ self.Avatar.MouseButton1Click:Connect(function()
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Visible = true,
-        ZIndex = 1,
+        ZIndex = 999,
         Parent = settingsGui
     })
+    clickCatcher.InputBegan:Connect(function(input)
+        input:SetConsumed(true)
+    end)
     
     local settingsFrame = CreateInstance("Frame", {
         Name = "SettingsPanel",
@@ -1958,11 +1963,12 @@ self.Avatar.MouseButton1Click:Connect(function()
     xSlider.Knob.ZIndex = 1002
     xSlider.TitleLabel.Text = "X轴"
     xSlider.TitleLabel.Size = UDim2.new(0.4, 0, 1, 0)
+    xSlider.TitleLabel.Position = UDim2.new(0, 0, 0, -4)
     xSlider.ValueLabel.Text = tostring(xSlider.Value)
     xSlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
-    xSlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, 0)
+    xSlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
     
-    local ySlider = WasUI:CreateSlider(contentFrame, "Y轴位置", -300, 300, self.Instance.Position.Y.Offset, function(value)
+    local ySlider = WasUI:CreateSlider(contentFrame, "Y轴位置", -300, -110, self.Instance.Position.Y.Offset, function(value)
         updateWindowPosition(self.Instance.Position.X.Offset, value)
     end)
     ySlider.TitleLabel.ZIndex = 1002
@@ -1972,9 +1978,10 @@ self.Avatar.MouseButton1Click:Connect(function()
     ySlider.Knob.ZIndex = 1002
     ySlider.TitleLabel.Text = "Y轴"
     ySlider.TitleLabel.Size = UDim2.new(0.4, 0, 1, 0)
+    ySlider.TitleLabel.Position = UDim2.new(0, 0, 0, -4)
     ySlider.ValueLabel.Text = tostring(ySlider.Value)
     ySlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
-    ySlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, 0)
+    ySlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
     
     local function syncSliderValues()
         if updating then return end
