@@ -879,6 +879,10 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         self.OptionsContainer.Visible = true
         Tween(self.OptionsContainer, {BackgroundTransparency = 0.3}, 0.2)
         Tween(shadow, {Transparency = 0.8}, 0.2)
+        -- 按钮渐显动画
+        for _, btn in pairs(self.OptionButtons) do
+            Tween(btn, {BackgroundTransparency = 0.3, TextTransparency = 0}, 0.2)
+        end
     end
 
     function self:Close(instant)
@@ -894,9 +898,17 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
             self.OptionsContainer.Visible = false
             self.OptionsContainer.BackgroundTransparency = 1
             shadow.Transparency = 1
+            for _, btn in pairs(self.OptionButtons) do
+                btn.BackgroundTransparency = 1
+                btn.TextTransparency = 1
+            end
         else
             Tween(self.OptionsContainer, {BackgroundTransparency = 1}, 0.2)
             Tween(shadow, {Transparency = 1}, 0.2)
+            -- 按钮渐隐动画
+            for _, btn in pairs(self.OptionButtons) do
+                Tween(btn, {BackgroundTransparency = 1, TextTransparency = 1}, 0.2)
+            end
             task.wait(0.2)
             self.OptionsContainer.Visible = false
         end
@@ -1086,10 +1098,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             targetValue = math.round(targetValue)
             animateToValue(targetValue)
             dragging = true
-            -- 安全调用 SetConsumed
-            if input and input.SetConsumed then
-                input:SetConsumed(true)
-            end
         end
     end)
     
@@ -1097,9 +1105,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             stopAnimation()
-            if input and input.SetConsumed then
-                input:SetConsumed(true)
-            end
         end
     end)
     
@@ -1107,9 +1112,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local pos = input.Position
             updateFromMousePosition(pos.X)
-            if input and input.SetConsumed then
-                input:SetConsumed(true)
-            end
         end
     end)
     
@@ -1172,6 +1174,7 @@ function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback)
 end
 
 local function UpdateAllThemeColors()
+    -- 更新所有已注册的控件
     for _, obj in ipairs(WasUI.Objects) do
         local instance = obj.Object
         if instance and instance.Parent then
@@ -1332,21 +1335,34 @@ local function UpdateAllThemeColors()
                         end
                     end
                 end
-                local dropdownGui = WasUI.DropdownGui
-                if dropdownGui then
-                    for _, container in ipairs(dropdownGui:GetChildren()) do
-                        if container:IsA("ScrollingFrame") then
-                            container.BackgroundColor3 = WasUI.CurrentTheme.Background
-                            for _, btn in ipairs(container:GetChildren()) do
-                                if btn:IsA("TextButton") then
-                                    btn.BackgroundColor3 = WasUI.CurrentTheme.Input
-                                    btn.TextColor3 = WasUI.CurrentTheme.Text
-                                end
-                            end
-                        end
-                    end
+            end
+        end
+    end
+    
+    -- 更新下拉菜单选项按钮颜色
+    for _, container in ipairs(WasUI.DropdownGui:GetChildren()) do
+        if container:IsA("ScrollingFrame") then
+            container.BackgroundColor3 = WasUI.CurrentTheme.Background
+            for _, btn in ipairs(container:GetChildren()) do
+                if btn:IsA("TextButton") then
+                    btn.BackgroundColor3 = WasUI.CurrentTheme.Input
+                    btn.TextColor3 = WasUI.CurrentTheme.Text
                 end
             end
+        end
+    end
+    
+    -- 更新通知文字颜色
+    for _, data in pairs(WasUI.ActiveNotifications) do
+        local frame = data.Frame
+        if frame then
+            local titleLabel = frame:FindFirstChild("Title")
+            local contentLabel = frame:FindFirstChild("Content")
+            if titleLabel then titleLabel.TextColor3 = WasUI.CurrentTheme.Text end
+            if contentLabel then contentLabel.TextColor3 = WasUI.CurrentTheme.Text end
+            frame.BackgroundColor3 = WasUI.CurrentTheme.Section
+            local stroke = frame:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = WasUI.CurrentTheme.Text end
         end
     end
     
@@ -1924,7 +1940,6 @@ self.MinimizedTextLabel = CreateInstance("TextLabel", {
             expandSearchBox(false)
         end
         
-        -- 动画：三色点渐隐，文字渐显（如果有自定义文字）
         local tweenDuration = 0.3
         local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
         for _, dot in ipairs(dots) do
@@ -2000,18 +2015,12 @@ self.MinimizedTextLabel = CreateInstance("TextLabel", {
     
     self.CloseDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            if input and input.SetConsumed then
-                input:SetConsumed(true)
-            end
             self:SetVisible(false)
         end
     end)
     
     self.MinimizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            if input and input.SetConsumed then
-                input:SetConsumed(true)
-            end
             if self.IsMinimized then
                 self:RestoreFromDots()
             else
@@ -2022,9 +2031,6 @@ self.MinimizedTextLabel = CreateInstance("TextLabel", {
     
     self.MaximizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            if input and input.SetConsumed then
-                input:SetConsumed(true)
-            end
         end
     end)
     
@@ -2190,9 +2196,6 @@ self.MinimizedTextLabel = CreateInstance("TextLabel", {
                 dragging = true
                 dragStart = input.Position
                 startPos = self.Instance.Position
-                if input and input.SetConsumed then
-                    input:SetConsumed(true)
-                end
             end
         end
     end
