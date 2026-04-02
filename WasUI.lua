@@ -1677,68 +1677,68 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             end
             return
         end
-        if not isSearchActive then
-            storeOriginalTabs()
-            for tabName, tabData in pairs(self.Tabs) do
-                tabData.Button.Parent = nil
-                tabData.Frame.Parent = nil
-            end
-            self.Tabs = {}
-            local resultButton = CreateInstance("TextButton", {
-                Name = "Tab_搜索结果",
-                Size = UDim2.new(0, 90, 0, 24),
-                BackgroundColor3 = WasUI.CurrentTheme.TabButton,
-                BackgroundTransparency = 0.5,
-                Text = "搜索结果",
-                TextColor3 = WasUI.CurrentTheme.Text,
-                Font = Enum.Font.GothamSemibold,
-                TextSize = 12,
-                AutoButtonColor = false,
-                LayoutOrder = 999,
-                ZIndex = 2,
-                Parent = self.TabContainer
-            })
-            local resultUnderline = CreateInstance("Frame", {
-                Name = "Underline",
-                Size = UDim2.new(0, 0, 0, 2),
-                Position = UDim2.new(0.5, 0, 1, -2),
-                AnchorPoint = Vector2.new(0.5, 0),
-                BackgroundColor3 = WasUI.CurrentTheme.Accent,
-                Visible = true,
-                ZIndex = 2,
-                Parent = resultButton
-            })
-            local resultFrame = CreateInstance("Frame", {
-                Name = "TabFrame_搜索结果",
-                Size = UDim2.new(1, 0, 0, 0),
-                BackgroundTransparency = 1,
-                Visible = true,
-                AutomaticSize = Enum.AutomaticSize.Y,
-                ZIndex = 2,
-                Parent = self.ContentArea
-            })
-            local resultLayout = CreateInstance("UIListLayout", {
-                SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 4),
-                Parent = resultFrame
-            })
-            local resultPadding = CreateInstance("UIPadding", {
-                PaddingLeft = UDim.new(0, 4),
-                PaddingRight = UDim.new(0, 4),
-                PaddingTop = UDim.new(0, 4),
-                PaddingBottom = UDim.new(0, 4),
-                Parent = resultFrame
-            })
-            searchResultTab = {
-                Button = resultButton,
-                Underline = resultUnderline,
-                Frame = resultFrame
-            }
-            self.Tabs["搜索结果"] = searchResultTab
-            self:SetActiveTab("搜索结果")
-            isSearchActive = true
+        if isSearchActive then
+            restoreOriginalTabs()
+            isSearchActive = false
         end
-        if not searchResultTab or not searchResultTab.Frame then return end
+        storeOriginalTabs()
+        for tabName, tabData in pairs(self.Tabs) do
+            tabData.Button.Parent = nil
+            tabData.Frame.Parent = nil
+        end
+        self.Tabs = {}
+        local resultButton = CreateInstance("TextButton", {
+            Name = "Tab_搜索结果",
+            Size = UDim2.new(0, 90, 0, 24),
+            BackgroundColor3 = WasUI.CurrentTheme.TabButton,
+            BackgroundTransparency = 0.5,
+            Text = "搜索结果",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 12,
+            AutoButtonColor = false,
+            LayoutOrder = 999,
+            ZIndex = 2,
+            Parent = self.TabContainer
+        })
+        local resultUnderline = CreateInstance("Frame", {
+            Name = "Underline",
+            Size = UDim2.new(0, 0, 0, 2),
+            Position = UDim2.new(0.5, 0, 1, -2),
+            AnchorPoint = Vector2.new(0.5, 0),
+            BackgroundColor3 = WasUI.CurrentTheme.Accent,
+            Visible = true,
+            ZIndex = 2,
+            Parent = resultButton
+        })
+        local resultFrame = CreateInstance("Frame", {
+            Name = "TabFrame_搜索结果",
+            Size = UDim2.new(1, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Visible = true,
+            AutomaticSize = Enum.AutomaticSize.Y,
+            ZIndex = 2,
+            Parent = self.ContentArea
+        })
+        local resultLayout = CreateInstance("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 4),
+            Parent = resultFrame
+        })
+        local resultPadding = CreateInstance("UIPadding", {
+            PaddingLeft = UDim.new(0, 4),
+            PaddingRight = UDim.new(0, 4),
+            PaddingTop = UDim.new(0, 4),
+            PaddingBottom = UDim.new(0, 4),
+            Parent = resultFrame
+        })
+        searchResultTab = {
+            Button = resultButton,
+            Underline = resultUnderline,
+            Frame = resultFrame
+        }
+        self.Tabs["搜索结果"] = searchResultTab
+        self:SetActiveTab("搜索结果")
         for _, moved in ipairs(movedControls) do
             if moved.control and moved.control.Parent then
                 moved.control.Parent = moved.originalParent
@@ -1770,6 +1770,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         spacing.Size = UDim2.new(1, 0, 0, 4)
         spacing.BackgroundTransparency = 1
         spacing.Parent = searchResultTab.Frame
+        isSearchActive = true
     end
     local function resetAutoCloseTimer()
         if autoCloseTimer then
