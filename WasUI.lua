@@ -38,7 +38,6 @@ WasUI.OpenDropdowns = {}
 WasUI.SettingsPanel = nil
 WasUI.GroupButtonText = "加入WasUI主群"
 WasUI.GroupCopyContent = "1085475284"
-WasUI.BorderAnimationMode = "整体"
 
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
@@ -1330,12 +1329,6 @@ function WasUI:SetTheme(themeName)
         local newTheme = self.Themes[themeName]
         self.CurrentTheme = newTheme
         AnimateThemeChange(oldTheme, newTheme)
-        if self.SettingsPanel then
-            local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
-            if themeDropdown and themeDropdown:IsA("TextButton") then
-                themeDropdown.Text = themeName
-            end
-        end
         return true
     end
     return false
@@ -1395,18 +1388,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
     updateBorder()
     local borderTime = 0
+    -- 大幅降低彩虹流动速度：从 deltaTime*4 改为 deltaTime*0.6
     self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-        if WasUI.BorderAnimationMode == "流动" then
-            borderTime = borderTime + deltaTime * 3
-            local hue = borderTime % 1
-            borderStroke.Color = Color3.fromHSV(hue, 1, 1)
-        else
-            borderTime = borderTime + deltaTime * 2.5
-            local r = (math.sin(borderTime) + 1) / 2
-            local g = (math.sin(borderTime + math.pi/3) + 1) / 2
-            local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
-            borderStroke.Color = Color3.new(r, g, b)
-        end
+        borderTime = borderTime + deltaTime * 0.6
+        local r = (math.sin(borderTime) + 1) / 2
+        local g = (math.sin(borderTime + math.pi/3) + 1) / 2
+        local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
+        borderStroke.Color = Color3.new(r, g, b)
     end)
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
@@ -1684,68 +1672,68 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             end
             return
         end
-        if isSearchActive then
-            restoreOriginalTabs()
-            isSearchActive = false
+        if not isSearchActive then
+            storeOriginalTabs()
+            for tabName, tabData in pairs(self.Tabs) do
+                tabData.Button.Parent = nil
+                tabData.Frame.Parent = nil
+            end
+            self.Tabs = {}
+            local resultButton = CreateInstance("TextButton", {
+                Name = "Tab_搜索结果",
+                Size = UDim2.new(0, 90, 0, 24),
+                BackgroundColor3 = WasUI.CurrentTheme.TabButton,
+                BackgroundTransparency = 0.5,
+                Text = "搜索结果",
+                TextColor3 = WasUI.CurrentTheme.Text,
+                Font = Enum.Font.GothamSemibold,
+                TextSize = 12,
+                AutoButtonColor = false,
+                LayoutOrder = 999,
+                ZIndex = 2,
+                Parent = self.TabContainer
+            })
+            local resultUnderline = CreateInstance("Frame", {
+                Name = "Underline",
+                Size = UDim2.new(0, 0, 0, 2),
+                Position = UDim2.new(0.5, 0, 1, -2),
+                AnchorPoint = Vector2.new(0.5, 0),
+                BackgroundColor3 = WasUI.CurrentTheme.Accent,
+                Visible = true,
+                ZIndex = 2,
+                Parent = resultButton
+            })
+            local resultFrame = CreateInstance("Frame", {
+                Name = "TabFrame_搜索结果",
+                Size = UDim2.new(1, 0, 0, 0),
+                BackgroundTransparency = 1,
+                Visible = true,
+                AutomaticSize = Enum.AutomaticSize.Y,
+                ZIndex = 2,
+                Parent = self.ContentArea
+            })
+            local resultLayout = CreateInstance("UIListLayout", {
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Padding = UDim.new(0, 4),
+                Parent = resultFrame
+            })
+            local resultPadding = CreateInstance("UIPadding", {
+                PaddingLeft = UDim.new(0, 4),
+                PaddingRight = UDim.new(0, 4),
+                PaddingTop = UDim.new(0, 4),
+                PaddingBottom = UDim.new(0, 4),
+                Parent = resultFrame
+            })
+            searchResultTab = {
+                Button = resultButton,
+                Underline = resultUnderline,
+                Frame = resultFrame
+            }
+            self.Tabs["搜索结果"] = searchResultTab
+            self:SetActiveTab("搜索结果")
+            isSearchActive = true
         end
-        storeOriginalTabs()
-        for tabName, tabData in pairs(self.Tabs) do
-            tabData.Button.Parent = nil
-            tabData.Frame.Parent = nil
-        end
-        self.Tabs = {}
-        local resultButton = CreateInstance("TextButton", {
-            Name = "Tab_搜索结果",
-            Size = UDim2.new(0, 90, 0, 24),
-            BackgroundColor3 = WasUI.CurrentTheme.TabButton,
-            BackgroundTransparency = 0.5,
-            Text = "搜索结果",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 12,
-            AutoButtonColor = false,
-            LayoutOrder = 999,
-            ZIndex = 2,
-            Parent = self.TabContainer
-        })
-        local resultUnderline = CreateInstance("Frame", {
-            Name = "Underline",
-            Size = UDim2.new(0, 0, 0, 2),
-            Position = UDim2.new(0.5, 0, 1, -2),
-            AnchorPoint = Vector2.new(0.5, 0),
-            BackgroundColor3 = WasUI.CurrentTheme.Accent,
-            Visible = true,
-            ZIndex = 2,
-            Parent = resultButton
-        })
-        local resultFrame = CreateInstance("Frame", {
-            Name = "TabFrame_搜索结果",
-            Size = UDim2.new(1, 0, 0, 0),
-            BackgroundTransparency = 1,
-            Visible = true,
-            AutomaticSize = Enum.AutomaticSize.Y,
-            ZIndex = 2,
-            Parent = self.ContentArea
-        })
-        local resultLayout = CreateInstance("UIListLayout", {
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 4),
-            Parent = resultFrame
-        })
-        local resultPadding = CreateInstance("UIPadding", {
-            PaddingLeft = UDim.new(0, 4),
-            PaddingRight = UDim.new(0, 4),
-            PaddingTop = UDim.new(0, 4),
-            PaddingBottom = UDim.new(0, 4),
-            Parent = resultFrame
-        })
-        searchResultTab = {
-            Button = resultButton,
-            Underline = resultUnderline,
-            Frame = resultFrame
-        }
-        self.Tabs["搜索结果"] = searchResultTab
-        self:SetActiveTab("搜索结果")
+        if not searchResultTab or not searchResultTab.Frame then return end
         for _, moved in ipairs(movedControls) do
             if moved.control and moved.control.Parent then
                 moved.control.Parent = moved.originalParent
@@ -1777,7 +1765,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         spacing.Size = UDim2.new(1, 0, 0, 4)
         spacing.BackgroundTransparency = 1
         spacing.Parent = searchResultTab.Frame
-        isSearchActive = true
     end
     local function resetAutoCloseTimer()
         if autoCloseTimer then
@@ -2146,10 +2133,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ZIndex = 2,
         Parent = self.AnnouncementBar
     })
-    local avatarScale = CreateInstance("UIScale", {
-        Scale = 1,
-        Parent = self.Avatar
-    })
+    local avatarScale = Instance.new("UIScale")
+    avatarScale.Scale = 1
+    avatarScale.Parent = self.Avatar
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
     local avatarStroke = CreateInstance("UIStroke", {
         Color = WasUI.CurrentTheme.Text,
@@ -2163,317 +2149,18 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.Avatar.MouseButton1Up:Connect(function()
         Tween(avatarScale, {Scale = 1}, 0.1)
     end)
+    -- 移除下拉菜单，直接点击头像切换主题
     self.Avatar.MouseButton1Click:Connect(function()
-        if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
-            WasUI.SettingsGui:Destroy()
-            WasUI.SettingsGui = nil
-            WasUI.SettingsPanel = nil
-            return
-        end
-        local settingsGui = Instance.new("ScreenGui")
-        settingsGui.Name = "WasUI_Settings"
-        settingsGui.ResetOnSpawn = false
-        settingsGui.DisplayOrder = 1001
-        settingsGui.Parent = game:GetService("CoreGui")
-        local clickCatcher = CreateInstance("Frame", {
-            Name = "ClickCatcher",
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            Visible = true,
-            ZIndex = 999,
-            Parent = settingsGui
-        })
-        local settingsFrame = CreateInstance("Frame", {
-            Name = "SettingsPanel",
-            Size = UDim2.new(0, 300, 0, 280),
-            Position = UDim2.new(0.5, -150, 0.5, -140),
-            BackgroundColor3 = WasUI.CurrentTheme.Background,
-            BackgroundTransparency = 0.2,
-            BorderSizePixel = 0,
-            ClipsDescendants = true,
-            ZIndex = 1000,
-            Parent = settingsGui
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
-        local scale = Instance.new("UIScale")
-        scale.Scale = 0.8
-        scale.Parent = settingsFrame
-        settingsFrame.BackgroundTransparency = 1
-        WasUI.SettingsGui = settingsGui
-        WasUI.SettingsPanel = settingsFrame
-        local titleBar = CreateInstance("Frame", {
-            Name = "TitleBar",
-            Size = UDim2.new(1, 0, 0, 30),
-            BackgroundColor3 = WasUI.CurrentTheme.Primary,
-            BackgroundTransparency = 0.3,
-            BorderSizePixel = 0,
-            Parent = settingsFrame
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = titleBar})
-        local titleLabel = CreateInstance("TextLabel", {
-            Name = "Title",
-            Size = UDim2.new(1, -30, 1, 0),
-            Position = UDim2.new(0, 10, 0, 0),
-            BackgroundTransparency = 1,
-            Text = "UI设置",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamBold,
-            TextSize = 14,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 1001,
-            Parent = titleBar
-        })
-        local closeBtn = CreateInstance("TextButton", {
-            Name = "Close",
-            Size = UDim2.new(0, 24, 0, 24),
-            Position = UDim2.new(1, -28, 0, 3),
-            BackgroundTransparency = 1,
-            Text = "×",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamBold,
-            TextSize = 18,
-            ZIndex = 1001,
-            Parent = titleBar
-        })
-        closeBtn.MouseButton1Click:Connect(function()
-            Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-            Tween(scale, {Scale = 0.8}, 0.2)
-            task.wait(0.2)
-            if WasUI.SettingsGui then
-                WasUI.SettingsGui:Destroy()
-                WasUI.SettingsGui = nil
-            end
-            WasUI.SettingsPanel = nil
-        end)
-        local contentFrame = CreateInstance("ScrollingFrame", {
-            Name = "Content",
-            Size = UDim2.new(1, -20, 1, -40),
-            Position = UDim2.new(0, 10, 0, 40),
-            BackgroundTransparency = 1,
-            ScrollBarThickness = 4,
-            CanvasSize = UDim2.new(0, 0, 0, 0),
-            ZIndex = 1001,
-            Parent = settingsFrame
-        })
-        local contentLayout = CreateInstance("UIListLayout", {
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 8),
-            Parent = contentFrame
-        })
-        local contentPadding = CreateInstance("UIPadding", {
-            PaddingLeft = UDim.new(0, 4),
-            PaddingRight = UDim.new(0, 4),
-            PaddingTop = UDim.new(0, 4),
-            PaddingBottom = UDim.new(0, 4),
-            Parent = contentFrame
-        })
-        local function refreshCanvas()
-            contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 8)
-        end
-        contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshCanvas)
-        local themeLabel = CreateInstance("TextLabel", {
-            Name = "ThemeLabel",
-            Size = UDim2.new(1, 0, 0, 24),
-            BackgroundTransparency = 1,
-            Text = "窗口风格",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 14,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        local themeDropdown = CreateInstance("TextButton", {
-            Name = "ThemeDropdown",
-            Size = UDim2.new(0, 120, 0, 28),
-            Position = UDim2.new(1, -130, 0, -2),
-            BackgroundColor3 = WasUI.CurrentTheme.Input,
-            BackgroundTransparency = 0.3,
-            Text = "Dark",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            AutoButtonColor = false,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
-        themeDropdown.MouseButton1Click:Connect(function()
-            local currentTheme = nil
-            for name, _ in pairs(WasUI.Themes) do
-                if WasUI.CurrentTheme == WasUI.Themes[name] then
-                    currentTheme = name
-                    break
-                end
-            end
-            local newTheme = (currentTheme == "Dark") and "Light" or "Dark"
-            Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-            Tween(scale, {Scale = 0.8}, 0.2)
-            task.wait(0.2)
-            if WasUI.SettingsGui then
-                WasUI.SettingsGui:Destroy()
-                WasUI.SettingsGui = nil
-            end
-            WasUI.SettingsPanel = nil
-            WasUI:SetTheme(newTheme)
-        end)
-        local borderModeLabel = CreateInstance("TextLabel", {
-            Name = "BorderModeLabel",
-            Size = UDim2.new(1, 0, 0, 24),
-            BackgroundTransparency = 1,
-            Text = "彩虹边框方式",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 14,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        local borderModeDropdown = CreateInstance("TextButton", {
-            Name = "BorderModeDropdown",
-            Size = UDim2.new(0, 120, 0, 28),
-            Position = UDim2.new(1, -130, 0, -2),
-            BackgroundColor3 = WasUI.CurrentTheme.Input,
-            BackgroundTransparency = 0.3,
-            Text = WasUI.BorderAnimationMode,
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            AutoButtonColor = false,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = borderModeDropdown})
-        local borderOptions = {"整体", "流动"}
-        local borderDropdownObj = WasUI:CreateDropdown(contentFrame, nil, borderOptions, WasUI.BorderAnimationMode, function(selected)
-            WasUI.BorderAnimationMode = selected
-            borderModeDropdown.Text = selected
-        end, false)
-        borderModeDropdown.MouseButton1Click:Connect(function()
-            borderDropdownObj:Open()
-        end)
-        local posLabel = CreateInstance("TextLabel", {
-            Name = "PosLabel",
-            Size = UDim2.new(1, 0, 0, 20),
-            BackgroundTransparency = 1,
-            Text = "窗口位置偏移",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        local updating = false
-        local function updateWindowPosition(x, y)
-            if updating then return end
-            updating = true
-            self.Instance.Position = UDim2.new(self.Instance.Position.X.Scale, x, self.Instance.Position.Y.Scale, y)
-            updating = false
-        end
-        local xSlider = WasUI:CreateSlider(contentFrame, "X轴位置", -400, 0, self.Instance.Position.X.Offset, function(value)
-            updateWindowPosition(value, self.Instance.Position.Y.Offset)
-        end)
-        xSlider.TitleLabel.ZIndex = 1002
-        xSlider.ValueLabel.ZIndex = 1002
-        xSlider.SliderTrack.ZIndex = 1002
-        xSlider.SliderFill.ZIndex = 1002
-        xSlider.Knob.ZIndex = 1002
-        xSlider.TitleLabel.Text = "X轴"
-        xSlider.TitleLabel.Size = UDim2.new(0.4, 0, 1, 0)
-        xSlider.TitleLabel.Position = UDim2.new(0, 0, 0, -4)
-        xSlider.ValueLabel.Text = tostring(xSlider.Value)
-        xSlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
-        xSlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
-        xSlider.SliderTrack.Size = UDim2.new(1, 7, 0, 12)
-        xSlider.SliderTrack.Position = UDim2.new(0, -5, 0, 22)
-        local ySlider = WasUI:CreateSlider(contentFrame, "Y轴位置", -300, -110, self.Instance.Position.Y.Offset, function(value)
-            updateWindowPosition(self.Instance.Position.X.Offset, value)
-        end)
-        ySlider.TitleLabel.ZIndex = 1002
-        ySlider.ValueLabel.ZIndex = 1002
-        ySlider.SliderTrack.ZIndex = 1002
-        ySlider.SliderFill.ZIndex = 1002
-        ySlider.Knob.ZIndex = 1002
-        ySlider.TitleLabel.Text = "Y轴"
-        ySlider.TitleLabel.Size = UDim2.new(0.4, 0, 1, 0)
-        ySlider.TitleLabel.Position = UDim2.new(0, 0, 0, -4)
-        ySlider.ValueLabel.Text = tostring(ySlider.Value)
-        ySlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
-        ySlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
-        ySlider.SliderTrack.Size = UDim2.new(1, 7, 0, 12)
-        ySlider.SliderTrack.Position = UDim2.new(0, -5, 0, 22)
-        local function syncSliderValues()
-            if updating then return end
-            local xVal = self.Instance.Position.X.Offset
-            local yVal = self.Instance.Position.Y.Offset
-            if xSlider then
-                xSlider.Value = xVal
-                xSlider.ValueLabel.Text = tostring(xVal)
-                xSlider.SliderFill.Size = UDim2.new((xVal - xSlider.Min) / (xSlider.Max - xSlider.Min), 0, 1, 0)
-                xSlider.Knob.Position = UDim2.new((xVal - xSlider.Min) / (xSlider.Max - xSlider.Min), -10, 0.5, -10)
-            end
-            if ySlider then
-                ySlider.Value = yVal
-                ySlider.ValueLabel.Text = tostring(yVal)
-                ySlider.SliderFill.Size = UDim2.new((yVal - ySlider.Min) / (ySlider.Max - ySlider.Min), 0, 1, 0)
-                ySlider.Knob.Position = UDim2.new((yVal - ySlider.Min) / (ySlider.Max - ySlider.Min), -10, 0.5, -10)
+        local currentThemeName = nil
+        for name, theme in pairs(WasUI.Themes) do
+            if WasUI.CurrentTheme == theme then
+                currentThemeName = name
+                break
             end
         end
-        self.Instance:GetPropertyChangedSignal("Position"):Connect(syncSliderValues)
-        syncSliderValues()
-        local groupButton = CreateInstance("TextButton", {
-            Name = "GroupButton",
-            Size = UDim2.new(1, 0, 0, 32),
-            Position = UDim2.new(0, 0, 1, -40),
-            BackgroundColor3 = WasUI.CurrentTheme.Primary,
-            BackgroundTransparency = 0.3,
-            Text = WasUI.GroupButtonText,
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 12,
-            AutoButtonColor = false,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = groupButton})
-        groupButton.MouseEnter:Connect(function()
-            Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
-        end)
-        groupButton.MouseLeave:Connect(function()
-            Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
-        end)
-        groupButton.MouseButton1Click:Connect(function()
-            local copied = copyToClipboard(WasUI.GroupCopyContent)
-            if copied then
-                WasUI:Notify({Title = "复制成功", Content = "已复制：" .. WasUI.GroupCopyContent, Duration = 2})
-            else
-                WasUI:Notify({Title = "复制失败", Content = "当前环境不支持复制到剪贴板", Duration = 2})
-            end
-        end)
-        refreshCanvas()
-        Tween(settingsFrame, {BackgroundTransparency = 0.2}, 0.25)
-        Tween(scale, {Scale = 1}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local function onScreenClick(input)
-            if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-            local mousePos = input.Position
-            local framePos = settingsFrame.AbsolutePosition
-            local frameSize = settingsFrame.AbsoluteSize
-            local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
-                            mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
-            if not inPanel then
-                Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-                Tween(scale, {Scale = 0.8}, 0.2)
-                task.wait(0.2)
-                if WasUI.SettingsGui then
-                    WasUI.SettingsGui:Destroy()
-                    WasUI.SettingsGui = nil
-                end
-                WasUI.SettingsPanel = nil
-            end
-        end
-        clickCatcher.InputBegan:Connect(onScreenClick)
+        local newThemeName = (currentThemeName == "Dark") and "Light" or "Dark"
+        WasUI:SetTheme(newThemeName)
+        WasUI:Notify({Title = "主题切换", Content = "已切换至 " .. newThemeName .. " 主题", Duration = 2})
     end)
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
@@ -2964,10 +2651,6 @@ end
 
 function WasUI:SetGroupButtonText(text)
     WasUI.GroupButtonText = text
-    if WasUI.SettingsPanel then
-        local btn = WasUI.SettingsPanel:FindFirstChild("Content") and WasUI.SettingsPanel.Content:FindFirstChild("GroupButton")
-        if btn then btn.Text = text end
-    end
 end
 
 function WasUI:SetGroupCopyContent(content)
