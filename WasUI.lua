@@ -1394,9 +1394,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
     updateBorder()
     local borderTime = 0
-    self.RainbowMode = "整体"  -- "整体" 或 "流动"
+    self.RainbowMode = "整体"
     self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-        local speed = (self.RainbowMode == "整体") and 4 or 0.8
+        local speed = (self.RainbowMode == "整体") and 4 or 2.5
         borderTime = borderTime + deltaTime * speed
         local color
         if self.RainbowMode == "整体" then
@@ -2261,6 +2261,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Position = UDim2.new(0, 10, 0, 40),
             BackgroundTransparency = 1,
             ScrollBarThickness = 4,
+            ScrollingDirection = Enum.ScrollingDirection.Y,
             CanvasSize = UDim2.new(0, 0, 0, 0),
             ZIndex = 1001,
             Parent = settingsFrame
@@ -2328,7 +2329,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             WasUI:SetTheme(newTheme)
         end)
 
-        -- 彩虹边框模式切换
         local rainbowModeLabel = CreateInstance("TextLabel", {
             Name = "RainbowModeLabel",
             Size = UDim2.new(1, 0, 0, 24),
