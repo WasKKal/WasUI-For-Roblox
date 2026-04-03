@@ -1329,6 +1329,12 @@ function WasUI:SetTheme(themeName)
         local newTheme = self.Themes[themeName]
         self.CurrentTheme = newTheme
         AnimateThemeChange(oldTheme, newTheme)
+        if self.SettingsPanel then
+            local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
+            if themeDropdown and themeDropdown:IsA("TextButton") then
+                themeDropdown.Text = themeName
+            end
+        end
         return true
     end
     return false
@@ -1388,26 +1394,27 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
     updateBorder()
     local borderTime = 0
-    local rainbowBorderEnabled = true  -- 彩虹边框流动开关，默认开启
-    -- 大幅降低彩虹流动速度：从 deltaTime*4 改为 deltaTime*0.6
+    self.RainbowMode = "整体"  -- "整体" 或 "流动"
     self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-        if rainbowBorderEnabled then
-            borderTime = borderTime + deltaTime * 0.6
+        local speed = (self.RainbowMode == "整体") and 4 or 0.8
+        borderTime = borderTime + deltaTime * speed
+        local color
+        if self.RainbowMode == "整体" then
             local r = (math.sin(borderTime) + 1) / 2
             local g = (math.sin(borderTime + math.pi/3) + 1) / 2
             local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
-            borderStroke.Color = Color3.new(r, g, b)
+            color = Color3.new(r, g, b)
         else
-            -- 边框固定为当前主题的强调色
-            borderStroke.Color = WasUI.CurrentTheme.Accent
+            local hue = borderTime % 1
+            color = Color3.fromHSV(hue, 1, 1)
         end
+        borderStroke.Color = color
     end)
-    -- 提供给设置面板调用的方法
-    self.SetRainbowBorderEnabled = function(enabled)
-        rainbowBorderEnabled = enabled
-    end
-    self.IsRainbowBorderEnabled = function()
-        return rainbowBorderEnabled
+
+    function self:SetRainbowMode(mode)
+        if mode == "整体" or mode == "流动" then
+            self.RainbowMode = mode
+        end
     end
 
     self.TitleBar = CreateInstance("Frame", {
@@ -1686,68 +1693,68 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             end
             return
         end
-        if not isSearchActive then
-            storeOriginalTabs()
-            for tabName, tabData in pairs(self.Tabs) do
-                tabData.Button.Parent = nil
-                tabData.Frame.Parent = nil
-            end
-            self.Tabs = {}
-            local resultButton = CreateInstance("TextButton", {
-                Name = "Tab_搜索结果",
-                Size = UDim2.new(0, 90, 0, 24),
-                BackgroundColor3 = WasUI.CurrentTheme.TabButton,
-                BackgroundTransparency = 0.5,
-                Text = "搜索结果",
-                TextColor3 = WasUI.CurrentTheme.Text,
-                Font = Enum.Font.GothamSemibold,
-                TextSize = 12,
-                AutoButtonColor = false,
-                LayoutOrder = 999,
-                ZIndex = 2,
-                Parent = self.TabContainer
-            })
-            local resultUnderline = CreateInstance("Frame", {
-                Name = "Underline",
-                Size = UDim2.new(0, 0, 0, 2),
-                Position = UDim2.new(0.5, 0, 1, -2),
-                AnchorPoint = Vector2.new(0.5, 0),
-                BackgroundColor3 = WasUI.CurrentTheme.Accent,
-                Visible = true,
-                ZIndex = 2,
-                Parent = resultButton
-            })
-            local resultFrame = CreateInstance("Frame", {
-                Name = "TabFrame_搜索结果",
-                Size = UDim2.new(1, 0, 0, 0),
-                BackgroundTransparency = 1,
-                Visible = true,
-                AutomaticSize = Enum.AutomaticSize.Y,
-                ZIndex = 2,
-                Parent = self.ContentArea
-            })
-            local resultLayout = CreateInstance("UIListLayout", {
-                SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 4),
-                Parent = resultFrame
-            })
-            local resultPadding = CreateInstance("UIPadding", {
-                PaddingLeft = UDim.new(0, 4),
-                PaddingRight = UDim.new(0, 4),
-                PaddingTop = UDim.new(0, 4),
-                PaddingBottom = UDim.new(0, 4),
-                Parent = resultFrame
-            })
-            searchResultTab = {
-                Button = resultButton,
-                Underline = resultUnderline,
-                Frame = resultFrame
-            }
-            self.Tabs["搜索结果"] = searchResultTab
-            self:SetActiveTab("搜索结果")
-            isSearchActive = true
+        if isSearchActive then
+            restoreOriginalTabs()
+            isSearchActive = false
         end
-        if not searchResultTab or not searchResultTab.Frame then return end
+        storeOriginalTabs()
+        for tabName, tabData in pairs(self.Tabs) do
+            tabData.Button.Parent = nil
+            tabData.Frame.Parent = nil
+        end
+        self.Tabs = {}
+        local resultButton = CreateInstance("TextButton", {
+            Name = "Tab_搜索结果",
+            Size = UDim2.new(0, 90, 0, 24),
+            BackgroundColor3 = WasUI.CurrentTheme.TabButton,
+            BackgroundTransparency = 0.5,
+            Text = "搜索结果",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 12,
+            AutoButtonColor = false,
+            LayoutOrder = 999,
+            ZIndex = 2,
+            Parent = self.TabContainer
+        })
+        local resultUnderline = CreateInstance("Frame", {
+            Name = "Underline",
+            Size = UDim2.new(0, 0, 0, 2),
+            Position = UDim2.new(0.5, 0, 1, -2),
+            AnchorPoint = Vector2.new(0.5, 0),
+            BackgroundColor3 = WasUI.CurrentTheme.Accent,
+            Visible = true,
+            ZIndex = 2,
+            Parent = resultButton
+        })
+        local resultFrame = CreateInstance("Frame", {
+            Name = "TabFrame_搜索结果",
+            Size = UDim2.new(1, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Visible = true,
+            AutomaticSize = Enum.AutomaticSize.Y,
+            ZIndex = 2,
+            Parent = self.ContentArea
+        })
+        local resultLayout = CreateInstance("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 4),
+            Parent = resultFrame
+        })
+        local resultPadding = CreateInstance("UIPadding", {
+            PaddingLeft = UDim.new(0, 4),
+            PaddingRight = UDim.new(0, 4),
+            PaddingTop = UDim.new(0, 4),
+            PaddingBottom = UDim.new(0, 4),
+            Parent = resultFrame
+        })
+        searchResultTab = {
+            Button = resultButton,
+            Underline = resultUnderline,
+            Frame = resultFrame
+        }
+        self.Tabs["搜索结果"] = searchResultTab
+        self:SetActiveTab("搜索结果")
         for _, moved in ipairs(movedControls) do
             if moved.control and moved.control.Parent then
                 moved.control.Parent = moved.originalParent
@@ -1779,6 +1786,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         spacing.Size = UDim2.new(1, 0, 0, 4)
         spacing.BackgroundTransparency = 1
         spacing.Parent = searchResultTab.Frame
+        isSearchActive = true
     end
     local function resetAutoCloseTimer()
         if autoCloseTimer then
@@ -2147,9 +2155,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ZIndex = 2,
         Parent = self.AnnouncementBar
     })
-    local avatarScale = Instance.new("UIScale")
-    avatarScale.Scale = 1
-    avatarScale.Parent = self.Avatar
+    local avatarScale = CreateInstance("UIScale", {
+        Scale = 1,
+        Parent = self.Avatar
+    })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
     local avatarStroke = CreateInstance("UIStroke", {
         Color = WasUI.CurrentTheme.Text,
@@ -2163,7 +2172,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.Avatar.MouseButton1Up:Connect(function()
         Tween(avatarScale, {Scale = 1}, 0.1)
     end)
-    -- 头像点击打开设置面板（保留原UI设置页面）
     self.Avatar.MouseButton1Click:Connect(function()
         if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
             WasUI.SettingsGui:Destroy()
@@ -2273,97 +2281,87 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 8)
         end
         contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshCanvas)
-
-        -- 按钮：切换主题（移除下拉菜单，改为点击按钮）
-        local themeButton = CreateInstance("TextButton", {
-            Name = "ThemeButton",
-            Size = UDim2.new(1, 0, 0, 32),
-            BackgroundColor3 = WasUI.CurrentTheme.Primary,
-            BackgroundTransparency = 0.3,
-            Text = "切换主题 (当前: Dark)",
+        local themeLabel = CreateInstance("TextLabel", {
+            Name = "ThemeLabel",
+            Size = UDim2.new(1, 0, 0, 24),
+            BackgroundTransparency = 1,
+            Text = "窗口风格",
             TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamSemibold,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        local themeDropdown = CreateInstance("TextButton", {
+            Name = "ThemeDropdown",
+            Size = UDim2.new(0, 120, 0, 28),
+            Position = UDim2.new(1, -130, 0, -2),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            Text = "Dark",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
             TextSize = 12,
             AutoButtonColor = false,
             ZIndex = 1002,
             Parent = contentFrame
         })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = themeButton})
-        themeButton.MouseEnter:Connect(function()
-            Tween(themeButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
-        end)
-        themeButton.MouseLeave:Connect(function()
-            Tween(themeButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
-        end)
-        local function updateThemeButtonText()
-            local currentName = nil
-            for name, theme in pairs(WasUI.Themes) do
-                if WasUI.CurrentTheme == theme then
-                    currentName = name
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
+        themeDropdown.MouseButton1Click:Connect(function()
+            local currentTheme = nil
+            for name, _ in pairs(WasUI.Themes) do
+                if WasUI.CurrentTheme == WasUI.Themes[name] then
+                    currentTheme = name
                     break
                 end
             end
-            themeButton.Text = "切换主题 (当前: " .. (currentName or "Dark") .. ")"
-        end
-        themeButton.MouseButton1Click:Connect(function()
-            local currentName = nil
-            for name, theme in pairs(WasUI.Themes) do
-                if WasUI.CurrentTheme == theme then
-                    currentName = name
-                    break
-                end
+            local newTheme = (currentTheme == "Dark") and "Light" or "Dark"
+            Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+            Tween(scale, {Scale = 0.8}, 0.2)
+            task.wait(0.2)
+            if WasUI.SettingsGui then
+                WasUI.SettingsGui:Destroy()
+                WasUI.SettingsGui = nil
             end
-            local newThemeName = (currentName == "Dark") and "Light" or "Dark"
-            WasUI:SetTheme(newThemeName)
-            updateThemeButtonText()
-            -- 同时更新边框颜色（如果彩虹流动关闭，则边框颜色会随主题更新）
-            if not self.IsRainbowBorderEnabled() then
-                local stroke = self.BorderEffect:FindFirstChildOfClass("UIStroke")
-                if stroke then
-                    stroke.Color = WasUI.CurrentTheme.Accent
-                end
-            end
+            WasUI.SettingsPanel = nil
+            WasUI:SetTheme(newTheme)
         end)
-        updateThemeButtonText()
 
-        -- 按钮：切换彩虹边框流动
-        local rainbowFlowButton = CreateInstance("TextButton", {
-            Name = "RainbowFlowButton",
-            Size = UDim2.new(1, 0, 0, 32),
-            BackgroundColor3 = WasUI.CurrentTheme.Primary,
-            BackgroundTransparency = 0.3,
-            Text = "彩虹边框流动: 开启",
+        -- 彩虹边框模式切换
+        local rainbowModeLabel = CreateInstance("TextLabel", {
+            Name = "RainbowModeLabel",
+            Size = UDim2.new(1, 0, 0, 24),
+            BackgroundTransparency = 1,
+            Text = "彩虹边框模式",
             TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamSemibold,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        local rainbowModeButton = CreateInstance("TextButton", {
+            Name = "RainbowModeButton",
+            Size = UDim2.new(0, 120, 0, 28),
+            Position = UDim2.new(1, -130, 0, -2),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            Text = self.RainbowMode,
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
             TextSize = 12,
             AutoButtonColor = false,
             ZIndex = 1002,
             Parent = contentFrame
         })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = rainbowFlowButton})
-        rainbowFlowButton.MouseEnter:Connect(function()
-            Tween(rainbowFlowButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = rainbowModeButton})
+        rainbowModeButton.MouseButton1Click:Connect(function()
+            local newMode = (self.RainbowMode == "整体") and "流动" or "整体"
+            self:SetRainbowMode(newMode)
+            rainbowModeButton.Text = newMode
+            WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
         end)
-        rainbowFlowButton.MouseLeave:Connect(function()
-            Tween(rainbowFlowButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
-        end)
-        local function updateRainbowFlowButton()
-            local enabled = self.IsRainbowBorderEnabled()
-            rainbowFlowButton.Text = "彩虹边框流动: " .. (enabled and "开启" or "关闭")
-        end
-        rainbowFlowButton.MouseButton1Click:Connect(function()
-            local newState = not self.IsRainbowBorderEnabled()
-            self.SetRainbowBorderEnabled(newState)
-            updateRainbowFlowButton()
-            -- 如果关闭，立即设置边框为当前主题色；如果开启，彩虹效果会在下一次Heartbeat中自动恢复
-            if not newState then
-                local stroke = self.BorderEffect:FindFirstChildOfClass("UIStroke")
-                if stroke then
-                    stroke.Color = WasUI.CurrentTheme.Accent
-                end
-            end
-        end)
-        updateRainbowFlowButton()
 
         local posLabel = CreateInstance("TextLabel", {
             Name = "PosLabel",
@@ -2435,7 +2433,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end
         self.Instance:GetPropertyChangedSignal("Position"):Connect(syncSliderValues)
         syncSliderValues()
-
         local groupButton = CreateInstance("TextButton", {
             Name = "GroupButton",
             Size = UDim2.new(1, 0, 0, 32),
@@ -2488,7 +2485,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end
         clickCatcher.InputBegan:Connect(onScreenClick)
     end)
-
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0.6, 0, 0, 18),
@@ -2978,6 +2974,10 @@ end
 
 function WasUI:SetGroupButtonText(text)
     WasUI.GroupButtonText = text
+    if WasUI.SettingsPanel then
+        local btn = WasUI.SettingsPanel:FindFirstChild("Content") and WasUI.SettingsPanel.Content:FindFirstChild("GroupButton")
+        if btn then btn.Text = text end
+    end
 end
 
 function WasUI:SetGroupCopyContent(content)
