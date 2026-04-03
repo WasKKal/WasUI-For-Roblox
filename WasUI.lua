@@ -38,6 +38,7 @@ WasUI.OpenDropdowns = {}
 WasUI.SettingsPanel = nil
 WasUI.GroupButtonText = "加入WasUI主群"
 WasUI.GroupCopyContent = "1085475284"
+WasUI.BorderAnimationMode = "整体"
 
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
@@ -1395,11 +1396,17 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     updateBorder()
     local borderTime = 0
     self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-        borderTime = borderTime + deltaTime * 4
-        local r = (math.sin(borderTime) + 1) / 2
-        local g = (math.sin(borderTime + math.pi/3) + 1) / 2
-        local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
-        borderStroke.Color = Color3.new(r, g, b)
+        if WasUI.BorderAnimationMode == "流动" then
+            borderTime = borderTime + deltaTime * 3
+            local hue = borderTime % 1
+            borderStroke.Color = Color3.fromHSV(hue, 1, 1)
+        else
+            borderTime = borderTime + deltaTime * 2.5
+            local r = (math.sin(borderTime) + 1) / 2
+            local g = (math.sin(borderTime + math.pi/3) + 1) / 2
+            local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
+            borderStroke.Color = Color3.new(r, g, b)
+        end
     end)
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
@@ -2310,6 +2317,41 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             end
             WasUI.SettingsPanel = nil
             WasUI:SetTheme(newTheme)
+        end)
+        local borderModeLabel = CreateInstance("TextLabel", {
+            Name = "BorderModeLabel",
+            Size = UDim2.new(1, 0, 0, 24),
+            BackgroundTransparency = 1,
+            Text = "彩虹边框方式",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        local borderModeDropdown = CreateInstance("TextButton", {
+            Name = "BorderModeDropdown",
+            Size = UDim2.new(0, 120, 0, 28),
+            Position = UDim2.new(1, -130, 0, -2),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            Text = WasUI.BorderAnimationMode,
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            AutoButtonColor = false,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = borderModeDropdown})
+        local borderOptions = {"整体", "流动"}
+        local borderDropdownObj = WasUI:CreateDropdown(contentFrame, nil, borderOptions, WasUI.BorderAnimationMode, function(selected)
+            WasUI.BorderAnimationMode = selected
+            borderModeDropdown.Text = selected
+        end, false)
+        borderModeDropdown.MouseButton1Click:Connect(function()
+            borderDropdownObj:Open()
         end)
         local posLabel = CreateInstance("TextLabel", {
             Name = "PosLabel",
