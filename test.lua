@@ -899,30 +899,30 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.FlowRotation = 0
     self.BorderConnection = nil
 
-    local function startFlowAnimation()
-        if self.BorderConnection then self.BorderConnection:Disconnect() end
-        self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-            if self.RainbowMode == "整体" then
-                borderTime = borderTime + deltaTime * 4
-                local r = (math.sin(borderTime) + 1) / 2
-                local g = (math.sin(borderTime + math.pi/3) + 1) / 2
-                local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
-                self.BorderStroke.Color = Color3.new(r, g, b)
-                self.BorderStroke.Transparency = 0
-                if flowGradient then flowGradient.Enabled = false end
-                if highlightStroke then highlightStroke.Visible = true end
-            else
-                self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
-                if flowGradient then
-                    flowGradient.Rotation = self.FlowRotation
-                    flowGradient.Enabled = true
-                end
-                self.BorderStroke.Transparency = 1
-                self.BorderStroke.Enabled = false
-                if highlightStroke then highlightStroke.Visible = true end
+local function startFlowAnimation()
+    if self.BorderConnection then self.BorderConnection:Disconnect() end
+    self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        if self.RainbowMode == "整体" then
+            borderTime = borderTime + deltaTime * 4
+            local r = (math.sin(borderTime) + 1) / 2
+            local g = (math.sin(borderTime + math.pi/3) + 1) / 2
+            local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
+            self.BorderStroke.Color = Color3.new(r, g, b)
+            self.BorderStroke.Transparency = 0
+            if flowGradient then flowGradient.Enabled = false end
+            if highlightStroke then highlightStroke.Enabled = true end  -- 修改此处
+        else
+            self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
+            if flowGradient then
+                flowGradient.Rotation = self.FlowRotation
+                flowGradient.Enabled = true
             end
-        end)
-    end
+            self.BorderStroke.Transparency = 1
+            self.BorderStroke.Enabled = false
+            if highlightStroke then highlightStroke.Enabled = true end  -- 修改此处
+        end
+    end)
+end
 
 function self:SetRainbowMode(mode)
     if mode ~= "整体" and mode ~= "流动" then return end
