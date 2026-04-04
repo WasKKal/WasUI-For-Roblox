@@ -1488,10 +1488,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
 end
 
 function self:SetRainbowMode(mode)
-    if mode ~= "整体" and mode ~= "流动" then return end
+    if mode ~= "整体" and mode ~= "流动" then
+        return
+    end
     self.RainbowMode = mode
-    if not self.BorderStroke or not self.BorderFlow then return end
-
+    if not self.BorderStroke or not self.BorderFlow then
+        return
+    end
     if mode == "整体" then
         self.BorderFlow.BackgroundTransparency = 1
         self.BorderStroke.Transparency = 0
@@ -1500,7 +1503,7 @@ function self:SetRainbowMode(mode)
             self.BorderFlow.UIGradient.Enabled = false
         end
         if self.BorderFlow:FindFirstChildOfClass("UIStroke") then
-            self.BorderFlow.UIStroke.Visible = true
+            self.BorderFlow.UIStroke.Enabled = true
         end
     else
         self.BorderFlow.BackgroundTransparency = 1
@@ -1510,9 +1513,10 @@ function self:SetRainbowMode(mode)
             self.BorderFlow.UIGradient.Enabled = true
         end
         if self.BorderFlow:FindFirstChildOfClass("UIStroke") then
-            self.BorderFlow.UIStroke.Visible = true
+            self.BorderFlow.UIStroke.Enabled = false
         end
     end
+end
 
     self.BorderFlow.Visible = true
     startFlowAnimation()
