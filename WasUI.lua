@@ -159,9 +159,8 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     return tween
 end
 
-local function SpringTween(instance, properties, duration, overshoot)
-    overshoot = overshoot or 1.2
-    local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out, 0, 0, overshoot)
+local function SpringTween(instance, properties, duration)
+    local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
     local tween = TweenService:Create(instance, tweenInfo, properties)
     tween:Play()
     return tween
@@ -449,11 +448,11 @@ function Button:New(name, parent, text, onClick, size, iconName)
     end)
     self.Instance.MouseButton1Down:Connect(function()
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
-        SpringTween(scale, {Scale = 0.97}, 0.2, 0.8)
+        SpringTween(scale, {Scale = 0.97}, 0.2)
     end)
     self.Instance.MouseButton1Up:Connect(function()
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
-        SpringTween(scale, {Scale = 1}, 0.25, 1.2)
+        SpringTween(scale, {Scale = 1}, 0.25)
         if onClick then onClick() end
     end)
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Button"})
@@ -532,12 +531,12 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         self.Background:SetAttribute("Toggled", self.Toggled)
         if self.Toggled then
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-            SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3, 1.1)
+            SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
             CreateRainbowTextForFeature(self.RainbowName)
         else
             local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
             Tween(self.Background, {BackgroundColor3 = offCol}, 0.2)
-            SpringTween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3, 1.1)
+            SpringTween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
             DestroyRainbowTextForFeature(self.RainbowName)
         end
         if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
@@ -1073,14 +1072,14 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             targetValue = math.round(targetValue)
             animateToValue(targetValue)
             dragging = true
-            SpringTween(knobScale, {Scale = 1.2}, 0.15, 0.5)
+            SpringTween(knobScale, {Scale = 1.2}, 0.15)
         end
     end)
     self.Knob.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             stopAnimation()
-            SpringTween(knobScale, {Scale = 1.2}, 0.15, 0.5)
+            SpringTween(knobScale, {Scale = 1.2}, 0.15)
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
@@ -1092,7 +1091,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
-            SpringTween(knobScale, {Scale = 1}, 0.25, 1.2)
+            SpringTween(knobScale, {Scale = 1}, 0.25)
         end
     end)
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
@@ -2254,10 +2253,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     })
     loadAvatar()
     self.Avatar.MouseButton1Down:Connect(function()
-        SpringTween(avatarScale, {Scale = 0.9}, 0.15, 0.5)
+        SpringTween(avatarScale, {Scale = 0.9}, 0.15)
     end)
     self.Avatar.MouseButton1Up:Connect(function()
-        SpringTween(avatarScale, {Scale = 1}, 0.25, 1.2)
+        SpringTween(avatarScale, {Scale = 1}, 0.25)
     end)
     self.Avatar.MouseButton1Click:Connect(function()
         if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
