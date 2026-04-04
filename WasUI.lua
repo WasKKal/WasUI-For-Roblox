@@ -10,7 +10,7 @@ local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
 
 if _G.WasUILoaded and _G.WasUIModule then
-    warn("WasUI已加载 请勿重复加载")
+    warn("WasUIå·²å è½½ è¯·å¿éå¤å è½½")
     return _G.WasUIModule
 end
 _G.WasUILoaded = true
@@ -26,7 +26,7 @@ local function copyToClipboard(text)
 end
 
 WasUI.DefaultDisplayOrder = 10
-WasUI.DialogTitle = "你要关闭WasUI吗?"
+WasUI.DialogTitle = "ä½ è¦å³é­WasUIå?"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -36,8 +36,9 @@ WasUI.ActiveNotifications = {}
 WasUI.OpenDropdowns = {}
 
 WasUI.SettingsPanel = nil
-WasUI.GroupButtonText = "加入WasUI主群"
+WasUI.GroupButtonText = "å å¥WasUIä¸»ç¾¤"
 WasUI.GroupCopyContent = "1085475284"
+WasUI.BorderAnimationMode = "æ´ä½"
 
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
@@ -154,15 +155,6 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     easingStyle = easingStyle or Enum.EasingStyle.Quad
     easingDirection = easingDirection or Enum.EasingDirection.Out
     local tweenInfo = TweenInfo.new(duration or 0.3, easingStyle, easingDirection)
-    local tween = TweenService:Create(instance, tweenInfo, properties)
-    tween:Play()
-    return tween
-end
-
--- 弹性动画（轻弹效果）
-local function SpringTween(instance, properties, duration, overshoot)
-    overshoot = overshoot or 1.2
-    local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out, 0, 0, overshoot)
     local tween = TweenService:Create(instance, tweenInfo, properties)
     tween:Play()
     return tween
@@ -415,7 +407,7 @@ function Button:New(name, parent, text, onClick, size, iconName)
         Size = buttonSize,
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.3,
-        Text = text or "按钮",
+        Text = text or "æé®",
         TextColor3 = WasUI.CurrentTheme.Text,
         TextTransparency = 0,
         Font = Enum.Font.GothamSemibold,
@@ -441,20 +433,17 @@ function Button:New(name, parent, text, onClick, size, iconName)
             self.Instance.TextXAlignment = Enum.TextXAlignment.Left
         end
     end
-    local scale = Instance.new("UIScale", self.Instance)
     self.Instance.MouseEnter:Connect(function()
-        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.15, Enum.EasingStyle.Sine)
+        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
     end)
     self.Instance.MouseLeave:Connect(function()
-        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.15, Enum.EasingStyle.Sine)
+        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
     end)
     self.Instance.MouseButton1Down:Connect(function()
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
-        SpringTween(scale, {Scale = 0.97}, 0.2, 0.8)
     end)
     self.Instance.MouseButton1Up:Connect(function()
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
-        SpringTween(scale, {Scale = 1}, 0.25, 1.2)
         if onClick then onClick() end
     end)
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Button"})
@@ -533,12 +522,12 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         self.Background:SetAttribute("Toggled", self.Toggled)
         if self.Toggled then
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-            SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3, 1.1)
+            Tween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.2)
             CreateRainbowTextForFeature(self.RainbowName)
         else
             local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
             Tween(self.Background, {BackgroundColor3 = offCol}, 0.2)
-            SpringTween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3, 1.1)
+            Tween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.2)
             DestroyRainbowTextForFeature(self.RainbowName)
         end
         if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
@@ -556,7 +545,7 @@ function Label:New(name, parent, text, textColor)
         Name = name,
         Size = UDim2.new(1, 0, 0, 20),
         BackgroundTransparency = 1,
-        Text = text or "标签",
+        Text = text or "æ ç­¾",
         TextColor3 = textColor or WasUI.CurrentTheme.Text,
         TextTransparency = 0,
         Font = Enum.Font.Gotham,
@@ -654,7 +643,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         Size = UDim2.new(0.7, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        Text = title or "下拉菜单",
+        Text = title or "ä¸æèå",
         TextColor3 = WasUI.CurrentTheme.Text,
         TextTransparency = 0,
         Font = Enum.Font.Gotham,
@@ -848,10 +837,10 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     self.DropdownButton:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
     function self:GetDisplayText()
         if self.MultiSelect then
-            if #self.SelectedValues == 0 then return "选择..." end
+            if #self.SelectedValues == 0 then return "éæ©..." end
             return table.concat(self.SelectedValues, ", ")
         else
-            return self.SelectedValue and tostring(self.SelectedValue) or "选择..."
+            return self.SelectedValue and tostring(self.SelectedValue) or "éæ©..."
         end
     end
     function self:UpdateDisplayText()
@@ -944,7 +933,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.AnimationTween = nil
     self.Container = CreateInstance("Frame", {
         Name = name,
-        Size = UDim2.new(1, 0, 0, 34), -- 减小高度从40到34
+        Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
         ZIndex = 3,
         Parent = parent
@@ -952,10 +941,10 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.Container:SetAttribute("SearchText", title or "")
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(0.4, 0, 0, 18),
+        Size = UDim2.new(0.4, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        Text = title or "滑动条",
+        Text = title or "æ»å¨æ¡",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -965,7 +954,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.ValueLabel = CreateInstance("TextLabel", {
         Name = "Value",
-        Size = UDim2.new(0.2, 0, 0, 18),
+        Size = UDim2.new(0.2, 0, 0, 20),
         Position = UDim2.new(0.8, 0, 0, 0),
         BackgroundTransparency = 1,
         Text = tostring(self.Value),
@@ -978,8 +967,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, -13, 0, 8), -- 轨道高度从12减到8
-        Position = UDim2.new(0, 5, 0, 20),
+        Size = UDim2.new(1, -13, 0, 12),
+        Position = UDim2.new(0, 5, 0, 22),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -998,21 +987,13 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
     self.Knob = CreateInstance("Frame", {
         Name = "Knob",
-        Size = UDim2.new(0, 16, 0, 16), -- knob稍小一点
-        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -8, 0.5, -8),
+        Size = UDim2.new(0, 20, 0, 20),
+        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -10, 0.5, -10),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ZIndex = 4,
         Parent = self.SliderTrack
     })
-    local knobCircle = CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = WasUI.CurrentTheme.Accent,
-        BorderSizePixel = 0,
-        Parent = self.Knob
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = knobCircle})
-    local knobScale = Instance.new("UIScale", knobCircle)
     local function stopAnimation()
         if self.AnimationTween then
             self.AnimationTween:Cancel()
@@ -1026,7 +1007,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         self.ValueLabel.Text = tostring(self.Value)
         local t = (self.Value - self.Min) / (self.Max - self.Min)
         self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
-        self.Knob.Position = UDim2.new(t, -8, 0.5, -8)
+        self.Knob.Position = UDim2.new(t, -10, 0.5, -10)
         if self.Callback then self.Callback(self.Value) end
     end
     local function animateToValue(targetValue)
@@ -1036,7 +1017,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         stopAnimation()
         local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         local fillTween = TweenService:Create(self.SliderFill, tweenInfo, {Size = UDim2.new(targetT, 0, 1, 0)})
-        local knobTween = TweenService:Create(self.Knob, tweenInfo, {Position = UDim2.new(targetT, -8, 0.5, -8)})
+        local knobTween = TweenService:Create(self.Knob, tweenInfo, {Position = UDim2.new(targetT, -10, 0.5, -10)})
         local completed = false
         local function onFinish()
             if completed then return end
@@ -1074,14 +1055,12 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             targetValue = math.round(targetValue)
             animateToValue(targetValue)
             dragging = true
-            SpringTween(knobScale, {Scale = 1.2}, 0.15, 0.5)
         end
     end)
     self.Knob.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             stopAnimation()
-            SpringTween(knobScale, {Scale = 1.2}, 0.15, 0.5)
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
@@ -1093,7 +1072,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
-            SpringTween(knobScale, {Scale = 1}, 0.25, 1.2)
         end
     end)
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
@@ -1119,7 +1097,7 @@ function TextInput:New(name, parent, placeholder, defaultValue, callback)
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         Text = defaultValue or "",
-        PlaceholderText = placeholder or "输入...",
+        PlaceholderText = placeholder or "è¾å¥...",
         TextColor3 = WasUI.CurrentTheme.Text,
         PlaceholderColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
@@ -1198,13 +1176,6 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     local fill = track:FindFirstChild("Fill")
                     if fill and fill:IsA("Frame") then
                         Tween(fill, {BackgroundColor3 = newTheme.Accent}, duration)
-                    end
-                    local knob = track:FindFirstChild("Knob")
-                    if knob and knob:IsA("Frame") then
-                        local knobCircle = knob:FindFirstChildOfClass("Frame")
-                        if knobCircle then
-                            Tween(knobCircle, {BackgroundColor3 = newTheme.Accent}, duration)
-                        end
                     end
                 end
             elseif obj.Type == "Dropdown" then
@@ -1399,118 +1370,44 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = parent
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
-
-    -- 毛玻璃边框容器（包含彩虹渐变和微光高光）
-    self.BorderFlow = CreateInstance("Frame", {
-        Name = "BorderFlow",
+    self.BorderEffect = CreateInstance("Frame", {
+        Name = "BorderEffect",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
         Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
+        AnchorPoint = Vector2.new(0, 0),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ZIndex = -1,
         Parent = self.Instance.Parent
     })
-    local borderFlowCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderFlow})
-    -- 彩虹渐变（旋转流动）
-    local flowGradient = Instance.new("UIGradient")
-    flowGradient.Rotation = 0
-    flowGradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
-        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
-        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 255, 255)),
-        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(0, 0, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
-    }
-    flowGradient.Parent = self.BorderFlow
-    -- 微光高光边框（内部半透白渐变）
-    local highlightStroke = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(255, 255, 255),
-        Thickness = 1,
-        Transparency = 0.7,
-        Parent = self.BorderFlow
-    })
-    local highlightGradient = Instance.new("UIGradient")
-    highlightGradient.Rotation = 45
-    highlightGradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-    }
-    highlightGradient.Transparency = NumberSequence.new{
-        NumberSequenceKeypoint.new(0, 0.9),
-        NumberSequenceKeypoint.new(0.5, 0.2),
-        NumberSequenceKeypoint.new(1, 0.9)
-    }
-    highlightGradient.Parent = highlightStroke
-
-    self.BorderStroke = CreateInstance("UIStroke", {
+    local borderCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderEffect})
+    local borderStroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
         Thickness = 2,
-        Transparency = 0,
-        Parent = self.BorderFlow
+        Parent = self.BorderEffect
     })
-    self.BorderFlow.Visible = false
-
     local function updateBorder()
-        if not self.Instance or not self.BorderFlow then return end
-        self.BorderFlow.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
-        self.BorderFlow.Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4)
+        if not self.Instance or not self.BorderEffect then return end
+        self.BorderEffect.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
+        self.BorderEffect.Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4)
     end
     self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
     self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
     updateBorder()
-
     local borderTime = 0
-    self.RainbowMode = "整体"
-    self.FlowRotation = 0
-    self.BorderConnection = nil
-
-    local function startFlowAnimation()
-        if self.BorderConnection then self.BorderConnection:Disconnect() end
-        self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-            if self.RainbowMode == "整体" then
-                borderTime = borderTime + deltaTime * 4
-                local r = (math.sin(borderTime) + 1) / 2
-                local g = (math.sin(borderTime + math.pi/3) + 1) / 2
-                local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
-                self.BorderStroke.Color = Color3.new(r, g, b)
-                self.BorderStroke.Transparency = 0
-                flowGradient.Enabled = false
-                highlightStroke.Transparency = 0.7
-            else
-                self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
-                flowGradient.Rotation = self.FlowRotation
-                flowGradient.Enabled = true
-                self.BorderStroke.Transparency = 1
-                highlightStroke.Transparency = 0.7
-            end
-        end)
-    end
-
-    function self:SetRainbowMode(mode)
-        if mode == "整体" or mode == "流动" then
-            self.RainbowMode = mode
-            if mode == "整体" then
-                self.BorderFlow.BackgroundTransparency = 1
-                self.BorderStroke.Visible = true
-                flowGradient.Enabled = false
-                highlightStroke.Visible = true
-            else
-                self.BorderFlow.BackgroundTransparency = 0
-                self.BorderStroke.Visible = false
-                flowGradient.Enabled = true
-                highlightStroke.Visible = true
-            end
-            self.BorderFlow.Visible = true
-            startFlowAnimation()
+    self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        if WasUI.BorderAnimationMode == "æµå¨" then
+            borderTime = borderTime + deltaTime * 3
+            local hue = borderTime % 1
+            borderStroke.Color = Color3.fromHSV(hue, 1, 1)
+        else
+            borderTime = borderTime + deltaTime * 2.5
+            local r = (math.sin(borderTime) + 1) / 2
+            local g = (math.sin(borderTime + math.pi/3) + 1) / 2
+            local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
+            borderStroke.Color = Color3.new(r, g, b)
         end
-    end
-
-    startFlowAnimation()
-    self:SetRainbowMode("整体")
-
+    end)
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
         Size = UDim2.new(1, 0, 0, 26),
@@ -1638,7 +1535,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
-        PlaceholderText = "搜索...",
+        PlaceholderText = "æç´¢...",
         Text = "",
         TextColor3 = WasUI.CurrentTheme.Text,
         PlaceholderColor3 = WasUI.CurrentTheme.Text,
@@ -1669,7 +1566,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         closeIcon.Parent = closeButton
         closeIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     else
-        closeButton.Text = "×"
+        closeButton.Text = "Ã"
         closeButton.TextColor3 = WasUI.CurrentTheme.Text
         closeButton.TextSize = 16
         closeButton.Font = Enum.Font.GothamBold
@@ -1689,7 +1586,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         searchIcon.Parent = searchButton
         searchIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     else
-        searchButton.Text = "🔍"
+        searchButton.Text = "ð"
         searchButton.TextColor3 = WasUI.CurrentTheme.Text
         searchButton.TextSize = 14
         searchButton.Font = Enum.Font.GothamBold
@@ -1798,11 +1695,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end
         self.Tabs = {}
         local resultButton = CreateInstance("TextButton", {
-            Name = "Tab_搜索结果",
+            Name = "Tab_æç´¢ç»æ",
             Size = UDim2.new(0, 90, 0, 24),
             BackgroundColor3 = WasUI.CurrentTheme.TabButton,
             BackgroundTransparency = 0.5,
-            Text = "搜索结果",
+            Text = "æç´¢ç»æ",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.GothamSemibold,
             TextSize = 12,
@@ -1822,7 +1719,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = resultButton
         })
         local resultFrame = CreateInstance("Frame", {
-            Name = "TabFrame_搜索结果",
+            Name = "TabFrame_æç´¢ç»æ",
             Size = UDim2.new(1, 0, 0, 0),
             BackgroundTransparency = 1,
             Visible = true,
@@ -1847,8 +1744,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Underline = resultUnderline,
             Frame = resultFrame
         }
-        self.Tabs["搜索结果"] = searchResultTab
-        self:SetActiveTab("搜索结果")
+        self.Tabs["æç´¢ç»æ"] = searchResultTab
+        self:SetActiveTab("æç´¢ç»æ")
         for _, moved in ipairs(movedControls) do
             if moved.control and moved.control.Parent then
                 moved.control.Parent = moved.originalParent
@@ -2092,7 +1989,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Size = UDim2.new(0, 110, 0, 36),
             BackgroundColor3 = WasUI.CurrentTheme.Section,
             BackgroundTransparency = 0.3,
-            Text = "确认关闭",
+            Text = "ç¡®è®¤å³é­",
             TextColor3 = WasUI.CurrentTheme.Error,
             TextTransparency = 0,
             Font = Enum.Font.GothamSemibold,
@@ -2106,7 +2003,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Size = UDim2.new(0, 110, 0, 36),
             BackgroundColor3 = WasUI.CurrentTheme.Section,
             BackgroundTransparency = 0.3,
-            Text = "取消",
+            Text = "åæ¶",
             TextColor3 = WasUI.CurrentTheme.Text,
             TextTransparency = 0,
             Font = Enum.Font.GothamSemibold,
@@ -2132,8 +2029,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 self.BorderConnection:Disconnect()
                 self.BorderConnection = nil
             end
-            if self.BorderFlow then
-                self.BorderFlow:Destroy()
+            if self.BorderEffect then
+                self.BorderEffect:Destroy()
             end
             for _, data in pairs(WasUI.ActiveRainbowTexts) do
                 if data.ScreenGui then data.ScreenGui:Destroy() end
@@ -2249,7 +2146,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ZIndex = 2,
         Parent = self.AnnouncementBar
     })
-    local avatarScale = Instance.new("UIScale", self.Avatar)
+    local avatarScale = CreateInstance("UIScale", {
+        Scale = 1,
+        Parent = self.Avatar
+    })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
     local avatarStroke = CreateInstance("UIStroke", {
         Color = WasUI.CurrentTheme.Text,
@@ -2258,10 +2158,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     })
     loadAvatar()
     self.Avatar.MouseButton1Down:Connect(function()
-        SpringTween(avatarScale, {Scale = 0.9}, 0.15, 0.5)
+        Tween(avatarScale, {Scale = 0.9}, 0.1)
     end)
     self.Avatar.MouseButton1Up:Connect(function()
-        SpringTween(avatarScale, {Scale = 1}, 0.25, 1.2)
+        Tween(avatarScale, {Scale = 1}, 0.1)
     end)
     self.Avatar.MouseButton1Click:Connect(function()
         if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
@@ -2286,8 +2186,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 300, 0, 320),
-            Position = UDim2.new(0.5, -150, 0.5, -160),
+            Size = UDim2.new(0, 300, 0, 280),
+            Position = UDim2.new(0.5, -150, 0.5, -140),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 0.2,
             BorderSizePixel = 0,
@@ -2316,7 +2216,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Size = UDim2.new(1, -30, 1, 0),
             Position = UDim2.new(0, 10, 0, 0),
             BackgroundTransparency = 1,
-            Text = "UI设置",
+            Text = "UIè®¾ç½®",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.GothamBold,
             TextSize = 14,
@@ -2329,7 +2229,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Size = UDim2.new(0, 24, 0, 24),
             Position = UDim2.new(1, -28, 0, 3),
             BackgroundTransparency = 1,
-            Text = "×",
+            Text = "Ã",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.GothamBold,
             TextSize = 18,
@@ -2352,7 +2252,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Position = UDim2.new(0, 10, 0, 40),
             BackgroundTransparency = 1,
             ScrollBarThickness = 4,
-            ScrollingDirection = Enum.ScrollingDirection.Y,
             CanvasSize = UDim2.new(0, 0, 0, 0),
             ZIndex = 1001,
             Parent = settingsFrame
@@ -2377,7 +2276,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Name = "ThemeLabel",
             Size = UDim2.new(1, 0, 0, 24),
             BackgroundTransparency = 1,
-            Text = "窗口风格",
+            Text = "çªå£é£æ ¼",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
             TextSize = 14,
@@ -2419,12 +2318,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             WasUI.SettingsPanel = nil
             WasUI:SetTheme(newTheme)
         end)
-
-        local rainbowModeLabel = CreateInstance("TextLabel", {
-            Name = "RainbowModeLabel",
+        local borderModeLabel = CreateInstance("TextLabel", {
+            Name = "BorderModeLabel",
             Size = UDim2.new(1, 0, 0, 24),
             BackgroundTransparency = 1,
-            Text = "彩虹边框模式",
+            Text = "å½©è¹è¾¹æ¡æ¹å¼",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
             TextSize = 14,
@@ -2432,13 +2330,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             ZIndex = 1002,
             Parent = contentFrame
         })
-        local rainbowModeButton = CreateInstance("TextButton", {
-            Name = "RainbowModeButton",
+        local borderModeDropdown = CreateInstance("TextButton", {
+            Name = "BorderModeDropdown",
             Size = UDim2.new(0, 120, 0, 28),
             Position = UDim2.new(1, -130, 0, -2),
             BackgroundColor3 = WasUI.CurrentTheme.Input,
             BackgroundTransparency = 0.3,
-            Text = self.RainbowMode,
+            Text = WasUI.BorderAnimationMode,
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
             TextSize = 12,
@@ -2446,19 +2344,20 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             ZIndex = 1002,
             Parent = contentFrame
         })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = rainbowModeButton})
-        rainbowModeButton.MouseButton1Click:Connect(function()
-            local newMode = (self.RainbowMode == "整体") and "流动" or "整体"
-            self:SetRainbowMode(newMode)
-            rainbowModeButton.Text = newMode
-            WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = borderModeDropdown})
+        local borderOptions = {"æ´ä½", "æµå¨"}
+        local borderDropdownObj = WasUI:CreateDropdown(contentFrame, nil, borderOptions, WasUI.BorderAnimationMode, function(selected)
+            WasUI.BorderAnimationMode = selected
+            borderModeDropdown.Text = selected
+        end, false)
+        borderModeDropdown.MouseButton1Click:Connect(function()
+            borderDropdownObj:Open()
         end)
-
         local posLabel = CreateInstance("TextLabel", {
             Name = "PosLabel",
             Size = UDim2.new(1, 0, 0, 20),
             BackgroundTransparency = 1,
-            Text = "窗口位置偏移",
+            Text = "çªå£ä½ç½®åç§»",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
             TextSize = 12,
@@ -2473,7 +2372,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             self.Instance.Position = UDim2.new(self.Instance.Position.X.Scale, x, self.Instance.Position.Y.Scale, y)
             updating = false
         end
-        local xSlider = WasUI:CreateSlider(contentFrame, "X轴位置", -400, 0, self.Instance.Position.X.Offset, function(value)
+        local xSlider = WasUI:CreateSlider(contentFrame, "Xè½´ä½ç½®", -400, 0, self.Instance.Position.X.Offset, function(value)
             updateWindowPosition(value, self.Instance.Position.Y.Offset)
         end)
         xSlider.TitleLabel.ZIndex = 1002
@@ -2481,15 +2380,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         xSlider.SliderTrack.ZIndex = 1002
         xSlider.SliderFill.ZIndex = 1002
         xSlider.Knob.ZIndex = 1002
-        xSlider.TitleLabel.Text = "X轴"
+        xSlider.TitleLabel.Text = "Xè½´"
         xSlider.TitleLabel.Size = UDim2.new(0.4, 0, 1, 0)
         xSlider.TitleLabel.Position = UDim2.new(0, 0, 0, -4)
         xSlider.ValueLabel.Text = tostring(xSlider.Value)
         xSlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
         xSlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
-        xSlider.SliderTrack.Size = UDim2.new(1, 7, 0, 8)
-        xSlider.SliderTrack.Position = UDim2.new(0, -5, 0, 20)
-        local ySlider = WasUI:CreateSlider(contentFrame, "Y轴位置", -300, -110, self.Instance.Position.Y.Offset, function(value)
+        xSlider.SliderTrack.Size = UDim2.new(1, 7, 0, 12)
+        xSlider.SliderTrack.Position = UDim2.new(0, -5, 0, 22)
+        local ySlider = WasUI:CreateSlider(contentFrame, "Yè½´ä½ç½®", -300, -110, self.Instance.Position.Y.Offset, function(value)
             updateWindowPosition(self.Instance.Position.X.Offset, value)
         end)
         ySlider.TitleLabel.ZIndex = 1002
@@ -2497,14 +2396,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ySlider.SliderTrack.ZIndex = 1002
         ySlider.SliderFill.ZIndex = 1002
         ySlider.Knob.ZIndex = 1002
-        ySlider.TitleLabel.Text = "Y轴"
+        ySlider.TitleLabel.Text = "Yè½´"
         ySlider.TitleLabel.Size = UDim2.new(0.4, 0, 1, 0)
         ySlider.TitleLabel.Position = UDim2.new(0, 0, 0, -4)
         ySlider.ValueLabel.Text = tostring(ySlider.Value)
         ySlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
         ySlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
-        ySlider.SliderTrack.Size = UDim2.new(1, 7, 0, 8)
-        ySlider.SliderTrack.Position = UDim2.new(0, -5, 0, 20)
+        ySlider.SliderTrack.Size = UDim2.new(1, 7, 0, 12)
+        ySlider.SliderTrack.Position = UDim2.new(0, -5, 0, 22)
         local function syncSliderValues()
             if updating then return end
             local xVal = self.Instance.Position.X.Offset
@@ -2513,13 +2412,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 xSlider.Value = xVal
                 xSlider.ValueLabel.Text = tostring(xVal)
                 xSlider.SliderFill.Size = UDim2.new((xVal - xSlider.Min) / (xSlider.Max - xSlider.Min), 0, 1, 0)
-                xSlider.Knob.Position = UDim2.new((xVal - xSlider.Min) / (xSlider.Max - xSlider.Min), -8, 0.5, -8)
+                xSlider.Knob.Position = UDim2.new((xVal - xSlider.Min) / (xSlider.Max - xSlider.Min), -10, 0.5, -10)
             end
             if ySlider then
                 ySlider.Value = yVal
                 ySlider.ValueLabel.Text = tostring(yVal)
                 ySlider.SliderFill.Size = UDim2.new((yVal - ySlider.Min) / (ySlider.Max - ySlider.Min), 0, 1, 0)
-                ySlider.Knob.Position = UDim2.new((yVal - ySlider.Min) / (ySlider.Max - ySlider.Min), -8, 0.5, -8)
+                ySlider.Knob.Position = UDim2.new((yVal - ySlider.Min) / (ySlider.Max - ySlider.Min), -10, 0.5, -10)
             end
         end
         self.Instance:GetPropertyChangedSignal("Position"):Connect(syncSliderValues)
@@ -2548,9 +2447,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         groupButton.MouseButton1Click:Connect(function()
             local copied = copyToClipboard(WasUI.GroupCopyContent)
             if copied then
-                WasUI:Notify({Title = "复制成功", Content = "已复制：" .. WasUI.GroupCopyContent, Duration = 2})
+                WasUI:Notify({Title = "å¤å¶æå", Content = "å·²å¤å¶ï¼" .. WasUI.GroupCopyContent, Duration = 2})
             else
-                WasUI:Notify({Title = "复制失败", Content = "当前环境不支持复制到剪贴板", Duration = 2})
+                WasUI:Notify({Title = "å¤å¶å¤±è´¥", Content = "å½åç¯å¢ä¸æ¯æå¤å¶å°åªè´´æ¿", Duration = 2})
             end
         end)
         refreshCanvas()
@@ -2581,7 +2480,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Size = UDim2.new(0.6, 0, 0, 18),
         Position = UDim2.new(0, 62, 0.12, 0),
         BackgroundTransparency = 1,
-        Text = "当前用户: " .. player.Name,
+        Text = "å½åç¨æ·: " .. player.Name,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 13,
@@ -2600,7 +2499,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Size = UDim2.new(0.6, 0, 0, 16),
         Position = UDim2.new(0, 62, 0.35, 0),
         BackgroundTransparency = 1,
-        Text = "执行器: " .. executorName,
+        Text = "æ§è¡å¨: " .. executorName,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -2613,7 +2512,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Size = UDim2.new(0.6, 0, 0, 14),
         Position = UDim2.new(0, 62, 0.55, 0),
         BackgroundTransparency = 1,
-        Text = "欢迎使用 WasUI",
+        Text = "æ¬¢è¿ä½¿ç¨ WasUI",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 11,
@@ -2804,8 +2703,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     end
     function self:SetVisible(visible)
         self.Instance.Visible = visible
-        if self.BorderFlow then
-            self.BorderFlow.Visible = visible
+        if self.BorderEffect then
+            self.BorderEffect.Visible = visible
         end
         if self.SnowContainer then
             self.SnowContainer.Visible = visible
@@ -2903,8 +2802,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.Instance.BackgroundTransparency = 1
     self.Instance.Size = UDim2.new(0, 0, 0, 0)
     self.Instance.Position = UDim2.new(0.5, 0, 0.5, 0)
-    if self.BorderFlow then
-        self.BorderFlow.Visible = false
+    if self.BorderEffect then
+        local stroke = self.BorderEffect:FindFirstChildOfClass("UIStroke")
+        if stroke then
+            stroke.Transparency = 1
+        end
     end
     if self.SnowContainer then
         self.SnowContainer.Visible = false
@@ -2914,10 +2816,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Size = originalSize,
         Position = originalPos
     }, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    windowTween.Completed:Connect(function()
-        if self.BorderFlow then
-            self.BorderFlow.Visible = true
+    if self.BorderEffect then
+        local stroke = self.BorderEffect:FindFirstChildOfClass("UIStroke")
+        if stroke then
+            Tween(stroke, {Transparency = 0}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         end
+    end
+    windowTween.Completed:Connect(function()
         if self.SnowContainer then
             self.SnowContainer.Visible = true
         end
