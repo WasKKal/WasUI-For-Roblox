@@ -924,26 +924,26 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end)
     end
 
-    function self:SetRainbowMode(mode)
-        if mode ~= "整体" and mode ~= "流动" then return end
-        self.RainbowMode = mode
-        if not self.BorderStroke or not self.BorderFlow then return end
-        if mode == "整体" then
-            self.BorderFlow.BackgroundTransparency = 1
-            self.BorderStroke.Transparency = 0
-            self.BorderStroke.Enabled = true
-            if self.BorderFlow:FindFirstChildOfClass("UIGradient") then self.BorderFlow.UIGradient.Enabled = false end
-            if self.BorderFlow:FindFirstChildOfClass("UIStroke") then self.BorderFlow.UIStroke.Visible = true end
-        else
-            self.BorderFlow.BackgroundTransparency = 1
-            self.BorderStroke.Transparency = 1
-            self.BorderStroke.Enabled = false
-            if self.BorderFlow:FindFirstChildOfClass("UIGradient") then self.BorderFlow.UIGradient.Enabled = true end
-            if self.BorderFlow:FindFirstChildOfClass("UIStroke") then self.BorderFlow.UIStroke.Visible = true end
-        end
-        self.BorderFlow.Visible = true
-        startFlowAnimation()
+function self:SetRainbowMode(mode)
+    if mode ~= "整体" and mode ~= "流动" then return end
+    self.RainbowMode = mode
+    if not self.BorderStroke or not self.BorderFlow then return end
+    if mode == "整体" then
+        self.BorderFlow.BackgroundTransparency = 1
+        self.BorderStroke.Transparency = 0
+        self.BorderStroke.Enabled = true
+        if self.BorderFlow:FindFirstChildOfClass("UIGradient") then self.BorderFlow.UIGradient.Enabled = false end
+        if self.BorderFlow:FindFirstChildOfClass("UIStroke") then self.BorderFlow.UIStroke.Enabled = true end  -- 改为 Enabled
+    else
+        self.BorderFlow.BackgroundTransparency = 1
+        self.BorderStroke.Transparency = 1
+        self.BorderStroke.Enabled = false
+        if self.BorderFlow:FindFirstChildOfClass("UIGradient") then self.BorderFlow.UIGradient.Enabled = true end
+        if self.BorderFlow:FindFirstChildOfClass("UIStroke") then self.BorderFlow.UIStroke.Enabled = true end  -- 改为 Enabled
     end
+    self.BorderFlow.Visible = true
+    startFlowAnimation()
+end
 
     startFlowAnimation()
     self:SetRainbowMode("整体")
