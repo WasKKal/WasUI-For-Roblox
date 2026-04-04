@@ -159,14 +159,6 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     return tween
 end
 
-local function SpringTween(instance, properties, duration, overshoot)
-    overshoot = overshoot or 1.2
-    local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out, 0, 0, overshoot)
-    local tween = TweenService:Create(instance, tweenInfo, properties)
-    tween:Play()
-    return tween
-end
-
 local function FadeOut(container, duration)
     duration = duration or 0.3
     local tweens = {}
@@ -440,20 +432,17 @@ function Button:New(name, parent, text, onClick, size, iconName)
             self.Instance.TextXAlignment = Enum.TextXAlignment.Left
         end
     end
-    local scale = Instance.new("UIScale", self.Instance)
     self.Instance.MouseEnter:Connect(function()
-        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.15, Enum.EasingStyle.Sine)
+        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
     end)
     self.Instance.MouseLeave:Connect(function()
-        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.15, Enum.EasingStyle.Sine)
+        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
     end)
     self.Instance.MouseButton1Down:Connect(function()
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
-        SpringTween(scale, {Scale = 0.97}, 0.2, 0.8)
     end)
     self.Instance.MouseButton1Up:Connect(function()
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
-        SpringTween(scale, {Scale = 1}, 0.25, 1.2)
         if onClick then onClick() end
     end)
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Button"})
@@ -532,12 +521,12 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         self.Background:SetAttribute("Toggled", self.Toggled)
         if self.Toggled then
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-            SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3, 1.1)
+            Tween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.2)
             CreateRainbowTextForFeature(self.RainbowName)
         else
             local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
             Tween(self.Background, {BackgroundColor3 = offCol}, 0.2)
-            SpringTween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3, 1.1)
+            Tween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.2)
             DestroyRainbowTextForFeature(self.RainbowName)
         end
         if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
@@ -943,7 +932,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.AnimationTween = nil
     self.Container = CreateInstance("Frame", {
         Name = name,
-        Size = UDim2.new(1, 0, 0, 34),
+        Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
         ZIndex = 3,
         Parent = parent
@@ -951,7 +940,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.Container:SetAttribute("SearchText", title or "")
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(0.4, 0, 0, 18),
+        Size = UDim2.new(0.4, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
         Text = title or "滑动条",
@@ -964,7 +953,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.ValueLabel = CreateInstance("TextLabel", {
         Name = "Value",
-        Size = UDim2.new(0.2, 0, 0, 18),
+        Size = UDim2.new(0.2, 0, 0, 20),
         Position = UDim2.new(0.8, 0, 0, 0),
         BackgroundTransparency = 1,
         Text = tostring(self.Value),
@@ -977,8 +966,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, -13, 0, 8),
-        Position = UDim2.new(0, 5, 0, 20),
+        Size = UDim2.new(1, -13, 0, 12),
+        Position = UDim2.new(0, 5, 0, 22),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -997,21 +986,13 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
     self.Knob = CreateInstance("Frame", {
         Name = "Knob",
-        Size = UDim2.new(0, 16, 0, 16),
-        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -8, 0.5, -8),
+        Size = UDim2.new(0, 20, 0, 20),
+        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -10, 0.5, -10),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ZIndex = 4,
         Parent = self.SliderTrack
     })
-    local knobCircle = CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = WasUI.CurrentTheme.Accent,
-        BorderSizePixel = 0,
-        Parent = self.Knob
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = knobCircle})
-    local knobScale = Instance.new("UIScale", knobCircle)
     local function stopAnimation()
         if self.AnimationTween then
             self.AnimationTween:Cancel()
@@ -1025,7 +1006,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         self.ValueLabel.Text = tostring(self.Value)
         local t = (self.Value - self.Min) / (self.Max - self.Min)
         self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
-        self.Knob.Position = UDim2.new(t, -8, 0.5, -8)
+        self.Knob.Position = UDim2.new(t, -10, 0.5, -10)
         if self.Callback then self.Callback(self.Value) end
     end
     local function animateToValue(targetValue)
@@ -1035,7 +1016,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         stopAnimation()
         local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         local fillTween = TweenService:Create(self.SliderFill, tweenInfo, {Size = UDim2.new(targetT, 0, 1, 0)})
-        local knobTween = TweenService:Create(self.Knob, tweenInfo, {Position = UDim2.new(targetT, -8, 0.5, -8)})
+        local knobTween = TweenService:Create(self.Knob, tweenInfo, {Position = UDim2.new(targetT, -10, 0.5, -10)})
         local completed = false
         local function onFinish()
             if completed then return end
@@ -1073,14 +1054,12 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             targetValue = math.round(targetValue)
             animateToValue(targetValue)
             dragging = true
-            SpringTween(knobScale, {Scale = 1.2}, 0.15, 0.5)
         end
     end)
     self.Knob.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             stopAnimation()
-            SpringTween(knobScale, {Scale = 1.2}, 0.15, 0.5)
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
@@ -1092,7 +1071,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
-            SpringTween(knobScale, {Scale = 1}, 0.25, 1.2)
         end
     end)
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
@@ -1197,13 +1175,6 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     local fill = track:FindFirstChild("Fill")
                     if fill and fill:IsA("Frame") then
                         Tween(fill, {BackgroundColor3 = newTheme.Accent}, duration)
-                    end
-                    local knob = track:FindFirstChild("Knob")
-                    if knob and knob:IsA("Frame") then
-                        local knobCircle = knob:FindFirstChildOfClass("Frame")
-                        if knobCircle then
-                            Tween(knobCircle, {BackgroundColor3 = newTheme.Accent}, duration)
-                        end
                     end
                 end
             elseif obj.Type == "Dropdown" then
@@ -1399,6 +1370,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
 
+    -- 边框容器（用于流动模式）
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
@@ -1409,6 +1381,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.Instance.Parent
     })
     local borderFlowCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderFlow})
+    -- 流动模式渐变
     local flowGradient = Instance.new("UIGradient")
     flowGradient.Rotation = 0
     flowGradient.Color = ColorSequence.new{
@@ -1421,33 +1394,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
     }
     flowGradient.Parent = self.BorderFlow
-    local highlightStroke = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(255, 255, 255),
-        Thickness = 1,
-        Transparency = 0.7,
-        Parent = self.BorderFlow
-    })
-    local highlightGradient = Instance.new("UIGradient")
-    highlightGradient.Rotation = 45
-    highlightGradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-    }
-    highlightGradient.Transparency = NumberSequence.new{
-        NumberSequenceKeypoint.new(0, 0.9),
-        NumberSequenceKeypoint.new(0.5, 0.2),
-        NumberSequenceKeypoint.new(1, 0.9)
-    }
-    highlightGradient.Parent = highlightStroke
+    self.BorderFlow.Visible = false
 
+    -- 整体模式边框（UIStroke）
     self.BorderStroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
         Thickness = 2,
-        Transparency = 0,
         Parent = self.BorderFlow
     })
-    self.BorderFlow.Visible = false
 
     local function updateBorder()
         if not self.Instance or not self.BorderFlow then return end
@@ -1460,7 +1414,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
 
     local borderTime = 0
     self.RainbowMode = "整体"
-    self.FlowRotation = 0
+    self.FlowOffset = 0
     self.BorderConnection = nil
 
     local function startFlowAnimation()
@@ -1472,15 +1426,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 local g = (math.sin(borderTime + math.pi/3) + 1) / 2
                 local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
                 self.BorderStroke.Color = Color3.new(r, g, b)
-                self.BorderStroke.Transparency = 0
-                flowGradient.Enabled = false
-                highlightStroke.Transparency = 0.7
             else
-                self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
-                flowGradient.Rotation = self.FlowRotation
-                flowGradient.Enabled = true
-                self.BorderStroke.Transparency = 1
-                highlightStroke.Transparency = 0.7
+                self.FlowOffset = (self.FlowOffset + deltaTime * 0.3) % 1
+                flowGradient.Offset = self.FlowOffset
             end
         end)
     end
@@ -1490,22 +1438,22 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             self.RainbowMode = mode
             if mode == "整体" then
                 self.BorderFlow.BackgroundTransparency = 1
-                self.BorderStroke.Enabled = true
+                self.BorderStroke.Visible = true
                 flowGradient.Enabled = false
-                highlightStroke.Enabled = true
+                self.BorderFlow.Visible = true
             else
                 self.BorderFlow.BackgroundTransparency = 0
-                self.BorderStroke.Enabled = false
+                self.BorderStroke.Visible = false
                 flowGradient.Enabled = true
-                highlightStroke.Enabled = true
+                self.BorderFlow.Visible = true
             end
-            self.BorderFlow.Visible = true
             startFlowAnimation()
         end
     end
 
+    -- 初始启动动画
     startFlowAnimation()
-    self:SetRainbowMode("整体")
+    self:SetRainbowMode("整体")  -- 默认整体模式
 
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
@@ -2245,7 +2193,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ZIndex = 2,
         Parent = self.AnnouncementBar
     })
-    local avatarScale = Instance.new("UIScale", self.Avatar)
+    local avatarScale = CreateInstance("UIScale", {
+        Scale = 1,
+        Parent = self.Avatar
+    })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Avatar})
     local avatarStroke = CreateInstance("UIStroke", {
         Color = WasUI.CurrentTheme.Text,
@@ -2254,10 +2205,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     })
     loadAvatar()
     self.Avatar.MouseButton1Down:Connect(function()
-        SpringTween(avatarScale, {Scale = 0.9}, 0.15, 0.5)
+        Tween(avatarScale, {Scale = 0.9}, 0.1)
     end)
     self.Avatar.MouseButton1Up:Connect(function()
-        SpringTween(avatarScale, {Scale = 1}, 0.25, 1.2)
+        Tween(avatarScale, {Scale = 1}, 0.1)
     end)
     self.Avatar.MouseButton1Click:Connect(function()
         if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
@@ -2483,8 +2434,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         xSlider.ValueLabel.Text = tostring(xSlider.Value)
         xSlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
         xSlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
-        xSlider.SliderTrack.Size = UDim2.new(1, 7, 0, 8)
-        xSlider.SliderTrack.Position = UDim2.new(0, -5, 0, 20)
+        xSlider.SliderTrack.Size = UDim2.new(1, 7, 0, 12)
+        xSlider.SliderTrack.Position = UDim2.new(0, -5, 0, 22)
         local ySlider = WasUI:CreateSlider(contentFrame, "Y轴位置", -300, -110, self.Instance.Position.Y.Offset, function(value)
             updateWindowPosition(self.Instance.Position.X.Offset, value)
         end)
@@ -2499,8 +2450,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ySlider.ValueLabel.Text = tostring(ySlider.Value)
         ySlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
         ySlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
-        ySlider.SliderTrack.Size = UDim2.new(1, 7, 0, 8)
-        ySlider.SliderTrack.Position = UDim2.new(0, -5, 0, 20)
+        ySlider.SliderTrack.Size = UDim2.new(1, 7, 0, 12)
+        ySlider.SliderTrack.Position = UDim2.new(0, -5, 0, 22)
         local function syncSliderValues()
             if updating then return end
             local xVal = self.Instance.Position.X.Offset
@@ -2509,13 +2460,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 xSlider.Value = xVal
                 xSlider.ValueLabel.Text = tostring(xVal)
                 xSlider.SliderFill.Size = UDim2.new((xVal - xSlider.Min) / (xSlider.Max - xSlider.Min), 0, 1, 0)
-                xSlider.Knob.Position = UDim2.new((xVal - xSlider.Min) / (xSlider.Max - xSlider.Min), -8, 0.5, -8)
+                xSlider.Knob.Position = UDim2.new((xVal - xSlider.Min) / (xSlider.Max - xSlider.Min), -10, 0.5, -10)
             end
             if ySlider then
                 ySlider.Value = yVal
                 ySlider.ValueLabel.Text = tostring(yVal)
                 ySlider.SliderFill.Size = UDim2.new((yVal - ySlider.Min) / (ySlider.Max - ySlider.Min), 0, 1, 0)
-                ySlider.Knob.Position = UDim2.new((yVal - ySlider.Min) / (ySlider.Max - ySlider.Min), -8, 0.5, -8)
+                ySlider.Knob.Position = UDim2.new((yVal - ySlider.Min) / (ySlider.Max - ySlider.Min), -10, 0.5, -10)
             end
         end
         self.Instance:GetPropertyChangedSignal("Position"):Connect(syncSliderValues)
