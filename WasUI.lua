@@ -942,7 +942,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.AnimationTween = nil
     self.Container = CreateInstance("Frame", {
         Name = name,
-        Size = UDim2.new(1, 0, 0, 44),
+        Size = UDim2.new(1, 0, 0, 34),
         BackgroundTransparency = 1,
         ZIndex = 3,
         Parent = parent
@@ -976,8 +976,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, -13, 0, 12),
-        Position = UDim2.new(0, 5, 0, 24),
+        Size = UDim2.new(1, -13, 0, 8),
+        Position = UDim2.new(0, 5, 0, 20),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -1000,7 +1000,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -8, 0.5, -8),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        Visible = false,
         ZIndex = 4,
         Parent = self.SliderTrack
     })
@@ -1424,7 +1423,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local highlightStroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 255, 255),
         Thickness = 1,
-        Transparency = 0.2,
+        Transparency = 0.7,
         Parent = self.BorderFlow
     })
     local highlightGradient = Instance.new("UIGradient")
@@ -1474,13 +1473,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 self.BorderStroke.Color = Color3.new(r, g, b)
                 self.BorderStroke.Transparency = 0
                 flowGradient.Enabled = false
-                highlightStroke.Visible = true
+                highlightStroke.Transparency = 0.7
             else
                 self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
                 flowGradient.Rotation = self.FlowRotation
                 flowGradient.Enabled = true
-                self.BorderStroke.Visible = false
-                highlightStroke.Visible = true
+                self.BorderStroke.Transparency = 1
+                highlightStroke.Transparency = 0.7
             end
         end)
     end
@@ -1490,14 +1489,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             self.RainbowMode = mode
             if mode == "整体" then
                 self.BorderFlow.BackgroundTransparency = 1
-                self.BorderStroke.Visible = true
+                self.BorderStroke.Enabled = true
                 flowGradient.Enabled = false
-                highlightStroke.Visible = true
+                highlightStroke.Enabled = true
             else
-                self.BorderFlow.BackgroundTransparency = 1
-                self.BorderStroke.Visible = false
+                self.BorderFlow.BackgroundTransparency = 0
+                self.BorderStroke.Enabled = false
                 flowGradient.Enabled = true
-                highlightStroke.Visible = true
+                highlightStroke.Enabled = true
             end
             self.BorderFlow.Visible = true
             startFlowAnimation()
@@ -2483,8 +2482,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         xSlider.ValueLabel.Text = tostring(xSlider.Value)
         xSlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
         xSlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
-        xSlider.SliderTrack.Size = UDim2.new(1, 7, 0, 12)
-        xSlider.SliderTrack.Position = UDim2.new(0, -5, 0, 24)
+        xSlider.SliderTrack.Size = UDim2.new(1, 7, 0, 8)
+        xSlider.SliderTrack.Position = UDim2.new(0, -5, 0, 20)
         local ySlider = WasUI:CreateSlider(contentFrame, "Y轴位置", -300, -110, self.Instance.Position.Y.Offset, function(value)
             updateWindowPosition(self.Instance.Position.X.Offset, value)
         end)
@@ -2499,8 +2498,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ySlider.ValueLabel.Text = tostring(ySlider.Value)
         ySlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
         ySlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
-        ySlider.SliderTrack.Size = UDim2.new(1, 7, 0, 12)
-        ySlider.SliderTrack.Position = UDim2.new(0, -5, 0, 24)
+        ySlider.SliderTrack.Size = UDim2.new(1, 7, 0, 8)
+        ySlider.SliderTrack.Position = UDim2.new(0, -5, 0, 20)
         local function syncSliderValues()
             if updating then return end
             local xVal = self.Instance.Position.X.Offset
