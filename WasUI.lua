@@ -1369,91 +1369,53 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = parent
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
-
-    -- 边框容器（用于流动模式）
-    self.BorderFlow = CreateInstance("Frame", {
-        Name = "BorderFlow",
+    self.BorderEffect = CreateInstance("Frame", {
+        Name = "BorderEffect",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
         Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
+        AnchorPoint = Vector2.new(0, 0),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ZIndex = -1,
         Parent = self.Instance.Parent
     })
-    local borderFlowCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderFlow})
-    -- 流动模式渐变
-    local flowGradient = Instance.new("UIGradient")
-    flowGradient.Rotation = 0
-    flowGradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
-        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
-        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 255, 255)),
-        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(0, 0, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
-    }
-    flowGradient.Parent = self.BorderFlow
-    self.BorderFlow.Visible = false
-
-    -- 整体模式边框（UIStroke）
-    self.BorderStroke = CreateInstance("UIStroke", {
+    local borderCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderEffect})
+    local borderStroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
         Thickness = 2,
-        Parent = self.BorderFlow
+        Parent = self.BorderEffect
     })
-
     local function updateBorder()
-        if not self.Instance or not self.BorderFlow then return end
-        self.BorderFlow.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
-        self.BorderFlow.Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4)
+        if not self.Instance or not self.BorderEffect then return end
+        self.BorderEffect.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
+        self.BorderEffect.Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4)
     end
     self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
     self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
     updateBorder()
-
     local borderTime = 0
-    self.RainbowMode = "整体"
-    self.FlowOffset = 0
-    self.BorderConnection = nil
-
-    local function startFlowAnimation()
-        if self.BorderConnection then self.BorderConnection:Disconnect() end
-        self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-            if self.RainbowMode == "整体" then
-                borderTime = borderTime + deltaTime * 4
-                local r = (math.sin(borderTime) + 1) / 2
-                local g = (math.sin(borderTime + math.pi/3) + 1) / 2
-                local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
-                self.BorderStroke.Color = Color3.new(r, g, b)
-            else
-                self.FlowOffset = (self.FlowOffset + deltaTime * 0.3) % 1
-                flowGradient.Offset = self.FlowOffset
-            end
-        end)
-    end
+    self.RainbowMode = "整体"  -- "整体" 或 "流动"
+    self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        local speed = (self.RainbowMode == "整体") and 4 or 0.8
+        borderTime = borderTime + deltaTime * speed
+        local color
+        if self.RainbowMode == "整体" then
+            local r = (math.sin(borderTime) + 1) / 2
+            local g = (math.sin(borderTime + math.pi/3) + 1) / 2
+            local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
+            color = Color3.new(r, g, b)
+        else
+            local hue = borderTime % 1
+            color = Color3.fromHSV(hue, 1, 1)
+        end
+        borderStroke.Color = color
+    end)
 
     function self:SetRainbowMode(mode)
         if mode == "整体" or mode == "流动" then
             self.RainbowMode = mode
-            if mode == "整体" then
-                self.BorderFlow.BackgroundTransparency = 1
-                self.BorderStroke.Visible = true
-                flowGradient.Enabled = false
-                self.BorderFlow.Visible = true
-            else
-                self.BorderFlow.BackgroundTransparency = 0
-                self.BorderStroke.Visible = false
-                flowGradient.Enabled = true
-                self.BorderFlow.Visible = true
-            end
-            startFlowAnimation()
         end
     end
-
-    -- 初始启动动画
-    startFlowAnimation()
-    self:SetRainbowMode("整体")  -- 默认整体模式
 
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
@@ -2076,8 +2038,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 self.BorderConnection:Disconnect()
                 self.BorderConnection = nil
             end
-            if self.BorderFlow then
-                self.BorderFlow:Destroy()
+            if self.BorderEffect then
+                self.BorderEffect:Destroy()
             end
             for _, data in pairs(WasUI.ActiveRainbowTexts) do
                 if data.ScreenGui then data.ScreenGui:Destroy() end
@@ -2299,7 +2261,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Position = UDim2.new(0, 10, 0, 40),
             BackgroundTransparency = 1,
             ScrollBarThickness = 4,
-            ScrollingDirection = Enum.ScrollingDirection.Y,
             CanvasSize = UDim2.new(0, 0, 0, 0),
             ZIndex = 1001,
             Parent = settingsFrame
@@ -2367,6 +2328,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             WasUI:SetTheme(newTheme)
         end)
 
+        -- 彩虹边框模式切换
         local rainbowModeLabel = CreateInstance("TextLabel", {
             Name = "RainbowModeLabel",
             Size = UDim2.new(1, 0, 0, 24),
@@ -2751,8 +2713,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     end
     function self:SetVisible(visible)
         self.Instance.Visible = visible
-        if self.BorderFlow then
-            self.BorderFlow.Visible = visible
+        if self.BorderEffect then
+            self.BorderEffect.Visible = visible
         end
         if self.SnowContainer then
             self.SnowContainer.Visible = visible
@@ -2850,8 +2812,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.Instance.BackgroundTransparency = 1
     self.Instance.Size = UDim2.new(0, 0, 0, 0)
     self.Instance.Position = UDim2.new(0.5, 0, 0.5, 0)
-    if self.BorderFlow then
-        self.BorderFlow.Visible = false
+    if self.BorderEffect then
+        local stroke = self.BorderEffect:FindFirstChildOfClass("UIStroke")
+        if stroke then
+            stroke.Transparency = 1
+        end
     end
     if self.SnowContainer then
         self.SnowContainer.Visible = false
@@ -2861,10 +2826,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Size = originalSize,
         Position = originalPos
     }, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    windowTween.Completed:Connect(function()
-        if self.BorderFlow then
-            self.BorderFlow.Visible = true
+    if self.BorderEffect then
+        local stroke = self.BorderEffect:FindFirstChildOfClass("UIStroke")
+        if stroke then
+            Tween(stroke, {Transparency = 0}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         end
+    end
+    windowTween.Completed:Connect(function()
         if self.SnowContainer then
             self.SnowContainer.Visible = true
         end
