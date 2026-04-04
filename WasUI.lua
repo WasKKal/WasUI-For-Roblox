@@ -1463,45 +1463,61 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.BorderConnection = nil
 
     local function startFlowAnimation()
-        if self.BorderConnection then self.BorderConnection:Disconnect() end
-        self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-            if self.RainbowMode == "整体" then
-                borderTime = borderTime + deltaTime * 4
-                local r = (math.sin(borderTime) + 1) / 2
-                local g = (math.sin(borderTime + math.pi/3) + 1) / 2
-                local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
-                self.BorderStroke.Color = Color3.new(r, g, b)
-                self.BorderStroke.Transparency = 0
-                flowGradient.Enabled = false
-                highlightStroke.Transparency = 0.7
-            else
-                self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
+    if self.BorderConnection then self.BorderConnection:Disconnect() end
+    self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        if self.RainbowMode == "整体" then
+            borderTime = borderTime + deltaTime * 4
+            local r = (math.sin(borderTime) + 1) / 2
+            local g = (math.sin(borderTime + math.pi/3) + 1) / 2
+            local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
+            self.BorderStroke.Color = Color3.new(r, g, b)
+            self.BorderStroke.Transparency = 0
+            if flowGradient then flowGradient.Enabled = false end
+            if highlightStroke then highlightStroke.Visible = true end
+        else
+            self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
+            if flowGradient then
                 flowGradient.Rotation = self.FlowRotation
                 flowGradient.Enabled = true
-                self.BorderStroke.Transparency = 1
-                highlightStroke.Transparency = 0.7
             end
-        end)
-    end
+            self.BorderStroke.Transparency = 1
+            self.BorderStroke.Enabled = false
+            if highlightStroke then highlightStroke.Visible = true end
+        end
+    end)
+end
 
-    function self:SetRainbowMode(mode)
-        if mode == "整体" or mode == "流动" then
-            self.RainbowMode = mode
-            if mode == "整体" then
-                self.BorderFlow.BackgroundTransparency = 1
-                self.BorderStroke.Enabled = true
-                flowGradient.Enabled = false
-                highlightStroke.Enabled = true
-            else
-                self.BorderFlow.BackgroundTransparency = 0
-                self.BorderStroke.Enabled = false
-                flowGradient.Enabled = true
-                highlightStroke.Enabled = true
-            end
-            self.BorderFlow.Visible = true
-            startFlowAnimation()
+function self:SetRainbowMode(mode)
+    if mode ~= "整体" and mode ~= "流动" then return end
+    self.RainbowMode = mode
+    if not self.BorderStroke or not self.BorderFlow then return end
+
+    if mode == "整体" then
+        self.BorderFlow.BackgroundTransparency = 1
+        self.BorderStroke.Transparency = 0
+        self.BorderStroke.Enabled = true
+        if self.BorderFlow:FindFirstChildOfClass("UIGradient") then
+            self.BorderFlow.UIGradient.Enabled = false
+        end
+        if self.BorderFlow:FindFirstChildOfClass("UIStroke") then
+            self.BorderFlow.UIStroke.Visible = true
+        end
+    else
+        self.BorderFlow.BackgroundTransparency = 1
+        self.BorderStroke.Transparency = 1
+        self.BorderStroke.Enabled = false
+        if self.BorderFlow:FindFirstChildOfClass("UIGradient") then
+            self.BorderFlow.UIGradient.Enabled = true
+        end
+        if self.BorderFlow:FindFirstChildOfClass("UIStroke") then
+            self.BorderFlow.UIStroke.Visible = true
         end
     end
+
+    self.BorderFlow.Visible = true
+    startFlowAnimation()
+end
+
 
     startFlowAnimation()
     self:SetRainbowMode("整体")
