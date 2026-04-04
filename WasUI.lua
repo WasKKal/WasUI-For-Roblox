@@ -1399,57 +1399,67 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
 
-self.BorderFlow = CreateInstance("Frame", {
-    Name = "BorderFlow",
-    Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
-    Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
-    BackgroundTransparency = 1,
-    BorderSizePixel = 0,
-    ZIndex = -1,
-    Parent = self.Instance.Parent
-})
-CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderFlow})
+    self.BorderFlow = CreateInstance("Frame", {
+        Name = "BorderFlow",
+        Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
+        Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = -1,
+        Parent = self.Instance.Parent
+    })
+    local borderFlowCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderFlow})
+    local flowGradient = Instance.new("UIGradient")
+    flowGradient.Rotation = 0
+    flowGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
+    }
+    flowGradient.Parent = self.BorderFlow
+    local highlightStroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 255, 255),
+        Thickness = 1,
+        Transparency = 0.7,
+        Parent = self.BorderFlow
+    })
+    local highlightGradient = Instance.new("UIGradient")
+    highlightGradient.Rotation = 45
+    highlightGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+    }
+    highlightGradient.Transparency = NumberSequence.new{
+        NumberSequenceKeypoint.new(0, 0.9),
+        NumberSequenceKeypoint.new(0.5, 0.2),
+        NumberSequenceKeypoint.new(1, 0.9)
+    }
+    highlightGradient.Parent = highlightStroke
 
-self.BorderStroke = CreateInstance("UIStroke", {
-    Color = Color3.fromRGB(255, 0, 0),
-    Thickness = 2,
-    Transparency = 0,
-    Parent = self.BorderFlow
-})
+    self.BorderStroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 0, 0),
+        Thickness = 2,
+        Transparency = 0,
+        Parent = self.BorderFlow
+    })
+    self.BorderFlow.Visible = false
 
-local function updateBorder()
-    if not self.Instance or not self.BorderFlow then return end
-    self.BorderFlow.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
-    self.BorderFlow.Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4)
-end
-self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
-self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
-updateBorder()
-
-local borderTime = 0
-local borderSpeed = 4
-self.BorderConnection = nil
-
-local function startFlowAnimation()
-    if self.BorderConnection then self.BorderConnection:Disconnect() end
-    self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-        borderTime = borderTime + deltaTime * borderSpeed
-        local hue = (borderTime % 1) * 360
-        local color = Color3.fromHSV(hue / 360, 1, 1)
-        self.BorderStroke.Color = color
-        self.BorderStroke.Transparency = 0
-    end)
-end
-
-function self:SetRainbowMode(mode)
-    if mode == "整体" or mode == "流动" then
-        self.RainbowMode = mode
-        self.BorderFlow.Visible = true
-        startFlowAnimation()
+    local function updateBorder()
+        if not self.Instance or not self.BorderFlow then return end
+        self.BorderFlow.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
+        self.BorderFlow.Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4)
     end
-end
+    self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
+    self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
+    updateBorder()
 
-    self:SetRainbowMode("整体")
+    local borderTime = 0
+    self.RainbowMode = "整体"
     self.FlowRotation = 0
     self.BorderConnection = nil
 
