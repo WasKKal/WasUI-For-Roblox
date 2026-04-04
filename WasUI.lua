@@ -159,8 +159,9 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     return tween
 end
 
-local function SpringTween(instance, properties, duration)
-    local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
+local function SpringTween(instance, properties, duration, overshoot)
+    overshoot = overshoot or 1.2
+    local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out, 0, 0, overshoot)
     local tween = TweenService:Create(instance, tweenInfo, properties)
     tween:Play()
     return tween
@@ -448,11 +449,11 @@ function Button:New(name, parent, text, onClick, size, iconName)
     end)
     self.Instance.MouseButton1Down:Connect(function()
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
-        SpringTween(scale, {Scale = 0.97}, 0.2)
+        SpringTween(scale, {Scale = 0.97}, 0.2, 0.8)
     end)
     self.Instance.MouseButton1Up:Connect(function()
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
-        SpringTween(scale, {Scale = 1}, 0.25)
+        SpringTween(scale, {Scale = 1}, 0.25, 1.2)
         if onClick then onClick() end
     end)
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Button"})
@@ -531,12 +532,12 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         self.Background:SetAttribute("Toggled", self.Toggled)
         if self.Toggled then
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-            SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
+            SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3, 1.1)
             CreateRainbowTextForFeature(self.RainbowName)
         else
             local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
             Tween(self.Background, {BackgroundColor3 = offCol}, 0.2)
-            SpringTween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
+            SpringTween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3, 1.1)
             DestroyRainbowTextForFeature(self.RainbowName)
         end
         if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
@@ -1072,14 +1073,14 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             targetValue = math.round(targetValue)
             animateToValue(targetValue)
             dragging = true
-            SpringTween(knobScale, {Scale = 1.2}, 0.15)
+            SpringTween(knobScale, {Scale = 1.2}, 0.15, 0.5)
         end
     end)
     self.Knob.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             stopAnimation()
-            SpringTween(knobScale, {Scale = 1.2}, 0.15)
+            SpringTween(knobScale, {Scale = 1.2}, 0.15, 0.5)
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
@@ -1091,7 +1092,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
-            SpringTween(knobScale, {Scale = 1}, 0.25)
+            SpringTween(knobScale, {Scale = 1}, 0.25, 1.2)
         end
     end)
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
@@ -1463,65 +1464,45 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.BorderConnection = nil
 
     local function startFlowAnimation()
-    if self.BorderConnection then self.BorderConnection:Disconnect() end
-    self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-        if self.RainbowMode == "整体" then
-            borderTime = borderTime + deltaTime * 4
-            local r = (math.sin(borderTime) + 1) / 2
-            local g = (math.sin(borderTime + math.pi/3) + 1) / 2
-            local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
-            self.BorderStroke.Color = Color3.new(r, g, b)
-            self.BorderStroke.Transparency = 0
-            if flowGradient then flowGradient.Enabled = false end
-            if highlightStroke then highlightStroke.Visible = true end
-        else
-            self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
-            if flowGradient then
+        if self.BorderConnection then self.BorderConnection:Disconnect() end
+        self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
+            if self.RainbowMode == "整体" then
+                borderTime = borderTime + deltaTime * 4
+                local r = (math.sin(borderTime) + 1) / 2
+                local g = (math.sin(borderTime + math.pi/3) + 1) / 2
+                local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
+                self.BorderStroke.Color = Color3.new(r, g, b)
+                self.BorderStroke.Transparency = 0
+                flowGradient.Enabled = false
+                highlightStroke.Transparency = 0.7
+            else
+                self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
                 flowGradient.Rotation = self.FlowRotation
                 flowGradient.Enabled = true
+                self.BorderStroke.Transparency = 1
+                highlightStroke.Transparency = 0.7
             end
-            self.BorderStroke.Transparency = 1
-            self.BorderStroke.Enabled = false
-            if highlightStroke then highlightStroke.Visible = true end
-        end
-    end)
-end
+        end)
+    end
 
-function self:SetRainbowMode(mode)
-    if mode ~= "整体" and mode ~= "流动" then
-        return
-    end
-    self.RainbowMode = mode
-    if not self.BorderStroke or not self.BorderFlow then
-        return
-    end
-    if mode == "整体" then
-        self.BorderFlow.BackgroundTransparency = 1
-        self.BorderStroke.Transparency = 0
-        self.BorderStroke.Enabled = true
-        if self.BorderFlow:FindFirstChildOfClass("UIGradient") then
-            self.BorderFlow.UIGradient.Enabled = false
-        end
-        if self.BorderFlow:FindFirstChildOfClass("UIStroke") then
-            self.BorderFlow.UIStroke.Enabled = true
-        end
-    else
-        self.BorderFlow.BackgroundTransparency = 1
-        self.BorderStroke.Transparency = 1
-        self.BorderStroke.Enabled = false
-        if self.BorderFlow:FindFirstChildOfClass("UIGradient") then
-            self.BorderFlow.UIGradient.Enabled = true
-        end
-        if self.BorderFlow:FindFirstChildOfClass("UIStroke") then
-            self.BorderFlow.UIStroke.Enabled = false
+    function self:SetRainbowMode(mode)
+        if mode == "整体" or mode == "流动" then
+            self.RainbowMode = mode
+            if mode == "整体" then
+                self.BorderFlow.BackgroundTransparency = 1
+                self.BorderStroke.Enabled = true
+                flowGradient.Enabled = false
+                highlightStroke.Enabled = true
+            else
+                self.BorderFlow.BackgroundTransparency = 0
+                self.BorderStroke.Enabled = false
+                flowGradient.Enabled = true
+                highlightStroke.Enabled = true
+            end
+            self.BorderFlow.Visible = true
+            startFlowAnimation()
         end
     end
-end
-
-    self.BorderFlow.Visible = true
-    startFlowAnimation()
-end
-
 
     startFlowAnimation()
     self:SetRainbowMode("整体")
@@ -2273,10 +2254,10 @@ end
     })
     loadAvatar()
     self.Avatar.MouseButton1Down:Connect(function()
-        SpringTween(avatarScale, {Scale = 0.9}, 0.15)
+        SpringTween(avatarScale, {Scale = 0.9}, 0.15, 0.5)
     end)
     self.Avatar.MouseButton1Up:Connect(function()
-        SpringTween(avatarScale, {Scale = 1}, 0.25)
+        SpringTween(avatarScale, {Scale = 1}, 0.25, 1.2)
     end)
     self.Avatar.MouseButton1Click:Connect(function()
         if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
