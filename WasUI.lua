@@ -1010,6 +1010,12 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Parent = self.SliderTrack
     })
     self.Knob.Visible = false
+    self.Knob.Visible = false
+    self.Knob:GetPropertyChangedSignal("Visible"):Connect(function()
+        if self.Knob.Visible then
+            self.Knob.Visible = false
+        end
+    end)
     local knobCircle = CreateInstance("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Accent,
