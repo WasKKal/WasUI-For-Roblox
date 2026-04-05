@@ -1489,20 +1489,16 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         if mode == "整体" or mode == "流动" then
             self.RainbowMode = mode
             if mode == "整体" then
-                self.BorderFlow.BackgroundTransparency = 1
-                self.BorderStroke.Visible = true
-                flowGradient.Enabled = false
-                highlightStroke.Visible = true
-            else
-                self.BorderFlow.BackgroundTransparency = 1
-                self.BorderStroke.Visible = false
-                flowGradient.Enabled = true
-                highlightStroke.Visible = true
-            end
-            self.BorderStroke.Enabled = false
-            startFlowAnimation()
-        end
-    end
+    self.BorderFlow.BackgroundTransparency = 1
+    self.BorderStroke.Enabled = true
+    flowGradient.Enabled = false
+    highlightStroke.Enabled = true
+else
+    self.BorderFlow.BackgroundTransparency = 0
+    self.BorderStroke.Enabled = false
+    flowGradient.Enabled = true
+    highlightStroke.Enabled = true
+end
 
     startFlowAnimation()
     self:SetRainbowMode("整体")
