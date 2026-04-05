@@ -157,7 +157,7 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     return tween
 end
 
--- 修复后的 SpringTween 函数：第五个参数改为布尔值 false，移除无用的 overshoot 参数
+-- 修复后的 SpringTween (第五个参数为布尔值)
 local function SpringTween(instance, properties, duration)
     local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out, 0, false)
     local tween = TweenService:Create(instance, tweenInfo, properties)
@@ -1224,6 +1224,8 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     Tween(textBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
                     textBox.PlaceholderColor3 = newTheme.Text
                 end
+            elseif obj.Type == "GlassLayer" then
+                Tween(instance, {BackgroundColor3 = newTheme.Background}, duration)
             elseif obj.Type == "Panel" then
                 Tween(instance, {BackgroundColor3 = newTheme.Background}, duration)
                 local titleBar = instance:FindFirstChild("TitleBar")
@@ -1308,6 +1310,11 @@ local function AnimateThemeChange(oldTheme, newTheme)
                         end
                     end
                 end
+                -- 毛玻璃背景主题适配
+                local glass = instance:FindFirstChild("GlassLayer")
+                if glass and glass:IsA("Frame") then
+                    Tween(glass, {BackgroundColor3 = newTheme.Background}, duration)
+                end
             end
         end
     end
@@ -1389,6 +1396,33 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
 
+    -- 毛玻璃效果层
+    self.GlassLayer = CreateInstance("Frame", {
+        Name = "GlassLayer",
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BackgroundTransparency = 0.5,
+        BorderSizePixel = 0,
+        ZIndex = 0,
+        Parent = self.Instance
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.GlassLayer})
+    -- 模糊纹理
+    self.BlurTexture = CreateInstance("ImageLabel", {
+        Name = "BlurTexture",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://10157343722",   -- 内置模糊纹理
+        ImageTransparency = 0.6,
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(10, 10, 10, 10),
+        ZIndex = 1,
+        Parent = self.GlassLayer
+    })
+    table.insert(WasUI.Objects, {Object = self.GlassLayer, Type = "GlassLayer"})
+
+    -- 彩虹边框流动容器
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
@@ -1416,25 +1450,106 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
     updateBorder()
 
-    local borderTime = 0
-    local borderSpeed = 4
+    -- 彩虹模式相关变量
+    self.FlowDot = nil
+    self.FlowAngle = 0
+    self.FlowSpeed = 2.5        -- 流动速度 (弧度/秒)
+    self.FlowConnection = nil
     self.BorderConnection = nil
+    self.RainbowMode = "整体"    -- 默认整体变色
 
-    local function startFlowAnimation()
+    -- 整体变色动画函数
+    local function startOverallRainbow()
         if self.BorderConnection then self.BorderConnection:Disconnect() end
+        local borderTime = 0
+        local borderSpeed = 2
         self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
             borderTime = borderTime + deltaTime * borderSpeed
             local hue = (borderTime % 1) * 360
             local color = Color3.fromHSV(hue / 360, 1, 1)
-            self.BorderStroke.Color = color
-            self.BorderStroke.Transparency = 0
+            if self.BorderStroke then
+                self.BorderStroke.Color = color
+                self.BorderStroke.Transparency = 0
+            end
+        end)
+    end
+
+    -- 流动光点动画函数
+    local function startFlowAnimation()
+        if self.FlowConnection then self.FlowConnection:Disconnect() end
+        if self.FlowDot then self.FlowDot:Destroy() end
+        -- 创建光点 (圆形发光)
+        self.FlowDot = CreateInstance("ImageLabel", {
+            Name = "FlowDot",
+            Size = UDim2.new(0, 8, 0, 8),
+            BackgroundTransparency = 1,
+            Image = "rbxassetid://6031094673",  -- 发光圆形纹理
+            ImageColor3 = Color3.fromRGB(255, 255, 255),
+            ImageTransparency = 0.2,
+            ZIndex = 100,
+            Parent = self.BorderFlow
+        })
+        -- 添加渐变光晕
+        local glow = CreateInstance("UIGradient", {
+            Rotation = 45,
+            Transparency = NumberSequence.new({0, 0.8}),
+            Parent = self.FlowDot
+        })
+        self.FlowAngle = 0
+        self.FlowConnection = RunService.Heartbeat:Connect(function(deltaTime)
+            if not self.Instance or not self.Instance.Parent then return end
+            self.FlowAngle = self.FlowAngle + self.FlowSpeed * deltaTime
+            if self.FlowAngle > 2 * math.pi then self.FlowAngle = self.FlowAngle - 2 * math.pi end
+            
+            local w = self.Instance.AbsoluteSize.X
+            local h = self.Instance.AbsoluteSize.Y
+            if w <= 0 or h <= 0 then return end
+            
+            local perimeter = 2 * (w + h)
+            local t = (self.FlowAngle / (2 * math.pi)) * perimeter
+            local x, y
+            if t <= w then
+                x = t
+                y = 0
+            elseif t <= w + h then
+                x = w
+                y = t - w
+            elseif t <= 2 * w + h then
+                x = 2 * w + h - t
+                y = h
+            else
+                x = 0
+                y = perimeter - t
+            end
+            if self.FlowDot then
+                self.FlowDot.Position = UDim2.new(0, x - 4, 0, y - 4)
+                local hue = (self.FlowAngle / (2 * math.pi)) % 1
+                local dotColor = Color3.fromHSV(hue, 1, 1)
+                self.FlowDot.ImageColor3 = dotColor
+            end
         end)
     end
 
     function self:SetRainbowMode(mode)
-        if mode == "整体" or mode == "流动" then
-            self.RainbowMode = mode
-            self.BorderFlow.Visible = true
+        if mode ~= "整体" and mode ~= "流动" then return end
+        self.RainbowMode = mode
+        -- 停止所有动画
+        if self.BorderConnection then
+            self.BorderConnection:Disconnect()
+            self.BorderConnection = nil
+        end
+        if self.FlowConnection then
+            self.FlowConnection:Disconnect()
+            self.FlowConnection = nil
+        end
+        if self.FlowDot then
+            self.FlowDot:Destroy()
+            self.FlowDot = nil
+        end
+        self.BorderFlow.Visible = true
+        if mode == "整体" then
+            startOverallRainbow()
+        elseif mode == "流动" then
             startFlowAnimation()
         end
     end
@@ -2061,6 +2176,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             if self.BorderConnection then
                 self.BorderConnection:Disconnect()
                 self.BorderConnection = nil
+            end
+            if self.FlowConnection then
+                self.FlowConnection:Disconnect()
+                self.FlowConnection = nil
             end
             if self.BorderFlow then
                 self.BorderFlow:Destroy()
