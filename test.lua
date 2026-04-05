@@ -1447,7 +1447,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Transparency = 0,
         Parent = self.BorderFlow
     })
-    self.BorderFlow.Enabled = false
+    self.BorderStroke.Enabled = true
 
     local function updateBorder()
         if not self.Instance or not self.BorderFlow then return end
@@ -1499,7 +1499,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 flowGradient.Enabled = true
                 highlightStroke.Visible = true
             end
-            self.BorderFlow.Enabled = true
+            self.BorderStroke.Enabled = false
             startFlowAnimation()
         end
     end
