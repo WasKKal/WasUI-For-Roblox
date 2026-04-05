@@ -1000,28 +1000,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Parent = self.SliderTrack
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
-    self.Knob = CreateInstance("Frame", {
-        Name = "Knob",
-        Size = UDim2.new(0, 16, 0, 16),
-        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -8, 0.5, -8),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ZIndex = 4,
-        Parent = self.SliderTrack
-    })
-    self.Knob.Visible = false
-    self.Knob:GetPropertyChangedSignal("Visible"):Connect(function()
-        if self.Knob.Visible then
-            self.Knob.Visible = false
-        end
-    end)
-    local knobCircle = CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = WasUI.CurrentTheme.Accent,
-        BorderSizePixel = 0,
-        Parent = self.Knob
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = knobCircle})
+    
+    -- 移除 knob 相关所有代码（不再创建旋钮）
     
     local function stopAnimation()
         if self.AnimationTween then
@@ -1036,7 +1016,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         self.ValueLabel.Text = tostring(self.Value)
         local t = (self.Value - self.Min) / (self.Max - self.Min)
         self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
-        self.Knob.Position = UDim2.new(t, -8, 0.5, -8)
         if self.Callback then self.Callback(self.Value) end
     end
     local function animateToValue(targetValue)
@@ -1046,7 +1025,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         stopAnimation()
         local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         local fillTween = TweenService:Create(self.SliderFill, tweenInfo, {Size = UDim2.new(targetT, 0, 1, 0)})
-        local knobTween = TweenService:Create(self.Knob, tweenInfo, {Position = UDim2.new(targetT, -8, 0.5, -8)})
         local completed = false
         local function onFinish()
             if completed then return end
@@ -1055,9 +1033,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             setValueImmediately(targetValue)
         end
         fillTween.Completed:Connect(onFinish)
-        knobTween.Completed:Connect(onFinish)
         fillTween:Play()
-        knobTween:Play()
         self.AnimationTween = fillTween
     end
     local dragging = false
@@ -1084,14 +1060,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             targetValue = math.round(targetValue)
             animateToValue(targetValue)
             dragging = true
-            SpringTween(knobScale, {Scale = 1.2}, 0.15)
-        end
-    end)
-    self.Knob.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            stopAnimation()
-            SpringTween(knobScale, {Scale = 1.2}, 0.15)
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
@@ -1103,13 +1071,11 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
-            SpringTween(knobScale, {Scale = 1}, 0.25)
         end
     end)
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
     return self
 end
-
 local TextInput = setmetatable({}, {__index = Control})
 TextInput.__index = TextInput
 function TextInput:New(name, parent, placeholder, defaultValue, callback)
