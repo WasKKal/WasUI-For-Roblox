@@ -80,17 +80,28 @@ WasUI.Objects = {}
 WasUI.ActiveRainbowTexts = {}
 WasUI.RainbowOrder = {}
 
-WasUI.DropdownGui = Instance.new("ScreenGui")
-WasUI.DropdownGui.Name = "WasUI_Dropdowns"
-WasUI.DropdownGui.ResetOnSpawn = false
-WasUI.DropdownGui.DisplayOrder = 1000
-WasUI.DropdownGui.Parent = game:GetService("CoreGui")
+local function EnsureNotificationGui()
+    if not WasUI.NotificationGui or not WasUI.NotificationGui.Parent then
+        WasUI.NotificationGui = Instance.new("ScreenGui")
+        WasUI.NotificationGui.Name = "WasUI_Notifications"
+        WasUI.NotificationGui.ResetOnSpawn = false
+        WasUI.NotificationGui.DisplayOrder = 999
+        WasUI.NotificationGui.Parent = game:GetService("CoreGui")
+    end
+end
 
-WasUI.NotificationGui = Instance.new("ScreenGui")
-WasUI.NotificationGui.Name = "WasUI_Notifications"
-WasUI.NotificationGui.ResetOnSpawn = false
-WasUI.NotificationGui.DisplayOrder = 999
-WasUI.NotificationGui.Parent = game:GetService("CoreGui")
+local function EnsureDropdownGui()
+    if not WasUI.DropdownGui or not WasUI.DropdownGui.Parent then
+        WasUI.DropdownGui = Instance.new("ScreenGui")
+        WasUI.DropdownGui.Name = "WasUI_Dropdowns"
+        WasUI.DropdownGui.ResetOnSpawn = false
+        WasUI.DropdownGui.DisplayOrder = 1000
+        WasUI.DropdownGui.Parent = game:GetService("CoreGui")
+    end
+end
+
+EnsureNotificationGui()
+EnsureDropdownGui()
 
 WasUI.LucideManager = {
     Module = nil,
@@ -314,47 +325,6 @@ local function DestroyRainbowTextForFeature(featureName)
             end
         end
         RefreshRainbowLayout()
-    end
-end
-
-local function CreateRainbowText(text, position)
-    if WasUI.ActiveRainbowTexts[text] then return end
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "RainbowText_" .. text,
-        ResetOnSpawn = false,
-        DisplayOrder = 100,
-        Parent = game:GetService("CoreGui")
-    })
-    local textLabel = CreateInstance("TextLabel", {
-        Name = "RainbowText",
-        Size = UDim2.new(0, 180, 0, 0),
-        Position = position or UDim2.new(0.5, -90, 0.5, -10),
-        BackgroundTransparency = 1,
-        Text = text,
-        TextColor3 = Color3.fromRGB(255, 0, 0),
-        Font = Enum.Font.GothamBold,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Center,
-        TextWrapped = true,
-        TextStrokeTransparency = 0.5,
-        TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
-        Parent = screenGui
-    })
-    local bounds = textLabel.TextBounds
-    local height = bounds.Y + 4
-    textLabel.Size = UDim2.new(0, 180, 0, height)
-    WasUI.ActiveRainbowTexts[text] = {
-        ScreenGui = screenGui,
-        Connection = nil,
-        Label = textLabel
-    }
-end
-
-local function RemoveRainbowText(text)
-    local data = WasUI.ActiveRainbowTexts[text]
-    if data then
-        if data.ScreenGui then data.ScreenGui:Destroy() end
-        WasUI.ActiveRainbowTexts[text] = nil
     end
 end
 
@@ -615,6 +585,7 @@ end
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback, multiSelect)
+    EnsureDropdownGui()
     local self = Control:New(name, parent)
     self.MultiSelect = not not multiSelect
     self.Options = {}
@@ -782,7 +753,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         end
         local function updateContainerSize()
             local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 16
-            local maxHeight = 300
+            local maxHeight = math.floor(Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize.Y or GuiService:GetScreenSize().Y) * 0.5
             local finalHeight = math.min(totalHeight, maxHeight)
             self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
             task.wait()
@@ -1009,6 +980,12 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         ZIndex = 4,
         Parent = self.SliderTrack
     })
+    self.Knob.Visible = false
+    self.Knob:GetPropertyChangedSignal("Visible"):Connect(function()
+        if self.Knob.Visible then
+            self.Knob.Visible = false
+        end
+    end)
     local knobCircle = CreateInstance("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Accent,
@@ -1326,12 +1303,14 @@ local function AnimateThemeChange(oldTheme, newTheme)
             end
         end
     end
-    for _, container in ipairs(WasUI.DropdownGui:GetChildren()) do
-        if container:IsA("ScrollingFrame") then
-            Tween(container, {BackgroundColor3 = newTheme.Background}, duration)
-            for _, btn in ipairs(container:GetChildren()) do
-                if btn:IsA("TextButton") then
-                    Tween(btn, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+    if WasUI.DropdownGui then
+        for _, container in ipairs(WasUI.DropdownGui:GetChildren()) do
+            if container:IsA("ScrollingFrame") then
+                Tween(container, {BackgroundColor3 = newTheme.Background}, duration)
+                for _, btn in ipairs(container:GetChildren()) do
+                    if btn:IsA("TextButton") then
+                        Tween(btn, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+                    end
                 end
             end
         end
@@ -2143,10 +2122,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             WasUI.RainbowOrder = {}
             self:SetVisible(false)
             overlay:Destroy()
-            pcall(function() WasUI.DropdownGui:Destroy() end)
-            pcall(function() WasUI.NotificationGui:Destroy() end)
-            pcall(function() WasUI.DropdownGui = nil end)
-            pcall(function() WasUI.NotificationGui = nil end)
+            if WasUI.DropdownGui then
+                WasUI.DropdownGui:Destroy()
+                WasUI.DropdownGui = nil
+            end
+            if WasUI.NotificationGui then
+                WasUI.NotificationGui:Destroy()
+                WasUI.NotificationGui = nil
+            end
         end)
         cancelButton.MouseButton1Click:Connect(function()
             Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
@@ -2944,6 +2927,7 @@ local function updateAllNotificationPositions()
 end
 
 function WasUI:Notify(options)
+    EnsureNotificationGui()
     local title = options.Title or "Notification"
     local content = options.Content or ""
     local duration = options.Duration or 3
