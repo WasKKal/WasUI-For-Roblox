@@ -1498,7 +1498,7 @@ else
     self.BorderStroke.Enabled = false
     flowGradient.Enabled = true
     highlightStroke.Enabled = true
-end
+end end
 
     startFlowAnimation()
     self:SetRainbowMode("整体")
