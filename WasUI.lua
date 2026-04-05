@@ -27,12 +27,14 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
+
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
 WasUI.NotificationWidth = 250
 WasUI.ActiveNotifications = {}
 WasUI.OpenDropdowns = {}
+
 WasUI.SettingsPanel = nil
 WasUI.GroupButtonText = "加入WasUI主群"
 WasUI.GroupCopyContent = "1085475284"
@@ -157,9 +159,8 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     return tween
 end
 
--- 修复后的 SpringTween (第五个参数为布尔值)
 local function SpringTween(instance, properties, duration)
-    local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out, 0, false)
+    local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
     local tween = TweenService:Create(instance, tweenInfo, properties)
     tween:Play()
     return tween
@@ -818,7 +819,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     end
     local function updateContainerSize()
         local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 16
-        local maxHeight = 300
+        local maxHeight = math.floor(Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize.Y or GuiService:GetScreenSize().Y) * 0.5
         local finalHeight = math.min(totalHeight, maxHeight)
         self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
         task.wait()
@@ -830,14 +831,20 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         local btnSize = self.DropdownButton.AbsoluteSize
         local viewportSize = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or GuiService:GetScreenSize()
         local menuHeight = self.OptionsContainer.AbsoluteSize.Y
+        local menuWidth = self.OptionsContainer.AbsoluteSize.X
         local x = btnPos.X
         local y = btnPos.Y + btnSize.Y
         if y + menuHeight > viewportSize.Y then
             y = btnPos.Y - menuHeight
+            if y < 0 then
+                y = 5
+            end
         end
-        local menuWidth = self.OptionsContainer.AbsoluteSize.X
         if x + menuWidth > viewportSize.X then
             x = viewportSize.X - menuWidth - 5
+        end
+        if x < 0 then
+            x = 5
         end
         self.OptionsContainer.Position = UDim2.new(0, x, 0, y)
     end
@@ -1002,7 +1009,14 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         ZIndex = 4,
         Parent = self.SliderTrack
     })
-    local knobScale = Instance.new("UIScale", self.Knob)
+    local knobCircle = CreateInstance("Frame", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Accent,
+        BorderSizePixel = 0,
+        Parent = self.Knob
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = knobCircle})
+    local knobScale = Instance.new("UIScale", knobCircle)
     local function stopAnimation()
         if self.AnimationTween then
             self.AnimationTween:Cancel()
@@ -1191,8 +1205,9 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     end
                     local knob = track:FindFirstChild("Knob")
                     if knob and knob:IsA("Frame") then
-                        local knobScale = knob:FindFirstChildOfClass("UIScale")
-                        if knobScale then
+                        local knobCircle = knob:FindFirstChildOfClass("Frame")
+                        if knobCircle then
+                            Tween(knobCircle, {BackgroundColor3 = newTheme.Accent}, duration)
                         end
                     end
                 end
@@ -1224,8 +1239,6 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     Tween(textBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
                     textBox.PlaceholderColor3 = newTheme.Text
                 end
-            elseif obj.Type == "GlassLayer" then
-                Tween(instance, {BackgroundColor3 = newTheme.Background}, duration)
             elseif obj.Type == "Panel" then
                 Tween(instance, {BackgroundColor3 = newTheme.Background}, duration)
                 local titleBar = instance:FindFirstChild("TitleBar")
@@ -1310,11 +1323,6 @@ local function AnimateThemeChange(oldTheme, newTheme)
                         end
                     end
                 end
-                -- 毛玻璃背景主题适配
-                local glass = instance:FindFirstChild("GlassLayer")
-                if glass and glass:IsA("Frame") then
-                    Tween(glass, {BackgroundColor3 = newTheme.Background}, duration)
-                end
             end
         end
     end
@@ -1396,33 +1404,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
 
-    -- 毛玻璃效果层
-    self.GlassLayer = CreateInstance("Frame", {
-        Name = "GlassLayer",
-        Size = UDim2.new(1, 0, 1, 0),
-        Position = UDim2.new(0, 0, 0, 0),
-        BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.5,
-        BorderSizePixel = 0,
-        ZIndex = 0,
-        Parent = self.Instance
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.GlassLayer})
-    -- 模糊纹理
-    self.BlurTexture = CreateInstance("ImageLabel", {
-        Name = "BlurTexture",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://10157343722",   -- 内置模糊纹理
-        ImageTransparency = 0.6,
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(10, 10, 10, 10),
-        ZIndex = 1,
-        Parent = self.GlassLayer
-    })
-    table.insert(WasUI.Objects, {Object = self.GlassLayer, Type = "GlassLayer"})
-
-    -- 彩虹边框流动容器
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
@@ -1432,7 +1413,38 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ZIndex = -1,
         Parent = self.Instance.Parent
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderFlow})
+    local borderFlowCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = self.BorderFlow})
+    local flowGradient = Instance.new("UIGradient")
+    flowGradient.Rotation = 0
+    flowGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
+    }
+    flowGradient.Parent = self.BorderFlow
+    local highlightStroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 255, 255),
+        Thickness = 1,
+        Transparency = 0.7,
+        Parent = self.BorderFlow
+    })
+    local highlightGradient = Instance.new("UIGradient")
+    highlightGradient.Rotation = 45
+    highlightGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+    }
+    highlightGradient.Transparency = NumberSequence.new{
+        NumberSequenceKeypoint.new(0, 0.9),
+        NumberSequenceKeypoint.new(0.5, 0.2),
+        NumberSequenceKeypoint.new(1, 0.9)
+    }
+    highlightGradient.Parent = highlightStroke
 
     self.BorderStroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
@@ -1440,6 +1452,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Transparency = 0,
         Parent = self.BorderFlow
     })
+    self.BorderFlow.Visible = false
 
     local function updateBorder()
         if not self.Instance or not self.BorderFlow then return end
@@ -1450,110 +1463,53 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
     updateBorder()
 
-    -- 彩虹模式相关变量
-    self.FlowDot = nil
-    self.FlowAngle = 0
-    self.FlowSpeed = 2.5        -- 流动速度 (弧度/秒)
-    self.FlowConnection = nil
+    local borderTime = 0
+    self.RainbowMode = "整体"
+    self.FlowRotation = 0
     self.BorderConnection = nil
-    self.RainbowMode = "整体"    -- 默认整体变色
 
-    -- 整体变色动画函数
-    local function startOverallRainbow()
-        if self.BorderConnection then self.BorderConnection:Disconnect() end
-        local borderTime = 0
-        local borderSpeed = 2
-        self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-            borderTime = borderTime + deltaTime * borderSpeed
-            local hue = (borderTime % 1) * 360
-            local color = Color3.fromHSV(hue / 360, 1, 1)
-            if self.BorderStroke then
-                self.BorderStroke.Color = color
-                self.BorderStroke.Transparency = 0
-            end
-        end)
-    end
-
-    -- 流动光点动画函数
     local function startFlowAnimation()
-        if self.FlowConnection then self.FlowConnection:Disconnect() end
-        if self.FlowDot then self.FlowDot:Destroy() end
-        -- 创建光点 (圆形发光)
-        self.FlowDot = CreateInstance("ImageLabel", {
-            Name = "FlowDot",
-            Size = UDim2.new(0, 8, 0, 8),
-            BackgroundTransparency = 1,
-            Image = "rbxassetid://6031094673",  -- 发光圆形纹理
-            ImageColor3 = Color3.fromRGB(255, 255, 255),
-            ImageTransparency = 0.2,
-            ZIndex = 100,
-            Parent = self.BorderFlow
-        })
-        -- 添加渐变光晕
-        local glow = CreateInstance("UIGradient", {
-            Rotation = 45,
-            Transparency = NumberSequence.new({0, 0.8}),
-            Parent = self.FlowDot
-        })
-        self.FlowAngle = 0
-        self.FlowConnection = RunService.Heartbeat:Connect(function(deltaTime)
-            if not self.Instance or not self.Instance.Parent then return end
-            self.FlowAngle = self.FlowAngle + self.FlowSpeed * deltaTime
-            if self.FlowAngle > 2 * math.pi then self.FlowAngle = self.FlowAngle - 2 * math.pi end
-            
-            local w = self.Instance.AbsoluteSize.X
-            local h = self.Instance.AbsoluteSize.Y
-            if w <= 0 or h <= 0 then return end
-            
-            local perimeter = 2 * (w + h)
-            local t = (self.FlowAngle / (2 * math.pi)) * perimeter
-            local x, y
-            if t <= w then
-                x = t
-                y = 0
-            elseif t <= w + h then
-                x = w
-                y = t - w
-            elseif t <= 2 * w + h then
-                x = 2 * w + h - t
-                y = h
+        if self.BorderConnection then self.BorderConnection:Disconnect() end
+        self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
+            if self.RainbowMode == "整体" then
+                borderTime = borderTime + deltaTime * 4
+                local r = (math.sin(borderTime) + 1) / 2
+                local g = (math.sin(borderTime + math.pi/3) + 1) / 2
+                local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
+                self.BorderStroke.Color = Color3.new(r, g, b)
+                self.BorderStroke.Transparency = 0
+                flowGradient.Enabled = false
+                highlightStroke.Transparency = 0.7
             else
-                x = 0
-                y = perimeter - t
-            end
-            if self.FlowDot then
-                self.FlowDot.Position = UDim2.new(0, x - 4, 0, y - 4)
-                local hue = (self.FlowAngle / (2 * math.pi)) % 1
-                local dotColor = Color3.fromHSV(hue, 1, 1)
-                self.FlowDot.ImageColor3 = dotColor
+                self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
+                flowGradient.Rotation = self.FlowRotation
+                flowGradient.Enabled = true
+                self.BorderStroke.Transparency = 1
+                highlightStroke.Transparency = 0.7
             end
         end)
     end
 
     function self:SetRainbowMode(mode)
-        if mode ~= "整体" and mode ~= "流动" then return end
-        self.RainbowMode = mode
-        -- 停止所有动画
-        if self.BorderConnection then
-            self.BorderConnection:Disconnect()
-            self.BorderConnection = nil
-        end
-        if self.FlowConnection then
-            self.FlowConnection:Disconnect()
-            self.FlowConnection = nil
-        end
-        if self.FlowDot then
-            self.FlowDot:Destroy()
-            self.FlowDot = nil
-        end
-        self.BorderFlow.Visible = true
-        if mode == "整体" then
-            startOverallRainbow()
-        elseif mode == "流动" then
+        if mode == "整体" or mode == "流动" then
+            self.RainbowMode = mode
+            if mode == "整体" then
+                self.BorderFlow.BackgroundTransparency = 1
+                self.BorderStroke.Enabled = true
+                flowGradient.Enabled = false
+                highlightStroke.Enabled = true
+            else
+                self.BorderFlow.BackgroundTransparency = 0
+                self.BorderStroke.Enabled = false
+                flowGradient.Enabled = true
+                highlightStroke.Enabled = true
+            end
+            self.BorderFlow.Visible = true
             startFlowAnimation()
         end
     end
 
+    startFlowAnimation()
     self:SetRainbowMode("整体")
 
     self.TitleBar = CreateInstance("Frame", {
@@ -2177,10 +2133,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 self.BorderConnection:Disconnect()
                 self.BorderConnection = nil
             end
-            if self.FlowConnection then
-                self.FlowConnection:Disconnect()
-                self.FlowConnection = nil
-            end
             if self.BorderFlow then
                 self.BorderFlow:Destroy()
             end
@@ -2468,6 +2420,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             WasUI.SettingsPanel = nil
             WasUI:SetTheme(newTheme)
         end)
+
         local rainbowModeLabel = CreateInstance("TextLabel", {
             Name = "RainbowModeLabel",
             Size = UDim2.new(1, 0, 0, 24),
@@ -2501,6 +2454,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             rainbowModeButton.Text = newMode
             WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
         end)
+
         local posLabel = CreateInstance("TextLabel", {
             Name = "PosLabel",
             Size = UDim2.new(1, 0, 0, 20),
