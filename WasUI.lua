@@ -1010,7 +1010,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Parent = self.SliderTrack
     })
     self.Knob.Visible = false
-    self.Knob.Visible = false
     self.Knob:GetPropertyChangedSignal("Visible"):Connect(function()
         if self.Knob.Visible then
             self.Knob.Visible = false
