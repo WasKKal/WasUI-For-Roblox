@@ -1017,7 +1017,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         Parent = self.Knob
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = knobCircle})
-    local knobScale = Instance.new("UIScale", knobCircle)
+    
     local function stopAnimation()
         if self.AnimationTween then
             self.AnimationTween:Cancel()
