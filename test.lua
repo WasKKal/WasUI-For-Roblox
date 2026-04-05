@@ -1453,82 +1453,81 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     -- 彩虹模式相关变量
     self.FlowDot = nil
     self.FlowAngle = 0
-    self.FlowSpeed = 2.5        -- 流动速度 (弧度/秒)
+    self.FlowSpeed = 2.5
     self.FlowConnection = nil
     self.BorderConnection = nil
-    self.RainbowMode = "整体"    -- 默认整体变色
+    self.RainbowMode = "整体"
 
-    -- 整体变色动画函数
     local function startOverallRainbow()
-        if self.BorderConnection then self.BorderConnection:Disconnect() end
-        local borderTime = 0
-        local borderSpeed = 2
-        self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
-            borderTime = borderTime + deltaTime * borderSpeed
-            local hue = (borderTime % 1) * 360
-            local color = Color3.fromHSV(hue / 360, 1, 1)
-            if self.BorderStroke then
-                self.BorderStroke.Color = color
-                self.BorderStroke.Transparency = 0
-            end
-        end)
-    end
+    if self.BorderConnection then self.BorderConnection:Disconnect() end
+    local borderTime = 0
+    local borderSpeed = 0.8
+    self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        borderTime = borderTime + deltaTime * borderSpeed
+        local hue = (borderTime % 1) * 360
+        local color = Color3.fromHSV(hue / 360, 1, 1)
+        if self.BorderStroke then
+            self.BorderStroke.Color = color
+            self.BorderStroke.Transparency = 0
+        end
+    end)
+end
 
-    -- 流动光点动画函数
-    local function startFlowAnimation()
-        if self.FlowConnection then self.FlowConnection:Disconnect() end
-        if self.FlowDot then self.FlowDot:Destroy() end
-        -- 创建光点 (圆形发光)
-        self.FlowDot = CreateInstance("ImageLabel", {
-            Name = "FlowDot",
-            Size = UDim2.new(0, 8, 0, 8),
-            BackgroundTransparency = 1,
-            Image = "rbxassetid://6031094673",  -- 发光圆形纹理
-            ImageColor3 = Color3.fromRGB(255, 255, 255),
-            ImageTransparency = 0.2,
-            ZIndex = 100,
-            Parent = self.BorderFlow
-        })
-        -- 添加渐变光晕
-        local glow = CreateInstance("UIGradient", {
-            Rotation = 45,
-            Transparency = NumberSequence.new({0, 0.8}),
-            Parent = self.FlowDot
-        })
-        self.FlowAngle = 0
-        self.FlowConnection = RunService.Heartbeat:Connect(function(deltaTime)
-            if not self.Instance or not self.Instance.Parent then return end
-            self.FlowAngle = self.FlowAngle + self.FlowSpeed * deltaTime
-            if self.FlowAngle > 2 * math.pi then self.FlowAngle = self.FlowAngle - 2 * math.pi end
-            
-            local w = self.Instance.AbsoluteSize.X
-            local h = self.Instance.AbsoluteSize.Y
-            if w <= 0 or h <= 0 then return end
-            
-            local perimeter = 2 * (w + h)
-            local t = (self.FlowAngle / (2 * math.pi)) * perimeter
-            local x, y
-            if t <= w then
-                x = t
-                y = 0
-            elseif t <= w + h then
-                x = w
-                y = t - w
-            elseif t <= 2 * w + h then
-                x = 2 * w + h - t
-                y = h
-            else
-                x = 0
-                y = perimeter - t
-            end
-            if self.FlowDot then
-                self.FlowDot.Position = UDim2.new(0, x - 4, 0, y - 4)
-                local hue = (self.FlowAngle / (2 * math.pi)) % 1
-                local dotColor = Color3.fromHSV(hue, 1, 1)
-                self.FlowDot.ImageColor3 = dotColor
-            end
-        end)
-    end
+local function startFlowAnimation()
+    if self.FlowConnection then self.FlowConnection:Disconnect() end
+    if self.FlowDot then self.FlowDot:Destroy() end
+    self.FlowDot = CreateInstance("ImageLabel", {
+        Name = "FlowDot",
+        Size = UDim2.new(0, 10, 0, 10),
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://6031094673",
+        ImageColor3 = Color3.fromRGB(255, 255, 255),
+        ImageTransparency = 0.1,
+        ZIndex = 100,
+        Parent = self.BorderFlow
+    })
+    local glow = CreateInstance("UIGradient", {
+        Rotation = 45,
+        Transparency = NumberSequence.new(0, 0.8),
+        Parent = self.FlowDot
+    })
+    self.FlowAngle = 0
+    self.FlowConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        if not self.Instance or not self.Instance.Parent then return end
+        self.FlowAngle = self.FlowAngle + self.FlowSpeed * deltaTime
+        if self.FlowAngle > 2 * math.pi then self.FlowAngle = self.FlowAngle - 2 * math.pi end
+        local borderHue = (self.FlowAngle / (2 * math.pi)) % 1
+        local borderColor = Color3.fromHSV(borderHue, 1, 1)
+        if self.BorderStroke then
+            self.BorderStroke.Color = borderColor
+            self.BorderStroke.Transparency = 0
+        end
+        local w = self.Instance.AbsoluteSize.X
+        local h = self.Instance.AbsoluteSize.Y
+        if w <= 0 or h <= 0 then return end
+        local perimeter = 2 * (w + h)
+        local t = (self.FlowAngle / (2 * math.pi)) * perimeter
+        local x, y
+        if t <= w then
+            x = t
+            y = 0
+        elseif t <= w + h then
+            x = w
+            y = t - w
+        elseif t <= 2 * w + h then
+            x = 2 * w + h - t
+            y = h
+        else
+            x = 0
+            y = perimeter - t
+        end
+        if self.FlowDot then
+            self.FlowDot.Position = UDim2.new(0, x - 5, 0, y - 5)
+            local dotColor = Color3.fromHSV(borderHue, 1, 1)
+            self.FlowDot.ImageColor3 = dotColor
+        end
+    end)
+end
 
     function self:SetRainbowMode(mode)
         if mode ~= "整体" and mode ~= "流动" then return end
