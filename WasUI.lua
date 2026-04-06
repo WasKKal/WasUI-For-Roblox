@@ -1358,6 +1358,27 @@ Panel.__index = Panel
 
 function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local self = setmetatable({}, Panel)
+    self.BackgroundImage = nil
+    function self:SetBackground(url)
+        if self.BackgroundImage then
+            self.BackgroundImage:Destroy()
+        end
+        if url and url ~= "" then
+            self.BackgroundImage = CreateInstance("ImageLabel", {
+                Name = "Background",
+                Size = UDim2.new(1, 0, 1, 0),
+                Position = UDim2.new(0, 0, 0, 0),
+                BackgroundTransparency = 1,
+                Image = url,
+                ImageTransparency = 0.4,
+                ScaleType = Enum.ScaleType.Crop,
+                ZIndex = 0,
+                Parent = self.Instance
+            })
+        else
+            self.BackgroundImage = nil
+        end
+    end
     if backgroundUrl and backgroundUrl ~= "" then
         self.BackgroundImage = CreateInstance("ImageLabel", {
             Name = "Background",
@@ -2801,6 +2822,31 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     function self:SetWelcome(text)
         self.WelcomeLabel.Text = text
     end
+
+    self.HotkeyConnection = nil
+    function self:EnableHotkeyToggle(keyCode)
+        if self.HotkeyConnection then
+            self.HotkeyConnection:Disconnect()
+        end
+        keyCode = keyCode or Enum.KeyCode.F1
+        self.HotkeyConnection = UserInputService.InputBegan:Connect(function(input, processed)
+            if processed then return end
+            if input.KeyCode == keyCode then
+                if self.IsMinimized then
+                    self:RestoreFromDots()
+                else
+                    self:MinimizeToDots()
+                end
+            end
+        end)
+    end
+    function self:DisableHotkeyToggle()
+        if self.HotkeyConnection then
+            self.HotkeyConnection:Disconnect()
+            self.HotkeyConnection = nil
+        end
+    end
+
     if snowEnabled then
         self.SnowContainer = CreateInstance("Frame", {
             Name = "SnowContainer",
@@ -3040,6 +3086,14 @@ end
 
 function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback)
     return TextInput:New("TextInput", parent, placeholder, defaultValue, callback)
+end
+
+function WasUI:AddSpacing(parent, height)
+    local spacing = Instance.new("Frame")
+    spacing.Name = "Spacing"
+    spacing.Size = UDim2.new(1, 0, 0, height or 4)
+    spacing.BackgroundTransparency = 1
+    spacing.Parent = parent
 end
 
 function WasUI:SetGroupButtonText(text)
