@@ -688,11 +688,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         Parent = WasUI.DropdownGui
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.OptionsContainer})
-    local shadow = Instance.new("UIShadow")
-    shadow.Color = Color3.fromRGB(0, 0, 0)
-    shadow.Transparency = 0.7
-    shadow.Radius = 8
-    shadow.Parent = self.OptionsContainer
     local optionsList = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 4),
@@ -759,7 +754,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         local maxHeight = math.floor(viewportSize.Y * 0.6)
         local finalHeight = math.min(totalHeight, maxHeight)
         self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
-        task.defer(function()
+        delay(0, function()
             if self.OptionsContainer and self.OptionsContainer.Parent then
                 optionsScrollFrame.CanvasSize = UDim2.new(0, 0, 0, optionsInnerLayout.AbsoluteContentSize.Y + 8)
             end
@@ -781,7 +776,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                 local maxAvailable = btnPos.Y - 2
                 if menuHeight > maxAvailable then
                     self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, maxAvailable)
-                    task.wait()
+                    wait()
                     optionsScrollFrame.CanvasSize = UDim2.new(0, 0, 0, optionsInnerLayout.AbsoluteContentSize.Y + 8)
                     menuHeight = maxAvailable
                 end
@@ -835,7 +830,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                         Parent = optionsScrollFrame
                     })
                     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = optionButton})
-                    local iconContainer = nil
                     if rawOption.icon then
                         local icon = WasUI:CreateIcon(rawOption.icon, UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
                         if icon then
@@ -890,7 +884,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         local maxHeight = math.floor(viewportSize.Y * 0.6)
         local finalHeight = math.min(totalHeight, maxHeight)
         self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
-        task.wait()
+        wait()
         optionsScrollFrame.CanvasSize = UDim2.new(0, 0, 0, optionsInnerLayout.AbsoluteContentSize.Y + 8)
         if self.IsOpen then
             updatePosition()
@@ -961,7 +955,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         updatePosition()
         self.OptionsContainer.Visible = true
         setupCanvasWatcher()
-        task.wait()
+        wait()
         updatePosition()
         Tween(self.OptionsContainer, {BackgroundTransparency = 0.3}, 0.2)
         for _, btn in pairs(self.OptionButtons) do
@@ -995,7 +989,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                     Tween(btn, {BackgroundTransparency = 1, TextTransparency = 1}, 0.2)
                 end
             end
-            task.wait(0.2)
+            wait(0.2)
             self.OptionsContainer.Visible = false
         end
     end
@@ -2033,7 +2027,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             searchContainer.Visible = true
             local targetWidth = 120
             Tween(searchContainer, {Size = UDim2.new(0, targetWidth, 0, 20)}, 0.25)
-            task.wait(0.25)
+            wait(0.25)
             searchBox:CaptureFocus()
         else
             if autoCloseTimer then
@@ -2041,7 +2035,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 autoCloseTimer = nil
             end
             Tween(searchContainer, {Size = UDim2.new(0, 0, 0, 20)}, 0.25)
-            task.wait(0.25)
+            wait(0.25)
             searchContainer.Visible = false
             searchBox.Text = ""
             performSearch("")
@@ -2116,7 +2110,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end
         if self.MinimizedCustomText ~= "" then
             Tween(self.MinimizedTextLabel, {TextTransparency = 1}, tweenDuration)
-            task.delay(tweenDuration, function()
+            delay(tweenDuration, function()
                 self.MinimizedTextLabel.Visible = false
             end)
         end
@@ -2282,7 +2276,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         cancelButton.MouseButton1Click:Connect(function()
             Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
             Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-            task.wait(0.2)
+            wait(0.2)
             overlay:Destroy()
         end)
         local function onOverlayClick(input)
@@ -2295,7 +2289,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 if not inPanel then
                     Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
                     Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-                    task.wait(0.2)
+                    wait(0.2)
                     overlay:Destroy()
                 end
             end
@@ -2471,7 +2465,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         closeBtn.MouseButton1Click:Connect(function()
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
             Tween(scale, {Scale = 0.8}, 0.2)
-            task.wait(0.2)
+            wait(0.2)
             if WasUI.SettingsGui then
                 WasUI.SettingsGui:Destroy()
                 WasUI.SettingsGui = nil
@@ -2543,7 +2537,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             local newTheme = (currentTheme == "Dark") and "Light" or "Dark"
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
             Tween(scale, {Scale = 0.8}, 0.2)
-            task.wait(0.2)
+            wait(0.2)
             if WasUI.SettingsGui then
                 WasUI.SettingsGui:Destroy()
                 WasUI.SettingsGui = nil
@@ -2698,7 +2692,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             if not inPanel then
                 Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
                 Tween(scale, {Scale = 0.8}, 0.2)
-                task.wait(0.2)
+                wait(0.2)
                 if WasUI.SettingsGui then
                     WasUI.SettingsGui:Destroy()
                     WasUI.SettingsGui = nil
@@ -2810,10 +2804,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.TabContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateTabBarHeight)
     tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         self.TabContainer.CanvasSize = UDim2.new(0, tabListLayout.AbsoluteContentSize.X + 8, 0, 0)
-        task.wait()
+        wait()
         updateTabBarHeight()
     end)
-    task.wait()
+    wait()
     updateTabBarHeight()
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
@@ -3159,7 +3153,7 @@ function WasUI:Notify(options)
     for notif, targetPos in pairs(targetPositions) do
         Tween(notif.Frame, {Position = targetPos}, 0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     end
-    task.delay(duration, function()
+    delay(duration, function()
         WasUI.ActiveNotifications[notificationId] = nil
         local newTargets = updateAllNotificationPositions()
         for notif, targetPos in pairs(newTargets) do
