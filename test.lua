@@ -589,8 +589,16 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     local self = Control:New(name, parent)
     self.MultiSelect = not not multiSelect
     self.Options = {}
+    self.RawOptions = {}
     for _, v in ipairs(options or {}) do
-        table.insert(self.Options, tostring(v))
+        if type(v) == "table" and v.text then
+            table.insert(self.RawOptions, v)
+            table.insert(self.Options, v.text)
+        else
+            local optionStr = tostring(v)
+            table.insert(self.RawOptions, {text = optionStr, icon = nil})
+            table.insert(self.Options, optionStr)
+        end
     end
     self.SelectedValues = {}
     self.SelectedValue = nil
@@ -680,12 +688,11 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         Parent = WasUI.DropdownGui
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.OptionsContainer})
-    local shadow = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(0, 0, 0),
-        Thickness = 1,
-        Transparency = 1,
-        Parent = self.OptionsContainer
-    })
+    local shadow = Instance.new("UIShadow")
+    shadow.Color = Color3.fromRGB(0, 0, 0)
+    shadow.Transparency = 0.7
+    shadow.Radius = 8
+    shadow.Parent = self.OptionsContainer
     local optionsList = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 4),
@@ -698,76 +705,209 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         PaddingBottom = UDim.new(0, 8),
         Parent = self.OptionsContainer
     })
+    self.SearchBox = CreateInstance("TextBox", {
+        Name = "SearchBox",
+        Size = UDim2.new(1, -16, 0, 28),
+        Position = UDim2.new(0, 8, 0, 8),
+        BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        PlaceholderText = "搜索选项...",
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        PlaceholderColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        ClearTextOnFocus = false,
+        ZIndex = 10001,
+        Parent = self.OptionsContainer
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.SearchBox})
+    local searchPadding = CreateInstance("UIPadding", {
+        PaddingLeft = UDim.new(0, 10),
+        PaddingRight = UDim.new(0, 10),
+        Parent = self.SearchBox
+    })
+    local optionsScrollFrame = CreateInstance("ScrollingFrame", {
+        Name = "OptionsScroll",
+        Size = UDim2.new(1, 0, 1, -40),
+        Position = UDim2.new(0, 0, 0, 40),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        ScrollBarThickness = 4,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        ZIndex = 9999,
+        Parent = self.OptionsContainer
+    })
+    local optionsInnerLayout = CreateInstance("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 4),
+        Parent = optionsScrollFrame
+    })
+    local optionsInnerPadding = CreateInstance("UIPadding", {
+        PaddingLeft = UDim.new(0, 4),
+        PaddingRight = UDim.new(0, 4),
+        PaddingTop = UDim.new(0, 4),
+        PaddingBottom = UDim.new(0, 4),
+        Parent = optionsScrollFrame
+    })
     self.OptionButtons = {}
-    local function rebuildOptions()
+    local function updateContainerSize()
+        local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 16 + 40
+        local viewportSize = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or GuiService:GetScreenSize()
+        local maxHeight = math.floor(viewportSize.Y * 0.6)
+        local finalHeight = math.min(totalHeight, maxHeight)
+        self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
+        task.defer(function()
+            if self.OptionsContainer and self.OptionsContainer.Parent then
+                optionsScrollFrame.CanvasSize = UDim2.new(0, 0, 0, optionsInnerLayout.AbsoluteContentSize.Y + 8)
+            end
+        end)
+    end
+    local function updatePosition()
+        if not self.IsOpen then return end
+        local btnPos = self.DropdownButton.AbsolutePosition
+        local btnSize = self.DropdownButton.AbsoluteSize
+        local viewportSize = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or GuiService:GetScreenSize()
+        local menuHeight = self.OptionsContainer.AbsoluteSize.Y
+        local menuWidth = self.OptionsContainer.AbsoluteSize.X
+        local x = btnPos.X
+        local y = btnPos.Y + btnSize.Y
+        if y + menuHeight > viewportSize.Y then
+            y = btnPos.Y - menuHeight
+            if y < 0 then
+                y = 2
+                local maxAvailable = btnPos.Y - 2
+                if menuHeight > maxAvailable then
+                    self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, maxAvailable)
+                    task.wait()
+                    optionsScrollFrame.CanvasSize = UDim2.new(0, 0, 0, optionsInnerLayout.AbsoluteContentSize.Y + 8)
+                    menuHeight = maxAvailable
+                end
+            end
+        end
+        if x + menuWidth > viewportSize.X then
+            x = viewportSize.X - menuWidth - 5
+        end
+        if x < 0 then
+            x = 5
+        end
+        self.OptionsContainer.Position = UDim2.new(0, x, 0, y)
+    end
+    local function rebuildOptions(filterText)
+        filterText = filterText and filterText:lower() or ""
         for _, btn in pairs(self.OptionButtons) do
-            btn:Destroy()
+            if btn then pcall(function() btn:Destroy() end) end
         end
         self.OptionButtons = {}
-        for i, option in ipairs(self.Options) do
-            local optionButton = CreateInstance("TextButton", {
-                Name = "Option_" .. option,
-                Size = UDim2.new(1, 0, 0, 28),
-                BackgroundColor3 = WasUI.CurrentTheme.Input,
-                BackgroundTransparency = 0.3,
-                BorderSizePixel = 0,
-                Text = option,
-                TextColor3 = WasUI.CurrentTheme.Text,
-                Font = Enum.Font.Gotham,
-                TextSize = 12,
-                AutoButtonColor = false,
-                ZIndex = 10000,
-                Parent = self.OptionsContainer
-            })
-            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = optionButton})
-            optionButton.MouseEnter:Connect(function()
-                Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
-            end)
-            optionButton.MouseLeave:Connect(function()
-                Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.1)
-            end)
-            optionButton.MouseButton1Click:Connect(function()
-                if self.MultiSelect then
-                    local index = nil
-                    for i, v in ipairs(self.SelectedValues) do
-                        if v == option then
-                            index = i
-                            break
+        local visibleCount = 0
+        for i, rawOption in ipairs(self.RawOptions) do
+            local optionText = rawOption.text
+            if optionText == "---" then
+                if filterText == "" or optionText:lower():find(filterText) then
+                    local divider = CreateInstance("Frame", {
+                        Name = "Divider",
+                        Size = UDim2.new(1, -16, 0, 1),
+                        BackgroundColor3 = WasUI.CurrentTheme.TabBorder,
+                        BackgroundTransparency = 0.5,
+                        BorderSizePixel = 0,
+                        ZIndex = 10000,
+                        Parent = optionsScrollFrame
+                    })
+                    self.OptionButtons[optionText .. "_" .. i] = divider
+                    visibleCount = visibleCount + 1
+                end
+            else
+                if filterText == "" or optionText:lower():find(filterText) then
+                    local optionButton = CreateInstance("TextButton", {
+                        Name = "Option_" .. optionText,
+                        Size = UDim2.new(1, 0, 0, 28),
+                        BackgroundColor3 = WasUI.CurrentTheme.Input,
+                        BackgroundTransparency = 0.3,
+                        BorderSizePixel = 0,
+                        Text = optionText,
+                        TextColor3 = WasUI.CurrentTheme.Text,
+                        Font = Enum.Font.Gotham,
+                        TextSize = 12,
+                        AutoButtonColor = false,
+                        ZIndex = 10000,
+                        Parent = optionsScrollFrame
+                    })
+                    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = optionButton})
+                    local iconContainer = nil
+                    if rawOption.icon then
+                        local icon = WasUI:CreateIcon(rawOption.icon, UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
+                        if icon then
+                            icon.Parent = optionButton
+                            icon.Position = UDim2.new(0, 8, 0.5, -8)
+                            icon.ZIndex = 10001
+                            optionButton.Text = "  " .. optionText
+                            optionButton.TextXAlignment = Enum.TextXAlignment.Left
+                            local padding = Instance.new("UIPadding")
+                            padding.PaddingLeft = UDim.new(0, 28)
+                            padding.Parent = optionButton
                         end
                     end
-                    if index then
-                        table.remove(self.SelectedValues, index)
-                    else
-                        table.insert(self.SelectedValues, option)
-                    end
-                    self:UpdateDisplayText()
-                    if self.Callback then self.Callback(self.SelectedValues) end
-                else
-                    self.SelectedValue = option
-                    self:UpdateDisplayText()
-                    if self.Callback then self.Callback(option) end
-                    self:Close(true)
+                    optionButton.MouseEnter:Connect(function()
+                        Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
+                        Tween(optionButton, {TextSize = 13}, 0.1)
+                    end)
+                    optionButton.MouseLeave:Connect(function()
+                        Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.1)
+                        Tween(optionButton, {TextSize = 12}, 0.1)
+                    end)
+                    optionButton.MouseButton1Click:Connect(function()
+                        if self.MultiSelect then
+                            local index = nil
+                            for i, v in ipairs(self.SelectedValues) do
+                                if v == optionText then
+                                    index = i
+                                    break
+                                end
+                            end
+                            if index then
+                                table.remove(self.SelectedValues, index)
+                            else
+                                table.insert(self.SelectedValues, optionText)
+                            end
+                            self:UpdateDisplayText()
+                            if self.Callback then self.Callback(self.SelectedValues) end
+                        else
+                            self.SelectedValue = optionText
+                            self:UpdateDisplayText()
+                            if self.Callback then self.Callback(optionText) end
+                            self:Close(true)
+                        end
+                    end)
+                    self.OptionButtons[optionText] = optionButton
+                    visibleCount = visibleCount + 1
                 end
-            end)
-            self.OptionButtons[option] = optionButton
+            end
         end
-        local function updateContainerSize()
-            local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 16
-            local maxHeight = math.floor(Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize.Y or GuiService:GetScreenSize().Y) * 0.5
-            local finalHeight = math.min(totalHeight, maxHeight)
-            self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
-            task.wait()
-            self.OptionsContainer.CanvasSize = UDim2.new(0, 0, 0, optionsList.AbsoluteContentSize.Y + 8)
-        end
-        updateContainerSize()
+        local totalHeight = visibleCount * 28 + (visibleCount - 1) * 4 + 16 + 40
+        local viewportSize = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or GuiService:GetScreenSize()
+        local maxHeight = math.floor(viewportSize.Y * 0.6)
+        local finalHeight = math.min(totalHeight, maxHeight)
+        self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
+        task.wait()
+        optionsScrollFrame.CanvasSize = UDim2.new(0, 0, 0, optionsInnerLayout.AbsoluteContentSize.Y + 8)
         if self.IsOpen then
             updatePosition()
         end
     end
     function self:UpdateOptions(newOptions, newDefaultValue)
+        self.RawOptions = {}
         self.Options = {}
         for _, v in ipairs(newOptions or {}) do
-            table.insert(self.Options, tostring(v))
+            if type(v) == "table" and v.text then
+                table.insert(self.RawOptions, v)
+                table.insert(self.Options, v.text)
+            else
+                local optionStr = tostring(v)
+                table.insert(self.RawOptions, {text = optionStr, icon = nil})
+                table.insert(self.Options, optionStr)
+            end
         end
         if self.MultiSelect then
             self.SelectedValues = {}
@@ -785,39 +925,20 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                 self.SelectedValue = tostring(newDefaultValue)
             end
         end
-        rebuildOptions()
+        rebuildOptions(self.SearchBox.Text)
         self:UpdateDisplayText()
     end
-    local function updateContainerSize()
-        local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 16
-        local maxHeight = math.floor(Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize.Y or GuiService:GetScreenSize().Y) * 0.5
-        local finalHeight = math.min(totalHeight, maxHeight)
-        self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
-        task.wait()
-        self.OptionsContainer.CanvasSize = UDim2.new(0, 0, 0, optionsList.AbsoluteContentSize.Y + 8)
-    end
-    local function updatePosition()
-        if not self.IsOpen then return end
-        local btnPos = self.DropdownButton.AbsolutePosition
-        local btnSize = self.DropdownButton.AbsoluteSize
-        local viewportSize = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or GuiService:GetScreenSize()
-        local menuHeight = self.OptionsContainer.AbsoluteSize.Y
-        local menuWidth = self.OptionsContainer.AbsoluteSize.X
-        local x = btnPos.X
-        local y = btnPos.Y + btnSize.Y
-        if y + menuHeight > viewportSize.Y then
-            y = btnPos.Y - menuHeight
-            if y < 0 then
-                y = 5
+    self.SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        rebuildOptions(self.SearchBox.Text)
+    end)
+    local function setupCanvasWatcher()
+        local conn
+        conn = optionsInnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            if self.IsOpen then
+                optionsScrollFrame.CanvasSize = UDim2.new(0, 0, 0, optionsInnerLayout.AbsoluteContentSize.Y + 8)
             end
-        end
-        if x + menuWidth > viewportSize.X then
-            x = viewportSize.X - menuWidth - 5
-        end
-        if x < 0 then
-            x = 5
-        end
-        self.OptionsContainer.Position = UDim2.new(0, x, 0, y)
+        end)
+        self._canvasWatcher = conn
     end
     self.DropdownButton:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePosition)
     self.DropdownButton:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
@@ -839,10 +960,14 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         updateContainerSize()
         updatePosition()
         self.OptionsContainer.Visible = true
+        setupCanvasWatcher()
+        task.wait()
+        updatePosition()
         Tween(self.OptionsContainer, {BackgroundTransparency = 0.3}, 0.2)
-        Tween(shadow, {Transparency = 0.8}, 0.2)
         for _, btn in pairs(self.OptionButtons) do
-            Tween(btn, {BackgroundTransparency = 0.3, TextTransparency = 0}, 0.2)
+            if btn:IsA("TextButton") then
+                Tween(btn, {BackgroundTransparency = 0.3, TextTransparency = 0}, 0.2)
+            end
         end
     end
     function self:Close(instant)
@@ -857,16 +982,18 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         if instant then
             self.OptionsContainer.Visible = false
             self.OptionsContainer.BackgroundTransparency = 1
-            shadow.Transparency = 1
             for _, btn in pairs(self.OptionButtons) do
-                btn.BackgroundTransparency = 1
-                btn.TextTransparency = 1
+                if btn:IsA("TextButton") then
+                    btn.BackgroundTransparency = 1
+                    btn.TextTransparency = 1
+                end
             end
         else
             Tween(self.OptionsContainer, {BackgroundTransparency = 1}, 0.2)
-            Tween(shadow, {Transparency = 1}, 0.2)
             for _, btn in pairs(self.OptionButtons) do
-                Tween(btn, {BackgroundTransparency = 1, TextTransparency = 1}, 0.2)
+                if btn:IsA("TextButton") then
+                    Tween(btn, {BackgroundTransparency = 1, TextTransparency = 1}, 0.2)
+                end
             end
             task.wait(0.2)
             self.OptionsContainer.Visible = false
@@ -879,7 +1006,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
             self:Open()
         end
     end)
-    rebuildOptions()
+    rebuildOptions("")
     self:UpdateDisplayText()
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
     table.insert(WasUI.Objects, {Object = self.DropdownButton, Type = "DropdownButton"})
@@ -1358,6 +1485,27 @@ Panel.__index = Panel
 
 function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local self = setmetatable({}, Panel)
+    self.BackgroundImage = nil
+    function self:SetBackground(url)
+        if self.BackgroundImage then
+            self.BackgroundImage:Destroy()
+        end
+        if url and url ~= "" then
+            self.BackgroundImage = CreateInstance("ImageLabel", {
+                Name = "Background",
+                Size = UDim2.new(1, 0, 1, 0),
+                Position = UDim2.new(0, 0, 0, 0),
+                BackgroundTransparency = 1,
+                Image = url,
+                ImageTransparency = 0.4,
+                ScaleType = Enum.ScaleType.Crop,
+                ZIndex = 0,
+                Parent = self.Instance
+            })
+        else
+            self.BackgroundImage = nil
+        end
+    end
     if backgroundUrl and backgroundUrl ~= "" then
         self.BackgroundImage = CreateInstance("ImageLabel", {
             Name = "Background",
@@ -2801,6 +2949,31 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     function self:SetWelcome(text)
         self.WelcomeLabel.Text = text
     end
+
+    self.HotkeyConnection = nil
+    function self:EnableHotkeyToggle(keyCode)
+        if self.HotkeyConnection then
+            self.HotkeyConnection:Disconnect()
+        end
+        keyCode = keyCode or Enum.KeyCode.F1
+        self.HotkeyConnection = UserInputService.InputBegan:Connect(function(input, processed)
+            if processed then return end
+            if input.KeyCode == keyCode then
+                if self.IsMinimized then
+                    self:RestoreFromDots()
+                else
+                    self:MinimizeToDots()
+                end
+            end
+        end)
+    end
+    function self:DisableHotkeyToggle()
+        if self.HotkeyConnection then
+            self.HotkeyConnection:Disconnect()
+            self.HotkeyConnection = nil
+        end
+    end
+
     if snowEnabled then
         self.SnowContainer = CreateInstance("Frame", {
             Name = "SnowContainer",
@@ -3040,6 +3213,14 @@ end
 
 function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback)
     return TextInput:New("TextInput", parent, placeholder, defaultValue, callback)
+end
+
+function WasUI:AddSpacing(parent, height)
+    local spacing = Instance.new("Frame")
+    spacing.Name = "Spacing"
+    spacing.Size = UDim2.new(1, 0, 0, height or 4)
+    spacing.BackgroundTransparency = 1
+    spacing.Parent = parent
 end
 
 function WasUI:SetGroupButtonText(text)
