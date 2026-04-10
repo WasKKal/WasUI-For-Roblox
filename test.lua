@@ -361,7 +361,6 @@ end)
 
 -- ================= 快捷键辅助函数 =================
 local function GetShortcutKey(controlType, controlId, rainbowName)
-    -- 生成唯一标识，优先使用rainbowName，否则用controlId
     if rainbowName and rainbowName ~= "" then
         return "shortcut_" .. rainbowName
     else
@@ -371,7 +370,6 @@ end
 
 -- 保存快捷按钮位置
 local function SaveShortcutPosition(key, position)
-    -- 简单保存到文件夹属性中
     local folder = ReplicatedStorage:FindFirstChild("WasUI_Config")
     if not folder then
         folder = Instance.new("Folder")
@@ -401,11 +399,9 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     EnsureShortcutGui()
     local key = GetShortcutKey(isToggle and "toggle" or "button", nil, rainbowKey)
     if WasUI.ShortcutButtons[key] then
-        -- 如果已存在，显示并返回
         local existing = WasUI.ShortcutButtons[key]
         if existing.button then
             existing.button.Visible = true
-            -- 同步状态
             if isToggle and existing.updateState then
                 existing.updateState(initialState)
             end
@@ -423,7 +419,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         ZIndex = 10000,
         Parent = WasUI.ShortcutGui
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = btnFrame}) -- 胶囊圆角
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = btnFrame})
     local stroke = CreateInstance("UIStroke", {
         Color = WasUI.CurrentTheme.Accent,
         Thickness = 1,
@@ -431,7 +427,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         Parent = btnFrame
     })
     
-    -- 文字标签
+    -- 文字标签（普通颜色，不跟随彩虹）
     local textLabel = CreateInstance("TextLabel", {
         Name = "Text",
         Size = UDim2.new(1, -16, 1, 0),
@@ -477,31 +473,41 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     if savedPos then
         btnFrame.Position = savedPos
     else
-        -- 默认位置：屏幕右下角，根据索引偏移
         local index = 0
         for _,_ in pairs(WasUI.ShortcutButtons) do index = index + 1 end
         btnFrame.Position = UDim2.new(1, -100, 1, -50 - index * 40)
     end
     
-    -- 拖动功能
+    -- 拖动功能（改进版，避免与点击冲突）
     local dragging = false
     local dragStartPos = nil
     local dragStartMouse = nil
+    local isDraggingFlag = false
     
     local function startDrag(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
+            isDraggingFlag = false
             dragStartPos = btnFrame.Position
             dragStartMouse = input.Position
             SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
+            -- 延迟标记拖动开始，用于区分点击
+            task.delay(0.1, function()
+                if dragging then
+                    isDraggingFlag = true
+                end
+            end)
         end
     end
     
     local function stopDrag()
         if dragging then
             dragging = false
-            SaveShortcutPosition(key, btnFrame.Position)
+            if isDraggingFlag then
+                SaveShortcutPosition(key, btnFrame.Position)
+            end
             SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+            isDraggingFlag = false
         end
     end
     
@@ -526,9 +532,10 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         end
     end)
     
-    -- 点击行为
+    -- 点击行为（仅在未拖动时触发）
     local currentState = initialState
     local function handleClick()
+        if isDraggingFlag then return end  -- 拖动时不触发点击
         if isToggle then
             currentState = not currentState
             if stateIndicator then
@@ -549,9 +556,9 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     
     btnFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            -- 防止拖动时误触发点击，使用延迟判断
+            -- 延迟执行，避免与拖动判断冲突
             task.wait(0.05)
-            if not dragging then
+            if not dragging or not isDraggingFlag then
                 handleClick()
             end
         end
@@ -564,7 +571,21 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
             if stateIndicator then
                 stateIndicator.BackgroundColor3 = currentState and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Error
             end
+            -- 开关高亮：边框和背景高亮
+            if currentState then
+                Tween(stroke, {Color = WasUI.CurrentTheme.Success, Transparency = 0.2}, 0.2)
+                Tween(btnFrame, {BackgroundColor3 = WasUI.CurrentTheme.Success, BackgroundTransparency = 0.3}, 0.2)
+            else
+                Tween(stroke, {Color = WasUI.CurrentTheme.Accent, Transparency = 0.5}, 0.2)
+                Tween(btnFrame, {BackgroundColor3 = WasUI.CurrentTheme.Primary, BackgroundTransparency = 0.2}, 0.2)
+            end
         end
+    end
+    
+    -- 初始状态高亮
+    if isToggle and initialState then
+        Tween(stroke, {Color = WasUI.CurrentTheme.Success, Transparency = 0.2}, 0)
+        Tween(btnFrame, {BackgroundColor3 = WasUI.CurrentTheme.Success, BackgroundTransparency = 0.3}, 0)
     end
     
     local shortcutObj = {
@@ -2270,6 +2291,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
     self.MinimizeToDots = function()
         if self.IsMinimized then return end
+        
+        -- 关闭所有下拉菜单
+        for i = #WasUI.OpenDropdowns, 1, -1 do
+            local dropdown = WasUI.OpenDropdowns[i]
+            if dropdown and dropdown.Close then
+                dropdown:Close(true)
+            end
+        end
+        
         if isSearchActive then
             expandSearchBox(false)
         end
