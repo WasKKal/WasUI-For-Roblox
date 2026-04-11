@@ -491,105 +491,92 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         btnFrame.Position = UDim2.new(1, -100, 1, -50 - index * 40)
     end
     
-    local dragData = {
-        dragging = false,
-        startPos = nil,
-        startMouse = nil,
-        moved = false,
-        threshold = 5,
-        connectionChanged = nil,
-        connectionEnded = nil,
-        touchIndex = nil
-    }
-    
-    local currentState = initialState
-    
-    local function updateVisuals()
-        if isToggle then
-            if currentState then
-                Tween(stroke, {Color = WasUI.CurrentTheme.Success, Transparency = 0.2}, 0.2)
-                Tween(stateIndicator, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+local dragData = {
+    dragging = false,
+    startPos = nil,
+    startMouse = nil,
+    moved = false,
+    threshold = 5,
+    connectionChanged = nil,
+    connectionEnded = nil,
+    currentTouch = nil
+}
+
+local function onInputBegan(input, processed)
+    if processed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragData.dragging = true
+        dragData.moved = false
+        dragData.startPos = btnFrame.Position
+        dragData.startMouse = input.Position
+        dragData.currentTouch = nil
+        SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
+    elseif input.UserInputType == Enum.UserInputType.Touch then
+        dragData.dragging = true
+        dragData.moved = false
+        dragData.startPos = btnFrame.Position
+        dragData.startMouse = input.Position
+        dragData.currentTouch = input
+        SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
+    end
+end
+
+local function onInputChanged(input, processed)
+    if processed then return end
+    local isValid = false
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragData.dragging and dragData.currentTouch == nil then
+        isValid = true
+    elseif input.UserInputType == Enum.UserInputType.Touch and dragData.dragging and input == dragData.currentTouch then
+        isValid = true
+    end
+    if isValid then
+        local delta = input.Position - dragData.startMouse
+        if delta.Magnitude > dragData.threshold then
+            dragData.moved = true
+        end
+        if dragData.moved then
+            local newPos = UDim2.new(
+                dragData.startPos.X.Scale,
+                dragData.startPos.X.Offset + delta.X,
+                dragData.startPos.Y.Scale,
+                dragData.startPos.Y.Offset + delta.Y
+            )
+            btnFrame.Position = newPos
+        end
+    end
+end
+
+local function onInputEnded(input, processed)
+    if processed then return end
+    local isValid = false
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and dragData.dragging and dragData.currentTouch == nil then
+        isValid = true
+    elseif input.UserInputType == Enum.UserInputType.Touch and dragData.dragging and input == dragData.currentTouch then
+        isValid = true
+    end
+    if isValid then
+        if dragData.moved then
+            SaveShortcutPosition(key, btnFrame.Position)
+        else
+            if isToggle then
+                currentState = not currentState
+                updateVisuals()
+                if onToggleCallback then onToggleCallback(currentState) end
+                SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
+                task.wait(0.05)
+                SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
             else
-                Tween(stroke, {Color = WasUI.CurrentTheme.Accent, Transparency = 0.5}, 0.2)
-                Tween(stateIndicator, {BackgroundColor3 = WasUI.CurrentTheme.Error}, 0.2)
+                if onClickCallback then onClickCallback() end
+                SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
+                task.wait(0.05)
+                SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
             end
         end
+        dragData.dragging = false
+        dragData.currentTouch = nil
+        SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
     end
-    
-    local function onInputBegan(input, processed)
-        if processed then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragData.dragging = true
-            dragData.moved = false
-            dragData.startPos = btnFrame.Position
-            dragData.startMouse = input.Position
-            dragData.touchIndex = nil
-            SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
-        elseif input.UserInputType == Enum.UserInputType.Touch then
-            dragData.dragging = true
-            dragData.moved = false
-            dragData.startPos = btnFrame.Position
-            dragData.startMouse = input.Position
-            dragData.touchIndex = input.UserInputIndex
-            SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
-        end
-    end
-    
-    local function onInputChanged(input, processed)
-        if processed then return end
-        local isValid = false
-        if input.UserInputType == Enum.UserInputType.MouseMovement and dragData.dragging then
-            isValid = true
-        elseif input.UserInputType == Enum.UserInputType.Touch and dragData.dragging and input.UserInputIndex == dragData.touchIndex then
-            isValid = true
-        end
-        if isValid then
-            local delta = input.Position - dragData.startMouse
-            if delta.Magnitude > dragData.threshold then
-                dragData.moved = true
-            end
-            if dragData.moved then
-                local newPos = UDim2.new(
-                    dragData.startPos.X.Scale,
-                    dragData.startPos.X.Offset + delta.X,
-                    dragData.startPos.Y.Scale,
-                    dragData.startPos.Y.Offset + delta.Y
-                )
-                btnFrame.Position = newPos
-            end
-        end
-    end
-    
-    local function onInputEnded(input, processed)
-        if processed then return end
-        local isValid = false
-        if input.UserInputType == Enum.UserInputType.MouseButton1 and dragData.dragging then
-            isValid = true
-        elseif input.UserInputType == Enum.UserInputType.Touch and dragData.dragging and input.UserInputIndex == dragData.touchIndex then
-            isValid = true
-        end
-        if isValid then
-            if dragData.moved then
-                SaveShortcutPosition(key, btnFrame.Position)
-            else
-                if isToggle then
-                    currentState = not currentState
-                    updateVisuals()
-                    if onToggleCallback then onToggleCallback(currentState) end
-                    SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
-                    task.wait(0.05)
-                    SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
-                else
-                    if onClickCallback then onClickCallback() end
-                    SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
-                    task.wait(0.05)
-                    SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
-                end
-            end
-            dragData.dragging = false
-            SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
-        end
-    end
+end
     
     btnFrame.InputBegan:Connect(onInputBegan)
     dragData.connectionChanged = UserInputService.InputChanged:Connect(onInputChanged)
@@ -2546,107 +2533,112 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         overlay.InputBegan:Connect(onOverlayClick)
     end)
     
-    local dragging = false
-    local dragMoveConn = nil
-    local dragEndConn = nil
-    local dragStart = Vector2.new()
-    local startPos = UDim2.new()
-    local dragTouchIndex = nil
-    local function isPointOverDraggableArea(point)
-        if not self.DraggableArea or not self.DraggableArea.Parent then return false end
-        local absPos = self.DraggableArea.AbsolutePosition
-        local absSize = self.DraggableArea.AbsoluteSize
-        local hitCloseDot = isPointOverButton(self.CloseDot, point)
-        local hitMinimizeDot = isPointOverButton(self.MinimizeDot, point)
-        local hitMaximizeDot = isPointOverButton(self.MaximizeDot, point)
-        local hitCloseBtn = isPointOverButton(closeButton, point)
-        local hitSearchBtn = isPointOverButton(searchButton, point)
-        return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
-               point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y and
-               not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn)
-    end
-    local function startDrag(input, processed)
-        if processed then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local mousePos = input.Position
-            if isPointOverDraggableArea(mousePos) then
-                dragging = true
-                dragStart = input.Position
-                startPos = self.Instance.Position
-                dragTouchIndex = nil
-                if self.SnowEnabled then
-                    self.SnowEnabled = false
-                    if self.SnowContainer then
-                        self.SnowContainer.Visible = false
-                    end
-                    if WasUI.SettingsPanel then
-                        local snowToggleBtn = WasUI.SettingsPanel:FindFirstChild("Content") and WasUI.SettingsPanel.Content:FindFirstChild("Toggle")
-                        if snowToggleBtn and snowToggleBtn.Background then
-                            local toggled = snowToggleBtn.Background:GetAttribute("Toggled")
-                            if toggled then
-                                snowToggleBtn.Background:FindFirstChildOfClass("ImageButton").MouseButton1Click:Fire()
-                            end
-                        end
-                    end
+local dragging = false
+local dragMoveConn = nil
+local dragEndConn = nil
+local dragStart = Vector2.new()
+local startPos = UDim2.new()
+local currentDragTouch = nil
+
+local function isPointOverDraggableArea(point)
+    if not self.DraggableArea or not self.DraggableArea.Parent then return false end
+    local absPos = self.DraggableArea.AbsolutePosition
+    local absSize = self.DraggableArea.AbsoluteSize
+    local hitCloseDot = isPointOverButton(self.CloseDot, point)
+    local hitMinimizeDot = isPointOverButton(self.MinimizeDot, point)
+    local hitMaximizeDot = isPointOverButton(self.MaximizeDot, point)
+    local hitCloseBtn = isPointOverButton(closeButton, point)
+    local hitSearchBtn = isPointOverButton(searchButton, point)
+    return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
+           point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y and
+           not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn)
+end
+
+local function startDrag(input, processed)
+    if processed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local mousePos = input.Position
+        if isPointOverDraggableArea(mousePos) then
+            dragging = true
+            dragStart = input.Position
+            startPos = self.Instance.Position
+            currentDragTouch = nil
+            if self.SnowEnabled then
+                self.SnowEnabled = false
+                if self.SnowContainer then
+                    self.SnowContainer.Visible = false
                 end
-            end
-        elseif input.UserInputType == Enum.UserInputType.Touch then
-            local touchPos = input.Position
-            if isPointOverDraggableArea(touchPos) then
-                dragging = true
-                dragStart = input.Position
-                startPos = self.Instance.Position
-                dragTouchIndex = input.UserInputIndex
-                if self.SnowEnabled then
-                    self.SnowEnabled = false
-                    if self.SnowContainer then
-                        self.SnowContainer.Visible = false
-                    end
-                    if WasUI.SettingsPanel then
-                        local snowToggleBtn = WasUI.SettingsPanel:FindFirstChild("Content") and WasUI.SettingsPanel.Content:FindFirstChild("Toggle")
-                        if snowToggleBtn and snowToggleBtn.Background then
-                            local toggled = snowToggleBtn.Background:GetAttribute("Toggled")
-                            if toggled then
-                                snowToggleBtn.Background:FindFirstChildOfClass("ImageButton").MouseButton1Click:Fire()
-                            end
+                if WasUI.SettingsPanel then
+                    local snowToggleBtn = WasUI.SettingsPanel:FindFirstChild("Content") and WasUI.SettingsPanel.Content:FindFirstChild("Toggle")
+                    if snowToggleBtn and snowToggleBtn.Background then
+                        local toggled = snowToggleBtn.Background:GetAttribute("Toggled")
+                        if toggled then
+                            snowToggleBtn.Background:FindFirstChildOfClass("ImageButton").MouseButton1Click:Fire()
                         end
                     end
                 end
             end
         end
-    end
-    local function updateDrag(input, processed)
-        if processed then return end
-        local isValid = false
-        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging and dragTouchIndex == nil then
-            isValid = true
-        elseif input.UserInputType == Enum.UserInputType.Touch and dragging and input.UserInputIndex == dragTouchIndex then
-            isValid = true
-        end
-        if isValid then
-            local delta = input.Position - dragStart
-            local newX = startPos.X.Offset + delta.X
-            local newY = startPos.Y.Offset + delta.Y
-            self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
-        end
-    end
-    local function endDrag(input, processed)
-        if processed then return end
-        local isValid = false
-        if input.UserInputType == Enum.UserInputType.MouseButton1 and dragging and dragTouchIndex == nil then
-            isValid = true
-        elseif input.UserInputType == Enum.UserInputType.Touch and dragging and input.UserInputIndex == dragTouchIndex then
-            isValid = true
-        end
-        if isValid then
-            dragging = false
-            dragStart = Vector2.new()
-            dragTouchIndex = nil
+    elseif input.UserInputType == Enum.UserInputType.Touch then
+        local touchPos = input.Position
+        if isPointOverDraggableArea(touchPos) then
+            dragging = true
+            dragStart = input.Position
+            startPos = self.Instance.Position
+            currentDragTouch = input
+            if self.SnowEnabled then
+                self.SnowEnabled = false
+                if self.SnowContainer then
+                    self.SnowContainer.Visible = false
+                end
+                if WasUI.SettingsPanel then
+                    local snowToggleBtn = WasUI.SettingsPanel:FindFirstChild("Content") and WasUI.SettingsPanel.Content:FindFirstChild("Toggle")
+                    if snowToggleBtn and snowToggleBtn.Background then
+                        local toggled = snowToggleBtn.Background:GetAttribute("Toggled")
+                        if toggled then
+                            snowToggleBtn.Background:FindFirstChildOfClass("ImageButton").MouseButton1Click:Fire()
+                        end
+                    end
+                end
+            end
         end
     end
-    self.DraggableArea.InputBegan:Connect(startDrag)
-    dragMoveConn = UserInputService.InputChanged:Connect(updateDrag)
-    dragEndConn = UserInputService.InputEnded:Connect(endDrag)
+end
+
+local function updateDrag(input, processed)
+    if processed then return end
+    local isValid = false
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging and currentDragTouch == nil then
+        isValid = true
+    elseif input.UserInputType == Enum.UserInputType.Touch and dragging and input == currentDragTouch then
+        isValid = true
+    end
+    if isValid then
+        local delta = input.Position - dragStart
+        local newX = startPos.X.Offset + delta.X
+        local newY = startPos.Y.Offset + delta.Y
+        self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
+    end
+end
+
+local function endDrag(input, processed)
+    if processed then return end
+    local isValid = false
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and dragging and currentDragTouch == nil then
+        isValid = true
+    elseif input.UserInputType == Enum.UserInputType.Touch and dragging and input == currentDragTouch then
+        isValid = true
+    end
+    if isValid then
+        dragging = false
+        dragStart = Vector2.new()
+        currentDragTouch = nil
+    end
+end
+
+self.DraggableArea.InputBegan:Connect(startDrag)
+dragMoveConn = UserInputService.InputChanged:Connect(updateDrag)
+dragEndConn = UserInputService.InputEnded:Connect(endDrag)
     
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
