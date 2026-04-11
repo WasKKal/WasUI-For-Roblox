@@ -2523,61 +2523,75 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         overlay.InputBegan:Connect(onOverlayClick)
     end)
     
-    local dragging = false
-    local dragStart = Vector2.new()
-    local startPos = UDim2.new()
-    local function isPointOverButton(btn, point)
-        if not btn or not btn.Parent then return false end
-        local absPos = btn.AbsolutePosition
-        local absSize = btn.AbsoluteSize
-        return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
-               point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y
-    end
-    local function startDragging(input, processed)
-        if processed then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            local mousePos = input.Position
-            local hitCloseDot = isPointOverButton(self.CloseDot, mousePos)
-            local hitMinimizeDot = isPointOverButton(self.MinimizeDot, mousePos)
-            local hitMaximizeDot = isPointOverButton(self.MaximizeDot, mousePos)
-            local hitCloseBtn = isPointOverButton(closeButton, mousePos)
-            local hitSearchBtn = isPointOverButton(searchButton, mousePos)
-            if not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn) then
-                dragging = true
-                dragStart = input.Position
-                startPos = self.Instance.Position
-                if input.UserInputType == Enum.UserInputType.Touch then
-                    input.Processed = true
+local dragging = false
+local dragStart = Vector2.new()
+local startPos = UDim2.new()
+local function isPointOverButton(btn, point)
+    if not btn or not btn.Parent then return false end
+    local absPos = btn.AbsolutePosition
+    local absSize = btn.AbsoluteSize
+    return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
+           point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y
+end
+local function startDragging(input, processed)
+    if processed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        local mousePos = input.Position
+        local hitCloseDot = isPointOverButton(self.CloseDot, mousePos)
+        local hitMinimizeDot = isPointOverButton(self.MinimizeDot, mousePos)
+        local hitMaximizeDot = isPointOverButton(self.MaximizeDot, mousePos)
+        local hitCloseBtn = isPointOverButton(closeButton, mousePos)
+        local hitSearchBtn = isPointOverButton(searchButton, mousePos)
+        if not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn) then
+            dragging = true
+            dragStart = input.Position
+            startPos = self.Instance.Position
+            if input.UserInputType == Enum.UserInputType.Touch then
+                input.Processed = true
+            end
+            if self.SnowEnabled then
+                self.SnowEnabled = false
+                if self.SnowContainer then
+                    self.SnowContainer.Visible = false
+                end
+                if WasUI.SettingsPanel then
+                    local snowToggleBtn = WasUI.SettingsPanel:FindFirstChild("Content") and WasUI.SettingsPanel.Content:FindFirstChild("Toggle")
+                    if snowToggleBtn and snowToggleBtn.Background then
+                        local toggled = snowToggleBtn.Background:GetAttribute("Toggled")
+                        if toggled then
+                            snowToggleBtn.Background:FindFirstChildOfClass("ImageButton").MouseButton1Click:Fire()
+                        end
+                    end
                 end
             end
         end
     end
-    local function onDrag(input, processed)
-        if processed then return end
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            local newPosition = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
-            self.Instance.Position = newPosition
-            if input.UserInputType == Enum.UserInputType.Touch then
-                input.Processed = true
-            end
+end
+local function onDrag(input, processed)
+    if processed then return end
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        local newPosition = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+        self.Instance.Position = newPosition
+        if input.UserInputType == Enum.UserInputType.Touch then
+            input.Processed = true
         end
     end
-    local function stopDragging(input, processed)
-        if processed then return end
-        if input and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-            dragging = false
-        end
+end
+local function stopDragging(input, processed)
+    if processed then return end
+    if input and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+        dragging = false
     end
-    self.DraggableArea.InputBegan:Connect(startDragging)
-    local dragMoveConn = UserInputService.InputChanged:Connect(onDrag)
-    local dragEndConn = UserInputService.InputEnded:Connect(stopDragging)
-    
+end
+self.DraggableArea.InputBegan:Connect(startDragging)
+local dragMoveConn = UserInputService.InputChanged:Connect(onDrag)
+local dragEndConn = UserInputService.InputEnded:Connect(stopDragging)
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
         Name = "AnnouncementBar",
@@ -2822,6 +2836,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 self.SnowContainer.Visible = state
             end
         end, "雪花飘落", nil, "cloud-snow")
+        snowToggle.TitleLabel.ZIndex = 1003
+        snowToggle.Background.ZIndex = 1003
+        snowToggle.Knob.ZIndex = 1003
         snowToggle.TitleLabel.Text = "雪花飘落"
 
         local groupButton = CreateInstance("TextButton", {
