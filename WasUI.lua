@@ -37,7 +37,7 @@ WasUI.OpenDropdowns = {}
 
 WasUI.SettingsPanel = nil
 WasUI.GroupButtonText = "加入WasUI主群"
-WasUI.GroupCopyContent = "1085475284"
+WasUI.GroupCopyContent = "786284990"
 
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
@@ -79,6 +79,20 @@ WasUI.CurrentTheme = WasUI.Themes.Dark
 WasUI.Objects = {}
 WasUI.ActiveRainbowTexts = {}
 WasUI.RainbowOrder = {}
+
+WasUI.ShortcutGui = nil
+WasUI.ShortcutButtons = {}
+
+local function EnsureShortcutGui()
+    if not WasUI.ShortcutGui or not WasUI.ShortcutGui.Parent then
+        WasUI.ShortcutGui = Instance.new("ScreenGui")
+        WasUI.ShortcutGui.Name = "WasUI_Shortcuts"
+        WasUI.ShortcutGui.ResetOnSpawn = false
+        WasUI.ShortcutGui.DisplayOrder = 500
+        WasUI.ShortcutGui.Parent = game:GetService("CoreGui")
+    end
+end
+EnsureShortcutGui()
 
 local function EnsureNotificationGui()
     if not WasUI.NotificationGui or not WasUI.NotificationGui.Parent then
@@ -343,6 +357,285 @@ local rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
     end
 end)
 
+local function GetShortcutKey(controlType, controlId, rainbowName)
+    if rainbowName and rainbowName ~= "" then
+        return "shortcut_" .. rainbowName
+    else
+        return "shortcut_" .. controlType .. "_" .. tostring(controlId)
+    end
+end
+
+local function SaveShortcutPosition(key, position)
+    local folder = ReplicatedStorage:FindFirstChild("WasUI_Config")
+    if not folder then
+        folder = Instance.new("Folder")
+        folder.Name = "WasUI_Config"
+        folder.Parent = ReplicatedStorage
+    end
+    folder:SetAttribute(key .. "_Pos", {position.X.Scale, position.X.Offset, position.Y.Scale, position.Y.Offset})
+end
+
+local function LoadShortcutPosition(key)
+    local folder = ReplicatedStorage:FindFirstChild("WasUI_Config")
+    if folder then
+        local posData = folder:GetAttribute(key .. "_Pos")
+        if posData and type(posData) == "table" and #posData == 4 then
+            return UDim2.new(posData[1], posData[2], posData[3], posData[4])
+        end
+    end
+    return nil
+end
+
+function WasUI:ClearAllShortcuts()
+    for key, shortcut in pairs(WasUI.ShortcutButtons) do
+        if shortcut and shortcut.destroy then
+            shortcut:destroy()
+        elseif shortcut and shortcut.button then
+            shortcut.button:Destroy()
+        end
+    end
+    WasUI.ShortcutButtons = {}
+end
+
+local function CreateShortcutButton(displayName, isToggle, initialState, onToggleCallback, onClickCallback, rainbowKey)
+    EnsureShortcutGui()
+    local key = GetShortcutKey(isToggle and "toggle" or "button", nil, rainbowKey)
+    
+    if WasUI.ShortcutButtons[key] then
+        local existing = WasUI.ShortcutButtons[key]
+        if existing.destroy then
+            existing:destroy()
+        elseif existing.button then
+            existing.button:Destroy()
+        end
+        WasUI.ShortcutButtons[key] = nil
+        return nil
+    end
+
+    local btnFrame = CreateInstance("Frame", {
+        Name = "Shortcut_" .. (rainbowKey or displayName),
+        Size = UDim2.new(0, 0, 0, 32),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.2,
+        BorderSizePixel = 0,
+        ZIndex = 10000,
+        Parent = WasUI.ShortcutGui
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = btnFrame})
+    local stroke = CreateInstance("UIStroke", {
+        Color = WasUI.CurrentTheme.Accent,
+        Thickness = 1,
+        Transparency = 0.5,
+        Parent = btnFrame
+    })
+    
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "Text",
+        BackgroundTransparency = 1,
+        Text = displayName,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 12,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        ZIndex = 10001,
+        Parent = btnFrame
+    })
+    
+    local stateIndicator = nil
+    if isToggle then
+        textLabel.TextXAlignment = Enum.TextXAlignment.Left
+        textLabel.Size = UDim2.new(1, -24, 1, 0)
+        textLabel.Position = UDim2.new(0, 8, 0, 0)
+        stateIndicator = CreateInstance("Frame", {
+            Name = "Indicator",
+            Size = UDim2.new(0, 8, 0, 8),
+            Position = UDim2.new(1, -16, 0.5, -4),
+            BackgroundColor3 = initialState and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Error,
+            BackgroundTransparency = 0,
+            BorderSizePixel = 0,
+            ZIndex = 10002,
+            Parent = btnFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = stateIndicator})
+    else
+        textLabel.TextXAlignment = Enum.TextXAlignment.Center
+        textLabel.Size = UDim2.new(1, -16, 1, 0)
+        textLabel.Position = UDim2.new(0, 8, 0, 0)
+    end
+    
+    local function updateSize()
+        local textBounds = textLabel.TextBounds
+        local width = math.max(80, textBounds.X + (isToggle and 32 or 24))
+        btnFrame.Size = UDim2.new(0, width, 0, 32)
+    end
+    textLabel:GetPropertyChangedSignal("TextBounds"):Connect(updateSize)
+    updateSize()
+    
+    local savedPos = LoadShortcutPosition(key)
+    if savedPos then
+        btnFrame.Position = savedPos
+    else
+        local index = 0
+        for _,_ in pairs(WasUI.ShortcutButtons) do index = index + 1 end
+        btnFrame.Position = UDim2.new(1, -100, 1, -50 - index * 40)
+    end
+    
+    local dragData = {
+        dragging = false,
+        startPos = nil,
+        startMouse = nil,
+        moved = false,
+        threshold = 5
+    }
+    
+    local currentState = initialState
+    
+    local function updateVisuals()
+        if isToggle then
+            if currentState then
+                Tween(stroke, {Color = WasUI.CurrentTheme.Success, Transparency = 0.2}, 0.2)
+                Tween(stateIndicator, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+            else
+                Tween(stroke, {Color = WasUI.CurrentTheme.Accent, Transparency = 0.5}, 0.2)
+                Tween(stateIndicator, {BackgroundColor3 = WasUI.CurrentTheme.Error}, 0.2)
+            end
+        end
+    end
+    
+    local function onInputBegan(input, processed)
+        if processed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragData.dragging = true
+            dragData.moved = false
+            dragData.startPos = btnFrame.Position
+            dragData.startMouse = input.Position
+            SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
+            if input.UserInputType == Enum.UserInputType.Touch then
+                input.Processed = true
+            end
+        end
+    end
+    
+    local function onInputChanged(input, processed)
+        if processed then return end
+        if dragData.dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragData.startMouse
+            if delta.Magnitude > dragData.threshold then
+                dragData.moved = true
+            end
+            if dragData.moved then
+                local newPos = UDim2.new(
+                    dragData.startPos.X.Scale,
+                    dragData.startPos.X.Offset + delta.X,
+                    dragData.startPos.Y.Scale,
+                    dragData.startPos.Y.Offset + delta.Y
+                )
+                btnFrame.Position = newPos
+            end
+            if input.UserInputType == Enum.UserInputType.Touch then
+                input.Processed = true
+            end
+        end
+    end
+    
+    local function onInputEnded(input, processed)
+        if processed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if dragData.dragging then
+                if dragData.moved then
+                    SaveShortcutPosition(key, btnFrame.Position)
+                else
+                    if isToggle then
+                        currentState = not currentState
+                        updateVisuals()
+                        if onToggleCallback then onToggleCallback(currentState) end
+                        SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
+                        task.wait(0.05)
+                        SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+                    else
+                        if onClickCallback then onClickCallback() end
+                        SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
+                        task.wait(0.05)
+                        SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+                    end
+                end
+                dragData.dragging = false
+                SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+            end
+            if input.UserInputType == Enum.UserInputType.Touch then
+                input.Processed = true
+            end
+        end
+    end
+    
+    btnFrame.InputBegan:Connect(onInputBegan)
+    local moveConn = UserInputService.InputChanged:Connect(onInputChanged)
+    local endConn = UserInputService.InputEnded:Connect(onInputEnded)
+    
+    local function updateState(newState)
+        if isToggle then
+            currentState = newState
+            updateVisuals()
+        end
+    end
+    
+    updateVisuals()
+    
+    local shortcutObj = {
+        button = btnFrame,
+        key = key,
+        updateState = updateState,
+        destroy = function()
+            moveConn:Disconnect()
+            endConn:Disconnect()
+            if btnFrame then btnFrame:Destroy() end
+            WasUI.ShortcutButtons[key] = nil
+        end
+    }
+    WasUI.ShortcutButtons[key] = shortcutObj
+    return shortcutObj
+end
+
+local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
+    longPressTime = longPressTime or 0.5
+    local timer = nil
+    local pressed = false
+    local startPos = nil
+    
+    local function startPress(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            pressed = true
+            startPos = input.Position
+            timer = task.delay(longPressTime, function()
+                if pressed then
+                    onLongPress()
+                end
+            end)
+        end
+    end
+    
+    local function endPress()
+        if timer then
+            task.cancel(timer)
+            timer = nil
+        end
+        pressed = false
+        startPos = nil
+    end
+    
+    local function checkMove(input)
+        if pressed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            if startPos and (input.Position - startPos).Magnitude > 10 then
+                endPress()
+            end
+        end
+    end
+    
+    controlInstance.InputBegan:Connect(startPress)
+    controlInstance.InputEnded:Connect(endPress)
+    UserInputService.InputChanged:Connect(checkMove)
+end
+
 local Control = {}
 Control.__index = Control
 function Control:New(name, parent)
@@ -425,6 +718,12 @@ function Button:New(name, parent, text, onClick, size, iconName)
         SpringTween(scale, {Scale = 1}, 0.25)
         if onClick then onClick() end
     end)
+    
+    AddLongPressToControl(self.Instance, function()
+        CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
+        WasUI:Notify({Title = "快捷键", Content = "已创建快捷按钮: " .. (text or name), Duration = 1.5})
+    end)
+    
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Button"})
     return self
 end
@@ -496,8 +795,9 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if self.Toggled then
         CreateRainbowTextForFeature(self.RainbowName)
     end
-    self.Background.MouseButton1Click:Connect(function()
-        self.Toggled = not self.Toggled
+    
+    local function performToggle(newState)
+        self.Toggled = newState
         self.Background:SetAttribute("Toggled", self.Toggled)
         if self.Toggled then
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
@@ -510,7 +810,25 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             DestroyRainbowTextForFeature(self.RainbowName)
         end
         if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
+        local shortcutKey = GetShortcutKey("toggle", name, self.RainbowName)
+        local shortcut = WasUI.ShortcutButtons[shortcutKey]
+        if shortcut and shortcut.updateState then
+            shortcut.updateState(self.Toggled)
+        end
+    end
+    
+    self.Background.MouseButton1Click:Connect(function()
+        performToggle(not self.Toggled)
     end)
+    
+    AddLongPressToControl(self.Background, function()
+        local shortcut = CreateShortcutButton(self.RainbowName, true, self.Toggled, 
+            function(newState)
+                performToggle(newState)
+            end, nil, self.RainbowName)
+        WasUI:Notify({Title = "快捷键", Content = "已创建快捷开关: " .. self.RainbowName, Duration = 1.5})
+    end)
+    
     table.insert(WasUI.Objects, {Object = self.Background, Type = "Toggle"})
     table.insert(WasUI.Objects, {Object = self.Knob, Type = "ToggleKnob"})
     return self
@@ -1334,6 +1652,24 @@ local function AnimateThemeChange(oldTheme, newTheme)
             end
         end
     end
+    for _, shortcut in pairs(WasUI.ShortcutButtons) do
+        if shortcut.button then
+            Tween(shortcut.button, {BackgroundColor3 = newTheme.Primary}, duration)
+            local text = shortcut.button:FindFirstChild("Text")
+            if text then Tween(text, {TextColor3 = newTheme.Text}, duration) end
+            local indicator = shortcut.button:FindFirstChild("Indicator")
+            if indicator then
+                local toggled = indicator:GetAttribute("State")
+                if toggled then
+                    Tween(indicator, {BackgroundColor3 = newTheme.Success}, duration)
+                else
+                    Tween(indicator, {BackgroundColor3 = newTheme.Error}, duration)
+                end
+            end
+            local stroke = shortcut.button:FindFirstChildOfClass("UIStroke")
+            if stroke then Tween(stroke, {Color = newTheme.Accent}, duration) end
+        end
+    end
 end
 
 function WasUI:SetTheme(themeName)
@@ -1370,7 +1706,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 Position = UDim2.new(0, 0, 0, 0),
                 BackgroundTransparency = 1,
                 Image = url,
-                ImageTransparency = 0.4,
+                ImageTransparency = 0.2,
                 ScaleType = Enum.ScaleType.Crop,
                 ZIndex = 0,
                 Parent = self.Instance
@@ -1378,19 +1714,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         else
             self.BackgroundImage = nil
         end
-    end
-    if backgroundUrl and backgroundUrl ~= "" then
-        self.BackgroundImage = CreateInstance("ImageLabel", {
-            Name = "Background",
-            Size = UDim2.new(1, 0, 1, 0),
-            Position = UDim2.new(0, 0, 0, 0),
-            BackgroundTransparency = 1,
-            Image = backgroundUrl,
-            ImageTransparency = 0.4,
-            ScaleType = Enum.ScaleType.Crop,
-            ZIndex = 0,
-            Parent = parent
-        })
     end
     self.Instance = CreateInstance("Frame", {
         Name = name,
@@ -1403,6 +1726,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = parent
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
+    
+    if backgroundUrl and backgroundUrl ~= "" then
+        self:SetBackground(backgroundUrl)
+    end
 
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
@@ -1949,6 +2276,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
     self.MinimizeToDots = function()
         if self.IsMinimized then return end
+        
+        for i = #WasUI.OpenDropdowns, 1, -1 do
+            local dropdown = WasUI.OpenDropdowns[i]
+            if dropdown and dropdown.Close then
+                dropdown:Close(true)
+            end
+        end
+        
         if isSearchActive then
             expandSearchBox(false)
         end
@@ -2141,6 +2476,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             end
             WasUI.ActiveRainbowTexts = {}
             WasUI.RainbowOrder = {}
+            WasUI:ClearAllShortcuts()
             self:SetVisible(false)
             overlay:Destroy()
             if WasUI.DropdownGui then
