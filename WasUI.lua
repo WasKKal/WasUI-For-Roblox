@@ -2561,6 +2561,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local dragStart = Vector2.new()
     local startPos = UDim2.new()
     local currentDragTouch = nil
+    
     local function isPointOverDraggableArea(point)
         local targetArea = self.IsMinimized and self.DotContainer or self.DraggableArea
         if not targetArea or not targetArea.Parent then return false end
@@ -2580,6 +2581,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                    not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn)
         end
     end
+    
     local function startDrag(input, processed)
         if processed then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -2630,6 +2632,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             end
         end
     end
+    
     local function updateDrag(input, processed)
         if processed then return end
         local isValid = false
@@ -2645,6 +2648,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
         end
     end
+    
     local function endDrag(input, processed)
         if processed then return end
         local isValid = false
@@ -2659,6 +2663,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             currentDragTouch = nil
         end
     end
+    
     self.DraggableArea.InputBegan:Connect(startDrag)
     self.DotAreaButton.InputBegan:Connect(startDrag)
     dragMoveConn = UserInputService.InputChanged:Connect(updateDrag)
