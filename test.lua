@@ -488,6 +488,20 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         threshold = 5
     }
     
+    local currentState = initialState
+    
+    local function updateVisuals()
+        if isToggle then
+            if currentState then
+                Tween(stroke, {Color = WasUI.CurrentTheme.Success, Transparency = 0.2}, 0.2)
+                Tween(stateIndicator, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+            else
+                Tween(stroke, {Color = WasUI.CurrentTheme.Accent, Transparency = 0.5}, 0.2)
+                Tween(stateIndicator, {BackgroundColor3 = WasUI.CurrentTheme.Error}, 0.2)
+            end
+        end
+    end
+    
     local function onInputBegan(input, processed)
         if processed then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -496,6 +510,9 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
             dragData.startPos = btnFrame.Position
             dragData.startMouse = input.Position
             SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
+            if input.UserInputType == Enum.UserInputType.Touch then
+                input.Processed = true
+            end
         end
     end
     
@@ -515,6 +532,9 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
                 )
                 btnFrame.Position = newPos
             end
+            if input.UserInputType == Enum.UserInputType.Touch then
+                input.Processed = true
+            end
         end
     end
     
@@ -526,11 +546,9 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
                     SaveShortcutPosition(key, btnFrame.Position)
                 else
                     if isToggle then
-                        local newState = not initialState
-                        if stateIndicator then
-                            Tween(stateIndicator, {BackgroundColor3 = newState and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Error}, 0.15)
-                        end
-                        if onToggleCallback then onToggleCallback(newState) end
+                        currentState = not currentState
+                        updateVisuals()
+                        if onToggleCallback then onToggleCallback(currentState) end
                         SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
                         task.wait(0.05)
                         SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
@@ -544,6 +562,9 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
                 dragData.dragging = false
                 SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
             end
+            if input.UserInputType == Enum.UserInputType.Touch then
+                input.Processed = true
+            end
         end
     end
     
@@ -551,27 +572,14 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     local moveConn = UserInputService.InputChanged:Connect(onInputChanged)
     local endConn = UserInputService.InputEnded:Connect(onInputEnded)
     
-    local currentState = initialState
     local function updateState(newState)
         if isToggle then
             currentState = newState
-            if stateIndicator then
-                stateIndicator.BackgroundColor3 = currentState and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Error
-            end
-            if currentState then
-                Tween(stroke, {Color = WasUI.CurrentTheme.Success, Transparency = 0.2}, 0.2)
-                Tween(btnFrame, {BackgroundColor3 = WasUI.CurrentTheme.Success, BackgroundTransparency = 0.3}, 0.2)
-            else
-                Tween(stroke, {Color = WasUI.CurrentTheme.Accent, Transparency = 0.5}, 0.2)
-                Tween(btnFrame, {BackgroundColor3 = WasUI.CurrentTheme.Primary, BackgroundTransparency = 0.2}, 0.2)
-            end
+            updateVisuals()
         end
     end
     
-    if isToggle and initialState then
-        Tween(stroke, {Color = WasUI.CurrentTheme.Success, Transparency = 0.2}, 0)
-        Tween(btnFrame, {BackgroundColor3 = WasUI.CurrentTheme.Success, BackgroundTransparency = 0.3}, 0)
-    end
+    updateVisuals()
     
     local shortcutObj = {
         button = btnFrame,
