@@ -826,7 +826,11 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             function(newState)
                 performToggle(newState)
             end, nil, self.RainbowName)
-        WasUI:Notify({Title = "快捷键", Content = "已创建快捷开关: " .. self.RainbowName, Duration = 1.5})
+        if shortcut then
+            WasUI:Notify({Title = "快捷键", Content = "已创建快捷开关: " .. self.RainbowName, Duration = 1.5})
+        else
+            WasUI:Notify({Title = "快捷键", Content = "已移除快捷开关: " .. self.RainbowName, Duration = 1.5})
+        end
     end)
     
     table.insert(WasUI.Objects, {Object = self.Background, Type = "Toggle"})
@@ -2511,6 +2515,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end
         overlay.InputBegan:Connect(onOverlayClick)
     end)
+    
     local dragging = false
     local dragStart = Vector2.new()
     local startPos = UDim2.new()
@@ -2521,8 +2526,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
                point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y
     end
-    local function startDragging(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    local function startDragging(input, processed)
+        if processed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             local mousePos = input.Position
             local hitCloseDot = isPointOverButton(self.CloseDot, mousePos)
             local hitMinimizeDot = isPointOverButton(self.MinimizeDot, mousePos)
@@ -2533,15 +2539,21 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 dragging = true
                 dragStart = input.Position
                 startPos = self.Instance.Position
+                if input.UserInputType == Enum.UserInputType.Touch then
+                    input.Processed = true
+                end
             end
         end
     end
-    local function stopDragging()
-        dragging = false
+    local function stopDragging(input, processed)
+        if processed then return end
+        if input and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+            dragging = false
+        end
     end
-    self.DraggableArea.InputBegan:Connect(startDragging)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+    local function onDrag(input, processed)
+        if processed then return end
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
             local newPosition = UDim2.new(
                 startPos.X.Scale,
@@ -2550,13 +2562,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 startPos.Y.Offset + delta.Y
             )
             self.Instance.Position = newPosition
+            if input.UserInputType == Enum.UserInputType.Touch then
+                input.Processed = true
+            end
         end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            stopDragging()
-        end
-    end)
+    end
+    self.DraggableArea.InputBegan:Connect(startDragging)
+    UserInputService.InputChanged:Connect(onDrag)
+    UserInputService.InputEnded:Connect(stopDragging)
+    
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
         Name = "AnnouncementBar",
@@ -2795,76 +2809,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
         end)
 
-        local posLabel = CreateInstance("TextLabel", {
-            Name = "PosLabel",
-            Size = UDim2.new(1, 0, 0, 20),
-            BackgroundTransparency = 1,
-            Text = "窗口位置偏移",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        local updating = false
-        local function updateWindowPosition(x, y)
-            if updating then return end
-            updating = true
-            self.Instance.Position = UDim2.new(self.Instance.Position.X.Scale, x, self.Instance.Position.Y.Scale, y)
-            updating = false
-        end
-        local xSlider = WasUI:CreateSlider(contentFrame, "X轴位置", -400, 0, self.Instance.Position.X.Offset, function(value)
-            updateWindowPosition(value, self.Instance.Position.Y.Offset)
-        end)
-        xSlider.TitleLabel.ZIndex = 1002
-        xSlider.ValueLabel.ZIndex = 1002
-        xSlider.SliderTrack.ZIndex = 1002
-        xSlider.SliderFill.ZIndex = 1002
-        xSlider.Knob.ZIndex = 1002
-        xSlider.TitleLabel.Text = "X轴"
-        xSlider.TitleLabel.Size = UDim2.new(0.4, 0, 1, 0)
-        xSlider.TitleLabel.Position = UDim2.new(0, 0, 0, -4)
-        xSlider.ValueLabel.Text = tostring(xSlider.Value)
-        xSlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
-        xSlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
-        xSlider.SliderTrack.Size = UDim2.new(1, 7, 0, 8)
-        xSlider.SliderTrack.Position = UDim2.new(0, -5, 0, 20)
-        local ySlider = WasUI:CreateSlider(contentFrame, "Y轴位置", -300, -110, self.Instance.Position.Y.Offset, function(value)
-            updateWindowPosition(self.Instance.Position.X.Offset, value)
-        end)
-        ySlider.TitleLabel.ZIndex = 1002
-        ySlider.ValueLabel.ZIndex = 1002
-        ySlider.SliderTrack.ZIndex = 1002
-        ySlider.SliderFill.ZIndex = 1002
-        ySlider.Knob.ZIndex = 1002
-        ySlider.TitleLabel.Text = "Y轴"
-        ySlider.TitleLabel.Size = UDim2.new(0.4, 0, 1, 0)
-        ySlider.TitleLabel.Position = UDim2.new(0, 0, 0, -4)
-        ySlider.ValueLabel.Text = tostring(ySlider.Value)
-        ySlider.ValueLabel.Size = UDim2.new(0.2, 0, 1, 0)
-        ySlider.ValueLabel.Position = UDim2.new(0.8, 0, 0, -4)
-        ySlider.SliderTrack.Size = UDim2.new(1, 7, 0, 8)
-        ySlider.SliderTrack.Position = UDim2.new(0, -5, 0, 20)
-        local function syncSliderValues()
-            if updating then return end
-            local xVal = self.Instance.Position.X.Offset
-            local yVal = self.Instance.Position.Y.Offset
-            if xSlider then
-                xSlider.Value = xVal
-                xSlider.ValueLabel.Text = tostring(xVal)
-                xSlider.SliderFill.Size = UDim2.new((xVal - xSlider.Min) / (xSlider.Max - xSlider.Min), 0, 1, 0)
-                xSlider.Knob.Position = UDim2.new((xVal - xSlider.Min) / (xSlider.Max - xSlider.Min), -8, 0.5, -8)
-            end
-            if ySlider then
-                ySlider.Value = yVal
-                ySlider.ValueLabel.Text = tostring(yVal)
-                ySlider.SliderFill.Size = UDim2.new((yVal - ySlider.Min) / (ySlider.Max - ySlider.Min), 0, 1, 0)
-                ySlider.Knob.Position = UDim2.new((yVal - ySlider.Min) / (ySlider.Max - ySlider.Min), -8, 0.5, -8)
-            end
-        end
-        self.Instance:GetPropertyChangedSignal("Position"):Connect(syncSliderValues)
-        syncSliderValues()
         local groupButton = CreateInstance("TextButton", {
             Name = "GroupButton",
             Size = UDim2.new(1, 0, 0, 32),
