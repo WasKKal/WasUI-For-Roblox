@@ -358,11 +358,14 @@ local rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
 end)
 
 local function GetShortcutKey(controlType, controlId, rainbowName)
+    local base = ""
     if rainbowName and rainbowName ~= "" then
-        return "shortcut_" .. rainbowName
+        base = "shortcut_" .. rainbowName
     else
-        return "shortcut_" .. controlType .. "_" .. tostring(controlId)
+        base = "shortcut_" .. controlType .. "_" .. tostring(controlId)
     end
+    base = base:gsub("[^%w_]", "_")
+    return base
 end
 
 local function SaveShortcutPosition(key, position)
