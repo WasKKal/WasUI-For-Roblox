@@ -400,15 +400,16 @@ end
 local function CreateShortcutButton(displayName, isToggle, initialState, onToggleCallback, onClickCallback, rainbowKey)
     EnsureShortcutGui()
     local key = GetShortcutKey(isToggle and "toggle" or "button", nil, rainbowKey)
+    
     if WasUI.ShortcutButtons[key] then
         local existing = WasUI.ShortcutButtons[key]
-        if existing.button then
-            existing.button.Visible = true
-            if isToggle and existing.updateState then
-                existing.updateState(initialState)
-            end
+        if existing.destroy then
+            existing:destroy()
+        elseif existing.button then
+            existing.button:Destroy()
         end
-        return existing
+        WasUI.ShortcutButtons[key] = nil
+        return nil
     end
 
     local btnFrame = CreateInstance("Frame", {
@@ -430,8 +431,6 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     
     local textLabel = CreateInstance("TextLabel", {
         Name = "Text",
-        Size = UDim2.new(1, -16, 1, 0),
-        Position = UDim2.new(0, 8, 0, 0),
         BackgroundTransparency = 1,
         Text = displayName,
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -444,7 +443,6 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     
     local stateIndicator = nil
     if isToggle then
-        -- 开关：文字左对齐，右边留出指示器空间
         textLabel.TextXAlignment = Enum.TextXAlignment.Left
         textLabel.Size = UDim2.new(1, -24, 1, 0)
         textLabel.Position = UDim2.new(0, 8, 0, 0)
@@ -460,7 +458,6 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = stateIndicator})
     else
-        -- 按钮：文字居中
         textLabel.TextXAlignment = Enum.TextXAlignment.Center
         textLabel.Size = UDim2.new(1, -16, 1, 0)
         textLabel.Position = UDim2.new(0, 8, 0, 0)
@@ -483,18 +480,18 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         btnFrame.Position = UDim2.new(1, -100, 1, -50 - index * 40)
     end
     
-    -- 拖动与点击分离逻辑
     local dragData = {
-        isDragging = false,
+        dragging = false,
         startPos = nil,
         startMouse = nil,
         moved = false,
         threshold = 5
     }
     
-    local function onMouseDown(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragData.isDragging = true
+    local function onInputBegan(input, processed)
+        if processed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragData.dragging = true
             dragData.moved = false
             dragData.startPos = btnFrame.Position
             dragData.startMouse = input.Position
@@ -502,8 +499,9 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         end
     end
     
-    local function onMouseMove(input)
-        if dragData.isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+    local function onInputChanged(input, processed)
+        if processed then return end
+        if dragData.dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragData.startMouse
             if delta.Magnitude > dragData.threshold then
                 dragData.moved = true
@@ -520,40 +518,40 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         end
     end
     
-    local function onMouseUp(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 and dragData.isDragging then
-            if dragData.moved then
-                SaveShortcutPosition(key, btnFrame.Position)
-            else
-                -- 未移动，视为点击
-                if isToggle then
-                    local newState = not currentState
-                    currentState = newState
-                    if stateIndicator then
-                        Tween(stateIndicator, {BackgroundColor3 = currentState and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Error}, 0.15)
-                    end
-                    if onToggleCallback then onToggleCallback(currentState) end
-                    SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
-                    task.wait(0.05)
-                    SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+    local function onInputEnded(input, processed)
+        if processed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if dragData.dragging then
+                if dragData.moved then
+                    SaveShortcutPosition(key, btnFrame.Position)
                 else
-                    if onClickCallback then onClickCallback() end
-                    SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
-                    task.wait(0.05)
-                    SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+                    if isToggle then
+                        local newState = not initialState
+                        if stateIndicator then
+                            Tween(stateIndicator, {BackgroundColor3 = newState and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Error}, 0.15)
+                        end
+                        if onToggleCallback then onToggleCallback(newState) end
+                        SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
+                        task.wait(0.05)
+                        SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+                    else
+                        if onClickCallback then onClickCallback() end
+                        SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
+                        task.wait(0.05)
+                        SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+                    end
                 end
+                dragData.dragging = false
+                SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
             end
-            dragData.isDragging = false
-            SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
         end
     end
     
-    btnFrame.InputBegan:Connect(onMouseDown)
-    local moveConn = UserInputService.InputChanged:Connect(onMouseMove)
-    local upConn = UserInputService.InputEnded:Connect(onMouseUp)
+    btnFrame.InputBegan:Connect(onInputBegan)
+    local moveConn = UserInputService.InputChanged:Connect(onInputChanged)
+    local endConn = UserInputService.InputEnded:Connect(onInputEnded)
     
     local currentState = initialState
-    
     local function updateState(newState)
         if isToggle then
             currentState = newState
@@ -581,7 +579,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         updateState = updateState,
         destroy = function()
             moveConn:Disconnect()
-            upConn:Disconnect()
+            endConn:Disconnect()
             if btnFrame then btnFrame:Destroy() end
             WasUI.ShortcutButtons[key] = nil
         end
