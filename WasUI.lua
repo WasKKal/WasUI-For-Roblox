@@ -512,9 +512,6 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
             dragData.startPos = btnFrame.Position
             dragData.startMouse = input.Position
             SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
-            if input.UserInputType == Enum.UserInputType.Touch then
-                input.Processed = true
-            end
         end
     end
     
@@ -533,9 +530,6 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
                     dragData.startPos.Y.Offset + delta.Y
                 )
                 btnFrame.Position = newPos
-            end
-            if input.UserInputType == Enum.UserInputType.Touch then
-                input.Processed = true
             end
         end
     end
@@ -563,9 +557,6 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
                 end
                 dragData.dragging = false
                 SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
-            end
-            if input.UserInputType == Enum.UserInputType.Touch then
-                input.Processed = true
             end
         end
     end
@@ -2549,9 +2540,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 dragging = true
                 dragStart = input.Position
                 startPos = self.Instance.Position
-                if input.UserInputType == Enum.UserInputType.Touch then
-                    input.Processed = true
-                end
                 if self.SnowEnabled then
                     self.SnowEnabled = false
                     if self.SnowContainer then
@@ -2577,9 +2565,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             local newX = startPos.X.Offset + delta.X
             local newY = startPos.Y.Offset + delta.Y
             self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
-            if input.UserInputType == Enum.UserInputType.Touch then
-                input.Processed = true
-            end
         end
     end
     local function endDrag(input, processed)
