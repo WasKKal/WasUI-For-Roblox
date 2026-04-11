@@ -437,7 +437,6 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
         TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
         ZIndex = 10001,
         Parent = btnFrame
@@ -445,6 +444,10 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     
     local stateIndicator = nil
     if isToggle then
+        -- 开关：文字左对齐，右边留出指示器空间
+        textLabel.TextXAlignment = Enum.TextXAlignment.Left
+        textLabel.Size = UDim2.new(1, -24, 1, 0)
+        textLabel.Position = UDim2.new(0, 8, 0, 0)
         stateIndicator = CreateInstance("Frame", {
             Name = "Indicator",
             Size = UDim2.new(0, 8, 0, 8),
@@ -456,7 +459,10 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
             Parent = btnFrame
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = stateIndicator})
-        textLabel.Size = UDim2.new(1, -24, 1, 0)
+    else
+        -- 按钮：文字居中
+        textLabel.TextXAlignment = Enum.TextXAlignment.Center
+        textLabel.Size = UDim2.new(1, -16, 1, 0)
         textLabel.Position = UDim2.new(0, 8, 0, 0)
     end
     
@@ -477,17 +483,18 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         btnFrame.Position = UDim2.new(1, -100, 1, -50 - index * 40)
     end
     
+    -- 拖动与点击分离逻辑
     local dragData = {
-        dragging = false,
+        isDragging = false,
         startPos = nil,
         startMouse = nil,
         moved = false,
         threshold = 5
     }
     
-    local function onInputBegan(input)
+    local function onMouseDown(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragData.dragging = true
+            dragData.isDragging = true
             dragData.moved = false
             dragData.startPos = btnFrame.Position
             dragData.startMouse = input.Position
@@ -495,8 +502,8 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         end
     end
     
-    local function onInputChanged(input)
-        if dragData.dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+    local function onMouseMove(input)
+        if dragData.isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragData.startMouse
             if delta.Magnitude > dragData.threshold then
                 dragData.moved = true
@@ -513,48 +520,39 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         end
     end
     
-    local function onInputEnded(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 and dragData.dragging then
+    local function onMouseUp(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and dragData.isDragging then
             if dragData.moved then
                 SaveShortcutPosition(key, btnFrame.Position)
+            else
+                -- 未移动，视为点击
+                if isToggle then
+                    local newState = not currentState
+                    currentState = newState
+                    if stateIndicator then
+                        Tween(stateIndicator, {BackgroundColor3 = currentState and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Error}, 0.15)
+                    end
+                    if onToggleCallback then onToggleCallback(currentState) end
+                    SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
+                    task.wait(0.05)
+                    SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+                else
+                    if onClickCallback then onClickCallback() end
+                    SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
+                    task.wait(0.05)
+                    SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+                end
             end
-            dragData.dragging = false
+            dragData.isDragging = false
             SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
         end
     end
     
-    btnFrame.InputBegan:Connect(onInputBegan)
-    local changedConn = UserInputService.InputChanged:Connect(onInputChanged)
-    local endedConn = UserInputService.InputEnded:Connect(onInputEnded)
+    btnFrame.InputBegan:Connect(onMouseDown)
+    local moveConn = UserInputService.InputChanged:Connect(onMouseMove)
+    local upConn = UserInputService.InputEnded:Connect(onMouseUp)
     
     local currentState = initialState
-    local function handleClick()
-        if dragData.moved then return end
-        if isToggle then
-            currentState = not currentState
-            if stateIndicator then
-                Tween(stateIndicator, {BackgroundColor3 = currentState and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Error}, 0.15)
-            end
-            if onToggleCallback then onToggleCallback(currentState) end
-            SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
-            task.wait(0.05)
-            SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
-        else
-            if onClickCallback then onClickCallback() end
-            SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
-            task.wait(0.05)
-            SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
-        end
-    end
-    
-    local clickConn = btnFrame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            task.wait(0.05)
-            if not dragData.moved then
-                handleClick()
-            end
-        end
-    end)
     
     local function updateState(newState)
         if isToggle then
@@ -582,9 +580,8 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         key = key,
         updateState = updateState,
         destroy = function()
-            changedConn:Disconnect()
-            endedConn:Disconnect()
-            clickConn:Disconnect()
+            moveConn:Disconnect()
+            upConn:Disconnect()
             if btnFrame then btnFrame:Destroy() end
             WasUI.ShortcutButtons[key] = nil
         end
