@@ -1698,6 +1698,7 @@ Panel.__index = Panel
 
 function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local self = setmetatable({}, Panel)
+    self.SnowEnabled = snowEnabled or false
     self.BackgroundImage = nil
     function self:SetBackground(url)
         if self.BackgroundImage then
@@ -1715,6 +1716,12 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 ZIndex = 0,
                 Parent = self.Instance
             })
+            local success, err = pcall(function()
+                self.BackgroundImage.Image = url
+            end)
+            if not success then
+                warn("Failed to load background image:", err)
+            end
         else
             self.BackgroundImage = nil
         end
@@ -2545,12 +2552,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             end
         end
     end
-    local function stopDragging(input, processed)
-        if processed then return end
-        if input and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-            dragging = false
-        end
-    end
     local function onDrag(input, processed)
         if processed then return end
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
@@ -2567,9 +2568,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             end
         end
     end
+    local function stopDragging(input, processed)
+        if processed then return end
+        if input and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+            dragging = false
+        end
+    end
     self.DraggableArea.InputBegan:Connect(startDragging)
-    UserInputService.InputChanged:Connect(onDrag)
-    UserInputService.InputEnded:Connect(stopDragging)
+    local dragMoveConn = UserInputService.InputChanged:Connect(onDrag)
+    local dragEndConn = UserInputService.InputEnded:Connect(stopDragging)
     
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
@@ -2808,6 +2815,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             rainbowModeButton.Text = newMode
             WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
         end)
+
+        local snowToggle = WasUI:CreateToggleWithTitle(contentFrame, "雪花飘落", self.SnowEnabled, function(state)
+            self.SnowEnabled = state
+            if self.SnowContainer then
+                self.SnowContainer.Visible = state
+            end
+        end, "雪花飘落", nil, "cloud-snow")
+        snowToggle.TitleLabel.Text = "雪花飘落"
 
         local groupButton = CreateInstance("TextButton", {
             Name = "GroupButton",
@@ -3127,7 +3142,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end
     end
 
-    if snowEnabled then
+    if self.SnowEnabled then
         self.SnowContainer = CreateInstance("Frame", {
             Name = "SnowContainer",
             Size = self.Instance.Size,
