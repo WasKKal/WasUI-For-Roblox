@@ -1,5 +1,6 @@
 local WasUI = {}
 WasUI.__index = WasUI
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -8,12 +9,15 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
+local ContentProvider = game:GetService("ContentProvider")
+local Lighting = game:GetService("Lighting")
 
-if _G.WasUILoaded and _G.WasUIModule then
+local isLoaded = false
+if _G.WasUIModule then
     warn("WasUI已加载 请勿重复加载")
     return _G.WasUIModule
 end
-_G.WasUILoaded = true
+isLoaded = true
 
 local function copyToClipboard(text)
     if type(setclipboard) == "function" then
@@ -82,6 +86,8 @@ WasUI.RainbowOrder = {}
 
 WasUI.ShortcutGui = nil
 WasUI.ShortcutButtons = {}
+WasUI.KeyBindings = {}
+WasUI.AwaitingKeyBind = nil
 
 local function EnsureShortcutGui()
     if not WasUI.ShortcutGui or not WasUI.ShortcutGui.Parent then
@@ -358,11 +364,14 @@ local rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
 end)
 
 local function GetShortcutKey(controlType, controlId, rainbowName)
+    local base = ""
     if rainbowName and rainbowName ~= "" then
-        return "shortcut_" .. rainbowName
+        base = "shortcut_" .. rainbowName
     else
-        return "shortcut_" .. controlType .. "_" .. tostring(controlId)
+        base = "shortcut_" .. controlType .. "_" .. tostring(controlId)
     end
+    base = base:gsub("[^%w_]", "_")
+    return base
 end
 
 local function SaveShortcutPosition(key, position)
@@ -372,15 +381,22 @@ local function SaveShortcutPosition(key, position)
         folder.Name = "WasUI_Config"
         folder.Parent = ReplicatedStorage
     end
-    folder:SetAttribute(key .. "_Pos", {position.X.Scale, position.X.Offset, position.Y.Scale, position.Y.Offset})
+    local posStr = string.format("%.3f,%.3f,%.3f,%.3f", position.X.Scale, position.X.Offset, position.Y.Scale, position.Y.Offset)
+    folder:SetAttribute(key .. "_Pos", posStr)
 end
 
 local function LoadShortcutPosition(key)
     local folder = ReplicatedStorage:FindFirstChild("WasUI_Config")
     if folder then
-        local posData = folder:GetAttribute(key .. "_Pos")
-        if posData and type(posData) == "table" and #posData == 4 then
-            return UDim2.new(posData[1], posData[2], posData[3], posData[4])
+        local posStr = folder:GetAttribute(key .. "_Pos")
+        if posStr and type(posStr) == "string" then
+            local parts = {}
+            for part in string.gmatch(posStr, "[^,]+") do
+                table.insert(parts, tonumber(part))
+            end
+            if #parts == 4 then
+                return UDim2.new(parts[1], parts[2], parts[3], parts[4])
+            end
         end
     end
     return nil
@@ -397,236 +413,141 @@ function WasUI:ClearAllShortcuts()
     WasUI.ShortcutButtons = {}
 end
 
-local function CreateShortcutButton(displayName, isToggle, initialState, onToggleCallback, onClickCallback, rainbowKey)
-    EnsureShortcutGui()
-    local key = GetShortcutKey(isToggle and "toggle" or "button", nil, rainbowKey)
-    
-    if WasUI.ShortcutButtons[key] then
-        local existing = WasUI.ShortcutButtons[key]
-        if existing.destroy then
-            existing:destroy()
-        elseif existing.button then
-            existing.button:Destroy()
-        end
-        WasUI.ShortcutButtons[key] = nil
-        return nil
+local function SaveKeyBinding(key, keyCode)
+    local folder = ReplicatedStorage:FindFirstChild("WasUI_Config")
+    if not folder then
+        folder = Instance.new("Folder")
+        folder.Name = "WasUI_Config"
+        folder.Parent = ReplicatedStorage
     end
-
-    local btnFrame = CreateInstance("Frame", {
-        Name = "Shortcut_" .. (rainbowKey or displayName),
-        Size = UDim2.new(0, 0, 0, 32),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.2,
-        BorderSizePixel = 0,
-        ZIndex = 10000,
-        Parent = WasUI.ShortcutGui
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = btnFrame})
-    local stroke = CreateInstance("UIStroke", {
-        Color = WasUI.CurrentTheme.Accent,
-        Thickness = 1,
-        Transparency = 0.5,
-        Parent = btnFrame
-    })
-    
-    local textLabel = CreateInstance("TextLabel", {
-        Name = "Text",
-        BackgroundTransparency = 1,
-        Text = displayName,
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 12,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        ZIndex = 10001,
-        Parent = btnFrame
-    })
-    
-    local stateIndicator = nil
-    if isToggle then
-        textLabel.TextXAlignment = Enum.TextXAlignment.Left
-        textLabel.Size = UDim2.new(1, -24, 1, 0)
-        textLabel.Position = UDim2.new(0, 8, 0, 0)
-        stateIndicator = CreateInstance("Frame", {
-            Name = "Indicator",
-            Size = UDim2.new(0, 8, 0, 8),
-            Position = UDim2.new(1, -16, 0.5, -4),
-            BackgroundColor3 = initialState and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Error,
-            BackgroundTransparency = 0,
-            BorderSizePixel = 0,
-            ZIndex = 10002,
-            Parent = btnFrame
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = stateIndicator})
-    else
-        textLabel.TextXAlignment = Enum.TextXAlignment.Center
-        textLabel.Size = UDim2.new(1, -16, 1, 0)
-        textLabel.Position = UDim2.new(0, 8, 0, 0)
-    end
-    
-    local function updateSize()
-        local textBounds = textLabel.TextBounds
-        local width = math.max(80, textBounds.X + (isToggle and 32 or 24))
-        btnFrame.Size = UDim2.new(0, width, 0, 32)
-    end
-    textLabel:GetPropertyChangedSignal("TextBounds"):Connect(updateSize)
-    updateSize()
-    
-    local savedPos = LoadShortcutPosition(key)
-    if savedPos then
-        btnFrame.Position = savedPos
-    else
-        local index = 0
-        for _,_ in pairs(WasUI.ShortcutButtons) do index = index + 1 end
-        btnFrame.Position = UDim2.new(1, -100, 1, -50 - index * 40)
-    end
-    
-    local dragData = {
-        dragging = false,
-        startPos = nil,
-        startMouse = nil,
-        moved = false,
-        threshold = 5,
-        connectionChanged = nil,
-        connectionEnded = nil
-    }
-    
-    local currentState = initialState
-    
-    local function updateVisuals()
-        if isToggle then
-            if currentState then
-                Tween(stroke, {Color = WasUI.CurrentTheme.Success, Transparency = 0.2}, 0.2)
-                Tween(stateIndicator, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-            else
-                Tween(stroke, {Color = WasUI.CurrentTheme.Accent, Transparency = 0.5}, 0.2)
-                Tween(stateIndicator, {BackgroundColor3 = WasUI.CurrentTheme.Error}, 0.2)
-            end
-        end
-    end
-    
-    local function onInputBegan(input, processed)
-        if processed then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragData.dragging = true
-            dragData.moved = false
-            dragData.startPos = btnFrame.Position
-            dragData.startMouse = input.Position
-            SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
-        end
-    end
-    
-    local function onInputChanged(input, processed)
-        if processed then return end
-        if dragData.dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragData.startMouse
-            if delta.Magnitude > dragData.threshold then
-                dragData.moved = true
-            end
-            if dragData.moved then
-                local newPos = UDim2.new(
-                    dragData.startPos.X.Scale,
-                    dragData.startPos.X.Offset + delta.X,
-                    dragData.startPos.Y.Scale,
-                    dragData.startPos.Y.Offset + delta.Y
-                )
-                btnFrame.Position = newPos
-            end
-        end
-    end
-    
-    local function onInputEnded(input, processed)
-        if processed then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            if dragData.dragging then
-                if dragData.moved then
-                    SaveShortcutPosition(key, btnFrame.Position)
-                else
-                    if isToggle then
-                        currentState = not currentState
-                        updateVisuals()
-                        if onToggleCallback then onToggleCallback(currentState) end
-                        SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
-                        task.wait(0.05)
-                        SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
-                    else
-                        if onClickCallback then onClickCallback() end
-                        SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
-                        task.wait(0.05)
-                        SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
-                    end
-                end
-                dragData.dragging = false
-                SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
-            end
-        end
-    end
-    
-    btnFrame.InputBegan:Connect(onInputBegan)
-    dragData.connectionChanged = UserInputService.InputChanged:Connect(onInputChanged)
-    dragData.connectionEnded = UserInputService.InputEnded:Connect(onInputEnded)
-    
-    local function updateState(newState)
-        if isToggle then
-            currentState = newState
-            updateVisuals()
-        end
-    end
-    
-    updateVisuals()
-    
-    local shortcutObj = {
-        button = btnFrame,
-        key = key,
-        updateState = updateState,
-        destroy = function()
-            if dragData.connectionChanged then dragData.connectionChanged:Disconnect() end
-            if dragData.connectionEnded then dragData.connectionEnded:Disconnect() end
-            if btnFrame then btnFrame:Destroy() end
-            WasUI.ShortcutButtons[key] = nil
-        end
-    }
-    WasUI.ShortcutButtons[key] = shortcutObj
-    return shortcutObj
+    folder:SetAttribute(key .. "_Key", tostring(keyCode))
 end
 
-local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
-    longPressTime = longPressTime or 0.5
+local function LoadKeyBinding(key)
+    local folder = ReplicatedStorage:FindFirstChild("WasUI_Config")
+    if folder then
+        local keyStr = folder:GetAttribute(key .. "_Key")
+        if keyStr then
+            for _, kc in pairs(Enum.KeyCode:GetEnumItems()) do
+                if tostring(kc) == keyStr then return kc end
+            end
+        end
+    end
+    return nil
+end
+
+local function GetKeyName(keyCode)
+    return string.gsub(tostring(keyCode), "Enum.KeyCode.", "")
+end
+
+local function AddKeyBindLongPress(controlInstance, controlKey, controlType, callback, displayName)
+    local longPressTime = 0.5
     local timer = nil
     local pressed = false
     local startPos = nil
-    
+
     local function startPress(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
             pressed = true
             startPos = input.Position
             timer = task.delay(longPressTime, function()
                 if pressed then
-                    onLongPress()
+                    if WasUI.AwaitingKeyBind then
+                        WasUI:Notify({Title = "快捷键", Content = "已有正在绑定的快捷键，请稍后", Duration = 1.5})
+                        return
+                    end
+                    WasUI.AwaitingKeyBind = {
+                        controlKey = controlKey,
+                        controlType = controlType,
+                        callback = callback,
+                        displayName = displayName
+                    }
+                    WasUI:Notify({Title = "设置快捷键", Content = "请按下任意键...", Duration = 3, BackgroundColor = WasUI.CurrentTheme.Section, BorderColor = WasUI.CurrentTheme.Accent})
                 end
             end)
         end
     end
-    
+
     local function endPress()
-        if timer then
-            task.cancel(timer)
-            timer = nil
-        end
+        if timer then task.cancel(timer); timer = nil end
         pressed = false
         startPos = nil
     end
-    
+
     local function checkMove(input)
-        if pressed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if pressed and input.UserInputType == Enum.UserInputType.MouseMovement then
             if startPos and (input.Position - startPos).Magnitude > 10 then
                 endPress()
             end
         end
     end
-    
+
     controlInstance.InputBegan:Connect(startPress)
     controlInstance.InputEnded:Connect(endPress)
     UserInputService.InputChanged:Connect(checkMove)
+end
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        if WasUI.AwaitingKeyBind then
+            local bind = WasUI.AwaitingKeyBind
+            WasUI.AwaitingKeyBind = nil
+            local keyCode = input.KeyCode
+            if keyCode then
+                SaveKeyBinding(bind.controlKey, keyCode)
+                WasUI.KeyBindings[bind.controlKey] = { keyCode = keyCode, callback = bind.callback, controlType = bind.controlType }
+                WasUI:Notify({Title = "设置完成", Content = string.format("当前功能 [%s] 绑定的快捷键为: %s", bind.displayName, GetKeyName(keyCode)), Duration = 2.5, BackgroundColor = WasUI.CurrentTheme.Success, BorderColor = WasUI.CurrentTheme.Success})
+            else
+                WasUI:Notify({Title = "设置失败", Content = "无效的按键", Duration = 1.5})
+            end
+            return
+        end
+        for key, bind in pairs(WasUI.KeyBindings) do
+            if input.KeyCode == bind.keyCode then
+                if bind.controlType == "toggle" and bind.callback then
+                    bind.callback()
+                elseif bind.controlType == "button" and bind.callback then
+                    bind.callback()
+                end
+                break
+            end
+        end
+    end
+end)
+
+local function AddShadow(instance, blurSize, transparency, color)
+    blurSize = blurSize or 8
+    transparency = transparency or 0.5
+    color = color or Color3.fromRGB(0, 0, 0)
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://1316045217"
+    shadow.ImageColor3 = color
+    shadow.ImageTransparency = transparency
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(10, 10, 10, 10)
+    shadow.ZIndex = instance.ZIndex - 1
+    shadow.Size = UDim2.new(1, blurSize * 2, 1, blurSize * 2)
+    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    shadow.Parent = instance
+    return shadow
+end
+
+local function ApplyGlassEffect(frame, intensity)
+    intensity = intensity or 0.7
+    local blur = Instance.new("BlurEffect")
+    blur.Size = 12
+    blur.Parent = frame
+    frame.BackgroundTransparency = 1 - intensity
+    frame.BackgroundColor3 = WasUI.CurrentTheme.Background
+    local highlight = Instance.new("UIStroke")
+    highlight.Color = Color3.fromRGB(255, 255, 255)
+    highlight.Thickness = 1
+    highlight.Transparency = 0.8
+    highlight.Parent = frame
 end
 
 local Control = {}
@@ -711,6 +632,14 @@ function Button:New(name, parent, text, onClick, size, iconName)
         SpringTween(scale, {Scale = 1}, 0.25)
         if onClick then onClick() end
     end)
+    
+    local controlKey = "button_" .. (text or name)
+    AddKeyBindLongPress(self.Instance, controlKey, "button", onClick, text or name)
+    local savedKey = LoadKeyBinding(controlKey)
+    if savedKey then
+        WasUI.KeyBindings[controlKey] = { keyCode = savedKey, callback = onClick, controlType = "button" }
+    end
+    AddShadow(self.Instance, 6, 0.4, Color3.fromRGB(0,0,0))
     
     AddLongPressToControl(self.Instance, function()
         CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
@@ -817,6 +746,16 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     self.Background.MouseButton1Click:Connect(function()
         performToggle(not self.Toggled)
     end)
+    
+    local controlKey = GetShortcutKey("toggle", name, self.RainbowName)
+    AddKeyBindLongPress(self.Background, controlKey, "toggle", function()
+        performToggle(not self.Toggled)
+    end, self.RainbowName)
+    local savedKey = LoadKeyBinding(controlKey)
+    if savedKey then
+        WasUI.KeyBindings[controlKey] = { keyCode = savedKey, callback = function() performToggle(not self.Toggled) end, controlType = "toggle" }
+    end
+    AddShadow(self.Container, 6, 0.4, Color3.fromRGB(0,0,0))
     
     AddLongPressToControl(self.Background, function()
         local shortcut = CreateShortcutButton(self.RainbowName, true, self.Toggled, 
@@ -1693,6 +1632,14 @@ end
 local Panel = {}
 Panel.__index = Panel
 
+local function isPointOverButton(btn, point)
+    if not btn or not btn.Parent then return false end
+    local absPos = btn.AbsolutePosition
+    local absSize = btn.AbsoluteSize
+    return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
+           point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y
+end
+
 function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local self = setmetatable({}, Panel)
     self.SnowEnabled = snowEnabled or false
@@ -1707,18 +1654,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 Size = UDim2.new(1, 0, 1, 0),
                 Position = UDim2.new(0, 0, 0, 0),
                 BackgroundTransparency = 1,
-                Image = url,
+                Image = "",
                 ImageTransparency = 0.2,
                 ScaleType = Enum.ScaleType.Crop,
                 ZIndex = 0,
                 Parent = self.Instance
             })
-            local success, err = pcall(function()
-                self.BackgroundImage.Image = url
-            end)
-            if not success then
-                warn("Failed to load background image:", err)
-            end
+            ContentProvider:PreloadAsync({url})
+            self.BackgroundImage.Image = url
         else
             self.BackgroundImage = nil
         end
@@ -1738,6 +1681,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     if backgroundUrl and backgroundUrl ~= "" then
         self:SetBackground(backgroundUrl)
     end
+
+    ApplyGlassEffect(self.Instance, 0.6)
+    AddShadow(self.Instance, 12, 0.5, Color3.fromRGB(0,0,0))
 
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
@@ -2525,22 +2471,61 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     local dragEndConn = nil
     local dragStart = Vector2.new()
     local startPos = UDim2.new()
+    local currentDragTouch = nil
+    
     local function isPointOverDraggableArea(point)
-        if not self.DraggableArea or not self.DraggableArea.Parent then return false end
-        local absPos = self.DraggableArea.AbsolutePosition
-        local absSize = self.DraggableArea.AbsoluteSize
-        return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
-               point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y
+        local targetArea = self.IsMinimized and self.DotContainer or self.DraggableArea
+        if not targetArea or not targetArea.Parent then return false end
+        local absPos = targetArea.AbsolutePosition
+        local absSize = targetArea.AbsoluteSize
+        if self.IsMinimized then
+            return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
+                   point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y
+        else
+            local hitCloseDot = isPointOverButton(self.CloseDot, point)
+            local hitMinimizeDot = isPointOverButton(self.MinimizeDot, point)
+            local hitMaximizeDot = isPointOverButton(self.MaximizeDot, point)
+            local hitCloseBtn = isPointOverButton(closeButton, point)
+            local hitSearchBtn = isPointOverButton(searchButton, point)
+            return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
+                   point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y and
+                   not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn)
+        end
     end
+    
     local function startDrag(input, processed)
         if processed then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
             local mousePos = input.Position
             if isPointOverDraggableArea(mousePos) then
                 dragging = true
                 dragStart = input.Position
                 startPos = self.Instance.Position
-                if self.SnowEnabled then
+                currentDragTouch = nil
+                if not self.IsMinimized and self.SnowEnabled then
+                    self.SnowEnabled = false
+                    if self.SnowContainer then
+                        self.SnowContainer.Visible = false
+                    end
+                    if WasUI.SettingsPanel then
+                        local snowToggleBtn = WasUI.SettingsPanel:FindFirstChild("Content") and WasUI.SettingsPanel.Content:FindFirstChild("Toggle")
+                        if snowToggleBtn and snowToggleBtn.Background then
+                            local toggled = snowToggleBtn.Background:GetAttribute("Toggled")
+                            if toggled then
+                                snowToggleBtn.Background:FindFirstChildOfClass("ImageButton").MouseButton1Click:Fire()
+                            end
+                        end
+                    end
+                end
+            end
+        elseif input.UserInputType == Enum.UserInputType.Touch then
+            local touchPos = input.Position
+            if isPointOverDraggableArea(touchPos) then
+                dragging = true
+                dragStart = input.Position
+                startPos = self.Instance.Position
+                currentDragTouch = input
+                if not self.IsMinimized and self.SnowEnabled then
                     self.SnowEnabled = false
                     if self.SnowContainer then
                         self.SnowContainer.Visible = false
@@ -2558,23 +2543,40 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             end
         end
     end
+    
     local function updateDrag(input, processed)
         if processed then return end
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local isValid = false
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging and currentDragTouch == nil then
+            isValid = true
+        elseif input.UserInputType == Enum.UserInputType.Touch and dragging and input == currentDragTouch then
+            isValid = true
+        end
+        if isValid then
             local delta = input.Position - dragStart
             local newX = startPos.X.Offset + delta.X
             local newY = startPos.Y.Offset + delta.Y
             self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
         end
     end
+    
     local function endDrag(input, processed)
         if processed then return end
-        if input and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+        local isValid = false
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and dragging and currentDragTouch == nil then
+            isValid = true
+        elseif input.UserInputType == Enum.UserInputType.Touch and dragging and input == currentDragTouch then
+            isValid = true
+        end
+        if isValid then
             dragging = false
             dragStart = Vector2.new()
+            currentDragTouch = nil
         end
     end
+    
     self.DraggableArea.InputBegan:Connect(startDrag)
+    self.DotAreaButton.InputBegan:Connect(startDrag)
     dragMoveConn = UserInputService.InputChanged:Connect(updateDrag)
     dragEndConn = UserInputService.InputEnded:Connect(endDrag)
     
@@ -2816,15 +2818,66 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
         end)
 
-        local snowToggle = WasUI:CreateToggleWithTitle(contentFrame, "雪花飘落", self.SnowEnabled, function(state)
-            self.SnowEnabled = state
+        local snowContainer = CreateInstance("Frame", {
+            Name = "SnowToggleContainer",
+            Size = UDim2.new(1, 0, 0, 28),
+            BackgroundTransparency = 1,
+            ZIndex = 1003,
+            Parent = contentFrame
+        })
+        local snowTitle = CreateInstance("TextLabel", {
+            Name = "Title",
+            Size = UDim2.new(0.7, 0, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "雪花飘落",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            ZIndex = 1003,
+            Parent = snowContainer
+        })
+        local snowBg = CreateInstance("ImageButton", {
+            Name = "SnowBG",
+            Size = UDim2.new(0, 36, 0, 18),
+            Position = UDim2.new(1, -40, 0.5, -9),
+            BackgroundColor3 = self.SnowEnabled and WasUI.CurrentTheme.Success or ((WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)),
+            Image = "",
+            BorderSizePixel = 0,
+            AutoButtonColor = false,
+            ZIndex = 1003,
+            Parent = snowContainer
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowBg})
+        local snowKnob = CreateInstance("Frame", {
+            Name = "SnowKnob",
+            Size = UDim2.new(0, 16, 0, 16),
+            Position = self.SnowEnabled and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+            BorderSizePixel = 0,
+            ZIndex = 1004,
+            Parent = snowBg
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowKnob})
+        local function updateSnowToggle(newState)
+            self.SnowEnabled = newState
             if self.SnowContainer then
-                self.SnowContainer.Visible = state
+                self.SnowContainer.Visible = newState
             end
-        end, "雪花飘落", nil, "cloud-snow")
-        snowToggle.TitleLabel.ZIndex = 1003
-        snowToggle.Background.ZIndex = 1003
-        snowToggle.Knob.ZIndex = 1003
+            if newState then
+                Tween(snowBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+                SpringTween(snowKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
+            else
+                local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+                Tween(snowBg, {BackgroundColor3 = offCol}, 0.2)
+                SpringTween(snowKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
+            end
+        end
+        snowBg.MouseButton1Click:Connect(function()
+            updateSnowToggle(not self.SnowEnabled)
+        end)
 
         local groupButton = CreateInstance("TextButton", {
             Name = "GroupButton",
@@ -3274,12 +3327,14 @@ function WasUI:Notify(options)
     local title = options.Title or "Notification"
     local content = options.Content or ""
     local duration = options.Duration or 3
+    local bgColor = options.BackgroundColor or WasUI.CurrentTheme.Section
+    local borderColor = options.BorderColor or WasUI.CurrentTheme.Text
     local notificationId = HttpService:GenerateGUID(false)
     local frame = CreateInstance("Frame", {
         Name = "Notification_" .. notificationId,
         Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
         Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, WasUI.NotificationTop),
-        BackgroundColor3 = WasUI.CurrentTheme.Section,
+        BackgroundColor3 = bgColor,
         BackgroundTransparency = 0.2,
         ClipsDescendants = true,
         Visible = true,
@@ -3288,7 +3343,7 @@ function WasUI:Notify(options)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = frame})
     local stroke = CreateInstance("UIStroke", {
-        Color = WasUI.CurrentTheme.Text,
+        Color = borderColor,
         Thickness = 1,
         Transparency = 0.5,
         Parent = frame
@@ -3300,7 +3355,7 @@ function WasUI:Notify(options)
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamSemibold,
+        Font = Enum.Font.GothamBold,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 10000,
