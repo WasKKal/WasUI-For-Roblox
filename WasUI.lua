@@ -11,12 +11,10 @@ local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
 local ContentProvider = game:GetService("ContentProvider")
 
-local isLoaded = false
 if _G.WasUIModule then
     warn("WasUI已加载 请勿重复加载")
     return _G.WasUIModule
 end
-isLoaded = true
 
 local function copyToClipboard(text)
     if type(setclipboard) == "function" then
@@ -88,6 +86,145 @@ WasUI.ShortcutButtons = {}
 WasUI.KeyBindings = {}
 WasUI.AwaitingKeyBind = nil
 
+-- ================= 配置管理模块 =================
+WasUI.ConfigManager = nil
+WasUI.ConfigFolderCreated = false
+WasUI.ConfigFolderName = nil
+
+local function ensureConfigFolderExists()
+    if not WasUI.ConfigFolderCreated then
+        WasUI:Notify({
+            Title = "配置错误",
+            Content = "当前脚本作者未正确配置 Folder 状态，请先调用 WasUI:CreateFolder('文件夹名')",
+            Duration = 4,
+            BackgroundColor = WasUI.CurrentTheme.Error,
+            BorderColor = WasUI.CurrentTheme.Error
+        })
+        return false
+    end
+    return true
+end
+
+function WasUI:CreateFolder(folderName)
+    if not folderName or folderName == "" then
+        error("CreateFolder: folderName cannot be empty")
+    end
+    local path = "WasUI_Configs/" .. folderName
+    if not isfolder(path) then
+        makefolder(path)
+    end
+    WasUI.ConfigFolderCreated = true
+    WasUI.ConfigFolderName = folderName
+    WasUI.ConfigManager = {}
+    
+    local function getFilePath(configName)
+        return path .. "/" .. configName .. ".json"
+    end
+    
+    function WasUI.ConfigManager:GetConfig(configName)
+        if not ensureConfigFolderExists() then return nil end
+        local filePath = getFilePath(configName)
+        local config = {
+            Name = configName,
+            Path = filePath,
+            Data = {},
+            Bindings = {},
+            __type = "Config"
+        }
+        
+        function config:Save()
+            if not ensureConfigFolderExists() then return false end
+            local dataToSave = {}
+            for key, value in pairs(self.Data) do
+                dataToSave[key] = value
+            end
+            local json = HttpService:JSONEncode(dataToSave)
+            writefile(self.Path, json)
+            return true
+        end
+        
+        function config:Load()
+            if not ensureConfigFolderExists() then return false end
+            if not isfile(self.Path) then return false end
+            local success, data = pcall(function()
+                return HttpService:JSONDecode(readfile(self.Path))
+            end)
+            if success and type(data) == "table" then
+                self.Data = data
+                for key, value in pairs(self.Data) do
+                    local binding = self.Bindings[key]
+                    if binding and binding.control and binding.update then
+                        binding.update(value)
+                    end
+                end
+                return true
+            end
+            return false
+        end
+        
+        function config:Delete()
+            if not ensureConfigFolderExists() then return false end
+            if isfile(self.Path) then
+                delfile(self.Path)
+            end
+            self.Data = {}
+            self.Bindings = {}
+            return true
+        end
+        
+        function config:Set(key, value)
+            self.Data[key] = value
+        end
+        
+        function config:Get(key, defaultValue)
+            local val = self.Data[key]
+            if val == nil then return defaultValue end
+            return val
+        end
+        
+        function config:Bind(key, control, updateFunc)
+            self.Bindings[key] = { control = control, update = updateFunc }
+            local savedValue = self.Data[key]
+            if savedValue ~= nil then
+                updateFunc(savedValue)
+            end
+        end
+        
+        if isfile(filePath) then
+            config:Load()
+        end
+        
+        return config
+    end
+    
+    function WasUI.ConfigManager:AllConfigs()
+        if not ensureConfigFolderExists() then return {} end
+        local files = {}
+        if listfiles then
+            for _, file in ipairs(listfiles(path)) do
+                local name = file:match("([^/]+)%.json$")
+                if name then
+                    table.insert(files, name)
+                end
+            end
+        end
+        return files
+    end
+    
+    function WasUI.ConfigManager:DeleteConfig(configName)
+        if not ensureConfigFolderExists() then return false end
+        local filePath = getFilePath(configName)
+        if isfile(filePath) then
+            delfile(filePath)
+        end
+        return true
+    end
+    
+    WasUI:Notify({Title = "配置系统", Content = "已创建配置文件夹: " .. folderName, Duration = 2})
+    return WasUI.ConfigManager
+end
+
+-- ================= 辅助函数 =================
 local function EnsureShortcutGui()
     if not WasUI.ShortcutGui or not WasUI.ShortcutGui.Parent then
         WasUI.ShortcutGui = Instance.new("ScreenGui")
@@ -362,20 +499,6 @@ local rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
     end
 end)
 
-local function ApplyGlassEffect(frame, intensity)
-    intensity = intensity or 0.7
-    local blur = Instance.new("BlurEffect")
-    blur.Size = 12
-    blur.Parent = frame
-    frame.BackgroundTransparency = 1 - intensity
-    frame.BackgroundColor3 = WasUI.CurrentTheme.Background
-    local highlight = Instance.new("UIStroke")
-    highlight.Color = Color3.fromRGB(255, 255, 255)
-    highlight.Thickness = 1
-    highlight.Transparency = 0.8
-    highlight.Parent = frame
-end
-
 local function GetShortcutKey(controlType, controlId, rainbowName)
     local base = ""
     if rainbowName and rainbowName ~= "" then
@@ -534,7 +657,7 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
     local timer = nil
     local pressed = false
     local startPos = nil
-    
+
     local function startPress(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             pressed = true
@@ -546,7 +669,7 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
             end)
         end
     end
-    
+
     local function endPress()
         if timer then
             task.cancel(timer)
@@ -555,7 +678,7 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
         pressed = false
         startPos = nil
     end
-    
+
     local function checkMove(input)
         if pressed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             if startPos and (input.Position - startPos).Magnitude > 10 then
@@ -563,7 +686,7 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
             end
         end
     end
-    
+
     controlInstance.InputBegan:Connect(startPress)
     controlInstance.InputEnded:Connect(endPress)
     UserInputService.InputChanged:Connect(checkMove)
@@ -572,7 +695,7 @@ end
 local function CreateShortcutButton(displayName, isToggle, initialState, onToggleCallback, onClickCallback, rainbowKey)
     EnsureShortcutGui()
     local key = GetShortcutKey(isToggle and "toggle" or "button", nil, rainbowKey)
-    
+
     if WasUI.ShortcutButtons[key] then
         local existing = WasUI.ShortcutButtons[key]
         if existing.destroy then
@@ -600,7 +723,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         Transparency = 0.5,
         Parent = btnFrame
     })
-    
+
     local textLabel = CreateInstance("TextLabel", {
         Name = "Text",
         BackgroundTransparency = 1,
@@ -612,7 +735,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         ZIndex = 10001,
         Parent = btnFrame
     })
-    
+
     local stateIndicator = nil
     if isToggle then
         textLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -634,7 +757,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         textLabel.Size = UDim2.new(1, -16, 1, 0)
         textLabel.Position = UDim2.new(0, 8, 0, 0)
     end
-    
+
     local function updateSize()
         local textBounds = textLabel.TextBounds
         local width = math.max(80, textBounds.X + (isToggle and 32 or 24))
@@ -642,7 +765,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     end
     textLabel:GetPropertyChangedSignal("TextBounds"):Connect(updateSize)
     updateSize()
-    
+
     local savedPos = LoadShortcutPosition(key)
     if savedPos then
         btnFrame.Position = savedPos
@@ -651,7 +774,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         for _,_ in pairs(WasUI.ShortcutButtons) do index = index + 1 end
         btnFrame.Position = UDim2.new(1, -100, 1, -50 - index * 40)
     end
-    
+
     local dragData = {
         dragging = false,
         startPos = nil,
@@ -662,9 +785,9 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         connectionEnded = nil,
         currentTouch = nil
     }
-    
+
     local currentState = initialState
-    
+
     local function updateVisuals()
         if isToggle then
             if currentState then
@@ -676,7 +799,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
             end
         end
     end
-    
+
     local function onInputBegan(input, processed)
         if processed then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -695,7 +818,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
             SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
         end
     end
-    
+
     local function onInputChanged(input, processed)
         if processed then return end
         local isValid = false
@@ -720,7 +843,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
             end
         end
     end
-    
+
     local function onInputEnded(input, processed)
         if processed then return end
         local isValid = false
@@ -752,20 +875,20 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
             SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
         end
     end
-    
+
     btnFrame.InputBegan:Connect(onInputBegan)
     dragData.connectionChanged = UserInputService.InputChanged:Connect(onInputChanged)
     dragData.connectionEnded = UserInputService.InputEnded:Connect(onInputEnded)
-    
+
     local function updateState(newState)
         if isToggle then
             currentState = newState
             updateVisuals()
         end
     end
-    
+
     updateVisuals()
-    
+
     local shortcutObj = {
         button = btnFrame,
         key = key,
@@ -863,26 +986,26 @@ function Button:New(name, parent, text, onClick, size, iconName)
         SpringTween(scale, {Scale = 1}, 0.25)
         if onClick then onClick() end
     end)
-    
+
     local controlKey = "button_" .. (text or name)
     AddKeyBindLongPress(self.Instance, controlKey, "button", onClick, text or name)
     local savedKey = LoadKeyBinding(controlKey)
     if savedKey then
         WasUI.KeyBindings[controlKey] = { keyCode = savedKey, callback = onClick, controlType = "button" }
     end
-    
+
     AddLongPressToControl(self.Instance, function()
         CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
         WasUI:Notify({Title = "快捷键", Content = "已创建快捷按钮: " .. (text or name), Duration = 1.5})
     end)
-    
+
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Button"})
     return self
 end
 
 local ToggleSwitch = setmetatable({}, {__index = Control})
 ToggleSwitch.__index = ToggleSwitch
-function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureName, rainbowName, iconName)
+function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureName, rainbowName, iconName, configKey)
     local self = Control:New(name, parent)
     self.Toggled = initialState or false
     self.ToggleCallback = onToggle
@@ -947,7 +1070,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then
         CreateRainbowTextForFeature(self.RainbowName)
     end
-    
+
     local function performToggle(newState)
         self.Toggled = newState
         self.Background:SetAttribute("Toggled", self.Toggled)
@@ -971,12 +1094,19 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         if shortcut and shortcut.updateState then
             shortcut.updateState(self.Toggled)
         end
+        if configKey and WasUI.ConfigManager then
+            local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+            if config then
+                config:Set(configKey, self.Toggled)
+                config:Save()
+            end
+        end
     end
-    
+
     self.Background.MouseButton1Click:Connect(function()
         performToggle(not self.Toggled)
     end)
-    
+
     local controlKey = GetShortcutKey("toggle", name, self.RainbowName)
     AddKeyBindLongPress(self.Background, controlKey, "toggle", function()
         performToggle(not self.Toggled)
@@ -985,7 +1115,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if savedKey then
         WasUI.KeyBindings[controlKey] = { keyCode = savedKey, callback = function() performToggle(not self.Toggled) end, controlType = "toggle" }
     end
-    
+
     AddLongPressToControl(self.Background, function()
         local shortcut = CreateShortcutButton(self.RainbowName, true, self.Toggled, 
             function(newState)
@@ -997,7 +1127,14 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             WasUI:Notify({Title = "快捷键", Content = "已移除快捷开关: " .. self.RainbowName, Duration = 1.5})
         end
     end)
-    
+
+    if configKey and WasUI.ConfigManager then
+        local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+        if config then
+            config:Bind(configKey, self, function(state) performToggle(state) end)
+        end
+    end
+
     table.insert(WasUI.Objects, {Object = self.Background, Type = "Toggle"})
     table.insert(WasUI.Objects, {Object = self.Knob, Type = "ToggleKnob"})
     return self
@@ -1071,7 +1208,7 @@ end
 
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
-function Dropdown:New(name, parent, title, options, defaultValue, callback, multiSelect)
+function Dropdown:New(name, parent, title, options, defaultValue, callback, multiSelect, configKey)
     EnsureDropdownGui()
     local self = Control:New(name, parent)
     self.MultiSelect = not not multiSelect
@@ -1100,7 +1237,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     self.IsOpen = false
     self.Container = CreateInstance("Frame", {
         Name = name,
-        Size = UDim2.new(1, 0, 0, 50),
+        Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
         ZIndex = 10,
         Parent = parent
@@ -1229,11 +1366,25 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                     end
                     self:UpdateDisplayText()
                     if self.Callback then self.Callback(self.SelectedValues) end
+                    if configKey and WasUI.ConfigManager then
+                        local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+                        if config then
+                            config:Set(configKey, self.SelectedValues)
+                            config:Save()
+                        end
+                    end
                 else
                     self.SelectedValue = option
                     self:UpdateDisplayText()
                     if self.Callback then self.Callback(option) end
                     self:Close(true)
+                    if configKey and WasUI.ConfigManager then
+                        local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+                        if config then
+                            config:Set(configKey, option)
+                            config:Save()
+                        end
+                    end
                 end
             end)
             self.OptionButtons[option] = optionButton
@@ -1368,6 +1519,44 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     end)
     rebuildOptions()
     self:UpdateDisplayText()
+    if configKey and WasUI.ConfigManager then
+        local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+        if config then
+            local savedValue = config:Get(configKey)
+            if savedValue ~= nil then
+                if self.MultiSelect then
+                    if type(savedValue) == "table" then
+                        self.SelectedValues = savedValue
+                    elseif type(savedValue) == "string" then
+                        self.SelectedValues = { savedValue }
+                    end
+                else
+                    if type(savedValue) == "string" then
+                        self.SelectedValue = savedValue
+                    elseif type(savedValue) == "table" and #savedValue > 0 then
+                        self.SelectedValue = savedValue[1]
+                    end
+                end
+                self:UpdateDisplayText()
+            end
+            config:Bind(configKey, self, function(value)
+                if self.MultiSelect then
+                    if type(value) == "table" then
+                        self.SelectedValues = value
+                    elseif type(value) == "string" then
+                        self.SelectedValues = { value }
+                    end
+                else
+                    if type(value) == "string" then
+                        self.SelectedValue = value
+                    elseif type(value) == "table" and #value > 0 then
+                        self.SelectedValue = value[1]
+                    end
+                end
+                self:UpdateDisplayText()
+            end)
+        end
+    end
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
     table.insert(WasUI.Objects, {Object = self.DropdownButton, Type = "DropdownButton"})
     return self
@@ -1397,7 +1586,7 @@ end)
 
 local Slider = setmetatable({}, {__index = Control})
 Slider.__index = Slider
-function Slider:New(name, parent, title, min, max, defaultValue, callback)
+function Slider:New(name, parent, title, min, max, defaultValue, callback, configKey)
     local self = Control:New(name, parent)
     self.Min = min or 0
     self.Max = max or 100
@@ -1440,7 +1629,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, -5, 0, 8),
+        Size = UDim2.new(1, -2, 0, 8),
         Position = UDim2.new(0, 2, 0, 20),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
@@ -1496,6 +1685,13 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
         self.Knob.Position = UDim2.new(t, -8, 0.5, -8)
         if self.Callback then self.Callback(self.Value) end
+        if configKey and WasUI.ConfigManager then
+            local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+            if config then
+                config:Set(configKey, self.Value)
+                config:Save()
+            end
+        end
     end
     local function animateToValue(targetValue)
         targetValue = math.clamp(targetValue, self.Min, self.Max)
@@ -1564,13 +1760,23 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
             SpringTween(knobScale, {Scale = 1}, 0.25)
         end
     end)
+    if configKey and WasUI.ConfigManager then
+        local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+        if config then
+            local savedValue = config:Get(configKey)
+            if savedValue ~= nil then
+                setValueImmediately(savedValue)
+            end
+            config:Bind(configKey, self, function(value) setValueImmediately(value) end)
+        end
+    end
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
     return self
 end
 
 local TextInput = setmetatable({}, {__index = Control})
 TextInput.__index = TextInput
-function TextInput:New(name, parent, placeholder, defaultValue, callback)
+function TextInput:New(name, parent, placeholder, defaultValue, callback, configKey)
     local self = Control:New(name, parent)
     self.Callback = callback
     self.Container = CreateInstance("Frame", {
@@ -1607,13 +1813,30 @@ function TextInput:New(name, parent, placeholder, defaultValue, callback)
         if self.Callback then
             self.Callback(self.TextBox.Text)
         end
+        if configKey and WasUI.ConfigManager then
+            local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+            if config then
+                config:Set(configKey, self.TextBox.Text)
+                config:Save()
+            end
+        end
     end)
+    if configKey and WasUI.ConfigManager then
+        local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+        if config then
+            local savedValue = config:Get(configKey)
+            if savedValue ~= nil then
+                self.TextBox.Text = savedValue
+            end
+            config:Bind(configKey, self, function(value) self.TextBox.Text = value end)
+        end
+    end
     table.insert(WasUI.Objects, {Object = self.Container, Type = "TextInput"})
     return self
 end
 
-function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback)
-    return TextInput:New("TextInput", parent, placeholder, defaultValue, callback)
+function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback, configKey)
+    return TextInput:New("TextInput", parent, placeholder, defaultValue, callback, configKey)
 end
 
 local function AnimateThemeChange(oldTheme, newTheme)
@@ -1856,6 +2079,20 @@ function WasUI:SetTheme(themeName)
         return true
     end
     return false
+end
+
+local function ApplyGlassEffect(frame, intensity)
+    intensity = intensity or 0.7
+    local blur = Instance.new("BlurEffect")
+    blur.Size = 12
+    blur.Parent = frame
+    frame.BackgroundTransparency = 1 - intensity
+    frame.BackgroundColor3 = WasUI.CurrentTheme.Background
+    local highlight = Instance.new("UIStroke")
+    highlight.Color = Color3.fromRGB(255, 255, 255)
+    highlight.Thickness = 1
+    highlight.Transparency = 0.8
+    highlight.Parent = frame
 end
 
 local Panel = {}
@@ -3642,12 +3879,12 @@ function WasUI:CreateButton(parent, text, onClick, size, iconName)
     return Button:New("Button", parent, text, onClick, size, iconName)
 end
 
-function WasUI:CreateToggle(parent, initialState, onToggle, featureName, rainbowName)
-    return ToggleSwitch:New("Toggle", parent, nil, initialState, onToggle, featureName, rainbowName)
+function WasUI:CreateToggle(parent, initialState, onToggle, featureName, rainbowName, configKey)
+    return ToggleSwitch:New("Toggle", parent, nil, initialState, onToggle, featureName, rainbowName, nil, configKey)
 end
 
-function WasUI:CreateToggleWithTitle(parent, title, initialState, onToggle, featureName, rainbowName, iconName)
-    return ToggleSwitch:New("Toggle", parent, title, initialState, onToggle, featureName, rainbowName, iconName)
+function WasUI:CreateToggleWithTitle(parent, title, initialState, onToggle, featureName, rainbowName, iconName, configKey)
+    return ToggleSwitch:New("Toggle", parent, title, initialState, onToggle, featureName, rainbowName, iconName, configKey)
 end
 
 function WasUI:CreateLabel(parent, text, textColor)
@@ -3658,16 +3895,16 @@ function WasUI:CreateCategory(parent, title)
     return Category:New("Category", parent, title)
 end
 
-function WasUI:CreateDropdown(parent, title, options, defaultValue, callback, multiSelect)
-    return Dropdown:New("Dropdown", parent, title, options, defaultValue, callback, multiSelect)
+function WasUI:CreateDropdown(parent, title, options, defaultValue, callback, multiSelect, configKey)
+    return Dropdown:New("Dropdown", parent, title, options, defaultValue, callback, multiSelect, configKey)
 end
 
-function WasUI:CreateSlider(parent, title, min, max, defaultValue, callback)
-    return Slider:New("Slider", parent, title, min, max, defaultValue, callback)
+function WasUI:CreateSlider(parent, title, min, max, defaultValue, callback, configKey)
+    return Slider:New("Slider", parent, title, min, max, defaultValue, callback, configKey)
 end
 
-function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback)
-    return TextInput:New("TextInput", parent, placeholder, defaultValue, callback)
+function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback, configKey)
+    return TextInput:New("TextInput", parent, placeholder, defaultValue, callback, configKey)
 end
 
 function WasUI:AddSpacing(parent, height)
