@@ -10,7 +10,6 @@ local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
 local ContentProvider = game:GetService("ContentProvider")
-local Lighting = game:GetService("Lighting")
 
 local isLoaded = false
 if _G.WasUIModule then
@@ -77,6 +76,21 @@ WasUI.Themes = {
         TabBorder = Color3.fromRGB(200, 200, 205),
         TabButton = Color3.fromRGB(248, 248, 250),
         SnowColor = Color3.fromRGB(0, 0, 0)
+    },
+    Green = {
+        Primary = Color3.fromRGB(20, 30, 20),
+        Secondary = Color3.fromRGB(30, 45, 30),
+        Background = Color3.fromRGB(35, 50, 35),
+        Text = Color3.fromRGB(220, 255, 220),
+        Accent = Color3.fromRGB(100, 255, 100),
+        Success = Color3.fromRGB(70, 200, 70),
+        Warning = Color3.fromRGB(255, 213, 92),
+        Error = Color3.fromRGB(255, 123, 123),
+        Section = Color3.fromRGB(50, 70, 50),
+        Input = Color3.fromRGB(45, 60, 45),
+        TabBorder = Color3.fromRGB(70, 90, 70),
+        TabButton = Color3.fromRGB(20, 35, 20),
+        SnowColor = Color3.fromRGB(255, 255, 255)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
@@ -363,7 +377,6 @@ local rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
     end
 end)
 
--- 辅助函数：阴影、玻璃效果、快捷键存储等
 local function AddShadow(instance, blurSize, transparency, color)
     blurSize = blurSize or 8
     transparency = transparency or 0.5
@@ -522,7 +535,6 @@ local function AddKeyBindLongPress(controlInstance, controlKey, controlType, cal
     UserInputService.InputChanged:Connect(checkMove)
 end
 
--- 全局键盘监听
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -804,7 +816,6 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     return shortcutObj
 end
 
--- ================= 控件定义 =================
 local Control = {}
 Control.__index = Control
 function Control:New(name, parent)
@@ -1432,7 +1443,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.AnimationTween = nil
     self.Container = CreateInstance("Frame", {
         Name = name,
-        Size = UDim2.new(1, 0, 0, 34),
+        Size = UDim2.new(1, 0, 0, 38),
         BackgroundTransparency = 1,
         ZIndex = 3,
         Parent = parent
@@ -1466,7 +1477,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, -13, 0, 8),
+        Size = UDim2.new(1, 10, 0, 8),
         Position = UDim2.new(0, 5, 0, 20),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
@@ -1474,7 +1485,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         ZIndex = 3,
         Parent = self.Container
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderTrack})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.SliderTrack})
     self.SliderFill = CreateInstance("Frame", {
         Name = "Fill",
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
@@ -1483,7 +1494,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         ZIndex = 3,
         Parent = self.SliderTrack
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.SliderFill})
     self.Knob = CreateInstance("Frame", {
         Name = "Knob",
         Size = UDim2.new(0, 16, 0, 16),
@@ -3019,15 +3030,17 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = contentFrame
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
-        themeDropdown.MouseButton1Click:Connect(function()
-            local currentTheme = nil
-            for name, _ in pairs(WasUI.Themes) do
-                if WasUI.CurrentTheme == WasUI.Themes[name] then
-                    currentTheme = name
-                    break
-                end
+        local themeNames = {"Dark", "Light", "Green"}
+        local currentThemeIndex = 1
+        for i, name in ipairs(themeNames) do
+            if WasUI.CurrentTheme == WasUI.Themes[name] then
+                currentThemeIndex = i
+                break
             end
-            local newTheme = (currentTheme == "Dark") and "Light" or "Dark"
+        end
+        themeDropdown.MouseButton1Click:Connect(function()
+            currentThemeIndex = currentThemeIndex % #themeNames + 1
+            local newThemeName = themeNames[currentThemeIndex]
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
             Tween(scale, {Scale = 0.8}, 0.2)
             task.wait(0.2)
@@ -3036,7 +3049,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 WasUI.SettingsGui = nil
             end
             WasUI.SettingsPanel = nil
-            WasUI:SetTheme(newTheme)
+            WasUI:SetTheme(newThemeName)
         end)
 
         local rainbowModeLabel = CreateInstance("TextLabel", {
