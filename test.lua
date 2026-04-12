@@ -76,21 +76,6 @@ WasUI.Themes = {
         TabBorder = Color3.fromRGB(200, 200, 205),
         TabButton = Color3.fromRGB(248, 248, 250),
         SnowColor = Color3.fromRGB(0, 0, 0)
-    },
-    Green = {
-        Primary = Color3.fromRGB(20, 30, 20),
-        Secondary = Color3.fromRGB(30, 45, 30),
-        Background = Color3.fromRGB(35, 50, 35),
-        Text = Color3.fromRGB(220, 255, 220),
-        Accent = Color3.fromRGB(100, 255, 100),
-        Success = Color3.fromRGB(70, 200, 70),
-        Warning = Color3.fromRGB(255, 213, 92),
-        Error = Color3.fromRGB(255, 123, 123),
-        Section = Color3.fromRGB(50, 70, 50),
-        Input = Color3.fromRGB(45, 60, 45),
-        TabBorder = Color3.fromRGB(70, 90, 70),
-        TabButton = Color3.fromRGB(20, 35, 20),
-        SnowColor = Color3.fromRGB(255, 255, 255)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
@@ -376,26 +361,6 @@ local rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
         end
     end
 end)
-
-local function AddShadow(instance, blurSize, transparency, color)
-    blurSize = blurSize or 8
-    transparency = transparency or 0.5
-    color = color or Color3.fromRGB(0, 0, 0)
-    local shadow = Instance.new("ImageLabel")
-    shadow.Name = "Shadow"
-    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-    shadow.BackgroundTransparency = 1
-    shadow.Image = "rbxassetid://1316045217"
-    shadow.ImageColor3 = color
-    shadow.ImageTransparency = transparency
-    shadow.ScaleType = Enum.ScaleType.Slice
-    shadow.SliceCenter = Rect.new(10, 10, 10, 10)
-    shadow.ZIndex = instance.ZIndex - 1
-    shadow.Size = UDim2.new(1, blurSize * 2, 1, blurSize * 2)
-    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-    shadow.Parent = instance
-    return shadow
-end
 
 local function ApplyGlassEffect(frame, intensity)
     intensity = intensity or 0.7
@@ -905,7 +870,6 @@ function Button:New(name, parent, text, onClick, size, iconName)
     if savedKey then
         WasUI.KeyBindings[controlKey] = { keyCode = savedKey, callback = onClick, controlType = "button" }
     end
-    AddShadow(self.Instance, 6, 0.4, Color3.fromRGB(0,0,0))
     
     AddLongPressToControl(self.Instance, function()
         CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
@@ -1021,7 +985,6 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if savedKey then
         WasUI.KeyBindings[controlKey] = { keyCode = savedKey, callback = function() performToggle(not self.Toggled) end, controlType = "toggle" }
     end
-    AddShadow(self.Container, 6, 0.4, Color3.fromRGB(0,0,0))
     
     AddLongPressToControl(self.Background, function()
         local shortcut = CreateShortcutButton(self.RainbowName, true, self.Toggled, 
@@ -1949,7 +1912,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     end
 
     ApplyGlassEffect(self.Instance, 0.6)
-    AddShadow(self.Instance, 12, 0.5, Color3.fromRGB(0,0,0))
 
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
@@ -3030,7 +2992,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = contentFrame
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
-        local themeNames = {"Dark", "Light", "Green"}
+        local themeNames = {"Dark", "Light"}
         local currentThemeIndex = 1
         for i, name in ipairs(themeNames) do
             if WasUI.CurrentTheme == WasUI.Themes[name] then
