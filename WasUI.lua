@@ -1,5 +1,6 @@
 local WasUI = {}
 WasUI.__index = WasUI
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -10,11 +11,12 @@ local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
 local ContentProvider = game:GetService("ContentProvider")
 
-if _G.WasUILoaded and _G.WasUIModule then
+local isLoaded = false
+if _G.WasUIModule then
     warn("WasUI已加载 请勿重复加载")
     return _G.WasUIModule
 end
-_G.WasUILoaded = true
+isLoaded = true
 
 local function copyToClipboard(text)
     if type(setclipboard) == "function" then
@@ -83,6 +85,8 @@ WasUI.RainbowOrder = {}
 
 WasUI.ShortcutGui = nil
 WasUI.ShortcutButtons = {}
+WasUI.KeyBindings = {}
+WasUI.AwaitingKeyBind = nil
 
 local function EnsureShortcutGui()
     if not WasUI.ShortcutGui or not WasUI.ShortcutGui.Parent then
@@ -358,6 +362,20 @@ local rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
     end
 end)
 
+local function ApplyGlassEffect(frame, intensity)
+    intensity = intensity or 0.7
+    local blur = Instance.new("BlurEffect")
+    blur.Size = 12
+    blur.Parent = frame
+    frame.BackgroundTransparency = 1 - intensity
+    frame.BackgroundColor3 = WasUI.CurrentTheme.Background
+    local highlight = Instance.new("UIStroke")
+    highlight.Color = Color3.fromRGB(255, 255, 255)
+    highlight.Thickness = 1
+    highlight.Transparency = 0.8
+    highlight.Parent = frame
+end
+
 local function GetShortcutKey(controlType, controlId, rainbowName)
     local base = ""
     if rainbowName and rainbowName ~= "" then
@@ -406,6 +424,149 @@ function WasUI:ClearAllShortcuts()
         end
     end
     WasUI.ShortcutButtons = {}
+end
+
+local function SaveKeyBinding(key, keyCode)
+    local folder = ReplicatedStorage:FindFirstChild("WasUI_Config")
+    if not folder then
+        folder = Instance.new("Folder")
+        folder.Name = "WasUI_Config"
+        folder.Parent = ReplicatedStorage
+    end
+    folder:SetAttribute(key .. "_Key", tostring(keyCode))
+end
+
+local function LoadKeyBinding(key)
+    local folder = ReplicatedStorage:FindFirstChild("WasUI_Config")
+    if folder then
+        local keyStr = folder:GetAttribute(key .. "_Key")
+        if keyStr then
+            for _, kc in pairs(Enum.KeyCode:GetEnumItems()) do
+                if tostring(kc) == keyStr then return kc end
+            end
+        end
+    end
+    return nil
+end
+
+local function GetKeyName(keyCode)
+    return string.gsub(tostring(keyCode), "Enum.KeyCode.", "")
+end
+
+local function AddKeyBindLongPress(controlInstance, controlKey, controlType, callback, displayName)
+    local longPressTime = 0.5
+    local timer = nil
+    local pressed = false
+    local startPos = nil
+
+    local function startPress(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            pressed = true
+            startPos = input.Position
+            timer = task.delay(longPressTime, function()
+                if pressed then
+                    if WasUI.AwaitingKeyBind then
+                        WasUI:Notify({Title = "快捷键", Content = "已有正在绑定的快捷键，请稍后", Duration = 1.5})
+                        return
+                    end
+                    WasUI.AwaitingKeyBind = {
+                        controlKey = controlKey,
+                        controlType = controlType,
+                        callback = callback,
+                        displayName = displayName
+                    }
+                    WasUI:Notify({Title = "设置快捷键", Content = "请按下任意键...", Duration = 3, BackgroundColor = WasUI.CurrentTheme.Section, BorderColor = WasUI.CurrentTheme.Accent})
+                end
+            end)
+        end
+    end
+
+    local function endPress()
+        if timer then task.cancel(timer); timer = nil end
+        pressed = false
+        startPos = nil
+    end
+
+    local function checkMove(input)
+        if pressed and input.UserInputType == Enum.UserInputType.MouseMovement then
+            if startPos and (input.Position - startPos).Magnitude > 10 then
+                endPress()
+            end
+        end
+    end
+
+    controlInstance.InputBegan:Connect(startPress)
+    controlInstance.InputEnded:Connect(endPress)
+    UserInputService.InputChanged:Connect(checkMove)
+end
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        if WasUI.AwaitingKeyBind then
+            local bind = WasUI.AwaitingKeyBind
+            WasUI.AwaitingKeyBind = nil
+            local keyCode = input.KeyCode
+            if keyCode then
+                SaveKeyBinding(bind.controlKey, keyCode)
+                WasUI.KeyBindings[bind.controlKey] = { keyCode = keyCode, callback = bind.callback, controlType = bind.controlType }
+                WasUI:Notify({Title = "设置完成", Content = string.format("当前功能 [%s] 绑定的快捷键为: %s", bind.displayName, GetKeyName(keyCode)), Duration = 2.5, BackgroundColor = WasUI.CurrentTheme.Success, BorderColor = WasUI.CurrentTheme.Success})
+            else
+                WasUI:Notify({Title = "设置失败", Content = "无效的按键", Duration = 1.5})
+            end
+            return
+        end
+        for key, bind in pairs(WasUI.KeyBindings) do
+            if input.KeyCode == bind.keyCode then
+                if bind.controlType == "toggle" and bind.callback then
+                    bind.callback()
+                elseif bind.controlType == "button" and bind.callback then
+                    bind.callback()
+                end
+                break
+            end
+        end
+    end
+end)
+
+local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
+    longPressTime = longPressTime or 0.5
+    local timer = nil
+    local pressed = false
+    local startPos = nil
+    
+    local function startPress(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            pressed = true
+            startPos = input.Position
+            timer = task.delay(longPressTime, function()
+                if pressed then
+                    onLongPress()
+                end
+            end)
+        end
+    end
+    
+    local function endPress()
+        if timer then
+            task.cancel(timer)
+            timer = nil
+        end
+        pressed = false
+        startPos = nil
+    end
+    
+    local function checkMove(input)
+        if pressed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            if startPos and (input.Position - startPos).Magnitude > 10 then
+                endPress()
+            end
+        end
+    end
+    
+    controlInstance.InputBegan:Connect(startPress)
+    controlInstance.InputEnded:Connect(endPress)
+    UserInputService.InputChanged:Connect(checkMove)
 end
 
 local function CreateShortcutButton(displayName, isToggle, initialState, onToggleCallback, onClickCallback, rainbowKey)
@@ -620,46 +781,6 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     return shortcutObj
 end
 
-local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
-    longPressTime = longPressTime or 0.5
-    local timer = nil
-    local pressed = false
-    local startPos = nil
-    
-    local function startPress(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            pressed = true
-            startPos = input.Position
-            timer = task.delay(longPressTime, function()
-                if pressed then
-                    onLongPress()
-                end
-            end)
-        end
-    end
-    
-    local function endPress()
-        if timer then
-            task.cancel(timer)
-            timer = nil
-        end
-        pressed = false
-        startPos = nil
-    end
-    
-    local function checkMove(input)
-        if pressed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            if startPos and (input.Position - startPos).Magnitude > 10 then
-                endPress()
-            end
-        end
-    end
-    
-    controlInstance.InputBegan:Connect(startPress)
-    controlInstance.InputEnded:Connect(endPress)
-    UserInputService.InputChanged:Connect(checkMove)
-end
-
 local Control = {}
 Control.__index = Control
 function Control:New(name, parent)
@@ -742,6 +863,13 @@ function Button:New(name, parent, text, onClick, size, iconName)
         SpringTween(scale, {Scale = 1}, 0.25)
         if onClick then onClick() end
     end)
+    
+    local controlKey = "button_" .. (text or name)
+    AddKeyBindLongPress(self.Instance, controlKey, "button", onClick, text or name)
+    local savedKey = LoadKeyBinding(controlKey)
+    if savedKey then
+        WasUI.KeyBindings[controlKey] = { keyCode = savedKey, callback = onClick, controlType = "button" }
+    end
     
     AddLongPressToControl(self.Instance, function()
         CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
@@ -848,6 +976,15 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     self.Background.MouseButton1Click:Connect(function()
         performToggle(not self.Toggled)
     end)
+    
+    local controlKey = GetShortcutKey("toggle", name, self.RainbowName)
+    AddKeyBindLongPress(self.Background, controlKey, "toggle", function()
+        performToggle(not self.Toggled)
+    end, self.RainbowName)
+    local savedKey = LoadKeyBinding(controlKey)
+    if savedKey then
+        WasUI.KeyBindings[controlKey] = { keyCode = savedKey, callback = function() performToggle(not self.Toggled) end, controlType = "toggle" }
+    end
     
     AddLongPressToControl(self.Background, function()
         local shortcut = CreateShortcutButton(self.RainbowName, true, self.Toggled, 
@@ -963,7 +1100,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     self.IsOpen = false
     self.Container = CreateInstance("Frame", {
         Name = name,
-        Size = UDim2.new(1, 0, 0, 40),
+        Size = UDim2.new(1, 0, 0, 50),
         BackgroundTransparency = 1,
         ZIndex = 10,
         Parent = parent
@@ -1269,7 +1406,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.AnimationTween = nil
     self.Container = CreateInstance("Frame", {
         Name = name,
-        Size = UDim2.new(1, 0, 0, 34),
+        Size = UDim2.new(1, 0, 0, 38),
         BackgroundTransparency = 1,
         ZIndex = 3,
         Parent = parent
@@ -1303,15 +1440,15 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, -13, 0, 8),
-        Position = UDim2.new(0, 5, 0, 20),
+        Size = UDim2.new(1, -5, 0, 8),
+        Position = UDim2.new(0, 2, 0, 20),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         ZIndex = 3,
         Parent = self.Container
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderTrack})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.SliderTrack})
     self.SliderFill = CreateInstance("Frame", {
         Name = "Fill",
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
@@ -1320,7 +1457,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
         ZIndex = 3,
         Parent = self.SliderTrack
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.SliderFill})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.SliderFill})
     self.Knob = CreateInstance("Frame", {
         Name = "Knob",
         Size = UDim2.new(0, 16, 0, 16),
@@ -1773,6 +1910,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     if backgroundUrl and backgroundUrl ~= "" then
         self:SetBackground(backgroundUrl)
     end
+
+    ApplyGlassEffect(self.Instance, 0.6)
 
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
@@ -2853,15 +2992,17 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = contentFrame
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
-        themeDropdown.MouseButton1Click:Connect(function()
-            local currentTheme = nil
-            for name, _ in pairs(WasUI.Themes) do
-                if WasUI.CurrentTheme == WasUI.Themes[name] then
-                    currentTheme = name
-                    break
-                end
+        local themeNames = {"Dark", "Light"}
+        local currentThemeIndex = 1
+        for i, name in ipairs(themeNames) do
+            if WasUI.CurrentTheme == WasUI.Themes[name] then
+                currentThemeIndex = i
+                break
             end
-            local newTheme = (currentTheme == "Dark") and "Light" or "Dark"
+        end
+        themeDropdown.MouseButton1Click:Connect(function()
+            currentThemeIndex = currentThemeIndex % #themeNames + 1
+            local newThemeName = themeNames[currentThemeIndex]
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
             Tween(scale, {Scale = 0.8}, 0.2)
             task.wait(0.2)
@@ -2870,7 +3011,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 WasUI.SettingsGui = nil
             end
             WasUI.SettingsPanel = nil
-            WasUI:SetTheme(newTheme)
+            WasUI:SetTheme(newThemeName)
         end)
 
         local rainbowModeLabel = CreateInstance("TextLabel", {
@@ -3416,12 +3557,14 @@ function WasUI:Notify(options)
     local title = options.Title or "Notification"
     local content = options.Content or ""
     local duration = options.Duration or 3
+    local bgColor = options.BackgroundColor or WasUI.CurrentTheme.Section
+    local borderColor = options.BorderColor or WasUI.CurrentTheme.Text
     local notificationId = HttpService:GenerateGUID(false)
     local frame = CreateInstance("Frame", {
         Name = "Notification_" .. notificationId,
         Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
         Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, WasUI.NotificationTop),
-        BackgroundColor3 = WasUI.CurrentTheme.Section,
+        BackgroundColor3 = bgColor,
         BackgroundTransparency = 0.2,
         ClipsDescendants = true,
         Visible = true,
@@ -3430,7 +3573,7 @@ function WasUI:Notify(options)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = frame})
     local stroke = CreateInstance("UIStroke", {
-        Color = WasUI.CurrentTheme.Text,
+        Color = borderColor,
         Thickness = 1,
         Transparency = 0.5,
         Parent = frame
@@ -3442,7 +3585,7 @@ function WasUI:Notify(options)
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamSemibold,
+        Font = Enum.Font.GothamBold,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 10000,
