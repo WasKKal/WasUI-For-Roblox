@@ -1100,7 +1100,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     self.IsOpen = false
     self.Container = CreateInstance("Frame", {
         Name = name,
-        Size = UDim2.new(1, 0, 0, 40),
+        Size = UDim2.new(1, 0, 0, 50),
         BackgroundTransparency = 1,
         ZIndex = 10,
         Parent = parent
@@ -1441,7 +1441,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
         Size = UDim2.new(1, 10, 0, 8),
-        Position = UDim2.new(0, 5, 0, 20),
+        Position = UDim2.new(0, 2, 0, 20),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
