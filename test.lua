@@ -1440,7 +1440,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback)
     })
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, 9, 0, 8),
+        Size = UDim2.new(1, -2, 0, 8),
         Position = UDim2.new(0, 2, 0, 20),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
