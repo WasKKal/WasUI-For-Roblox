@@ -363,6 +363,41 @@ local rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
     end
 end)
 
+-- 辅助函数：阴影、玻璃效果、快捷键存储等
+local function AddShadow(instance, blurSize, transparency, color)
+    blurSize = blurSize or 8
+    transparency = transparency or 0.5
+    color = color or Color3.fromRGB(0, 0, 0)
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://1316045217"
+    shadow.ImageColor3 = color
+    shadow.ImageTransparency = transparency
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(10, 10, 10, 10)
+    shadow.ZIndex = instance.ZIndex - 1
+    shadow.Size = UDim2.new(1, blurSize * 2, 1, blurSize * 2)
+    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    shadow.Parent = instance
+    return shadow
+end
+
+local function ApplyGlassEffect(frame, intensity)
+    intensity = intensity or 0.7
+    local blur = Instance.new("BlurEffect")
+    blur.Size = 12
+    blur.Parent = frame
+    frame.BackgroundTransparency = 1 - intensity
+    frame.BackgroundColor3 = WasUI.CurrentTheme.Background
+    local highlight = Instance.new("UIStroke")
+    highlight.Color = Color3.fromRGB(255, 255, 255)
+    highlight.Thickness = 1
+    highlight.Transparency = 0.8
+    highlight.Parent = frame
+end
+
 local function GetShortcutKey(controlType, controlId, rainbowName)
     local base = ""
     if rainbowName and rainbowName ~= "" then
@@ -487,6 +522,7 @@ local function AddKeyBindLongPress(controlInstance, controlKey, controlType, cal
     UserInputService.InputChanged:Connect(checkMove)
 end
 
+-- 全局键盘监听
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -516,40 +552,259 @@ UserInputService.InputBegan:Connect(function(input, processed)
     end
 end)
 
-local function AddShadow(instance, blurSize, transparency, color)
-    blurSize = blurSize or 8
-    transparency = transparency or 0.5
-    color = color or Color3.fromRGB(0, 0, 0)
-    local shadow = Instance.new("ImageLabel")
-    shadow.Name = "Shadow"
-    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-    shadow.BackgroundTransparency = 1
-    shadow.Image = "rbxassetid://1316045217"
-    shadow.ImageColor3 = color
-    shadow.ImageTransparency = transparency
-    shadow.ScaleType = Enum.ScaleType.Slice
-    shadow.SliceCenter = Rect.new(10, 10, 10, 10)
-    shadow.ZIndex = instance.ZIndex - 1
-    shadow.Size = UDim2.new(1, blurSize * 2, 1, blurSize * 2)
-    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-    shadow.Parent = instance
-    return shadow
+local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
+    longPressTime = longPressTime or 0.5
+    local timer = nil
+    local pressed = false
+    local startPos = nil
+    
+    local function startPress(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            pressed = true
+            startPos = input.Position
+            timer = task.delay(longPressTime, function()
+                if pressed then
+                    onLongPress()
+                end
+            end)
+        end
+    end
+    
+    local function endPress()
+        if timer then
+            task.cancel(timer)
+            timer = nil
+        end
+        pressed = false
+        startPos = nil
+    end
+    
+    local function checkMove(input)
+        if pressed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            if startPos and (input.Position - startPos).Magnitude > 10 then
+                endPress()
+            end
+        end
+    end
+    
+    controlInstance.InputBegan:Connect(startPress)
+    controlInstance.InputEnded:Connect(endPress)
+    UserInputService.InputChanged:Connect(checkMove)
 end
 
-local function ApplyGlassEffect(frame, intensity)
-    intensity = intensity or 0.7
-    local blur = Instance.new("BlurEffect")
-    blur.Size = 12
-    blur.Parent = frame
-    frame.BackgroundTransparency = 1 - intensity
-    frame.BackgroundColor3 = WasUI.CurrentTheme.Background
-    local highlight = Instance.new("UIStroke")
-    highlight.Color = Color3.fromRGB(255, 255, 255)
-    highlight.Thickness = 1
-    highlight.Transparency = 0.8
-    highlight.Parent = frame
+local function CreateShortcutButton(displayName, isToggle, initialState, onToggleCallback, onClickCallback, rainbowKey)
+    EnsureShortcutGui()
+    local key = GetShortcutKey(isToggle and "toggle" or "button", nil, rainbowKey)
+    
+    if WasUI.ShortcutButtons[key] then
+        local existing = WasUI.ShortcutButtons[key]
+        if existing.destroy then
+            existing:destroy()
+        elseif existing.button then
+            existing.button:Destroy()
+        end
+        WasUI.ShortcutButtons[key] = nil
+        return nil
+    end
+
+    local btnFrame = CreateInstance("Frame", {
+        Name = "Shortcut_" .. (rainbowKey or displayName),
+        Size = UDim2.new(0, 0, 0, 32),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.2,
+        BorderSizePixel = 0,
+        ZIndex = 10000,
+        Parent = WasUI.ShortcutGui
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = btnFrame})
+    local stroke = CreateInstance("UIStroke", {
+        Color = WasUI.CurrentTheme.Accent,
+        Thickness = 1,
+        Transparency = 0.5,
+        Parent = btnFrame
+    })
+    
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "Text",
+        BackgroundTransparency = 1,
+        Text = displayName,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 12,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        ZIndex = 10001,
+        Parent = btnFrame
+    })
+    
+    local stateIndicator = nil
+    if isToggle then
+        textLabel.TextXAlignment = Enum.TextXAlignment.Left
+        textLabel.Size = UDim2.new(1, -24, 1, 0)
+        textLabel.Position = UDim2.new(0, 8, 0, 0)
+        stateIndicator = CreateInstance("Frame", {
+            Name = "Indicator",
+            Size = UDim2.new(0, 8, 0, 8),
+            Position = UDim2.new(1, -16, 0.5, -4),
+            BackgroundColor3 = initialState and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Error,
+            BackgroundTransparency = 0,
+            BorderSizePixel = 0,
+            ZIndex = 10002,
+            Parent = btnFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = stateIndicator})
+    else
+        textLabel.TextXAlignment = Enum.TextXAlignment.Center
+        textLabel.Size = UDim2.new(1, -16, 1, 0)
+        textLabel.Position = UDim2.new(0, 8, 0, 0)
+    end
+    
+    local function updateSize()
+        local textBounds = textLabel.TextBounds
+        local width = math.max(80, textBounds.X + (isToggle and 32 or 24))
+        btnFrame.Size = UDim2.new(0, width, 0, 32)
+    end
+    textLabel:GetPropertyChangedSignal("TextBounds"):Connect(updateSize)
+    updateSize()
+    
+    local savedPos = LoadShortcutPosition(key)
+    if savedPos then
+        btnFrame.Position = savedPos
+    else
+        local index = 0
+        for _,_ in pairs(WasUI.ShortcutButtons) do index = index + 1 end
+        btnFrame.Position = UDim2.new(1, -100, 1, -50 - index * 40)
+    end
+    
+    local dragData = {
+        dragging = false,
+        startPos = nil,
+        startMouse = nil,
+        moved = false,
+        threshold = 5,
+        connectionChanged = nil,
+        connectionEnded = nil,
+        currentTouch = nil
+    }
+    
+    local currentState = initialState
+    
+    local function updateVisuals()
+        if isToggle then
+            if currentState then
+                Tween(stroke, {Color = WasUI.CurrentTheme.Success, Transparency = 0.2}, 0.2)
+                Tween(stateIndicator, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+            else
+                Tween(stroke, {Color = WasUI.CurrentTheme.Accent, Transparency = 0.5}, 0.2)
+                Tween(stateIndicator, {BackgroundColor3 = WasUI.CurrentTheme.Error}, 0.2)
+            end
+        end
+    end
+    
+    local function onInputBegan(input, processed)
+        if processed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragData.dragging = true
+            dragData.moved = false
+            dragData.startPos = btnFrame.Position
+            dragData.startMouse = input.Position
+            dragData.currentTouch = nil
+            SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
+        elseif input.UserInputType == Enum.UserInputType.Touch then
+            dragData.dragging = true
+            dragData.moved = false
+            dragData.startPos = btnFrame.Position
+            dragData.startMouse = input.Position
+            dragData.currentTouch = input
+            SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
+        end
+    end
+    
+    local function onInputChanged(input, processed)
+        if processed then return end
+        local isValid = false
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragData.dragging and dragData.currentTouch == nil then
+            isValid = true
+        elseif input.UserInputType == Enum.UserInputType.Touch and dragData.dragging and input == dragData.currentTouch then
+            isValid = true
+        end
+        if isValid then
+            local delta = input.Position - dragData.startMouse
+            if delta.Magnitude > dragData.threshold then
+                dragData.moved = true
+            end
+            if dragData.moved then
+                local newPos = UDim2.new(
+                    dragData.startPos.X.Scale,
+                    dragData.startPos.X.Offset + delta.X,
+                    dragData.startPos.Y.Scale,
+                    dragData.startPos.Y.Offset + delta.Y
+                )
+                btnFrame.Position = newPos
+            end
+        end
+    end
+    
+    local function onInputEnded(input, processed)
+        if processed then return end
+        local isValid = false
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and dragData.dragging and dragData.currentTouch == nil then
+            isValid = true
+        elseif input.UserInputType == Enum.UserInputType.Touch and dragData.dragging and input == dragData.currentTouch then
+            isValid = true
+        end
+        if isValid then
+            if dragData.moved then
+                SaveShortcutPosition(key, btnFrame.Position)
+            else
+                if isToggle then
+                    currentState = not currentState
+                    updateVisuals()
+                    if onToggleCallback then onToggleCallback(currentState) end
+                    SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
+                    task.wait(0.05)
+                    SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+                else
+                    if onClickCallback then onClickCallback() end
+                    SpringTween(btnFrame, {BackgroundTransparency = 0.3}, 0.1)
+                    task.wait(0.05)
+                    SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+                end
+            end
+            dragData.dragging = false
+            dragData.currentTouch = nil
+            SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+        end
+    end
+    
+    btnFrame.InputBegan:Connect(onInputBegan)
+    dragData.connectionChanged = UserInputService.InputChanged:Connect(onInputChanged)
+    dragData.connectionEnded = UserInputService.InputEnded:Connect(onInputEnded)
+    
+    local function updateState(newState)
+        if isToggle then
+            currentState = newState
+            updateVisuals()
+        end
+    end
+    
+    updateVisuals()
+    
+    local shortcutObj = {
+        button = btnFrame,
+        key = key,
+        updateState = updateState,
+        destroy = function()
+            if dragData.connectionChanged then dragData.connectionChanged:Disconnect() end
+            if dragData.connectionEnded then dragData.connectionEnded:Disconnect() end
+            if btnFrame then btnFrame:Destroy() end
+            WasUI.ShortcutButtons[key] = nil
+        end
+    }
+    WasUI.ShortcutButtons[key] = shortcutObj
+    return shortcutObj
 end
 
+-- ================= 控件定义 =================
 local Control = {}
 Control.__index = Control
 function Control:New(name, parent)
