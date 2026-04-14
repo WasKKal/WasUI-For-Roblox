@@ -2716,7 +2716,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
-        ZIndex = 2,
+        ZIndex = 21,
         Parent = self.Instance
     })
     CreateInstance("UICorner", {
