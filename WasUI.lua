@@ -1182,6 +1182,10 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         end
     end
 
+    function self:SetToggle(newState)
+        performToggle(newState)
+    end
+
     self.Background.MouseButton1Click:Connect(function()
         performToggle(not self.Toggled)
     end)
@@ -2247,30 +2251,13 @@ function WasUI:CreateConfirmToggle(parent, title, initialState, confirmOptions, 
                 if confirmed then
                     if onToggle then onToggle(state) end
                 else
-                    toggle:SetToggle(not state)
+                    toggle:SetToggle(false)
                 end
             end)
         else
             if onToggle then onToggle(state) end
         end
     end, featureName, rainbowName, iconName, configKey)
-    
-    local originalToggle = toggle.Toggled
-    function toggle:SetToggle(newState)
-        originalToggle = newState
-        if newState then
-            WasUI:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
-                if confirmed then
-                    originalToggle = newState
-                    if onToggle then onToggle(newState) end
-                else
-                end
-            end)
-        else
-            originalToggle = newState
-            if onToggle then onToggle(newState) end
-        end
-    end
     
     return toggle
 end
@@ -3776,7 +3763,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Blue = "晶钻蓝"
         }
         local themeDisplayNames = {"暗黑", "珍珠白", "晶钻蓝"}
-        local currentThemeDisplay = reverseThemeMap[WasUI.CurrentThemeKey or WasUI.DefaultTheme] or "暗黑"
+        local currentThemeDisplay = reverseThemeMap[WasUI.DefaultTheme] or "暗黑"
         themeDropdown.Text = currentThemeDisplay
         themeDropdown.MouseButton1Click:Connect(function()
             local currentIndex = nil
