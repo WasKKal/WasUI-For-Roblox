@@ -933,15 +933,16 @@ end
 
 local function AddRipple(instance)
     local function createRipple(input)
-        local ripple = Instance.new("ImageLabel")
+        local ripple = Instance.new("Frame")
         ripple.Name = "Ripple"
         ripple.Size = UDim2.new(0, 0, 0, 0)
-        ripple.BackgroundTransparency = 1
-        ripple.Image = "rbxassetid://1316045217"
-        ripple.ImageColor3 = WasUI.CurrentTheme.Accent
-        ripple.ImageTransparency = 0.6
-        ripple.ScaleType = Enum.ScaleType.Fit
+        ripple.BackgroundColor3 = WasUI.CurrentTheme.Accent
+        ripple.BackgroundTransparency = 0.6
+        ripple.BorderSizePixel = 0
         ripple.ZIndex = 10
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(1, 0)
+        corner.Parent = ripple
         ripple.Parent = instance
         local mousePos = input.Position
         local btnPos = instance.AbsolutePosition
@@ -950,7 +951,7 @@ local function AddRipple(instance)
         ripple.Position = UDim2.new(0, x, 0, y)
         ripple.AnchorPoint = Vector2.new(0.5, 0.5)
         local maxSize = math.max(instance.AbsoluteSize.X, instance.AbsoluteSize.Y) * 1.5
-        Tween(ripple, {Size = UDim2.new(0, maxSize, 0, maxSize), ImageTransparency = 1}, 0.5)
+        Tween(ripple, {Size = UDim2.new(0, maxSize, 0, maxSize), BackgroundTransparency = 1}, 0.5)
         task.delay(0.5, function() ripple:Destroy() end)
     end
     instance.InputBegan:Connect(function(input)
@@ -980,7 +981,7 @@ function Button:New(name, parent, text, onClick, size, iconName)
         AutomaticSize = Enum.AutomaticSize.None,
         ZIndex = 2
     })
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.Instance})
     local padding = CreateInstance("UIPadding", {
         PaddingLeft = UDim.new(0, 12),
         PaddingRight = UDim.new(0, 12),
@@ -1099,7 +1100,6 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then
         CreateRainbowTextForFeature(self.RainbowName)
     end
-
     AddRipple(self.Background)
 
     local function performToggle(newState)
