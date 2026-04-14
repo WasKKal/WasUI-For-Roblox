@@ -2747,7 +2747,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     })
     self.Title = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(1, -120, 1, 0),
+        Size = UDim2.new(1, -140, 1, 0),
         Position = UDim2.new(0, 54, 0, 0),
         BackgroundTransparency = 1,
         Text = name,
