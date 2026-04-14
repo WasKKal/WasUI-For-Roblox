@@ -2405,16 +2405,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         CornerRadius = UDim.new(0, 14),
         Parent = self.TitleBar
     })
-    local bottomPatch = CreateInstance("Frame", {
-        Name = "BottomPatch",
-        Size = UDim2.new(1, 0, 0, 14),
-        Position = UDim2.new(0, 0, 1, -14),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.3,
-        BorderSizePixel = 0,
-        ZIndex = 3,
-        Parent = self.TitleBar
-    })
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
         Size = UDim2.new(1, 0, 1, 0),
