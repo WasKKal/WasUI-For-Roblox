@@ -2753,7 +2753,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         TextXAlignment = Enum.TextXAlignment.Left,
         TextTruncate = Enum.TextTruncate.AtEnd,
         Active = false,
-        ZIndex = 1,
+        ZIndex = 0,
         Parent = self.TitleBar
     })
     self.DotContainer = CreateInstance("Frame", {
