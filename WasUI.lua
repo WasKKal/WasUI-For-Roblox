@@ -1,4 +1,4 @@
---Version 1.0.9.1
+--Version 1.0.9.2
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -29,7 +29,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.0.9.1"
+WasUI.Version = "1.0.9.2"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -48,10 +48,12 @@ WasUI_Folder.Parent = ReplicatedStorage
 
 WasUI.DefaultTheme = "Dark"
 WasUI.DefaultRainbowMode = "整体"
+WasUI.CurrentThemeName = WasUI.DefaultTheme   -- 新增：追踪当前主题名
 
 function WasUI:SetDefaultTheme(themeName)
     if self.Themes[themeName] then
         self.DefaultTheme = themeName
+        self.CurrentThemeName = themeName      -- 同步更新
         return true
     end
     return false
@@ -2560,6 +2562,7 @@ function WasUI:SetTheme(themeName)
         local oldTheme = self.CurrentTheme
         local newTheme = self.Themes[themeName]
         self.CurrentTheme = newTheme
+        self.CurrentThemeName = themeName        -- 更新当前主题名
         AnimateThemeChange(oldTheme, newTheme)
         if self.SettingsPanel then
             local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
@@ -3746,7 +3749,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
         local themeDisplayNames = {"Dark", "Light", "Blue"}
-        local currentThemeDisplay = WasUI.DefaultTheme
+        local currentThemeDisplay = WasUI.CurrentThemeName   -- 使用当前主题名
         themeDropdown.Text = currentThemeDisplay
         themeDropdown.MouseButton1Click:Connect(function()
             local currentIndex = 1
