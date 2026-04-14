@@ -2146,15 +2146,16 @@ local function ApplyLoadingSkeleton(parent, duration)
     local skeleton = Instance.new("Frame")
     skeleton.Name = "LoadingSkeleton"
     skeleton.Size = UDim2.new(1, 0, 1, 0)
-    skeleton.BackgroundColor3 = WasUI.CurrentTheme.Section
+    skeleton.BackgroundColor3 = WasUI.CurrentTheme.Background
     skeleton.BackgroundTransparency = 0.5
-    skeleton.ZIndex = parent.ZIndex + 100
+    skeleton.BorderSizePixel = 0
+    skeleton.ZIndex = 99999
     skeleton.Parent = parent
-    
+
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = skeleton
-    
+
     local gradient = Instance.new("UIGradient")
     gradient.Color = ColorSequence.new{
         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
@@ -2167,18 +2168,18 @@ local function ApplyLoadingSkeleton(parent, duration)
         NumberSequenceKeypoint.new(1, 0.9)
     }
     gradient.Parent = skeleton
-    
+
     local offset = 0
     local connection = RunService.Heartbeat:Connect(function(dt)
         offset = (offset + dt * 2) % 2
         gradient.Offset = Vector2.new(offset, 0)
     end)
-    
+
     task.delay(duration, function()
         connection:Disconnect()
         skeleton:Destroy()
     end)
-    
+
     return skeleton
 end
 
@@ -3960,13 +3961,23 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled)
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = game:GetService("CoreGui")
-    -- 显示骨架屏加载效果
-    local skeleton = ApplyLoadingSkeleton(screenGui, 0.8)
+
+    local loadingContainer = Instance.new("Frame")
+    loadingContainer.Size = UDim2.new(1, 0, 1, 0)
+    loadingContainer.BackgroundTransparency = 1
+    loadingContainer.Parent = screenGui
+    local skeleton = ApplyLoadingSkeleton(loadingContainer, 0.8)
+
     local window = Panel:New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position, backgroundUrl, snowEnabled)
     RecordOriginalTransparency(window.Instance)
+
+    Tween(skeleton, {BackgroundTransparency = 1}, 0.2)
+    task.delay(0.25, function()
+        loadingContainer:Destroy()
+    end)
+
     return window
 end
-
 function WasUI:CreateButton(parent, text, onClick, size, iconName)
     return Button:New("Button", parent, text, onClick, size, iconName)
 end
