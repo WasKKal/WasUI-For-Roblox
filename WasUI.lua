@@ -1,3 +1,4 @@
+--Version 1.0.8.1
 local WasUI = {}
 WasUI.__index = WasUI
 
