@@ -3767,7 +3767,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
 themeDropdown.Text = currentThemeDisplay
 
 themeDropdown.MouseButton1Click:Connect(function()
-    local currentIndex = nil
+    local currentIndex = 1
     for i, name in ipairs(themeDisplayNames) do
         if name == themeDropdown.Text then
             currentIndex = i
