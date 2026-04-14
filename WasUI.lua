@@ -2711,7 +2711,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
-        ZIndex = 21,
+        ZIndex = 2,
         Parent = self.Instance
     })
     CreateInstance("UICorner", {
@@ -2753,7 +2753,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         TextXAlignment = Enum.TextXAlignment.Left,
         TextTruncate = Enum.TextTruncate.AtEnd,
         Active = false,
-        ZIndex = 2,
+        ZIndex = 1,
         Parent = self.TitleBar
     })
     self.DotContainer = CreateInstance("Frame", {
@@ -2868,7 +2868,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundTransparency = 1,
         Image = "",
         AutoButtonColor = false,
-        ZIndex = 30,
+        ZIndex = 200,
         Parent = self.TitleBar
     })
     local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
@@ -2888,7 +2888,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundTransparency = 1,
         Image = "",
         AutoButtonColor = false,
-        ZIndex = 30,
+        ZIndex = 200,
         Parent = self.TitleBar
     })
     local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
