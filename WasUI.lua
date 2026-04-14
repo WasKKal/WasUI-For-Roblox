@@ -76,21 +76,21 @@ WasUI.Themes = {
         TabButton = Color3.fromRGB(248, 248, 250),
         SnowColor = Color3.fromRGB(0, 0, 0)
     },
-Blue = {
-    Primary = Color3.fromRGB(0, 168, 214),
-    Secondary = Color3.fromRGB(0, 136, 181),
-    Background = Color3.fromRGB(0, 107, 143),
-    Text = Color3.fromRGB(255, 255, 255),
-    Accent = Color3.fromRGB(0, 196, 240),
-    Success = Color3.fromRGB(0, 200, 120),
-    Warning = Color3.fromRGB(255, 180, 50),
-    Error = Color3.fromRGB(240, 70, 70),
-    Section = Color3.fromRGB(0, 128, 168),
-    Input = Color3.fromRGB(0, 148, 188),
-    TabBorder = Color3.fromRGB(0, 188, 220),
-    TabButton = Color3.fromRGB(0, 128, 168),
-    SnowColor = Color3.fromRGB(200, 240, 255)
-}
+    Blue = {
+        Primary = Color3.fromRGB(0, 168, 214),
+        Secondary = Color3.fromRGB(0, 136, 181),
+        Background = Color3.fromRGB(0, 107, 143),
+        Text = Color3.fromRGB(255, 255, 255),
+        Accent = Color3.fromRGB(0, 196, 240),
+        Success = Color3.fromRGB(0, 200, 120),
+        Warning = Color3.fromRGB(255, 180, 50),
+        Error = Color3.fromRGB(240, 70, 70),
+        Section = Color3.fromRGB(0, 128, 168),
+        Input = Color3.fromRGB(0, 148, 188),
+        TabBorder = Color3.fromRGB(0, 188, 220),
+        TabButton = Color3.fromRGB(0, 128, 168),
+        SnowColor = Color3.fromRGB(200, 240, 255)
+    }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
 WasUI.Objects = {}
@@ -2035,6 +2035,10 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 local titleBar = instance:FindFirstChild("TitleBar")
                 if titleBar then
                     Tween(titleBar, {BackgroundColor3 = newTheme.Primary}, duration)
+                    local patch = titleBar:FindFirstChild("BottomPatch")
+                    if patch then
+                        Tween(patch, {BackgroundColor3 = newTheme.Primary}, duration)
+                    end
                     local title = titleBar:FindFirstChild("Title")
                     if title and title:IsA("TextLabel") then
                         Tween(title, {TextColor3 = newTheme.Text}, duration)
@@ -2405,6 +2409,18 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         CornerRadius = UDim.new(0, 14),
         Parent = self.TitleBar
     })
+
+    self.BottomPatch = CreateInstance("Frame", {
+        Name = "BottomPatch",
+        Size = UDim2.new(1, 0, 0, 14),
+        Position = UDim2.new(0, 0, 1, -14),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        ZIndex = 2,
+        Parent = self.TitleBar
+    })
+
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
         Size = UDim2.new(1, 0, 1, 0),
@@ -2865,6 +2881,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         if self.SnowContainer then
             self.SnowContainer.Visible = false
         end
+        if self.BottomPatch then
+            self.BottomPatch.Visible = false
+        end
         self.IsMinimized = true
     end
     self.RestoreFromDots = function()
@@ -2894,6 +2913,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.DotContainer.Visible = true
         if self.SnowContainer then
             self.SnowContainer.Visible = true
+        end
+        if self.BottomPatch then
+            self.BottomPatch.Visible = true
         end
         self.IsMinimized = false
     end
