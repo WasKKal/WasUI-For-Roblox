@@ -2020,7 +2020,6 @@ function WasUI:ShowConfirmDialog(options, callback)
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
-    local glass = AddLiquidGlass(dialogFrame, 0.65)
     
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
