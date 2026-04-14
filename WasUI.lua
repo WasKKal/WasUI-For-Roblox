@@ -2412,8 +2412,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
 
     self.BottomPatch = CreateInstance("Frame", {
         Name = "BottomPatch",
-        Size = UDim2.new(1, 0, 0, 14),
-        Position = UDim2.new(0, 0, 1, -14),
+        Size = UDim2.new(1, 0, 0, 16),
+        Position = UDim2.new(0, 0, 1, -16),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
