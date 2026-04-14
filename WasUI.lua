@@ -74,21 +74,6 @@ WasUI.Themes = {
         TabBorder = Color3.fromRGB(200, 200, 205),
         TabButton = Color3.fromRGB(248, 248, 250),
         SnowColor = Color3.fromRGB(0, 0, 0)
-    },
-    Blue = {
-        Primary = Color3.fromRGB(20, 30, 45),
-        Secondary = Color3.fromRGB(30, 40, 55),
-        Background = Color3.fromRGB(15, 25, 35),
-        Text = Color3.fromRGB(230, 240, 255),
-        Accent = Color3.fromRGB(0, 120, 215),
-        Success = Color3.fromRGB(40, 200, 100),
-        Warning = Color3.fromRGB(255, 180, 50),
-        Error = Color3.fromRGB(240, 70, 70),
-        Section = Color3.fromRGB(25, 40, 55),
-        Input = Color3.fromRGB(30, 45, 60),
-        TabBorder = Color3.fromRGB(40, 60, 80),
-        TabButton = Color3.fromRGB(10, 20, 30),
-        SnowColor = Color3.fromRGB(200, 220, 255)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
@@ -946,8 +931,7 @@ function Control:SetVisible(visible)
     end
 end
 
-local function AddRipple(instance, scaleFactor)
-    scaleFactor = scaleFactor or 1.5
+local function AddRipple(instance)
     local function createRipple(input)
         local ripple = Instance.new("Frame")
         ripple.Name = "Ripple"
@@ -966,7 +950,7 @@ local function AddRipple(instance, scaleFactor)
         local y = mousePos.Y - btnPos.Y
         ripple.Position = UDim2.new(0, x, 0, y)
         ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-        local maxSize = math.max(instance.AbsoluteSize.X, instance.AbsoluteSize.Y) * scaleFactor
+        local maxSize = math.max(instance.AbsoluteSize.X, instance.AbsoluteSize.Y) * 1.5
         Tween(ripple, {Size = UDim2.new(0, maxSize, 0, maxSize), BackgroundTransparency = 1}, 0.5)
         task.delay(0.5, function() ripple:Destroy() end)
     end
@@ -1116,7 +1100,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then
         CreateRainbowTextForFeature(self.RainbowName)
     end
-    AddRipple(self.Background, 2.5)
+    AddRipple(self.Background)
 
     local function performToggle(newState)
         self.Toggled = newState
@@ -1873,7 +1857,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
     return self
 end
-    AddRipple(self.SliderTrack)
 
 local TextInput = setmetatable({}, {__index = Control})
 TextInput.__index = TextInput
@@ -1935,7 +1918,6 @@ function TextInput:New(name, parent, placeholder, defaultValue, callback, config
     table.insert(WasUI.Objects, {Object = self.Container, Type = "TextInput"})
     return self
 end
-AddRipple(self.TextBox)
 
 function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback, configKey)
     return TextInput:New("TextInput", parent, placeholder, defaultValue, callback, configKey)
@@ -3360,7 +3342,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = contentFrame
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
-        local themeNames = {"Dark", "Light", "Blue"}
+        local themeNames = {"Dark", "Light"}
         local currentThemeIndex = 1
         for i, name in ipairs(themeNames) do
             if WasUI.CurrentTheme == WasUI.Themes[name] then
@@ -3368,20 +3350,20 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 break
             end
         end
-themeDropdown.MouseButton1Click:Connect(function()
-    currentThemeIndex = currentThemeIndex % #themeNames + 1
-    local newThemeName = themeNames[currentThemeIndex]
-    themeDropdown.Text = newThemeName
-    Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-    Tween(scale, {Scale = 0.8}, 0.2)
-    task.wait(0.2)
-    if WasUI.SettingsGui then
-        WasUI.SettingsGui:Destroy()
-        WasUI.SettingsGui = nil
-    end
-    WasUI.SettingsPanel = nil
-    WasUI:SetTheme(newThemeName)
-end)
+        themeDropdown.MouseButton1Click:Connect(function()
+            currentThemeIndex = currentThemeIndex % #themeNames + 1
+            local newThemeName = themeNames[currentThemeIndex]
+            Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+            Tween(scale, {Scale = 0.8}, 0.2)
+            task.wait(0.2)
+            if WasUI.SettingsGui then
+                WasUI.SettingsGui:Destroy()
+                WasUI.SettingsGui = nil
+            end
+            WasUI.SettingsPanel = nil
+            WasUI:SetTheme(newThemeName)
+        end)
+
         local rainbowModeLabel = CreateInstance("TextLabel", {
             Name = "RainbowModeLabel",
             Size = UDim2.new(1, 0, 0, 24),
