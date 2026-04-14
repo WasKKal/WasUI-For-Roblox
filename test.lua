@@ -128,7 +128,6 @@ function WasUI:CreateFolder(folderName)
             Path = filePath,
             Data = {},
             Bindings = {},
-            __type = "Config"
         }
         
         function config:Save()
@@ -932,6 +931,34 @@ function Control:SetVisible(visible)
     end
 end
 
+local function AddRipple(instance)
+    local function createRipple(input)
+        local ripple = Instance.new("ImageLabel")
+        ripple.Name = "Ripple"
+        ripple.Size = UDim2.new(0, 0, 0, 0)
+        ripple.BackgroundTransparency = 1
+        ripple.Image = "rbxassetid://1316045217"
+        ripple.ImageColor3 = WasUI.CurrentTheme.Accent
+        ripple.ImageTransparency = 0.6
+        ripple.ZIndex = 10
+        ripple.Parent = instance
+        local mousePos = input.Position
+        local btnPos = instance.AbsolutePosition
+        local x = mousePos.X - btnPos.X
+        local y = mousePos.Y - btnPos.Y
+        ripple.Position = UDim2.new(0, x, 0, y)
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        local maxSize = math.max(instance.AbsoluteSize.X, instance.AbsoluteSize.Y) * 1.5
+        Tween(ripple, {Size = UDim2.new(0, maxSize, 0, maxSize), ImageTransparency = 1}, 0.5)
+        task.delay(0.5, function() ripple:Destroy() end)
+    end
+    instance.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            createRipple(input)
+        end
+    end)
+end
+
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick, size, iconName)
@@ -985,32 +1012,7 @@ function Button:New(name, parent, text, onClick, size, iconName)
         if onClick then onClick() end
     end)
 
-local function createRipple(input)
-    local ripple = Instance.new("ImageLabel")
-    ripple.Name = "Ripple"
-    ripple.Size = UDim2.new(0, 0, 0, 0)
-    ripple.BackgroundTransparency = 1
-    ripple.Image = "rbxassetid://1316045217"
-    ripple.ImageColor3 = WasUI.CurrentTheme.Accent
-    ripple.ImageTransparency = 0.6
-    ripple.ZIndex = 10
-    ripple.Parent = self.Instance
-    local mousePos = input.Position
-    local btnPos = self.Instance.AbsolutePosition
-    local x = mousePos.X - btnPos.X
-    local y = mousePos.Y - btnPos.Y
-    ripple.Position = UDim2.new(0, x, 0, y)
-    ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-    local maxSize = math.max(self.Instance.AbsoluteSize.X, self.Instance.AbsoluteSize.Y) * 1.5
-    Tween(ripple, {Size = UDim2.new(0, maxSize, 0, maxSize), ImageTransparency = 1}, 0.5)
-    task.delay(0.5, function() ripple:Destroy() end)
-end
-
-self.Instance.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        createRipple(input)
-    end
-end)
+    AddRipple(self.Instance)
 
     local controlKey = "button_" .. (text or name)
     AddKeyBindLongPress(self.Instance, controlKey, "button", onClick, text or name)
@@ -1096,6 +1098,8 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then
         CreateRainbowTextForFeature(self.RainbowName)
     end
+
+    AddRipple(self.Background)
 
     local function performToggle(newState)
         self.Toggled = newState
@@ -1421,6 +1425,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                     end
                 end
             end)
+            AddRipple(optionButton)
             self.OptionButtons[option] = optionButton
         end
         local function updateContainerSize()
@@ -1551,6 +1556,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
             self:Open()
         end
     end)
+    AddRipple(self.DropdownButton)
     rebuildOptions()
     self:UpdateDisplayText()
     if configKey and WasUI.ConfigManager then
@@ -1721,7 +1727,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     local tooltipCorner = Instance.new("UICorner")
     tooltipCorner.CornerRadius = UDim.new(1, 0)
     tooltipCorner.Parent = tooltip
-    
+
     local function showTooltip(val)
         tooltip.Text = tostring(val)
         tooltip.Visible = true
@@ -1731,7 +1737,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     local function hideTooltip()
         tooltip.Visible = false
     end
-    
+
     local function stopAnimation()
         if self.AnimationTween then
             self.AnimationTween:Cancel()
@@ -2178,17 +2184,14 @@ local function AddLiquidGlass(frame, intensity)
     intensity = intensity or 0.6
     frame.BackgroundTransparency = 1 - intensity
     frame.BackgroundColor3 = WasUI.CurrentTheme.Background
-    
     local blur = Instance.new("BlurEffect")
     blur.Size = 16
     blur.Parent = frame
-    
     local highlight = Instance.new("UIStroke")
     highlight.Color = Color3.fromRGB(255, 255, 255)
     highlight.Thickness = 1
     highlight.Transparency = 0.85
     highlight.Parent = frame
-    
     local gradient = Instance.new("UIGradient")
     gradient.Rotation = 45
     gradient.Color = ColorSequence.new{
@@ -2202,61 +2205,16 @@ local function AddLiquidGlass(frame, intensity)
         NumberSequenceKeypoint.new(1, 0.9)
     }
     gradient.Parent = highlight
-    
     local flowConnection = nil
     local angle = 0
     flowConnection = RunService.Heartbeat:Connect(function(dt)
         angle = (angle + dt * 30) % 360
         gradient.Rotation = angle
     end)
-    
     frame.Destroying:Connect(function()
         if flowConnection then flowConnection:Disconnect() end
     end)
-    
     return {blur = blur, stroke = highlight, gradient = gradient, connection = flowConnection}
-end
-
-local function ApplyLoadingSkeleton(parent, duration)
-    duration = duration or 0.5
-    local skeleton = Instance.new("Frame")
-    skeleton.Name = "LoadingSkeleton"
-    skeleton.Size = UDim2.new(1, 0, 1, 0)
-    skeleton.BackgroundColor3 = WasUI.CurrentTheme.Background
-    skeleton.BackgroundTransparency = 0.8
-    skeleton.BorderSizePixel = 0
-    skeleton.ZIndex = 99999
-    skeleton.Parent = parent
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
-    corner.Parent = skeleton
-
-    local gradient = Instance.new("UIGradient")
-    gradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-    }
-    gradient.Transparency = NumberSequence.new{
-        NumberSequenceKeypoint.new(0, 0.95),
-        NumberSequenceKeypoint.new(0.5, 0.8),
-        NumberSequenceKeypoint.new(1, 0.95)
-    }
-    gradient.Parent = skeleton
-
-    local offset = 0
-    local connection = RunService.Heartbeat:Connect(function(dt)
-        offset = (offset + dt * 1.2) % 2
-        gradient.Offset = Vector2.new(offset, 0)
-    end)
-
-    task.delay(duration, function()
-        connection:Disconnect()
-        skeleton:Destroy()
-    end)
-
-    return skeleton
 end
 
 local Panel = {}
@@ -4039,20 +3997,8 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled)
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = game:GetService("CoreGui")
-    local loadingContainer = Instance.new("Frame")
-    loadingContainer.Size = UDim2.new(1, 0, 1, 0)
-    loadingContainer.BackgroundTransparency = 1
-    loadingContainer.Parent = screenGui
-    local skeleton = ApplyLoadingSkeleton(loadingContainer, 0.8)
     local window = Panel:New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position, backgroundUrl, snowEnabled)
     RecordOriginalTransparency(window.Instance)
-    Tween(skeleton, {BackgroundTransparency = 1}, 0.2)
-    task.delay(0.25, function()
-        loadingContainer:Destroy()
-    end)
-    window.Instance.Destroying:Connect(function()
-        loadingContainer:Destroy()
-    end)
     return window
 end
 
