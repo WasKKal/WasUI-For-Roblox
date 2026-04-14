@@ -1,3 +1,4 @@
+--Version 1.0.9
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -2915,11 +2916,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     if closeIcon then
         closeIcon.Parent = closeButton
         closeIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
-    else
-        closeButton.Text = "×"
-        closeButton.TextColor3 = WasUI.CurrentTheme.Text
-        closeButton.TextSize = 16
-        closeButton.Font = Enum.Font.GothamBold
     end
     local searchButton = CreateInstance("ImageButton", {
         Name = "SearchButton",
@@ -2935,11 +2931,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     if searchIcon then
         searchIcon.Parent = searchButton
         searchIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
-    else
-        searchButton.Text = "🔍"
-        searchButton.TextColor3 = WasUI.CurrentTheme.Text
-        searchButton.TextSize = 14
-        searchButton.Font = Enum.Font.GothamBold
     end
     local isSearchActive = false
     local autoCloseTimer = nil
@@ -3239,7 +3230,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         local tweenDuration = 0.3
         local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
         for _, dot in ipairs(dots) do
-            Tween(dot, {BackgroundTransparency = 0.5}, tweenDuration)
+            Tween(dot, {BackgroundTransparency = 1}, tweenDuration)
         end
         if self.MinimizedCustomText ~= "" then
             self.MinimizedTextLabel.Visible = true
