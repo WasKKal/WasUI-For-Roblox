@@ -2165,22 +2165,6 @@ function WasUI:SetTheme(themeName)
     return false
 end
 
-local function AddMicroTexture(frame, intensity)
-    intensity = intensity or 0.05
-    local texture = Instance.new("ImageLabel")
-    texture.Name = "MicroTexture"
-    texture.Size = UDim2.new(1, 0, 1, 0)
-    texture.BackgroundTransparency = 1
-    texture.Image = "rbxassetid://1316045217"
-    texture.ImageColor3 = Color3.fromRGB(255, 255, 255)
-    texture.ImageTransparency = 1 - intensity
-    texture.ScaleType = Enum.ScaleType.Tile
-    texture.TileSize = UDim2.new(0, 64, 0, 64)
-    texture.ZIndex = frame.ZIndex + 1
-    texture.Parent = frame
-    return texture
-end
-
 local function AddLiquidGlass(frame, intensity)
     intensity = intensity or 0.6
     frame.BackgroundTransparency = 1 - intensity
@@ -2272,7 +2256,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     end
 
     local glass = AddLiquidGlass(self.Instance, 0.65)
-    local texture = AddMicroTexture(self.Instance, 0.08)
 
     AddRipple(self.Instance)
 
