@@ -2400,7 +2400,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Size = UDim2.new(1, 0, 0, 26),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0,
         BorderSizePixel = 0,
         ZIndex = 2,
         Parent = self.Instance
@@ -2415,7 +2415,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Size = UDim2.new(1, 0, 0, 14),
         Position = UDim2.new(0, 0, 1, -14),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0,
         BorderSizePixel = 0,
         ZIndex = 2,
         Parent = self.TitleBar
