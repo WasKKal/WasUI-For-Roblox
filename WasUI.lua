@@ -1,4 +1,4 @@
---Version 1.0.9.2
+--Version 1.0.9
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -29,7 +29,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.0.9.2"
+WasUI.Version = "1.1.0.0"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -48,12 +48,10 @@ WasUI_Folder.Parent = ReplicatedStorage
 
 WasUI.DefaultTheme = "Dark"
 WasUI.DefaultRainbowMode = "整体"
-WasUI.CurrentThemeName = WasUI.DefaultTheme   -- 新增：追踪当前主题名
 
 function WasUI:SetDefaultTheme(themeName)
     if self.Themes[themeName] then
         self.DefaultTheme = themeName
-        self.CurrentThemeName = themeName      -- 同步更新
         return true
     end
     return false
@@ -1184,51 +1182,6 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         end
     end
 
-    local function setStateSilently(newState)
-        self.Toggled = newState
-        self.Background:SetAttribute("Toggled", self.Toggled)
-        if self.Toggled then
-            Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-            SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
-            if self.RainbowName and self.RainbowName ~= "" then
-                CreateRainbowTextForFeature(self.RainbowName)
-            end
-            if iconName then
-                local iconImg = self.Knob:FindFirstChildOfClass("ImageLabel")
-                if iconImg then iconImg.ImageColor3 = WasUI.CurrentTheme.Success end
-            end
-        else
-            local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
-            Tween(self.Background, {BackgroundColor3 = offCol}, 0.2)
-            SpringTween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
-            if self.RainbowName and self.RainbowName ~= "" then
-                DestroyRainbowTextForFeature(self.RainbowName)
-            end
-            if iconName then
-                local iconImg = self.Knob:FindFirstChildOfClass("ImageLabel")
-                if iconImg then iconImg.ImageColor3 = WasUI.CurrentTheme.Accent end
-            end
-        end
-        local shortcutKey = GetShortcutKey("toggle", name, self.RainbowName)
-        local shortcut = WasUI.ShortcutButtons[shortcutKey]
-        if shortcut and shortcut.updateState then
-            shortcut.updateState(self.Toggled)
-        end
-        if configKey and WasUI.ConfigManager then
-            local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
-            if config then
-                config:Set(configKey, self.Toggled)
-                config:Save()
-            end
-        end
-    end
-
-    function self:SetToggle(newState)
-        performToggle(newState)
-    end
-
-    self._setStateSilently = setStateSilently
-
     self.Background.MouseButton1Click:Connect(function()
         performToggle(not self.Toggled)
     end)
@@ -2026,43 +1979,6 @@ function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback, conf
     return TextInput:New("TextInput", parent, placeholder, defaultValue, callback, configKey)
 end
 
-local function AddLiquidGlass(frame, intensity)
-    intensity = intensity or 0.6
-    frame.BackgroundTransparency = 1 - intensity
-    frame.BackgroundColor3 = WasUI.CurrentTheme.Background
-    local blur = Instance.new("BlurEffect")
-    blur.Size = 16
-    blur.Parent = frame
-    local highlight = Instance.new("UIStroke")
-    highlight.Color = Color3.fromRGB(255, 255, 255)
-    highlight.Thickness = 1
-    highlight.Transparency = 0.85
-    highlight.Parent = frame
-    local gradient = Instance.new("UIGradient")
-    gradient.Rotation = 45
-    gradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-    }
-    gradient.Transparency = NumberSequence.new{
-        NumberSequenceKeypoint.new(0, 0.9),
-        NumberSequenceKeypoint.new(0.5, 0.3),
-        NumberSequenceKeypoint.new(1, 0.9)
-    }
-    gradient.Parent = highlight
-    local flowConnection = nil
-    local angle = 0
-    flowConnection = RunService.Heartbeat:Connect(function(dt)
-        angle = (angle + dt * 30) % 360
-        gradient.Rotation = angle
-    end)
-    frame.Destroying:Connect(function()
-        if flowConnection then flowConnection:Disconnect() end
-    end)
-    return {blur = blur, stroke = highlight, gradient = gradient, connection = flowConnection}
-end
-
 function WasUI:ShowConfirmDialog(options, callback)
     local title = options.title or "确认"
     local titleColor = options.titleColor or WasUI.CurrentTheme.Text
@@ -2088,8 +2004,6 @@ function WasUI:ShowConfirmDialog(options, callback)
         BackgroundColor3 = Color3.fromRGB(0, 0, 0),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        Active = true,
-        Selectable = true,
         Parent = dialogGui,
         ZIndex = 999
     })
@@ -2097,6 +2011,7 @@ function WasUI:ShowConfirmDialog(options, callback)
     local dialogFrame = CreateInstance("Frame", {
         Name = "Dialog",
         Size = UDim2.new(0, 400, 0, 0),
+        Position = UDim2.new(0.5, -200, 0.5, -150),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0.2,
         BorderSizePixel = 0,
@@ -2105,7 +2020,6 @@ function WasUI:ShowConfirmDialog(options, callback)
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
-    local glass = AddLiquidGlass(dialogFrame, 0.65)
     
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
@@ -2217,20 +2131,9 @@ function WasUI:ShowConfirmDialog(options, callback)
     local totalHeight = currentY + 60
     dialogFrame.Size = UDim2.new(0, 400, 0, totalHeight)
     
-    local function updatePosition()
-        if dialogFrame and dialogFrame.Parent then
-            local parentSize = overlay.AbsoluteSize
-            local frameSize = dialogFrame.AbsoluteSize
-            dialogFrame.Position = UDim2.new(0.5, -frameSize.X/2, 0.5, -frameSize.Y/2)
-        end
-    end
-    
-    dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
-    updatePosition()
-    
     local function animateClose()
         Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-        Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0.5, -totalHeight/2 + 20)}, 0.2)
+        Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0.5, -150 + 20)}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
         for i, d in ipairs(WasUI.ActiveDialogs) do
@@ -2270,7 +2173,8 @@ function WasUI:ShowConfirmDialog(options, callback)
     end
     overlay.InputBegan:Connect(onOverlayClick)
     
-    Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
+    Tween(overlay, {BackgroundTransparency = 0.5}, 0.2)
+    Tween(dialogFrame, {BackgroundTransparency = 0.3, Position = UDim2.new(0.5, -200, 0.5, -150)}, 0.2)
     
     table.insert(WasUI.ActiveDialogs, dialogGui)
     return dialogGui
@@ -2294,13 +2198,31 @@ function WasUI:CreateConfirmToggle(parent, title, initialState, confirmOptions, 
                 if confirmed then
                     if onToggle then onToggle(state) end
                 else
-                    toggle._setStateSilently(false)
+                    toggle:SetToggle(not state)
                 end
             end)
         else
             if onToggle then onToggle(state) end
         end
     end, featureName, rainbowName, iconName, configKey)
+    
+    local originalToggle = toggle.Toggled
+    function toggle:SetToggle(newState)
+        originalToggle = newState
+        if newState then
+            WasUI:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
+                if confirmed then
+                    originalToggle = newState
+                    if onToggle then onToggle(newState) end
+                else
+                    -- keep original state
+                end
+            end)
+        else
+            originalToggle = newState
+            if onToggle then onToggle(newState) end
+        end
+    end
     
     return toggle
 end
@@ -2397,6 +2319,10 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 local titleBar = instance:FindFirstChild("TitleBar")
                 if titleBar then
                     Tween(titleBar, {BackgroundColor3 = newTheme.Primary}, duration)
+                    local patch = titleBar:FindFirstChild("BottomPatch")
+                    if patch then
+                        Tween(patch, {BackgroundColor3 = newTheme.Primary}, duration)
+                    end
                     local title = titleBar:FindFirstChild("Title")
                     if title and title:IsA("TextLabel") then
                         Tween(title, {TextColor3 = newTheme.Text}, duration)
@@ -2549,6 +2475,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 if confirmBtn then Tween(confirmBtn, {BackgroundColor3 = newTheme.Accent, TextColor3 = newTheme.Text}, duration) end
                 local glass = dialogFrame:FindFirstChildWhichIsA("BlurEffect")
                 if glass then
+                    -- blur doesn't need color tween
                 end
                 local stroke = dialogFrame:FindFirstChildOfClass("UIStroke")
                 if stroke then Tween(stroke, {Color = newTheme.Text}, duration) end
@@ -2562,17 +2489,58 @@ function WasUI:SetTheme(themeName)
         local oldTheme = self.CurrentTheme
         local newTheme = self.Themes[themeName]
         self.CurrentTheme = newTheme
-        self.CurrentThemeName = themeName        -- 更新当前主题名
         AnimateThemeChange(oldTheme, newTheme)
         if self.SettingsPanel then
             local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
             if themeDropdown and themeDropdown:IsA("TextButton") then
-                themeDropdown.Text = themeName
+                local displayName = ""
+                if themeName == "Dark" then displayName = "暗黑"
+                elseif themeName == "Light" then displayName = "珍珠白"
+                elseif themeName == "Blue" then displayName = "晶钻蓝"
+                else displayName = themeName end
+                themeDropdown.Text = displayName
             end
         end
         return true
     end
     return false
+end
+
+local function AddLiquidGlass(frame, intensity)
+    intensity = intensity or 0.6
+    frame.BackgroundTransparency = 1 - intensity
+    frame.BackgroundColor3 = WasUI.CurrentTheme.Background
+    local blur = Instance.new("BlurEffect")
+    blur.Size = 16
+    blur.Parent = frame
+    local highlight = Instance.new("UIStroke")
+    highlight.Color = Color3.fromRGB(255, 255, 255)
+    highlight.Thickness = 1
+    highlight.Transparency = 0.85
+    highlight.Parent = frame
+    local gradient = Instance.new("UIGradient")
+    gradient.Rotation = 45
+    gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+    }
+    gradient.Transparency = NumberSequence.new{
+        NumberSequenceKeypoint.new(0, 0.9),
+        NumberSequenceKeypoint.new(0.5, 0.3),
+        NumberSequenceKeypoint.new(1, 0.9)
+    }
+    gradient.Parent = highlight
+    local flowConnection = nil
+    local angle = 0
+    flowConnection = RunService.Heartbeat:Connect(function(dt)
+        angle = (angle + dt * 30) % 360
+        gradient.Rotation = angle
+    end)
+    frame.Destroying:Connect(function()
+        if flowConnection then flowConnection:Disconnect() end
+    end)
+    return {blur = blur, stroke = highlight, gradient = gradient, connection = flowConnection}
 end
 
 local Panel = {}
@@ -2759,6 +2727,17 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.TitleBar
     })
 
+    self.BottomPatch = CreateInstance("Frame", {
+        Name = "BottomPatch",
+        Size = UDim2.new(1, 0, 0, 16),
+        Position = UDim2.new(0, 0, 1, -16),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0,
+        BorderSizePixel = 0,
+        ZIndex = 1,
+        Parent = self.TitleBar
+    })
+
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
         Size = UDim2.new(1, 0, 1, 0),
@@ -2771,7 +2750,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     })
     self.Title = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(1, -140, 1, 0),
+        Size = UDim2.new(1, -120, 1, 0),
         Position = UDim2.new(0, 54, 0, 0),
         BackgroundTransparency = 1,
         Text = name,
@@ -2780,9 +2759,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Font = Enum.Font.GothamSemibold,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
-        TextTruncate = Enum.TextTruncate.AtEnd,
-        Active = false,
-        ZIndex = 1,
+        ZIndex = 2,
         Parent = self.TitleBar
     })
     self.DotContainer = CreateInstance("Frame", {
@@ -2897,13 +2874,18 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundTransparency = 1,
         Image = "",
         AutoButtonColor = false,
-        ZIndex = 30,
+        ZIndex = 20,
         Parent = self.TitleBar
     })
     local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
     if closeIcon then
         closeIcon.Parent = closeButton
         closeIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
+    else
+        closeButton.Text = "×"
+        closeButton.TextColor3 = WasUI.CurrentTheme.Text
+        closeButton.TextSize = 16
+        closeButton.Font = Enum.Font.GothamBold
     end
     local searchButton = CreateInstance("ImageButton", {
         Name = "SearchButton",
@@ -2912,13 +2894,18 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundTransparency = 1,
         Image = "",
         AutoButtonColor = false,
-        ZIndex = 30,
+        ZIndex = 20,
         Parent = self.TitleBar
     })
     local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
     if searchIcon then
         searchIcon.Parent = searchButton
         searchIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
+    else
+        searchButton.Text = "🔍"
+        searchButton.TextColor3 = WasUI.CurrentTheme.Text
+        searchButton.TextSize = 14
+        searchButton.Font = Enum.Font.GothamBold
     end
     local isSearchActive = false
     local autoCloseTimer = nil
@@ -3241,6 +3228,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         if self.SnowContainer then
             self.SnowContainer.Visible = false
         end
+        if self.BottomPatch then
+            self.BottomPatch.Visible = false
+        end
         self.IsMinimized = true
     end
     self.RestoreFromDots = function()
@@ -3270,6 +3260,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.DotContainer.Visible = true
         if self.SnowContainer then
             self.SnowContainer.Visible = true
+        end
+        if self.BottomPatch then
+            self.BottomPatch.Visible = true
         end
         self.IsMinimized = false
     end
@@ -3465,7 +3458,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     end)
     
     local dragging = false
-    local dragRenderConn = nil
+    local dragMoveConn = nil
     local dragEndConn = nil
     local dragStart = Vector2.new()
     local startPos = UDim2.new()
@@ -3500,19 +3493,19 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 dragStart = input.Position
                 startPos = self.Instance.Position
                 currentDragTouch = nil
-                if dragRenderConn then dragRenderConn:Disconnect() end
-                dragRenderConn = RunService.RenderStepped:Connect(function()
-                    if dragging then
-                        local delta = UserInputService:GetMouseLocation() - dragStart
-                        local newX = startPos.X.Offset + delta.X
-                        local newY = startPos.Y.Offset + delta.Y
-                        self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
-                    end
-                end)
                 if not self.IsMinimized and self.SnowEnabled then
                     self.SnowEnabled = false
                     if self.SnowContainer then
                         self.SnowContainer.Visible = false
+                    end
+                    if WasUI.SettingsPanel then
+                        local snowToggleBtn = WasUI.SettingsPanel:FindFirstChild("Content") and WasUI.SettingsPanel.Content:FindFirstChild("Toggle")
+                        if snowToggleBtn and snowToggleBtn.Background then
+                            local toggled = snowToggleBtn.Background:GetAttribute("Toggled")
+                            if toggled then
+                                snowToggleBtn.Background:FindFirstChildOfClass("ImageButton").MouseButton1Click:Fire()
+                            end
+                        end
                     end
                 end
             end
@@ -3523,22 +3516,38 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 dragStart = input.Position
                 startPos = self.Instance.Position
                 currentDragTouch = input
-                if dragRenderConn then dragRenderConn:Disconnect() end
-                dragRenderConn = RunService.RenderStepped:Connect(function()
-                    if dragging and currentDragTouch then
-                        local delta = currentDragTouch.Position - dragStart
-                        local newX = startPos.X.Offset + delta.X
-                        local newY = startPos.Y.Offset + delta.Y
-                        self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
-                    end
-                end)
                 if not self.IsMinimized and self.SnowEnabled then
                     self.SnowEnabled = false
                     if self.SnowContainer then
                         self.SnowContainer.Visible = false
                     end
+                    if WasUI.SettingsPanel then
+                        local snowToggleBtn = WasUI.SettingsPanel:FindFirstChild("Content") and WasUI.SettingsPanel.Content:FindFirstChild("Toggle")
+                        if snowToggleBtn and snowToggleBtn.Background then
+                            local toggled = snowToggleBtn.Background:GetAttribute("Toggled")
+                            if toggled then
+                                snowToggleBtn.Background:FindFirstChildOfClass("ImageButton").MouseButton1Click:Fire()
+                            end
+                        end
+                    end
                 end
             end
+        end
+    end
+    
+    local function updateDrag(input, processed)
+        if processed then return end
+        local isValid = false
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging and currentDragTouch == nil then
+            isValid = true
+        elseif input.UserInputType == Enum.UserInputType.Touch and dragging and input == currentDragTouch then
+            isValid = true
+        end
+        if isValid then
+            local delta = input.Position - dragStart
+            local newX = startPos.X.Offset + delta.X
+            local newY = startPos.Y.Offset + delta.Y
+            self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
         end
     end
     
@@ -3552,16 +3561,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         end
         if isValid then
             dragging = false
-            if dragRenderConn then
-                dragRenderConn:Disconnect()
-                dragRenderConn = nil
-            end
+            dragStart = Vector2.new()
             currentDragTouch = nil
         end
     end
     
     self.DraggableArea.InputBegan:Connect(startDrag)
     self.DotAreaButton.InputBegan:Connect(startDrag)
+    dragMoveConn = UserInputService.InputChanged:Connect(updateDrag)
     dragEndConn = UserInputService.InputEnded:Connect(endDrag)
     
     local announcementHeight = 80
@@ -3748,11 +3755,21 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = contentFrame
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
-        local themeDisplayNames = {"Dark", "Light", "Blue"}
-        local currentThemeDisplay = WasUI.CurrentThemeName   -- 使用当前主题名
+        local themeMap = {
+            ["暗黑"] = "Dark",
+            ["珍珠白"] = "Light",
+            ["晶钻蓝"] = "Blue"
+        }
+        local reverseThemeMap = {
+            Dark = "暗黑",
+            Light = "珍珠白",
+            Blue = "晶钻蓝"
+        }
+        local themeDisplayNames = {"暗黑", "珍珠白", "晶钻蓝"}
+        local currentThemeDisplay = reverseThemeMap[WasUI.CurrentThemeKey or WasUI.DefaultTheme] or "暗黑"
         themeDropdown.Text = currentThemeDisplay
         themeDropdown.MouseButton1Click:Connect(function()
-            local currentIndex = 1
+            local currentIndex = nil
             for i, name in ipairs(themeDisplayNames) do
                 if name == themeDropdown.Text then
                     currentIndex = i
@@ -3760,8 +3777,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 end
             end
             local nextIndex = (currentIndex % #themeDisplayNames) + 1
-            local newThemeName = themeDisplayNames[nextIndex]
-            themeDropdown.Text = newThemeName
+            local newDisplayName = themeDisplayNames[nextIndex]
+            local newThemeName = themeMap[newDisplayName]
+            themeDropdown.Text = newDisplayName
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
             Tween(scale, {Scale = 0.8}, 0.2)
             task.wait(0.2)
