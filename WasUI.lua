@@ -74,21 +74,6 @@ WasUI.Themes = {
         TabBorder = Color3.fromRGB(200, 200, 205),
         TabButton = Color3.fromRGB(248, 248, 250),
         SnowColor = Color3.fromRGB(0, 0, 0)
-    },
-    Blue = {
-        Primary = Color3.fromRGB(20, 30, 45),
-        Secondary = Color3.fromRGB(30, 40, 55),
-        Background = Color3.fromRGB(15, 25, 35),
-        Text = Color3.fromRGB(230, 240, 255),
-        Accent = Color3.fromRGB(0, 120, 215),
-        Success = Color3.fromRGB(40, 200, 100),
-        Warning = Color3.fromRGB(255, 180, 50),
-        Error = Color3.fromRGB(240, 70, 70),
-        Section = Color3.fromRGB(25, 40, 55),
-        Input = Color3.fromRGB(30, 45, 60),
-        TabBorder = Color3.fromRGB(40, 60, 80),
-        TabButton = Color3.fromRGB(10, 20, 30),
-        SnowColor = Color3.fromRGB(200, 220, 255)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
@@ -704,37 +689,6 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
     UserInputService.InputChanged:Connect(checkMove)
 end
 
-local function AddRipple(instance, scaleFactor)
-    scaleFactor = scaleFactor or 1.5
-    local function createRipple(input)
-        local ripple = Instance.new("Frame")
-        ripple.Name = "Ripple"
-        ripple.Size = UDim2.new(0, 0, 0, 0)
-        ripple.BackgroundColor3 = WasUI.CurrentTheme.Accent
-        ripple.BackgroundTransparency = 0.6
-        ripple.BorderSizePixel = 0
-        ripple.ZIndex = 10
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(1, 0)
-        corner.Parent = ripple
-        ripple.Parent = instance
-        local mousePos = input.Position
-        local btnPos = instance.AbsolutePosition
-        local x = mousePos.X - btnPos.X
-        local y = mousePos.Y - btnPos.Y
-        ripple.Position = UDim2.new(0, x, 0, y)
-        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-        local maxSize = math.max(instance.AbsoluteSize.X, instance.AbsoluteSize.Y) * scaleFactor
-        Tween(ripple, {Size = UDim2.new(0, maxSize, 0, maxSize), BackgroundTransparency = 1}, 0.5)
-        task.delay(0.5, function() ripple:Destroy() end)
-    end
-    instance.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            createRipple(input)
-        end
-    end)
-end
-
 local function CreateShortcutButton(displayName, isToggle, initialState, onToggleCallback, onClickCallback, rainbowKey)
     EnsureShortcutGui()
     local key = GetShortcutKey(isToggle and "toggle" or "button", nil, rainbowKey)
@@ -977,6 +931,36 @@ function Control:SetVisible(visible)
     end
 end
 
+local function AddRipple(instance)
+    local function createRipple(input)
+        local ripple = Instance.new("Frame")
+        ripple.Name = "Ripple"
+        ripple.Size = UDim2.new(0, 0, 0, 0)
+        ripple.BackgroundColor3 = WasUI.CurrentTheme.Accent
+        ripple.BackgroundTransparency = 0.6
+        ripple.BorderSizePixel = 0
+        ripple.ZIndex = 10
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(1, 0)
+        corner.Parent = ripple
+        ripple.Parent = instance
+        local mousePos = input.Position
+        local btnPos = instance.AbsolutePosition
+        local x = mousePos.X - btnPos.X
+        local y = mousePos.Y - btnPos.Y
+        ripple.Position = UDim2.new(0, x, 0, y)
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        local maxSize = math.max(instance.AbsoluteSize.X, instance.AbsoluteSize.Y) * 1.5
+        Tween(ripple, {Size = UDim2.new(0, maxSize, 0, maxSize), BackgroundTransparency = 1}, 0.5)
+        task.delay(0.5, function() ripple:Destroy() end)
+    end
+    instance.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            createRipple(input)
+        end
+    end)
+end
+
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick, size, iconName)
@@ -997,7 +981,7 @@ function Button:New(name, parent, text, onClick, size, iconName)
         AutomaticSize = Enum.AutomaticSize.None,
         ZIndex = 2
     })
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.Instance})
     local padding = CreateInstance("UIPadding", {
         PaddingLeft = UDim.new(0, 12),
         PaddingRight = UDim.new(0, 12),
@@ -1116,8 +1100,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then
         CreateRainbowTextForFeature(self.RainbowName)
     end
-
-    AddRipple(self.Background, 2.5)
+    AddRipple(self.Background)
 
     local function performToggle(newState)
         self.Toggled = newState
@@ -1861,7 +1844,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             hideTooltip()
         end
     end)
-    AddRipple(self.SliderTrack)
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
@@ -1923,7 +1905,6 @@ function TextInput:New(name, parent, placeholder, defaultValue, callback, config
             end
         end
     end)
-    AddRipple(self.TextBox)
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
@@ -2268,7 +2249,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ZIndex = 1,
         Parent = parent
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = self.Instance})
     
     if backgroundUrl and backgroundUrl ~= "" then
         self:SetBackground(backgroundUrl)
@@ -2401,7 +2382,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Parent = self.Instance
     })
     CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 14),
+        CornerRadius = UDim.new(0, 10),
         Parent = self.TitleBar
     })
     self.DraggableArea = CreateInstance("TextButton", {
@@ -3361,7 +3342,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = contentFrame
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
-        local themeNames = {"Dark", "Light", "Blue"}
+        local themeNames = {"Dark", "Light"}
         local currentThemeIndex = 1
         for i, name in ipairs(themeNames) do
             if WasUI.CurrentTheme == WasUI.Themes[name] then
@@ -3369,11 +3350,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 break
             end
         end
-        themeDropdown.Text = themeNames[currentThemeIndex]
         themeDropdown.MouseButton1Click:Connect(function()
             currentThemeIndex = currentThemeIndex % #themeNames + 1
             local newThemeName = themeNames[currentThemeIndex]
-            themeDropdown.Text = newThemeName
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
             Tween(scale, {Scale = 0.8}, 0.2)
             task.wait(0.2)
@@ -3724,7 +3703,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         tabInnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshOuterCanvas)
         tabButton.MouseButton1Click:Connect(function()
             self:SetActiveTab(tabName)
-        })
+        end)
         self.Tabs[tabName] = {
             Button = tabButton,
             Underline = tabUnderline,
