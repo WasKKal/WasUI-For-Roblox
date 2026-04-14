@@ -1,4 +1,4 @@
---Version 1.0.9
+--Version 1.0.9.1
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -2395,10 +2395,6 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 local titleBar = instance:FindFirstChild("TitleBar")
                 if titleBar then
                     Tween(titleBar, {BackgroundColor3 = newTheme.Primary}, duration)
-                    local patch = titleBar:FindFirstChild("BottomPatch")
-                    if patch then
-                        Tween(patch, {BackgroundColor3 = newTheme.Primary}, duration)
-                    end
                     local title = titleBar:FindFirstChild("Title")
                     if title and title:IsA("TextLabel") then
                         Tween(title, {TextColor3 = newTheme.Text}, duration)
@@ -2757,17 +2753,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     })
     CreateInstance("UICorner", {
         CornerRadius = UDim.new(0, 14),
-        Parent = self.TitleBar
-    })
-
-    self.BottomPatch = CreateInstance("Frame", {
-        Name = "BottomPatch",
-        Size = UDim2.new(1, 0, 0, 16),
-        Position = UDim2.new(0, 0, 1, -16),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0,
-        BorderSizePixel = 0,
-        ZIndex = 1,
         Parent = self.TitleBar
     })
 
@@ -3253,9 +3238,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         if self.SnowContainer then
             self.SnowContainer.Visible = false
         end
-        if self.BottomPatch then
-            self.BottomPatch.Visible = false
-        end
         self.IsMinimized = true
     end
     self.RestoreFromDots = function()
@@ -3285,9 +3267,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self.DotContainer.Visible = true
         if self.SnowContainer then
             self.SnowContainer.Visible = true
-        end
-        if self.BottomPatch then
-            self.BottomPatch.Visible = true
         end
         self.IsMinimized = false
     end
