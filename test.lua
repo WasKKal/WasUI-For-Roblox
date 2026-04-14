@@ -985,32 +985,32 @@ function Button:New(name, parent, text, onClick, size, iconName)
         if onClick then onClick() end
     end)
 
-    local function createRipple(input)
-        local ripple = Instance.new("ImageLabel")
-        ripple.Name = "Ripple"
-        ripple.Size = UDim2.new(0, 0, 0, 0)
-        ripple.BackgroundTransparency = 1
-        ripple.Image = "rbxassetid://1316045217"
-        ripple.ImageColor3 = WasUI.CurrentTheme.Accent
-        ripple.ImageTransparency = 0.6
-        ripple.ZIndex = 10
-        ripple.Parent = self.Instance
-        
-        local mousePos = input.Position
-        local btnPos = self.Instance.AbsolutePosition
-        local x = mousePos.X - btnPos.X
-        local y = mousePos.Y - btnPos.Y
-        ripple.Position = UDim2.new(0, x, 0, y)
-        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-        
-        Tween(ripple, {Size = UDim2.new(2, 0, 2, 0), ImageTransparency = 1}, 0.5)
-        task.delay(0.5, function() ripple:Destroy() end)
+local function createRipple(input)
+    local ripple = Instance.new("ImageLabel")
+    ripple.Name = "Ripple"
+    ripple.Size = UDim2.new(0, 0, 0, 0)
+    ripple.BackgroundTransparency = 1
+    ripple.Image = "rbxassetid://1316045217"
+    ripple.ImageColor3 = WasUI.CurrentTheme.Accent
+    ripple.ImageTransparency = 0.6
+    ripple.ZIndex = 10
+    ripple.Parent = self.Instance
+    local mousePos = input.Position
+    local btnPos = self.Instance.AbsolutePosition
+    local x = mousePos.X - btnPos.X
+    local y = mousePos.Y - btnPos.Y
+    ripple.Position = UDim2.new(0, x, 0, y)
+    ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+    local maxSize = math.max(self.Instance.AbsoluteSize.X, self.Instance.AbsoluteSize.Y) * 1.5
+    Tween(ripple, {Size = UDim2.new(0, maxSize, 0, maxSize), ImageTransparency = 1}, 0.5)
+    task.delay(0.5, function() ripple:Destroy() end)
+end
+
+self.Instance.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        createRipple(input)
     end
-    self.Instance.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            createRipple(input)
-        end
-    end)
+end)
 
     local controlKey = "button_" .. (text or name)
     AddKeyBindLongPress(self.Instance, controlKey, "button", onClick, text or name)
@@ -4039,21 +4039,20 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled)
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = game:GetService("CoreGui")
-
     local loadingContainer = Instance.new("Frame")
     loadingContainer.Size = UDim2.new(1, 0, 1, 0)
     loadingContainer.BackgroundTransparency = 1
     loadingContainer.Parent = screenGui
     local skeleton = ApplyLoadingSkeleton(loadingContainer, 0.8)
-
     local window = Panel:New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position, backgroundUrl, snowEnabled)
     RecordOriginalTransparency(window.Instance)
-
     Tween(skeleton, {BackgroundTransparency = 1}, 0.2)
     task.delay(0.25, function()
         loadingContainer:Destroy()
     end)
-
+    window.Instance.Destroying:Connect(function()
+        loadingContainer:Destroy()
+    end)
     return window
 end
 
