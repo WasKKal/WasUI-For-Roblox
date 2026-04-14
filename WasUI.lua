@@ -946,7 +946,8 @@ function Control:SetVisible(visible)
     end
 end
 
-local function AddRipple(instance)
+local function AddRipple(instance, scaleFactor)
+    scaleFactor = scaleFactor or 1.5
     local function createRipple(input)
         local ripple = Instance.new("Frame")
         ripple.Name = "Ripple"
@@ -965,7 +966,7 @@ local function AddRipple(instance)
         local y = mousePos.Y - btnPos.Y
         ripple.Position = UDim2.new(0, x, 0, y)
         ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-        local maxSize = math.max(instance.AbsoluteSize.X, instance.AbsoluteSize.Y) * 1.5
+        local maxSize = math.max(instance.AbsoluteSize.X, instance.AbsoluteSize.Y) * scaleFactor
         Tween(ripple, {Size = UDim2.new(0, maxSize, 0, maxSize), BackgroundTransparency = 1}, 0.5)
         task.delay(0.5, function() ripple:Destroy() end)
     end
@@ -1115,7 +1116,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then
         CreateRainbowTextForFeature(self.RainbowName)
     end
-    AddRipple(self.Background)
+    AddRipple(self.Background, 2.5)
 
     local function performToggle(newState)
         self.Toggled = newState
@@ -1872,6 +1873,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Slider"})
     return self
 end
+    AddRipple(self.SliderTrack)
 
 local TextInput = setmetatable({}, {__index = Control})
 TextInput.__index = TextInput
@@ -1933,6 +1935,7 @@ function TextInput:New(name, parent, placeholder, defaultValue, callback, config
     table.insert(WasUI.Objects, {Object = self.Container, Type = "TextInput"})
     return self
 end
+AddRipple(self.TextBox)
 
 function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback, configKey)
     return TextInput:New("TextInput", parent, placeholder, defaultValue, callback, configKey)
@@ -3365,20 +3368,20 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 break
             end
         end
-        themeDropdown.MouseButton1Click:Connect(function()
-            currentThemeIndex = currentThemeIndex % #themeNames + 1
-            local newThemeName = themeNames[currentThemeIndex]
-            Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-            Tween(scale, {Scale = 0.8}, 0.2)
-            task.wait(0.2)
-            if WasUI.SettingsGui then
-                WasUI.SettingsGui:Destroy()
-                WasUI.SettingsGui = nil
-            end
-            WasUI.SettingsPanel = nil
-            WasUI:SetTheme(newThemeName)
-        end)
-
+themeDropdown.MouseButton1Click:Connect(function()
+    currentThemeIndex = currentThemeIndex % #themeNames + 1
+    local newThemeName = themeNames[currentThemeIndex]
+    themeDropdown.Text = newThemeName
+    Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+    Tween(scale, {Scale = 0.8}, 0.2)
+    task.wait(0.2)
+    if WasUI.SettingsGui then
+        WasUI.SettingsGui:Destroy()
+        WasUI.SettingsGui = nil
+    end
+    WasUI.SettingsPanel = nil
+    WasUI:SetTheme(newThemeName)
+end)
         local rainbowModeLabel = CreateInstance("TextLabel", {
             Name = "RainbowModeLabel",
             Size = UDim2.new(1, 0, 0, 24),
