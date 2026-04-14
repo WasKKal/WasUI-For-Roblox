@@ -74,6 +74,21 @@ WasUI.Themes = {
         TabBorder = Color3.fromRGB(200, 200, 205),
         TabButton = Color3.fromRGB(248, 248, 250),
         SnowColor = Color3.fromRGB(0, 0, 0)
+    },
+    Blue = {
+        Primary = Color3.fromRGB(20, 30, 45),
+        Secondary = Color3.fromRGB(30, 40, 55),
+        Background = Color3.fromRGB(15, 25, 35),
+        Text = Color3.fromRGB(230, 240, 255),
+        Accent = Color3.fromRGB(0, 120, 215),
+        Success = Color3.fromRGB(40, 200, 100),
+        Warning = Color3.fromRGB(255, 180, 50),
+        Error = Color3.fromRGB(240, 70, 70),
+        Section = Color3.fromRGB(25, 40, 55),
+        Input = Color3.fromRGB(30, 45, 60),
+        TabBorder = Color3.fromRGB(40, 60, 80),
+        TabButton = Color3.fromRGB(10, 20, 30),
+        SnowColor = Color3.fromRGB(200, 220, 255)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes.Dark
@@ -3342,7 +3357,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = contentFrame
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
-        local themeNames = {"Dark", "Light"}
+        local themeNames = {"Dark", "Light", "Blue"}
         local currentThemeIndex = 1
         for i, name in ipairs(themeNames) do
             if WasUI.CurrentTheme == WasUI.Themes[name] then
