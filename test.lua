@@ -940,6 +940,7 @@ local function AddRipple(instance)
         ripple.Image = "rbxassetid://1316045217"
         ripple.ImageColor3 = WasUI.CurrentTheme.Accent
         ripple.ImageTransparency = 0.6
+        ripple.ScaleType = Enum.ScaleType.Fit
         ripple.ZIndex = 10
         ripple.Parent = instance
         local mousePos = input.Position
@@ -2272,6 +2273,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
 
     local glass = AddLiquidGlass(self.Instance, 0.65)
     local texture = AddMicroTexture(self.Instance, 0.08)
+
+    AddRipple(self.Instance)
 
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
