@@ -1,4 +1,4 @@
---Version 1.0.9
+--Version 1.0.9.1
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -29,7 +29,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.0.9.1"
+WasUI.Version = "1.1.0.0"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -2528,9 +2528,9 @@ function WasUI:SetTheme(themeName)
             local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
             if themeDropdown and themeDropdown:IsA("TextButton") then
                 local displayName = ""
-                if themeName == "Dark" then displayName = "暗黑"
-                elseif themeName == "Light" then displayName = "珍珠白"
-                elseif themeName == "Blue" then displayName = "晶钻蓝"
+                if themeName == "Dark" then displayName = "Dark"
+                elseif themeName == "Light" then displayName = "Light"
+                elseif themeName == "Blue" then displayName = "Blue"
                 else displayName = themeName end
                 themeDropdown.Text = displayName
             end
@@ -2756,6 +2756,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Font = Enum.Font.GothamSemibold,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        Active = false,
         ZIndex = 2,
         Parent = self.TitleBar
     })
@@ -3752,41 +3754,30 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             Parent = contentFrame
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
-        local themeMap = {
-            ["Dark"] = "Dark",
-            ["Light"] = "Light",
-            ["Blue"] = "Blue"
-        }
-        local reverseThemeMap = {
-            Dark = "Dark",
-            Light = "Light",
-            Blue = "Blue"
-        }
-        local themeDisplayNames = {"暗黑", "珍珠白", "晶钻蓝"}
-        local currentThemeDisplay = WasUI.CurrentThemeKey or WasUI.DefaultTheme
-themeDropdown.Text = currentThemeDisplay
-
-themeDropdown.MouseButton1Click:Connect(function()
-    local currentIndex = 1
-    for i, name in ipairs(themeDisplayNames) do
-        if name == themeDropdown.Text then
-            currentIndex = i
-            break
-        end
-    end
-    local nextIndex = (currentIndex % #themeDisplayNames) + 1
-    local newThemeName = themeDisplayNames[nextIndex]
-    themeDropdown.Text = newThemeName
-    Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-    Tween(scale, {Scale = 0.8}, 0.2)
-    task.wait(0.2)
-    if WasUI.SettingsGui then
-        WasUI.SettingsGui:Destroy()
-        WasUI.SettingsGui = nil
-    end
-    WasUI.SettingsPanel = nil
-    WasUI:SetTheme(newThemeName)
-end)
+        local themeDisplayNames = {"Dark", "Light", "Blue"}
+        local currentThemeDisplay = WasUI.DefaultTheme
+        themeDropdown.Text = currentThemeDisplay
+        themeDropdown.MouseButton1Click:Connect(function()
+            local currentIndex = 1
+            for i, name in ipairs(themeDisplayNames) do
+                if name == themeDropdown.Text then
+                    currentIndex = i
+                    break
+                end
+            end
+            local nextIndex = (currentIndex % #themeDisplayNames) + 1
+            local newThemeName = themeDisplayNames[nextIndex]
+            themeDropdown.Text = newThemeName
+            Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+            Tween(scale, {Scale = 0.8}, 0.2)
+            task.wait(0.2)
+            if WasUI.SettingsGui then
+                WasUI.SettingsGui:Destroy()
+                WasUI.SettingsGui = nil
+            end
+            WasUI.SettingsPanel = nil
+            WasUI:SetTheme(newThemeName)
+        end)
 
         local rainbowModeLabel = CreateInstance("TextLabel", {
             Name = "RainbowModeLabel",
