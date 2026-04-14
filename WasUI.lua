@@ -2756,7 +2756,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Font = Enum.Font.GothamSemibold,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 1,
+        ZIndex = 2,
         Parent = self.TitleBar
     })
     self.DotContainer = CreateInstance("Frame", {
