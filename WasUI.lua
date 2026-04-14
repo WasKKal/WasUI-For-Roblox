@@ -86,7 +86,6 @@ WasUI.ShortcutButtons = {}
 WasUI.KeyBindings = {}
 WasUI.AwaitingKeyBind = nil
 
--- ================= 配置管理模块 =================
 WasUI.ConfigManager = nil
 WasUI.ConfigFolderCreated = false
 WasUI.ConfigFolderName = nil
@@ -129,7 +128,6 @@ function WasUI:CreateFolder(folderName)
             Path = filePath,
             Data = {},
             Bindings = {},
-            __type = "Config"
         }
         
         function config:Save()
@@ -224,7 +222,6 @@ function WasUI:CreateFolder(folderName)
     return WasUI.ConfigManager
 end
 
--- ================= 辅助函数 =================
 local function EnsureShortcutGui()
     if not WasUI.ShortcutGui or not WasUI.ShortcutGui.Parent then
         WasUI.ShortcutGui = Instance.new("ScreenGui")
@@ -934,6 +931,36 @@ function Control:SetVisible(visible)
     end
 end
 
+local function AddRipple(instance)
+    local function createRipple(input)
+        local ripple = Instance.new("Frame")
+        ripple.Name = "Ripple"
+        ripple.Size = UDim2.new(0, 0, 0, 0)
+        ripple.BackgroundColor3 = WasUI.CurrentTheme.Accent
+        ripple.BackgroundTransparency = 0.6
+        ripple.BorderSizePixel = 0
+        ripple.ZIndex = 10
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(1, 0)
+        corner.Parent = ripple
+        ripple.Parent = instance
+        local mousePos = input.Position
+        local btnPos = instance.AbsolutePosition
+        local x = mousePos.X - btnPos.X
+        local y = mousePos.Y - btnPos.Y
+        ripple.Position = UDim2.new(0, x, 0, y)
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        local maxSize = math.max(instance.AbsoluteSize.X, instance.AbsoluteSize.Y) * 1.5
+        Tween(ripple, {Size = UDim2.new(0, maxSize, 0, maxSize), BackgroundTransparency = 1}, 0.5)
+        task.delay(0.5, function() ripple:Destroy() end)
+    end
+    instance.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            createRipple(input)
+        end
+    end)
+end
+
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick, size, iconName)
@@ -954,7 +981,7 @@ function Button:New(name, parent, text, onClick, size, iconName)
         AutomaticSize = Enum.AutomaticSize.None,
         ZIndex = 2
     })
-    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
+    local corner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.Instance})
     local padding = CreateInstance("UIPadding", {
         PaddingLeft = UDim.new(0, 12),
         PaddingRight = UDim.new(0, 12),
@@ -986,6 +1013,8 @@ function Button:New(name, parent, text, onClick, size, iconName)
         SpringTween(scale, {Scale = 1}, 0.25)
         if onClick then onClick() end
     end)
+
+    AddRipple(self.Instance)
 
     local controlKey = "button_" .. (text or name)
     AddKeyBindLongPress(self.Instance, controlKey, "button", onClick, text or name)
@@ -1060,16 +1089,18 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     })
     local knobCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Knob})
     if iconName then
-        local knobIcon = WasUI:CreateIcon(iconName, UDim2.new(0, 10, 0, 10), WasUI.CurrentTheme.Text)
+        local knobIcon = WasUI:CreateIcon(iconName, UDim2.new(0, 10, 0, 10), self.Toggled and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Accent)
         if knobIcon then
             knobIcon.Parent = self.Knob
             knobIcon.Position = UDim2.new(0.5, -5, 0.5, -5)
-            knobIcon.ZIndex = 5
+            knobIcon.ZIndex = 6
+            knobIcon.ImageTransparency = 0
         end
     end
     if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then
         CreateRainbowTextForFeature(self.RainbowName)
     end
+    AddRipple(self.Background)
 
     local function performToggle(newState)
         self.Toggled = newState
@@ -1080,12 +1111,20 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             if self.RainbowName and self.RainbowName ~= "" then
                 CreateRainbowTextForFeature(self.RainbowName)
             end
+            if iconName then
+                local iconImg = self.Knob:FindFirstChildOfClass("ImageLabel")
+                if iconImg then iconImg.ImageColor3 = WasUI.CurrentTheme.Success end
+            end
         else
             local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
             Tween(self.Background, {BackgroundColor3 = offCol}, 0.2)
             SpringTween(self.Knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
             if self.RainbowName and self.RainbowName ~= "" then
                 DestroyRainbowTextForFeature(self.RainbowName)
+            end
+            if iconName then
+                local iconImg = self.Knob:FindFirstChildOfClass("ImageLabel")
+                if iconImg then iconImg.ImageColor3 = WasUI.CurrentTheme.Accent end
             end
         end
         if self.ToggleCallback then self.ToggleCallback(self.Toggled) end
@@ -1387,6 +1426,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                     end
                 end
             end)
+            AddRipple(optionButton)
             self.OptionButtons[option] = optionButton
         end
         local function updateContainerSize()
@@ -1517,6 +1557,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
             self:Open()
         end
     end)
+    AddRipple(self.DropdownButton)
     rebuildOptions()
     self:UpdateDisplayText()
     if configKey and WasUI.ConfigManager then
@@ -1670,6 +1711,34 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = knobCircle})
     local knobScale = Instance.new("UIScale", knobCircle)
+
+    local tooltip = Instance.new("TextLabel")
+    tooltip.Name = "Tooltip"
+    tooltip.Size = UDim2.new(0, 40, 0, 20)
+    tooltip.BackgroundColor3 = WasUI.CurrentTheme.Section
+    tooltip.BackgroundTransparency = 0.1
+    tooltip.TextColor3 = WasUI.CurrentTheme.Text
+    tooltip.TextSize = 12
+    tooltip.Font = Enum.Font.GothamBold
+    tooltip.TextXAlignment = Enum.TextXAlignment.Center
+    tooltip.TextYAlignment = Enum.TextYAlignment.Center
+    tooltip.Visible = false
+    tooltip.ZIndex = 10
+    tooltip.Parent = self.SliderTrack
+    local tooltipCorner = Instance.new("UICorner")
+    tooltipCorner.CornerRadius = UDim.new(1, 0)
+    tooltipCorner.Parent = tooltip
+
+    local function showTooltip(val)
+        tooltip.Text = tostring(val)
+        tooltip.Visible = true
+        local knobPos = self.Knob.AbsolutePosition
+        tooltip.Position = UDim2.new(0, knobPos.X + self.Knob.AbsoluteSize.X/2 - tooltip.AbsoluteSize.X/2 - self.SliderTrack.AbsolutePosition.X, 0, -25)
+    end
+    local function hideTooltip()
+        tooltip.Visible = false
+    end
+
     local function stopAnimation()
         if self.AnimationTween then
             self.AnimationTween:Cancel()
@@ -1739,6 +1808,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             animateToValue(targetValue)
             dragging = true
             SpringTween(knobScale, {Scale = 1.2}, 0.15)
+            showTooltip(self.Value)
         end
     end)
     self.Knob.InputBegan:Connect(function(input)
@@ -1746,7 +1816,20 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             dragging = true
             stopAnimation()
             SpringTween(knobScale, {Scale = 1.2}, 0.15)
+            showTooltip(self.Value)
         end
+    end)
+    local moveConn = nil
+    self.SliderTrack.InputBegan:Connect(function()
+        moveConn = UserInputService.InputChanged:Connect(function(inp)
+            if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
+                showTooltip(self.Value)
+            end
+        end)
+    end)
+    self.SliderTrack.InputEnded:Connect(function()
+        hideTooltip()
+        if moveConn then moveConn:Disconnect() end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
@@ -1758,6 +1841,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
             SpringTween(knobScale, {Scale = 1}, 0.25)
+            hideTooltip()
         end
     end)
     if configKey and WasUI.ConfigManager then
@@ -2081,18 +2165,41 @@ function WasUI:SetTheme(themeName)
     return false
 end
 
-local function ApplyGlassEffect(frame, intensity)
-    intensity = intensity or 0.7
-    local blur = Instance.new("BlurEffect")
-    blur.Size = 12
-    blur.Parent = frame
+local function AddLiquidGlass(frame, intensity)
+    intensity = intensity or 0.6
     frame.BackgroundTransparency = 1 - intensity
     frame.BackgroundColor3 = WasUI.CurrentTheme.Background
+    local blur = Instance.new("BlurEffect")
+    blur.Size = 16
+    blur.Parent = frame
     local highlight = Instance.new("UIStroke")
     highlight.Color = Color3.fromRGB(255, 255, 255)
     highlight.Thickness = 1
-    highlight.Transparency = 0.8
+    highlight.Transparency = 0.85
     highlight.Parent = frame
+    local gradient = Instance.new("UIGradient")
+    gradient.Rotation = 45
+    gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+    }
+    gradient.Transparency = NumberSequence.new{
+        NumberSequenceKeypoint.new(0, 0.9),
+        NumberSequenceKeypoint.new(0.5, 0.3),
+        NumberSequenceKeypoint.new(1, 0.9)
+    }
+    gradient.Parent = highlight
+    local flowConnection = nil
+    local angle = 0
+    flowConnection = RunService.Heartbeat:Connect(function(dt)
+        angle = (angle + dt * 30) % 360
+        gradient.Rotation = angle
+    end)
+    frame.Destroying:Connect(function()
+        if flowConnection then flowConnection:Disconnect() end
+    end)
+    return {blur = blur, stroke = highlight, gradient = gradient, connection = flowConnection}
 end
 
 local Panel = {}
@@ -2148,7 +2255,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         self:SetBackground(backgroundUrl)
     end
 
-    ApplyGlassEffect(self.Instance, 0.6)
+    local glass = AddLiquidGlass(self.Instance, 0.65)
+
+    AddRipple(self.Instance)
 
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
@@ -2226,12 +2335,16 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
                 self.BorderStroke.Transparency = 0
                 flowGradient.Enabled = false
                 highlightStroke.Transparency = 0.7
+                local pulse = (math.sin(tick() * 0.5) + 1) / 2
+                highlightStroke.Transparency = 0.5 + pulse * 0.3
             else
                 self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
                 flowGradient.Rotation = self.FlowRotation
                 flowGradient.Enabled = true
                 self.BorderStroke.Transparency = 1
                 highlightStroke.Transparency = 0.7
+                local pulse = (math.sin(tick() * 0.5) + 1) / 2
+                highlightStroke.Transparency = 0.5 + pulse * 0.3
             end
         end)
     end
