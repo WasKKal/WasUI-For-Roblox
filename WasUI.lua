@@ -1,4 +1,4 @@
---Version 1.0.9.1
+--Version 1.0.9
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -2527,7 +2527,12 @@ function WasUI:SetTheme(themeName)
         if self.SettingsPanel then
             local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
             if themeDropdown and themeDropdown:IsA("TextButton") then
-                themeDropdown.Text = themeName
+                local displayName = ""
+                if themeName == "Dark" then displayName = "Dark"
+                elseif themeName == "Light" then displayName = "Light"
+                elseif themeName == "Blue" then displayName = "Blue"
+                else displayName = themeName end
+                themeDropdown.Text = displayName
             end
         end
         return true
@@ -2753,7 +2758,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         TextXAlignment = Enum.TextXAlignment.Left,
         TextTruncate = Enum.TextTruncate.AtEnd,
         Active = false,
-        ZIndex = 0,
+        ZIndex = 2,
         Parent = self.TitleBar
     })
     self.DotContainer = CreateInstance("Frame", {
@@ -2868,7 +2873,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundTransparency = 1,
         Image = "",
         AutoButtonColor = false,
-        ZIndex = 200,
+        ZIndex = 20,
         Parent = self.TitleBar
     })
     local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
@@ -2888,7 +2893,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundTransparency = 1,
         Image = "",
         AutoButtonColor = false,
-        ZIndex = 200,
+        ZIndex = 20,
         Parent = self.TitleBar
     })
     local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
