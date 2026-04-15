@@ -2333,7 +2333,7 @@ function WasUI:ShowColorPicker(options, callback)
 
     local dialogFrame = CreateInstance("Frame", {
         Name = "Dialog",
-        Size = UDim2.new(0, 360, 0, 420),
+        Size = UDim2.new(0, 280, 0, 340),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0.2,
         BorderSizePixel = 0,
@@ -2341,18 +2341,18 @@ function WasUI:ShowColorPicker(options, callback)
         Parent = overlay,
         ZIndex = 1000
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = dialogFrame})
     local glass = AddLiquidGlass(dialogFrame, 0.65)
 
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(1, -20, 0, 30),
-        Position = UDim2.new(0, 10, 0, 10),
+        Size = UDim2.new(1, -16, 0, 24),
+        Position = UDim2.new(0, 8, 0, 8),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamBold,
-        TextSize = 16,
+        TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = dialogFrame,
         ZIndex = 1001
@@ -2360,31 +2360,31 @@ function WasUI:ShowColorPicker(options, callback)
 
     local previewFrame = CreateInstance("Frame", {
         Name = "Preview",
-        Size = UDim2.new(1, -20, 0, 40),
-        Position = UDim2.new(0, 10, 0, 50),
+        Size = UDim2.new(1, -16, 0, 32),
+        Position = UDim2.new(0, 8, 0, 38),
         BackgroundColor3 = defaultColor,
         BackgroundTransparency = 1 - defaultAlpha,
         BorderSizePixel = 0,
         Parent = dialogFrame,
         ZIndex = 1001
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = previewFrame})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = previewFrame})
 
     local svMap = CreateInstance("ImageLabel", {
         Name = "SVMap",
-        Size = UDim2.new(1, -20, 0, 180),
-        Position = UDim2.new(0, 10, 0, 100),
+        Size = UDim2.new(1, -16, 0, 140),
+        Position = UDim2.new(0, 8, 0, 78),
         BackgroundColor3 = Color3.fromHSV(0, 1, 1),
         Image = "rbxassetid://4155801252",
         BorderSizePixel = 0,
         Parent = dialogFrame,
         ZIndex = 1001
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = svMap})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = svMap})
 
     local svCursor = CreateInstance("Frame", {
         Name = "SVCursor",
-        Size = UDim2.new(0, 12, 0, 12),
+        Size = UDim2.new(0, 10, 0, 10),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
@@ -2396,14 +2396,14 @@ function WasUI:ShowColorPicker(options, callback)
 
     local hueBar = CreateInstance("Frame", {
         Name = "HueBar",
-        Size = UDim2.new(1, -20, 0, 20),
-        Position = UDim2.new(0, 10, 0, 290),
+        Size = UDim2.new(1, -16, 0, 16),
+        Position = UDim2.new(0, 8, 0, 226),
         BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
         Parent = dialogFrame,
         ZIndex = 1001
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = hueBar})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = hueBar})
     local hueGradient = CreateInstance("UIGradient", {
         Color = ColorSequence.new{
             ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
@@ -2418,28 +2418,28 @@ function WasUI:ShowColorPicker(options, callback)
     })
     local hueCursor = CreateInstance("Frame", {
         Name = "HueCursor",
-        Size = UDim2.new(0, 8, 1, 4),
+        Size = UDim2.new(0, 6, 1, 4),
         AnchorPoint = Vector2.new(0.5, 0),
         BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
         Parent = hueBar,
         ZIndex = 1002
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = hueCursor})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 3), Parent = hueCursor})
     CreateInstance("UIStroke", {Thickness = 2, Color = Color3.new(0, 0, 0), Transparency = 0.3, Parent = hueCursor})
 
     local alphaBar, alphaCursor, alphaGradient
     if showAlpha then
         alphaBar = CreateInstance("Frame", {
             Name = "AlphaBar",
-            Size = UDim2.new(1, -20, 0, 20),
-            Position = UDim2.new(0, 10, 0, 320),
+            Size = UDim2.new(1, -16, 0, 16),
+            Position = UDim2.new(0, 8, 0, 250),
             BackgroundColor3 = Color3.new(1, 1, 1),
             BorderSizePixel = 0,
             Parent = dialogFrame,
             ZIndex = 1001
         })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = alphaBar})
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = alphaBar})
         alphaGradient = CreateInstance("UIGradient", {
             Transparency = NumberSequence.new{
                 NumberSequenceKeypoint.new(0, 0),
@@ -2449,21 +2449,21 @@ function WasUI:ShowColorPicker(options, callback)
         })
         alphaCursor = CreateInstance("Frame", {
             Name = "AlphaCursor",
-            Size = UDim2.new(0, 8, 1, 4),
+            Size = UDim2.new(0, 6, 1, 4),
             AnchorPoint = Vector2.new(0.5, 0),
             BackgroundColor3 = Color3.new(1, 1, 1),
             BorderSizePixel = 0,
             Parent = alphaBar,
             ZIndex = 1002
         })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = alphaCursor})
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 3), Parent = alphaCursor})
         CreateInstance("UIStroke", {Thickness = 2, Color = Color3.new(0, 0, 0), Transparency = 0.3, Parent = alphaCursor})
     end
 
     local hexInput = CreateInstance("TextBox", {
         Name = "HexInput",
-        Size = UDim2.new(1, -20, 0, 32),
-        Position = UDim2.new(0, 10, 0, showAlpha and 350 or 320),
+        Size = UDim2.new(1, -16, 0, 28),
+        Position = UDim2.new(0, 8, 0, showAlpha and 274 or 250),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -2472,19 +2472,19 @@ function WasUI:ShowColorPicker(options, callback)
         TextColor3 = WasUI.CurrentTheme.Text,
         PlaceholderColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
-        TextSize = 14,
+        TextSize = 13,
         ClearTextOnFocus = false,
         Parent = dialogFrame,
         ZIndex = 1001
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = hexInput})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = hexInput})
     CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = hexInput})
 
-    local buttonY = showAlpha and 392 or 362
+    local buttonY = showAlpha and 310 or 286
     local buttonContainer = CreateInstance("Frame", {
         Name = "ButtonContainer",
-        Size = UDim2.new(1, -20, 0, 40),
-        Position = UDim2.new(0, 10, 0, buttonY),
+        Size = UDim2.new(1, -16, 0, 34),
+        Position = UDim2.new(0, 8, 0, buttonY),
         BackgroundTransparency = 1,
         Parent = dialogFrame,
         ZIndex = 1001
@@ -2492,34 +2492,34 @@ function WasUI:ShowColorPicker(options, callback)
 
     local cancelButton = CreateInstance("TextButton", {
         Name = "CancelButton",
-        Size = UDim2.new(0.5, -5, 1, 0),
+        Size = UDim2.new(0.5, -4, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
         BackgroundTransparency = 0.3,
         Text = cancelText,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
-        TextSize = 14,
+        TextSize = 13,
         AutoButtonColor = false,
         Parent = buttonContainer,
         ZIndex = 1002
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = cancelButton})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = cancelButton})
 
     local confirmButton = CreateInstance("TextButton", {
         Name = "ConfirmButton",
-        Size = UDim2.new(0.5, -5, 1, 0),
-        Position = UDim2.new(0.5, 5, 0, 0),
+        Size = UDim2.new(0.5, -4, 1, 0),
+        Position = UDim2.new(0.5, 4, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Accent,
         BackgroundTransparency = 0.3,
         Text = confirmText,
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.GothamSemibold,
-        TextSize = 14,
+        TextSize = 13,
         AutoButtonColor = false,
         Parent = buttonContainer,
         ZIndex = 1002
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = confirmButton})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = confirmButton})
 
     local currentH, currentS, currentV = Color3.toHSV(defaultColor)
     local currentA = defaultAlpha
@@ -2615,7 +2615,7 @@ function WasUI:ShowColorPicker(options, callback)
 
     local function animateClose()
         Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-        Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -180, 0.5, -210)}, 0.2)
+        Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -140, 0.5, -170)}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
         for i, d in ipairs(WasUI.ActiveDialogs) do
