@@ -2199,18 +2199,11 @@ function WasUI:ShowColorPicker(options, callback)
     local confirmText = options.confirmText or "确认"
     local cancelText = options.cancelText or "取消"
 
-    local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
-    if not playerGui then
-        playerGui = Instance.new("ScreenGui")
-        playerGui.Name = "PlayerGui"
-        playerGui.Parent = Players.LocalPlayer
-    end
-
     local dialogGui = Instance.new("ScreenGui")
     dialogGui.Name = "WasUI_ColorPicker"
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
-    dialogGui.Parent = playerGui
+    dialogGui.Parent = game:GetService("CoreGui")
 
     local overlay = CreateInstance("Frame", {
         Name = "Overlay",
