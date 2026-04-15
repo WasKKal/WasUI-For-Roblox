@@ -129,6 +129,7 @@ WasUI.ConfigFolderCreated = false
 WasUI.ConfigFolderName = nil
 
 WasUI.ActiveDialogs = {}
+
 local function RecordOriginalTransparency(instance)
     if instance and instance:IsA("GuiObject") then
         instance:SetAttribute("OriginalTransparency", instance.BackgroundTransparency)
@@ -2213,11 +2214,12 @@ function WasUI:ShowColorPicker(options, callback)
         ZIndex = 999
     })
 
+    local dialogHeight = showAlpha and 380 or 340
     local dialogFrame = CreateInstance("Frame", {
         Name = "Dialog",
-        Size = UDim2.new(0, 280, 0, 340),
+        Size = UDim2.new(0, 280, 0, dialogHeight),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.2,
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Parent = overlay,
@@ -2494,9 +2496,17 @@ function WasUI:ShowColorPicker(options, callback)
         end
     end)
 
+    local function animateOpen()
+        dialogFrame.Position = UDim2.new(0.5, -140, 0.5, -dialogHeight/2)
+        overlay.BackgroundTransparency = 1
+        dialogFrame.BackgroundTransparency = 1
+        Tween(overlay, {BackgroundTransparency = 0.5}, 0.2)
+        Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
+    end
+
     local function animateClose()
         Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-        Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -140, 0.5, -170)}, 0.2)
+        Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
         for i, d in ipairs(WasUI.ActiveDialogs) do
@@ -2529,7 +2539,7 @@ function WasUI:ShowColorPicker(options, callback)
         end
     end)
 
-    Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
+    animateOpen()
     table.insert(WasUI.ActiveDialogs, dialogGui)
 
     return dialogGui
@@ -2595,7 +2605,7 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
     end
 
     button.MouseButton1Click:Connect(function()
-        self:ShowColorPicker({
+        WasUI:ShowColorPicker({
             title = title or "选择颜色",
             defaultColor = currentColor,
             defaultAlpha = currentAlpha,
