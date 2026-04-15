@@ -2305,6 +2305,449 @@ function WasUI:CreateConfirmToggle(parent, title, initialState, confirmOptions, 
     return toggle
 end
 
+function WasUI:ShowColorPicker(options, callback)
+    local title = options.title or "选择颜色"
+    local defaultColor = options.defaultColor or Color3.fromRGB(255, 255, 255)
+    local showAlpha = options.showAlpha or false
+    local defaultAlpha = options.defaultAlpha or 1
+    local confirmText = options.confirmText or "确认"
+    local cancelText = options.cancelText or "取消"
+
+    local dialogGui = Instance.new("ScreenGui")
+    dialogGui.Name = "WasUI_ColorPicker"
+    dialogGui.ResetOnSpawn = false
+    dialogGui.DisplayOrder = 2000
+    dialogGui.Parent = game:GetService("CoreGui")
+
+    local overlay = CreateInstance("Frame", {
+        Name = "Overlay",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Active = true,
+        Selectable = true,
+        Parent = dialogGui,
+        ZIndex = 999
+    })
+
+    local dialogFrame = CreateInstance("Frame", {
+        Name = "Dialog",
+        Size = UDim2.new(0, 360, 0, 420),
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BackgroundTransparency = 0.2,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Parent = overlay,
+        ZIndex = 1000
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
+    local glass = AddLiquidGlass(dialogFrame, 0.65)
+
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(1, -20, 0, 30),
+        Position = UDim2.new(0, 10, 0, 10),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 16,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+
+    local previewFrame = CreateInstance("Frame", {
+        Name = "Preview",
+        Size = UDim2.new(1, -20, 0, 40),
+        Position = UDim2.new(0, 10, 0, 50),
+        BackgroundColor3 = defaultColor,
+        BackgroundTransparency = 1 - defaultAlpha,
+        BorderSizePixel = 0,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = previewFrame})
+
+    local svMap = CreateInstance("ImageLabel", {
+        Name = "SVMap",
+        Size = UDim2.new(1, -20, 0, 180),
+        Position = UDim2.new(0, 10, 0, 100),
+        BackgroundColor3 = Color3.fromHSV(0, 1, 1),
+        Image = "rbxassetid://4155801252",
+        BorderSizePixel = 0,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = svMap})
+
+    local svCursor = CreateInstance("Frame", {
+        Name = "SVCursor",
+        Size = UDim2.new(0, 12, 0, 12),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BorderSizePixel = 0,
+        Parent = svMap,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = svCursor})
+    CreateInstance("UIStroke", {Thickness = 2, Color = Color3.new(0, 0, 0), Transparency = 0.3, Parent = svCursor})
+
+    local hueBar = CreateInstance("Frame", {
+        Name = "HueBar",
+        Size = UDim2.new(1, -20, 0, 20),
+        Position = UDim2.new(0, 10, 0, 290),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BorderSizePixel = 0,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = hueBar})
+    local hueGradient = CreateInstance("UIGradient", {
+        Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+            ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
+            ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+            ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+            ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+        },
+        Parent = hueBar
+    })
+    local hueCursor = CreateInstance("Frame", {
+        Name = "HueCursor",
+        Size = UDim2.new(0, 8, 1, 4),
+        AnchorPoint = Vector2.new(0.5, 0),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BorderSizePixel = 0,
+        Parent = hueBar,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = hueCursor})
+    CreateInstance("UIStroke", {Thickness = 2, Color = Color3.new(0, 0, 0), Transparency = 0.3, Parent = hueCursor})
+
+    local alphaBar, alphaCursor, alphaGradient
+    if showAlpha then
+        alphaBar = CreateInstance("Frame", {
+            Name = "AlphaBar",
+            Size = UDim2.new(1, -20, 0, 20),
+            Position = UDim2.new(0, 10, 0, 320),
+            BackgroundColor3 = Color3.new(1, 1, 1),
+            BorderSizePixel = 0,
+            Parent = dialogFrame,
+            ZIndex = 1001
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = alphaBar})
+        alphaGradient = CreateInstance("UIGradient", {
+            Transparency = NumberSequence.new{
+                NumberSequenceKeypoint.new(0, 0),
+                NumberSequenceKeypoint.new(1, 1)
+            },
+            Parent = alphaBar
+        })
+        alphaCursor = CreateInstance("Frame", {
+            Name = "AlphaCursor",
+            Size = UDim2.new(0, 8, 1, 4),
+            AnchorPoint = Vector2.new(0.5, 0),
+            BackgroundColor3 = Color3.new(1, 1, 1),
+            BorderSizePixel = 0,
+            Parent = alphaBar,
+            ZIndex = 1002
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = alphaCursor})
+        CreateInstance("UIStroke", {Thickness = 2, Color = Color3.new(0, 0, 0), Transparency = 0.3, Parent = alphaCursor})
+    end
+
+    local hexInput = CreateInstance("TextBox", {
+        Name = "HexInput",
+        Size = UDim2.new(1, -20, 0, 32),
+        Position = UDim2.new(0, 10, 0, showAlpha and 350 or 320),
+        BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        Text = "#" .. defaultColor:ToHex(),
+        PlaceholderText = "#FFFFFF",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        PlaceholderColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 14,
+        ClearTextOnFocus = false,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = hexInput})
+    CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = hexInput})
+
+    local buttonY = showAlpha and 392 or 362
+    local buttonContainer = CreateInstance("Frame", {
+        Name = "ButtonContainer",
+        Size = UDim2.new(1, -20, 0, 40),
+        Position = UDim2.new(0, 10, 0, buttonY),
+        BackgroundTransparency = 1,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+
+    local cancelButton = CreateInstance("TextButton", {
+        Name = "CancelButton",
+        Size = UDim2.new(0.5, -5, 1, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Section,
+        BackgroundTransparency = 0.3,
+        Text = cancelText,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        AutoButtonColor = false,
+        Parent = buttonContainer,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = cancelButton})
+
+    local confirmButton = CreateInstance("TextButton", {
+        Name = "ConfirmButton",
+        Size = UDim2.new(0.5, -5, 1, 0),
+        Position = UDim2.new(0.5, 5, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Accent,
+        BackgroundTransparency = 0.3,
+        Text = confirmText,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        AutoButtonColor = false,
+        Parent = buttonContainer,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = confirmButton})
+
+    local currentH, currentS, currentV = Color3.toHSV(defaultColor)
+    local currentA = defaultAlpha
+
+    local function updatePreview()
+        local color = Color3.fromHSV(currentH, currentS, currentV)
+        previewFrame.BackgroundColor3 = color
+        previewFrame.BackgroundTransparency = 1 - currentA
+        svMap.BackgroundColor3 = Color3.fromHSV(currentH, 1, 1)
+        if alphaBar then
+            alphaBar.BackgroundColor3 = color
+        end
+        hexInput.Text = "#" .. color:ToHex()
+    end
+
+    local function setHSV(h, s, v)
+        currentH = math.clamp(h, 0, 1)
+        currentS = math.clamp(s, 0, 1)
+        currentV = math.clamp(v, 0, 1)
+        svCursor.Position = UDim2.new(currentS, 0, 1 - currentV, 0)
+        hueCursor.Position = UDim2.new(currentH, 0, 0, 0)
+        updatePreview()
+    end
+
+    local function setAlpha(a)
+        currentA = math.clamp(a, 0, 1)
+        if alphaCursor then
+            alphaCursor.Position = UDim2.new(1 - currentA, 0, 0, 0)
+        end
+        updatePreview()
+    end
+
+    setHSV(currentH, currentS, currentV)
+    setAlpha(currentA)
+
+    local draggingSV = false
+    local draggingHue = false
+    local draggingAlpha = false
+
+    svMap.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingSV = true
+        end
+    end)
+    hueBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingHue = true
+        end
+    end)
+    if alphaBar then
+        alphaBar.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                draggingAlpha = true
+            end
+        end)
+    end
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            local pos = input.Position
+            if draggingSV then
+                local relX = (pos.X - svMap.AbsolutePosition.X) / svMap.AbsoluteSize.X
+                local relY = (pos.Y - svMap.AbsolutePosition.Y) / svMap.AbsoluteSize.Y
+                setHSV(currentH, math.clamp(relX, 0, 1), 1 - math.clamp(relY, 0, 1))
+            elseif draggingHue then
+                local relX = (pos.X - hueBar.AbsolutePosition.X) / hueBar.AbsoluteSize.X
+                setHSV(math.clamp(relX, 0, 1), currentS, currentV)
+            elseif draggingAlpha and alphaBar then
+                local relX = (pos.X - alphaBar.AbsolutePosition.X) / alphaBar.AbsoluteSize.X
+                setAlpha(1 - math.clamp(relX, 0, 1))
+            end
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingSV = false
+            draggingHue = false
+            draggingAlpha = false
+        end
+    end)
+
+    hexInput.FocusLost:Connect(function(enterPressed)
+        local hex = hexInput.Text:gsub("#", "")
+        local success, color = pcall(Color3.fromHex, hex)
+        if success then
+            local h, s, v = Color3.toHSV(color)
+            setHSV(h, s, v)
+        else
+            hexInput.Text = "#" .. Color3.fromHSV(currentH, currentS, currentV):ToHex()
+        end
+    end)
+
+    local function animateClose()
+        Tween(overlay, {BackgroundTransparency = 1}, 0.2)
+        Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -180, 0.5, -210)}, 0.2)
+        task.wait(0.2)
+        dialogGui:Destroy()
+        table.remove(WasUI.ActiveDialogs, table.find(WasUI.ActiveDialogs, dialogGui) or 0)
+    end
+
+    cancelButton.MouseButton1Click:Connect(animateClose)
+    confirmButton.MouseButton1Click:Connect(function()
+        local finalColor = Color3.fromHSV(currentH, currentS, currentV)
+        if callback then
+            callback(finalColor, currentA)
+        end
+        animateClose()
+    end)
+
+    overlay.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local mousePos = input.Position
+            local framePos = dialogFrame.AbsolutePosition
+            local frameSize = dialogFrame.AbsoluteSize
+            local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
+                            mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
+            if not inPanel then
+                animateClose()
+            end
+        end
+    end)
+
+    Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
+    table.insert(WasUI.ActiveDialogs, dialogGui)
+
+    return dialogGui
+end
+
+function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, configKey)
+    defaultColor = defaultColor or Color3.fromRGB(255, 255, 255)
+    local buttonSize = UDim2.new(1, 0, 0, 28)
+
+    local container = CreateInstance("Frame", {
+        Name = "ColorPickerButton",
+        Size = buttonSize,
+        BackgroundTransparency = 1,
+        Parent = parent
+    })
+
+    local colorPreview = CreateInstance("Frame", {
+        Name = "ColorPreview",
+        Size = UDim2.new(0, 24, 0, 24),
+        Position = UDim2.new(1, -24, 0.5, -12),
+        BackgroundColor3 = defaultColor,
+        BorderSizePixel = 0,
+        Parent = container,
+        ZIndex = 2
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = colorPreview})
+
+    local titleLabel
+    if title then
+        titleLabel = CreateInstance("TextLabel", {
+            Name = "Title",
+            Size = UDim2.new(1, -32, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Text = title,
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            ZIndex = 2,
+            Parent = container
+        })
+    end
+
+    local button = CreateInstance("TextButton", {
+        Name = "Button",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        Parent = container,
+        ZIndex = 1
+    })
+
+    local currentColor = defaultColor
+    local currentAlpha = 1
+
+    local function updatePreview(color, alpha)
+        currentColor = color
+        currentAlpha = alpha or 1
+        colorPreview.BackgroundColor3 = color
+        colorPreview.BackgroundTransparency = 1 - currentAlpha
+    end
+
+    button.MouseButton1Click:Connect(function()
+        self:ShowColorPicker({
+            title = title or "选择颜色",
+            defaultColor = currentColor,
+            defaultAlpha = currentAlpha,
+            showAlpha = true
+        }, function(color, alpha)
+            updatePreview(color, alpha)
+            if callback then
+                callback(color, alpha)
+            end
+            if configKey and WasUI.ConfigManager then
+                local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+                if config then
+                    config:Set(configKey, {color = color, alpha = alpha})
+                    config:Save()
+                end
+            end
+        end)
+    end)
+
+    if configKey and WasUI.ConfigManager then
+        local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+        if config then
+            local saved = config:Get(configKey)
+            if saved and saved.color then
+                updatePreview(saved.color, saved.alpha)
+            end
+            config:Bind(configKey, container, function(value)
+                if value and value.color then
+                    updatePreview(value.color, value.alpha)
+                end
+            end)
+        end
+    end
+
+    table.insert(WasUI.Objects, {Object = container, Type = "ColorPickerButton"})
+    return container
+end
+
 local function AnimateThemeChange(oldTheme, newTheme)
     local duration = 0.35
     for _, obj in ipairs(WasUI.Objects) do
@@ -2476,6 +2919,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
                         end
                     end
                 end
+            elseif obj.Type == "ColorPickerButton" then
             end
         end
     end
@@ -2749,7 +3193,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Size = UDim2.new(1, 0, 0, 26),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BackgroundTransparency = 0.2,  -- 半透明胶囊效果
+        BackgroundTransparency = 0.2,
         BorderSizePixel = 0,
         ZIndex = 2,
         Parent = self.Instance
@@ -2782,7 +3226,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         TextXAlignment = Enum.TextXAlignment.Left,
         TextTruncate = Enum.TextTruncate.AtEnd,
         Active = false,
-        ZIndex = 2,  -- 确保在按钮下方
+        ZIndex = 2,
         Parent = self.TitleBar
     })
     self.DotContainer = CreateInstance("Frame", {
@@ -2865,7 +3309,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Position = UDim2.new(1, -156, 0, 3),
         BackgroundTransparency = 1,
         ClipsDescendants = true,
-        ZIndex = 30,  -- 确保在标题栏上方
+        ZIndex = 30,
         Parent = self.TitleBar
     })
     local searchBox = CreateInstance("TextBox", {
@@ -2897,7 +3341,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundTransparency = 1,
         Image = "",
         AutoButtonColor = false,
-        ZIndex = 40,  -- 最高层级，确保在最上方
+        ZIndex = 40,
         Parent = self.TitleBar
     })
     local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
@@ -2912,7 +3356,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         BackgroundTransparency = 1,
         Image = "",
         AutoButtonColor = false,
-        ZIndex = 40,  -- 最高层级，确保在最上方
+        ZIndex = 40,
         Parent = self.TitleBar
     })
     local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
