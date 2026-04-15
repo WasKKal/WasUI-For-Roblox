@@ -334,7 +334,7 @@ function WasUI:GetIcon(iconName)
     return nil
 end
 
-function WasUI:CreateIcon(iconName, size, color)
+function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
     local icon = self:GetIcon(iconName)
     if not icon then
         return nil
@@ -348,6 +348,9 @@ function WasUI:CreateIcon(iconName, size, color)
     if icon.ImageRectOffset then
         imageLabel.ImageRectOffset = icon.ImageRectOffset
         imageLabel.ImageRectSize = icon.ImageRectSize
+    end
+    if ignoreTheme then
+        imageLabel:SetAttribute("IgnoreThemeChange", true)
     end
     return imageLabel
 end
@@ -2196,11 +2199,18 @@ function WasUI:ShowColorPicker(options, callback)
     local confirmText = options.confirmText or "确认"
     local cancelText = options.cancelText or "取消"
 
+    local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then
+        playerGui = Instance.new("ScreenGui")
+        playerGui.Name = "PlayerGui"
+        playerGui.Parent = Players.LocalPlayer
+    end
+
     local dialogGui = Instance.new("ScreenGui")
     dialogGui.Name = "WasUI_ColorPicker"
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
-    dialogGui.Parent = game:GetService("CoreGui")
+    dialogGui.Parent = playerGui
 
     local overlay = CreateInstance("Frame", {
         Name = "Overlay",
@@ -2280,7 +2290,7 @@ function WasUI:ShowColorPicker(options, callback)
     local hueBar = CreateInstance("Frame", {
         Name = "HueBar",
         Size = UDim2.new(1, -16, 0, 16),
-        Position = UDim2.new(0, 8, 0, 226),
+        Position = UDim2.new(0, 8, 0, 223),
         BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
         Parent = dialogFrame,
@@ -2316,7 +2326,7 @@ function WasUI:ShowColorPicker(options, callback)
         alphaBar = CreateInstance("Frame", {
             Name = "AlphaBar",
             Size = UDim2.new(1, -16, 0, 16),
-            Position = UDim2.new(0, 8, 0, 250),
+            Position = UDim2.new(0, 8, 0, 247),
             BackgroundColor3 = Color3.new(1, 1, 1),
             BorderSizePixel = 0,
             Parent = dialogFrame,
@@ -2346,7 +2356,7 @@ function WasUI:ShowColorPicker(options, callback)
     local hexInput = CreateInstance("TextBox", {
         Name = "HexInput",
         Size = UDim2.new(1, -16, 0, 28),
-        Position = UDim2.new(0, 8, 0, showAlpha and 274 or 250),
+        Position = UDim2.new(0, 8, 0, showAlpha and 271 or 247),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -2363,7 +2373,7 @@ function WasUI:ShowColorPicker(options, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = hexInput})
     CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = hexInput})
 
-    local buttonY = showAlpha and 310 or 286
+    local buttonY = showAlpha and 307 or 283
     local buttonContainer = CreateInstance("Frame", {
         Name = "ButtonContainer",
         Size = UDim2.new(1, -16, 0, 34),
@@ -2591,7 +2601,8 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
         BackgroundTransparency = 1,
         Text = "",
         Parent = container,
-        ZIndex = 1
+        ZIndex = 1,
+        AutoButtonColor = false
     })
 
     local currentColor = defaultColor
@@ -2652,7 +2663,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
             if obj.Type == "Button" then
                 Tween(instance, {BackgroundColor3 = newTheme.Primary, TextColor3 = newTheme.Text}, duration)
                 local icon = instance:FindFirstChildOfClass("ImageLabel")
-                if icon then
+                if icon and not icon:GetAttribute("IgnoreThemeChange") then
                     Tween(icon, {ImageColor3 = newTheme.Text}, duration)
                 end
             elseif obj.Type == "Toggle" then
@@ -2672,7 +2683,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 end
             elseif obj.Type == "ToggleKnob" then
                 local knobIcon = instance:FindFirstChildOfClass("ImageLabel")
-                if knobIcon then
+                if knobIcon and not knobIcon:GetAttribute("IgnoreThemeChange") then
                     Tween(knobIcon, {ImageColor3 = newTheme.Text}, duration)
                 end
             elseif obj.Type == "Label" then
@@ -2712,7 +2723,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 if dropdownButton and dropdownButton:IsA("TextButton") then
                     Tween(dropdownButton, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
                     local arrow = dropdownButton:FindFirstChild("ArrowIcon")
-                    if arrow and arrow:IsA("ImageLabel") then
+                    if arrow and arrow:IsA("ImageLabel") and not arrow:GetAttribute("IgnoreThemeChange") then
                         Tween(arrow, {ImageColor3 = newTheme.Text}, duration)
                     end
                 end
@@ -2743,7 +2754,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     local closeBtn = titleBar:FindFirstChild("CloseButton")
                     if closeBtn and closeBtn:IsA("ImageButton") then
                         local icon = closeBtn:FindFirstChildOfClass("ImageLabel")
-                        if icon then
+                        if icon and not icon:GetAttribute("IgnoreThemeChange") then
                             Tween(icon, {ImageColor3 = newTheme.Text}, duration)
                         else
                             Tween(closeBtn, {TextColor3 = newTheme.Text}, duration)
@@ -2752,7 +2763,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     local searchBtn = titleBar:FindFirstChild("SearchButton")
                     if searchBtn and searchBtn:IsA("ImageButton") then
                         local icon = searchBtn:FindFirstChildOfClass("ImageLabel")
-                        if icon then
+                        if icon and not icon:GetAttribute("IgnoreThemeChange") then
                             Tween(icon, {ImageColor3 = newTheme.Text}, duration)
                         end
                     end
@@ -3235,7 +3246,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ZIndex = 40,
         Parent = self.TitleBar
     })
-    local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
+    local iconColor = (WasUI.CurrentTheme == WasUI.Themes.Light) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+    local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), iconColor, true)
     if closeIcon then
         closeIcon.Parent = closeButton
         closeIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
@@ -3250,7 +3262,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ZIndex = 40,
         Parent = self.TitleBar
     })
-    local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
+    local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), iconColor, true)
     if searchIcon then
         searchIcon.Parent = searchButton
         searchIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
