@@ -2745,8 +2745,6 @@ local function AnimateThemeChange(oldTheme, newTheme)
                         local icon = closeBtn:FindFirstChildOfClass("ImageLabel")
                         if icon and not icon:GetAttribute("IgnoreThemeChange") then
                             Tween(icon, {ImageColor3 = newTheme.Text}, duration)
-                        else
-                            Tween(closeBtn, {TextColor3 = newTheme.Text}, duration)
                         end
                     end
                     local searchBtn = titleBar:FindFirstChild("SearchButton")
@@ -2893,7 +2891,6 @@ local function AnimateThemeChange(oldTheme, newTheme)
         end
     end
 end
-
 function WasUI:SetTheme(themeName)
     if self.Themes[themeName] then
         local oldTheme = self.CurrentTheme
