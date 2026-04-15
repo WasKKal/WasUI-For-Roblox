@@ -87,7 +87,7 @@ WasUI.Themes = {
         Primary = Color3.fromRGB(240, 240, 245),
         Secondary = Color3.fromRGB(245, 245, 250),
         Background = Color3.fromRGB(255, 255, 255),
-        Text = Color3.fromRGB(0, 0, 0),
+        Text = Color3.fromRGB(30, 30, 35),
         Accent = Color3.fromRGB(52, 86, 139),
         Success = Color3.fromRGB(52, 168, 83),
         Warning = Color3.fromRGB(251, 188, 5),
@@ -2199,15 +2199,23 @@ function WasUI:ShowColorPicker(options, callback)
     local confirmText = options.confirmText or "确认"
     local cancelText = options.cancelText or "取消"
 
+    local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then
+        playerGui = Instance.new("ScreenGui")
+        playerGui.Name = "PlayerGui"
+        playerGui.Parent = Players.LocalPlayer
+    end
+
     local dialogGui = Instance.new("ScreenGui")
     dialogGui.Name = "WasUI_ColorPicker"
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
-    dialogGui.Parent = game:GetService("CoreGui")
+    dialogGui.Parent = playerGui
 
-    local transparentOverlay = CreateInstance("Frame", {
-        Name = "TransparentOverlay",
+    local overlay = CreateInstance("Frame", {
+        Name = "Overlay",
         Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Active = true,
@@ -2224,7 +2232,7 @@ function WasUI:ShowColorPicker(options, callback)
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ClipsDescendants = true,
-        Parent = transparentOverlay,
+        Parent = overlay,
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = dialogFrame})
@@ -2282,7 +2290,7 @@ function WasUI:ShowColorPicker(options, callback)
     local hueBar = CreateInstance("Frame", {
         Name = "HueBar",
         Size = UDim2.new(1, -16, 0, 16),
-        Position = UDim2.new(0, 8, 0, 226),
+        Position = UDim2.new(0, 8, 0, 223),
         BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
         Parent = dialogFrame,
@@ -2318,7 +2326,7 @@ function WasUI:ShowColorPicker(options, callback)
         alphaBar = CreateInstance("Frame", {
             Name = "AlphaBar",
             Size = UDim2.new(1, -16, 0, 16),
-            Position = UDim2.new(0, 8, 0, 250),
+            Position = UDim2.new(0, 8, 0, 247),
             BackgroundColor3 = Color3.new(1, 1, 1),
             BorderSizePixel = 0,
             Parent = dialogFrame,
@@ -2348,7 +2356,7 @@ function WasUI:ShowColorPicker(options, callback)
     local hexInput = CreateInstance("TextBox", {
         Name = "HexInput",
         Size = UDim2.new(1, -16, 0, 28),
-        Position = UDim2.new(0, 8, 0, showAlpha and 274 or 250),
+        Position = UDim2.new(0, 8, 0, showAlpha and 271 or 247),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -2365,7 +2373,7 @@ function WasUI:ShowColorPicker(options, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = hexInput})
     CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = hexInput})
 
-    local buttonY = showAlpha and 310 or 286
+    local buttonY = showAlpha and 307 or 283
     local buttonContainer = CreateInstance("Frame", {
         Name = "ButtonContainer",
         Size = UDim2.new(1, -16, 0, 34),
@@ -2500,11 +2508,14 @@ function WasUI:ShowColorPicker(options, callback)
 
     local function animateOpen()
         dialogFrame.Position = UDim2.new(0.5, -140, 0.5, -dialogHeight/2)
+        overlay.BackgroundTransparency = 1
         dialogFrame.BackgroundTransparency = 1
+        Tween(overlay, {BackgroundTransparency = 0.5}, 0.2)
         Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
     end
 
     local function animateClose()
+        Tween(overlay, {BackgroundTransparency = 1}, 0.2)
         Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
@@ -2525,7 +2536,7 @@ function WasUI:ShowColorPicker(options, callback)
         animateClose()
     end)
 
-    transparentOverlay.InputBegan:Connect(function(input)
+    overlay.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             local mousePos = input.Position
             local framePos = dialogFrame.AbsolutePosition
@@ -2543,6 +2554,7 @@ function WasUI:ShowColorPicker(options, callback)
 
     return dialogGui
 end
+
 function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, configKey)
     defaultColor = defaultColor or Color3.fromRGB(255, 255, 255)
     local buttonSize = UDim2.new(1, 0, 0, 28)
@@ -2603,8 +2615,7 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
         colorPreview.BackgroundTransparency = 1 - currentAlpha
     end
 
-    -- 关键修改：使用 Activated 替代 MouseButton1Click
-    button.Activated:Connect(function()
+    button.MouseButton1Click:Connect(function()
         WasUI:ShowColorPicker({
             title = title or "选择颜色",
             defaultColor = currentColor,
@@ -2901,37 +2912,6 @@ function WasUI:SetTheme(themeName)
         self.CurrentTheme = newTheme
         self.CurrentThemeName = themeName
         AnimateThemeChange(oldTheme, newTheme)
-        for _, obj in ipairs(WasUI.Objects) do
-            if obj.Type == "Panel" and obj.Object then
-                local announcementBar = obj.Object:FindFirstChild("AnnouncementBar")
-                if announcementBar then
-                    announcementBar.BackgroundColor3 = newTheme.Section
-                    local username = announcementBar:FindFirstChild("Username")
-                    local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
-                    local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
-                    if username then username.TextColor3 = newTheme.Text end
-                    if executorLabel then executorLabel.TextColor3 = newTheme.Text end
-                    if welcomeLabel then welcomeLabel.TextColor3 = newTheme.Text end
-                    local avatar = announcementBar:FindFirstChild("Avatar")
-                    if avatar then
-                        local stroke = avatar:FindFirstChildOfClass("UIStroke")
-                        if stroke then stroke.Color = newTheme.Text end
-                    end
-                end
-            end
-        end
-        
-        if self.SettingsPanel then
-            local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
-            if themeDropdown and themeDropdown:IsA("TextButton") then
-                themeDropdown.Text = themeName
-            end
-        end
-        return true
-    end
-    return false
-end
-        
         if self.SettingsPanel then
             local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
             if themeDropdown and themeDropdown:IsA("TextButton") then
@@ -3937,7 +3917,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Size = UDim2.new(1, 0, 0, announcementHeight),
         Position = UDim2.new(0, 0, 0, 26),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
-        BackgroundTransparency = 0.6,
+        BackgroundTransparency = 0.4,
         BorderSizePixel = 0,
         ZIndex = 2,
         Parent = self.Instance
