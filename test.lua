@@ -1,4 +1,4 @@
---Version 1.0.9
+--Version 1.0.9.3
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -29,7 +29,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.0.0"
+WasUI.Version = "1.0.9.3"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -2618,7 +2618,12 @@ function WasUI:ShowColorPicker(options, callback)
         Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -180, 0.5, -210)}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
-        table.remove(WasUI.ActiveDialogs, table.find(WasUI.ActiveDialogs, dialogGui) or 0)
+        for i, d in ipairs(WasUI.ActiveDialogs) do
+            if d == dialogGui then
+                table.remove(WasUI.ActiveDialogs, i)
+                break
+            end
+        end
     end
 
     cancelButton.MouseButton1Click:Connect(animateClose)
