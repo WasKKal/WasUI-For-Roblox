@@ -1,4 +1,4 @@
---Version 1.0.9.3
+--Version 1.0.9.4
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -29,7 +29,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.0.9.3"
+WasUI.Version = "1.0.9.4"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -368,91 +368,6 @@ local function SpringTween(instance, properties, duration)
     local tween = TweenService:Create(instance, tweenInfo, properties)
     tween:Play()
     return tween
-end
-
-local function FadeOut(container, duration)
-    duration = duration or 0.3
-    local tweens = {}
-    for _, child in ipairs(container:GetChildren()) do
-        local props = {}
-        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
-            props.TextTransparency = 1
-            if child:IsA("TextButton") then
-                props.BackgroundTransparency = 1
-            end
-        elseif child:IsA("Frame") or child:IsA("ImageLabel") or child:IsA("ImageButton") then
-            props.BackgroundTransparency = 1
-            if child:IsA("ImageLabel") or child:IsA("ImageButton") then
-                props.ImageTransparency = 1
-            end
-        elseif child:IsA("UIStroke") then
-            props.Transparency = 1
-        end
-        if next(props) then
-            table.insert(tweens, Tween(child, props, duration))
-        end
-        local childTweens = FadeOut(child, duration)
-        for _, tween in ipairs(childTweens) do
-            table.insert(tweens, tween)
-        end
-    end
-    return tweens
-end
-
-local function FadeIn(container, duration)
-    duration = duration or 0.3
-    local tweens = {}
-    for _, child in ipairs(container:GetChildren()) do
-        local props = {}
-        if child:IsA("TextLabel") then
-            props.TextTransparency = 0
-        elseif child:IsA("TextButton") then
-            props.TextTransparency = 0
-            props.BackgroundTransparency = child:GetAttribute("OriginalBackgroundTransparency") or 0.3
-        elseif child:IsA("TextBox") then
-            props.TextTransparency = 0
-            props.BackgroundTransparency = child:GetAttribute("OriginalBackgroundTransparency") or 0.3
-        elseif child:IsA("Frame") then
-            props.BackgroundTransparency = child:GetAttribute("OriginalBackgroundTransparency") or 0.3
-        elseif child:IsA("ImageLabel") then
-            props.ImageTransparency = 0
-            props.BackgroundTransparency = child:GetAttribute("OriginalBackgroundTransparency") or 1
-        elseif child:IsA("ImageButton") then
-            props.ImageTransparency = 0
-            props.BackgroundTransparency = child:GetAttribute("OriginalBackgroundTransparency") or 1
-        elseif child:IsA("UIStroke") then
-            props.Transparency = child:GetAttribute("OriginalTransparency") or 0
-        end
-        if next(props) then
-            table.insert(tweens, Tween(child, props, duration))
-        end
-        local childTweens = FadeIn(child, duration)
-        for _, tween in ipairs(childTweens) do
-            table.insert(tweens, tween)
-        end
-    end
-    return tweens
-end
-
-local function RecordOriginalTransparency(container)
-    for _, child in ipairs(container:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:SetAttribute("OriginalBackgroundTransparency", child.BackgroundTransparency)
-        elseif child:IsA("TextBox") then
-            child:SetAttribute("OriginalBackgroundTransparency", child.BackgroundTransparency)
-        elseif child:IsA("Frame") then
-            child:SetAttribute("OriginalBackgroundTransparency", child.BackgroundTransparency)
-        elseif child:IsA("ImageLabel") then
-            child:SetAttribute("OriginalBackgroundTransparency", child.BackgroundTransparency)
-            child:SetAttribute("OriginalImageTransparency", child.ImageTransparency)
-        elseif child:IsA("ImageButton") then
-            child:SetAttribute("OriginalBackgroundTransparency", child.BackgroundTransparency)
-            child:SetAttribute("OriginalImageTransparency", child.ImageTransparency)
-        elseif child:IsA("UIStroke") then
-            child:SetAttribute("OriginalTransparency", child.Transparency)
-        end
-        RecordOriginalTransparency(child)
-    end
 end
 
 local function RefreshRainbowLayout()
@@ -2026,43 +1941,6 @@ function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback, conf
     return TextInput:New("TextInput", parent, placeholder, defaultValue, callback, configKey)
 end
 
-local function AddLiquidGlass(frame, intensity)
-    intensity = intensity or 0.6
-    frame.BackgroundTransparency = 1 - intensity
-    frame.BackgroundColor3 = WasUI.CurrentTheme.Background
-    local blur = Instance.new("BlurEffect")
-    blur.Size = 16
-    blur.Parent = frame
-    local highlight = Instance.new("UIStroke")
-    highlight.Color = Color3.fromRGB(255, 255, 255)
-    highlight.Thickness = 1
-    highlight.Transparency = 0.85
-    highlight.Parent = frame
-    local gradient = Instance.new("UIGradient")
-    gradient.Rotation = 45
-    gradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-    }
-    gradient.Transparency = NumberSequence.new{
-        NumberSequenceKeypoint.new(0, 0.9),
-        NumberSequenceKeypoint.new(0.5, 0.3),
-        NumberSequenceKeypoint.new(1, 0.9)
-    }
-    gradient.Parent = highlight
-    local flowConnection = nil
-    local angle = 0
-    flowConnection = RunService.Heartbeat:Connect(function(dt)
-        angle = (angle + dt * 30) % 360
-        gradient.Rotation = angle
-    end)
-    frame.Destroying:Connect(function()
-        if flowConnection then flowConnection:Disconnect() end
-    end)
-    return {blur = blur, stroke = highlight, gradient = gradient, connection = flowConnection}
-end
-
 function WasUI:ShowConfirmDialog(options, callback)
     local title = options.title or "确认"
     local titleColor = options.titleColor or WasUI.CurrentTheme.Text
@@ -2105,7 +1983,6 @@ function WasUI:ShowConfirmDialog(options, callback)
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
-    local glass = AddLiquidGlass(dialogFrame, 0.65)
     
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
@@ -2342,7 +2219,6 @@ function WasUI:ShowColorPicker(options, callback)
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = dialogFrame})
-    local glass = AddLiquidGlass(dialogFrame, 0.65)
 
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
@@ -2996,9 +2872,6 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 local confirmBtn = dialogFrame:FindFirstChild("ButtonContainer") and dialogFrame.ButtonContainer:FindFirstChild("ConfirmButton")
                 if cancelBtn then Tween(cancelBtn, {BackgroundColor3 = newTheme.Section, TextColor3 = newTheme.Text}, duration) end
                 if confirmBtn then Tween(confirmBtn, {BackgroundColor3 = newTheme.Accent, TextColor3 = newTheme.Text}, duration) end
-                local glass = dialogFrame:FindFirstChildWhichIsA("BlurEffect")
-                if glass then
-                end
                 local stroke = dialogFrame:FindFirstChildOfClass("UIStroke")
                 if stroke then Tween(stroke, {Color = newTheme.Text}, duration) end
             end
@@ -3076,8 +2949,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
     if backgroundUrl and backgroundUrl ~= "" then
         self:SetBackground(backgroundUrl)
     end
-
-    local glass = AddLiquidGlass(self.Instance, 0.65)
 
     AddRipple(self.Instance)
 
