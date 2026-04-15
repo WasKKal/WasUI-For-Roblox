@@ -2603,7 +2603,8 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
         colorPreview.BackgroundTransparency = 1 - currentAlpha
     end
 
-    button.MouseButton1Click:Connect(function()
+    -- 关键修改：使用 Activated 替代 MouseButton1Click
+    button.Activated:Connect(function()
         WasUI:ShowColorPicker({
             title = title or "选择颜色",
             defaultColor = currentColor,
