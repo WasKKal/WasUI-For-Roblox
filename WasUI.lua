@@ -2205,6 +2205,17 @@ function WasUI:ShowColorPicker(options, callback)
     dialogGui.DisplayOrder = 2000
     dialogGui.Parent = game:GetService("CoreGui")
 
+    local transparentOverlay = CreateInstance("Frame", {
+        Name = "TransparentOverlay",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Active = true,
+        Selectable = true,
+        Parent = dialogGui,
+        ZIndex = 999
+    })
+
     local dialogHeight = showAlpha and 380 or 340
     local dialogFrame = CreateInstance("Frame", {
         Name = "Dialog",
@@ -2213,7 +2224,7 @@ function WasUI:ShowColorPicker(options, callback)
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ClipsDescendants = true,
-        Parent = dialogGui,
+        Parent = transparentOverlay,
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = dialogFrame})
@@ -2271,7 +2282,7 @@ function WasUI:ShowColorPicker(options, callback)
     local hueBar = CreateInstance("Frame", {
         Name = "HueBar",
         Size = UDim2.new(1, -16, 0, 16),
-        Position = UDim2.new(0, 8, 0, 223),
+        Position = UDim2.new(0, 8, 0, 226),
         BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
         Parent = dialogFrame,
@@ -2307,7 +2318,7 @@ function WasUI:ShowColorPicker(options, callback)
         alphaBar = CreateInstance("Frame", {
             Name = "AlphaBar",
             Size = UDim2.new(1, -16, 0, 16),
-            Position = UDim2.new(0, 8, 0, 247),
+            Position = UDim2.new(0, 8, 0, 250),
             BackgroundColor3 = Color3.new(1, 1, 1),
             BorderSizePixel = 0,
             Parent = dialogFrame,
@@ -2337,7 +2348,7 @@ function WasUI:ShowColorPicker(options, callback)
     local hexInput = CreateInstance("TextBox", {
         Name = "HexInput",
         Size = UDim2.new(1, -16, 0, 28),
-        Position = UDim2.new(0, 8, 0, showAlpha and 271 or 247),
+        Position = UDim2.new(0, 8, 0, showAlpha and 274 or 250),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -2354,7 +2365,7 @@ function WasUI:ShowColorPicker(options, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = hexInput})
     CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = hexInput})
 
-    local buttonY = showAlpha and 307 or 283
+    local buttonY = showAlpha and 310 or 286
     local buttonContainer = CreateInstance("Frame", {
         Name = "ButtonContainer",
         Size = UDim2.new(1, -16, 0, 34),
@@ -2512,6 +2523,19 @@ function WasUI:ShowColorPicker(options, callback)
             callback(finalColor, currentA)
         end
         animateClose()
+    end)
+
+    transparentOverlay.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local mousePos = input.Position
+            local framePos = dialogFrame.AbsolutePosition
+            local frameSize = dialogFrame.AbsoluteSize
+            local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
+                            mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
+            if not inPanel then
+                animateClose()
+            end
+        end
     end)
 
     animateOpen()
