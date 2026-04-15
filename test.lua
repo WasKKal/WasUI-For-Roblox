@@ -129,6 +129,11 @@ WasUI.ConfigFolderCreated = false
 WasUI.ConfigFolderName = nil
 
 WasUI.ActiveDialogs = {}
+local function RecordOriginalTransparency(instance)
+    if instance and instance:IsA("GuiObject") then
+        instance:SetAttribute("OriginalTransparency", instance.BackgroundTransparency)
+    end
+end
 
 local function ensureConfigFolderExists()
     if not WasUI.ConfigFolderCreated then
