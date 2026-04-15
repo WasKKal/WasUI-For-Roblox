@@ -87,7 +87,7 @@ WasUI.Themes = {
         Primary = Color3.fromRGB(240, 240, 245),
         Secondary = Color3.fromRGB(245, 245, 250),
         Background = Color3.fromRGB(255, 255, 255),
-        Text = Color3.fromRGB(30, 30, 35),
+        Text = Color3.fromRGB(0, 0, 0),
         Accent = Color3.fromRGB(52, 86, 139),
         Success = Color3.fromRGB(52, 168, 83),
         Warning = Color3.fromRGB(251, 188, 5),
@@ -3906,7 +3906,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         Size = UDim2.new(1, 0, 0, announcementHeight),
         Position = UDim2.new(0, 0, 0, 26),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
-        BackgroundTransparency = 0.4,
+        BackgroundTransparency = 0.6,
         BorderSizePixel = 0,
         ZIndex = 2,
         Parent = self.Instance
@@ -4109,6 +4109,25 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             WasUI:SetTheme(newThemeName)
         end)
 
+for _, obj in ipairs(WasUI.Objects) do
+    if obj.Type == "Panel" and obj.Object then
+        local announcementBar = obj.Object:FindFirstChild("AnnouncementBar")
+        if announcementBar then
+            announcementBar.BackgroundColor3 = newTheme.Section
+            local username = announcementBar:FindFirstChild("Username")
+            local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
+            local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
+            if username then username.TextColor3 = newTheme.Text end
+            if executorLabel then executorLabel.TextColor3 = newTheme.Text end
+            if welcomeLabel then welcomeLabel.TextColor3 = newTheme.Text end
+            local avatar = announcementBar:FindFirstChild("Avatar")
+            if avatar then
+                local stroke = avatar:FindFirstChildOfClass("UIStroke")
+                if stroke then stroke.Color = newTheme.Text end
+            end
+        end
+    end
+end
         local rainbowModeLabel = CreateInstance("TextLabel", {
             Name = "RainbowModeLabel",
             Size = UDim2.new(1, 0, 0, 24),
