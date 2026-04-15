@@ -2901,6 +2901,37 @@ function WasUI:SetTheme(themeName)
         self.CurrentTheme = newTheme
         self.CurrentThemeName = themeName
         AnimateThemeChange(oldTheme, newTheme)
+        for _, obj in ipairs(WasUI.Objects) do
+            if obj.Type == "Panel" and obj.Object then
+                local announcementBar = obj.Object:FindFirstChild("AnnouncementBar")
+                if announcementBar then
+                    announcementBar.BackgroundColor3 = newTheme.Section
+                    local username = announcementBar:FindFirstChild("Username")
+                    local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
+                    local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
+                    if username then username.TextColor3 = newTheme.Text end
+                    if executorLabel then executorLabel.TextColor3 = newTheme.Text end
+                    if welcomeLabel then welcomeLabel.TextColor3 = newTheme.Text end
+                    local avatar = announcementBar:FindFirstChild("Avatar")
+                    if avatar then
+                        local stroke = avatar:FindFirstChildOfClass("UIStroke")
+                        if stroke then stroke.Color = newTheme.Text end
+                    end
+                end
+            end
+        end
+        
+        if self.SettingsPanel then
+            local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
+            if themeDropdown and themeDropdown:IsA("TextButton") then
+                themeDropdown.Text = themeName
+            end
+        end
+        return true
+    end
+    return false
+end
+        
         if self.SettingsPanel then
             local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
             if themeDropdown and themeDropdown:IsA("TextButton") then
@@ -4109,25 +4140,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
             WasUI:SetTheme(newThemeName)
         end)
 
-for _, obj in ipairs(WasUI.Objects) do
-    if obj.Type == "Panel" and obj.Object then
-        local announcementBar = obj.Object:FindFirstChild("AnnouncementBar")
-        if announcementBar then
-            announcementBar.BackgroundColor3 = newTheme.Section
-            local username = announcementBar:FindFirstChild("Username")
-            local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
-            local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
-            if username then username.TextColor3 = newTheme.Text end
-            if executorLabel then executorLabel.TextColor3 = newTheme.Text end
-            if welcomeLabel then welcomeLabel.TextColor3 = newTheme.Text end
-            local avatar = announcementBar:FindFirstChild("Avatar")
-            if avatar then
-                local stroke = avatar:FindFirstChildOfClass("UIStroke")
-                if stroke then stroke.Color = newTheme.Text end
-            end
-        end
-    end
-end
         local rainbowModeLabel = CreateInstance("TextLabel", {
             Name = "RainbowModeLabel",
             Size = UDim2.new(1, 0, 0, 24),
