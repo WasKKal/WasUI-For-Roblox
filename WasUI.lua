@@ -2205,18 +2205,6 @@ function WasUI:ShowColorPicker(options, callback)
     dialogGui.DisplayOrder = 2000
     dialogGui.Parent = game:GetService("CoreGui")
 
-    local overlay = CreateInstance("Frame", {
-        Name = "Overlay",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Active = true,
-        Selectable = true,
-        Parent = dialogGui,
-        ZIndex = 999
-    })
-
     local dialogHeight = showAlpha and 380 or 340
     local dialogFrame = CreateInstance("Frame", {
         Name = "Dialog",
@@ -2225,7 +2213,7 @@ function WasUI:ShowColorPicker(options, callback)
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ClipsDescendants = true,
-        Parent = overlay,
+        Parent = dialogGui,
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = dialogFrame})
@@ -2501,14 +2489,11 @@ function WasUI:ShowColorPicker(options, callback)
 
     local function animateOpen()
         dialogFrame.Position = UDim2.new(0.5, -140, 0.5, -dialogHeight/2)
-        overlay.BackgroundTransparency = 1
         dialogFrame.BackgroundTransparency = 1
-        Tween(overlay, {BackgroundTransparency = 0.5}, 0.2)
         Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
     end
 
     local function animateClose()
-        Tween(overlay, {BackgroundTransparency = 1}, 0.2)
         Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
@@ -2527,19 +2512,6 @@ function WasUI:ShowColorPicker(options, callback)
             callback(finalColor, currentA)
         end
         animateClose()
-    end)
-
-    overlay.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local mousePos = input.Position
-            local framePos = dialogFrame.AbsolutePosition
-            local frameSize = dialogFrame.AbsoluteSize
-            local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
-                            mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
-            if not inPanel then
-                animateClose()
-            end
-        end
     end)
 
     animateOpen()
