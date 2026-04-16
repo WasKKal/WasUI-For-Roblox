@@ -1,4 +1,4 @@
---Version 1.0.9.4
+--Version 1.0.9.5
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -29,7 +29,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.0.9.4"
+WasUI.Version = "1.0.9.5"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -99,19 +99,19 @@ WasUI.Themes = {
         SnowColor = Color3.fromRGB(0, 0, 0)
     },
     Blue = {
-        Primary = Color3.fromRGB(0, 168, 214),
-        Secondary = Color3.fromRGB(0, 136, 181),
-        Background = Color3.fromRGB(0, 107, 143),
+        Primary = Color3.fromRGB(94, 215, 255),
+        Secondary = Color3.fromRGB(0, 255, 195),
+        Background = Color3.fromRGB(0, 152, 211),
         Text = Color3.fromRGB(255, 255, 255),
-        Accent = Color3.fromRGB(0, 196, 240),
-        Success = Color3.fromRGB(0, 200, 120),
-        Warning = Color3.fromRGB(255, 180, 50),
-        Error = Color3.fromRGB(240, 70, 70),
-        Section = Color3.fromRGB(0, 128, 168),
-        Input = Color3.fromRGB(0, 148, 188),
-        TabBorder = Color3.fromRGB(0, 188, 220),
-        TabButton = Color3.fromRGB(0, 128, 168),
-        SnowColor = Color3.fromRGB(200, 240, 255)
+        Accent = Color3.fromRGB(255, 133, 0),
+        Success = Color3.fromRGB(83, 227, 136),
+        Warning = Color3.fromRGB(255, 213, 91),
+        Error = Color3.fromRGB(255, 123, 123),
+        Section = Color3.fromRGB(0, 237, 255),
+        Input = Color3.fromRGB(0, 191, 255),
+        TabBorder = Color3.fromRGB(0, 145, 210),
+        TabButton = Color3.fromRGB(0, 255, 206),
+        SnowColor = Color3.fromRGB(255, 146, 0)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes[WasUI.DefaultTheme]
@@ -129,6 +129,7 @@ WasUI.ConfigFolderCreated = false
 WasUI.ConfigFolderName = nil
 
 WasUI.ActiveDialogs = {}
+WasUI.ExternalPopupCalled = false
 
 local function RecordOriginalTransparency(instance)
     if instance and instance:IsA("GuiObject") then
@@ -963,21 +964,51 @@ function Button:New(name, parent, text, onClick, size, iconName)
         end
     end
     local scale = Instance.new("UIScale", self.Instance)
+    
+    local isPressed = false
+    
+    local function resetPress()
+        if isPressed then
+            isPressed = false
+            Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
+            SpringTween(scale, {Scale = 1}, 0.25)
+        end
+    end
+    
     self.Instance.MouseEnter:Connect(function()
-        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.15, Enum.EasingStyle.Sine)
+        if not isPressed then
+            Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.15, Enum.EasingStyle.Sine)
+        end
     end)
     self.Instance.MouseLeave:Connect(function()
-        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.15, Enum.EasingStyle.Sine)
+        if not isPressed then
+            Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.15, Enum.EasingStyle.Sine)
+        else
+            resetPress()
+        end
     end)
     self.Instance.MouseButton1Down:Connect(function()
+        isPressed = true
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
         SpringTween(scale, {Scale = 0.97}, 0.2)
     end)
     self.Instance.MouseButton1Up:Connect(function()
-        Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
-        SpringTween(scale, {Scale = 1}, 0.25)
-        if onClick then onClick() end
+        if isPressed then
+            isPressed = false
+            Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
+            SpringTween(scale, {Scale = 1}, 0.25)
+            if onClick then onClick() end
+        end
     end)
+    
+    if UserInputService.TouchEnabled then
+        self.Instance.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then
+                resetPress()
+                if onClick then onClick() end
+            end
+        end)
+    end
 
     AddRipple(self.Instance)
 
@@ -2191,6 +2222,260 @@ function WasUI:CreateConfirmToggle(parent, title, initialState, confirmOptions, 
     return toggle
 end
 
+function WasUI:ShowPopup(options, callback)
+    local title = options.title or "提示"
+    local titleIcon = options.titleIcon
+    local content = options.content or ""
+    local confirmText = options.confirmText or "确认"
+    local cancelText = options.cancelText or "取消"
+    local onConfirm = options.onConfirm
+    local onCancel = options.onCancel
+    local titleTag = options.titleTag
+
+    local dialogGui = Instance.new("ScreenGui")
+    dialogGui.Name = "WasUI_Popup"
+    dialogGui.ResetOnSpawn = false
+    dialogGui.DisplayOrder = 2000
+    dialogGui.Parent = game:GetService("CoreGui")
+
+    local overlay = CreateInstance("Frame", {
+        Name = "Overlay",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Active = true,
+        Selectable = true,
+        Parent = dialogGui,
+        ZIndex = 999
+    })
+
+    local dialogFrame = CreateInstance("Frame", {
+        Name = "Dialog",
+        Size = UDim2.new(0, 400, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BackgroundTransparency = 0,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Parent = overlay,
+        ZIndex = 1000
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
+
+    local titleContainer = CreateInstance("Frame", {
+        Name = "TitleContainer",
+        Size = UDim2.new(1, -20, 0, 40),
+        Position = UDim2.new(0, 10, 0, 10),
+        BackgroundTransparency = 1,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+
+    local titleIconImage = nil
+    if titleIcon then
+        titleIconImage = WasUI:CreateIcon(titleIcon, UDim2.new(0, 20, 0, 20), WasUI.CurrentTheme.Text)
+        if titleIconImage then
+            titleIconImage.Parent = titleContainer
+            titleIconImage.Position = UDim2.new(0, 0, 0.5, -10)
+            titleIconImage.ZIndex = 1002
+        end
+    end
+
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(1, (titleIconImage and -24 or 0), 0, 24),
+        Position = UDim2.new(titleIconImage and 0.06 or 0, 0, 0.5, -12),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Parent = titleContainer,
+        ZIndex = 1002
+    })
+
+    if titleTag then
+        local tagContainer = CreateInstance("Frame", {
+            Name = "TagContainer",
+            Size = UDim2.new(0, 0, 0, 20),
+            Position = UDim2.new(1, 4, 0.5, -10),
+            BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
+            BackgroundTransparency = 0.2,
+            BorderSizePixel = 0,
+            Parent = titleContainer,
+            ZIndex = 1003
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tagContainer})
+        local tagLabel = CreateInstance("TextLabel", {
+            Name = "TagLabel",
+            Size = UDim2.new(1, -8, 1, 0),
+            Position = UDim2.new(0, 4, 0, 0),
+            BackgroundTransparency = 1,
+            Text = titleTag.text,
+            TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            Parent = tagContainer,
+            ZIndex = 1004
+        })
+        tagContainer.Size = UDim2.new(0, tagLabel.TextBounds.X + 8, 0, 20)
+        tagLabel.Size = UDim2.new(0, tagLabel.TextBounds.X, 1, 0)
+    end
+
+    local contentLabel = CreateInstance("TextLabel", {
+        Name = "Content",
+        Size = UDim2.new(1, -20, 0, 0),
+        Position = UDim2.new(0, 10, 0, 60),
+        BackgroundTransparency = 1,
+        Text = content,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
+        TextWrapped = true,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+
+    local buttonContainer = CreateInstance("Frame", {
+        Name = "ButtonContainer",
+        Size = UDim2.new(1, -20, 0, 40),
+        Position = UDim2.new(0, 10, 0, 70),
+        BackgroundTransparency = 1,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+
+    local cancelButton = CreateInstance("TextButton", {
+        Name = "CancelButton",
+        Size = UDim2.new(0.5, -5, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Section,
+        BackgroundTransparency = 0.3,
+        Text = cancelText,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        AutoButtonColor = false,
+        Parent = buttonContainer,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = cancelButton})
+
+    local confirmButton = CreateInstance("TextButton", {
+        Name = "ConfirmButton",
+        Size = UDim2.new(0.5, -5, 1, 0),
+        Position = UDim2.new(0.5, 5, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Accent,
+        BackgroundTransparency = 0.3,
+        Text = confirmText,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        AutoButtonColor = false,
+        Parent = buttonContainer,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = confirmButton})
+
+    local arrowIcon = WasUI:CreateIcon("arrow-right", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text, true)
+    if arrowIcon then
+        arrowIcon.Parent = confirmButton
+        arrowIcon.Position = UDim2.new(1, -24, 0.5, -8)
+        arrowIcon.ZIndex = 1003
+        confirmButton.Text = confirmText .. "  "
+        confirmButton.TextXAlignment = Enum.TextXAlignment.Left
+        local padding = Instance.new("UIPadding")
+        padding.PaddingLeft = UDim.new(0, 12)
+        padding.Parent = confirmButton
+    end
+
+    local totalHeight = 60 + contentLabel.TextBounds.Y + 120
+    dialogFrame.Size = UDim2.new(0, 420, 0, totalHeight)
+    buttonContainer.Position = UDim2.new(0, 10, 0, 60 + contentLabel.TextBounds.Y + 50)
+    contentLabel.Position = UDim2.new(0, 10, 0, 70)
+
+    local function updatePosition()
+        if dialogFrame and dialogFrame.Parent then
+            local parentSize = overlay.AbsoluteSize
+            local frameSize = dialogFrame.AbsoluteSize
+            dialogFrame.Position = UDim2.new(0.5, -frameSize.X/2, 0.5, -frameSize.Y/2)
+        end
+    end
+
+    dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
+    updatePosition()
+
+    local mainWindow = nil
+    local borderFlow = nil
+    local snowContainer = nil
+    for _, obj in ipairs(WasUI.Objects) do
+        if obj.Type == "Panel" and obj.Object then
+            mainWindow = obj.Object
+            if mainWindow.BorderFlow then borderFlow = mainWindow.BorderFlow end
+            if mainWindow.SnowContainer then snowContainer = mainWindow.SnowContainer end
+            break
+        end
+    end
+    local wasWindowVisible = false
+    if mainWindow and mainWindow.Visible then
+        wasWindowVisible = true
+        mainWindow.Visible = false
+        if borderFlow then borderFlow.Visible = false end
+        if snowContainer then snowContainer.Visible = false end
+    end
+
+    local function animateClose()
+        Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+        task.wait(0.2)
+        dialogGui:Destroy()
+        if wasWindowVisible and mainWindow then
+            mainWindow.Visible = true
+            if borderFlow then borderFlow.Visible = true end
+            if snowContainer then snowContainer.Visible = true end
+        end
+        for i, d in ipairs(WasUI.ActiveDialogs) do
+            if d == dialogGui then
+                table.remove(WasUI.ActiveDialogs, i)
+                break
+            end
+        end
+    end
+
+    cancelButton.MouseButton1Click:Connect(function()
+        if onCancel then onCancel() end
+        animateClose()
+    end)
+
+    confirmButton.MouseButton1Click:Connect(function()
+        if onConfirm then onConfirm() end
+        animateClose()
+    end)
+
+    overlay.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local mousePos = input.Position
+            local framePos = dialogFrame.AbsolutePosition
+            local frameSize = dialogFrame.AbsoluteSize
+            local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
+                            mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
+            if not inPanel then
+                animateClose()
+            end
+        end
+    end)
+
+    Tween(dialogFrame, {BackgroundTransparency = 0}, 0.2)
+    table.insert(WasUI.ActiveDialogs, dialogGui)
+
+    return dialogGui
+end
+
 function WasUI:ShowColorPicker(options, callback)
     local title = options.title or "选择颜色"
     local defaultColor = options.defaultColor or Color3.fromRGB(255, 255, 255)
@@ -2891,6 +3176,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
         end
     end
 end
+
 function WasUI:SetTheme(themeName)
     if self.Themes[themeName] then
         local oldTheme = self.CurrentTheme
@@ -2941,7 +3227,7 @@ local function isPointOverButton(btn, point)
            point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y
 end
 
-function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
+function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, titleTag)
     local self = setmetatable({}, Panel)
     self.SnowEnabled = snowEnabled or false
     self.BackgroundImage = nil
@@ -3138,6 +3424,53 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled)
         ZIndex = 2,
         Parent = self.TitleBar
     })
+    
+    if titleTag then
+        local tagContainer = CreateInstance("Frame", {
+            Name = "TitleTagContainer",
+            Size = UDim2.new(0, 0, 0, 18),
+            Position = UDim2.new(1, 4, 0.5, -9),
+            BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
+            BackgroundTransparency = 0.2,
+            BorderSizePixel = 0,
+            Parent = self.TitleBar,
+            ZIndex = 10
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
+        local tagLabel = CreateInstance("TextLabel", {
+            Name = "TagLabel",
+            Size = UDim2.new(1, -6, 1, 0),
+            Position = UDim2.new(0, 3, 0, 0),
+            BackgroundTransparency = 1,
+            Text = titleTag.text,
+            TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 11,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            Parent = tagContainer,
+            ZIndex = 11
+        })
+        task.wait()
+        local textWidth = tagLabel.TextBounds.X
+        tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
+        tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
+        local titleOffset = self.Title.Size.X.Offset
+        local newTitleWidth = titleOffset - (textWidth + 12)
+        if newTitleWidth < 100 then
+            newTitleWidth = 100
+        end
+        self.Title.Size = UDim2.new(self.Title.Size.X.Scale, newTitleWidth, self.Title.Size.Y.Scale, self.Title.Size.Y.Offset)
+        tagLabel:GetPropertyChangedSignal("TextBounds"):Connect(function()
+            local newWidth = tagLabel.TextBounds.X
+            tagContainer.Size = UDim2.new(0, newWidth + 8, 0, 18)
+            tagLabel.Size = UDim2.new(0, newWidth, 1, 0)
+            local updatedTitleWidth = self.Title.Size.X.Offset - (newWidth + 12)
+            if updatedTitleWidth < 100 then updatedTitleWidth = 100 end
+            self.Title.Size = UDim2.new(self.Title.Size.X.Scale, updatedTitleWidth, self.Title.Size.Y.Scale, self.Title.Size.Y.Offset)
+        end)
+    end
+
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 28, 1, 0),
@@ -4740,15 +5073,54 @@ function WasUI:Notify(options)
     end)
 end
 
-function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled)
+function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, titleTag)
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "WasUI_Main"
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = game:GetService("CoreGui")
-    local window = Panel:New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position, backgroundUrl, snowEnabled)
+    local window = Panel:New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position, backgroundUrl, snowEnabled, titleTag)
     RecordOriginalTransparency(window.Instance)
+
+    local showBuiltinPopup = true
+    if WasUI.ExternalPopupCalled or WasUI.PendingPopup then
+        showBuiltinPopup = false
+    end
+
+    local hasConfig = false
+    if WasUI.ConfigManager then
+        local config = WasUI.ConfigManager:GetConfig("user_settings")
+        if config and next(config.Data) then
+            hasConfig = true
+        end
+    end
+
+    if hasConfig and showBuiltinPopup then
+        WasUI:ShowPopup({
+            title = "找到配置文件",
+            titleIcon = "file-cog",
+            content = "是否加载上次保存的配置？",
+            confirmText = "加载",
+            cancelText = "跳过",
+            onConfirm = function()
+                local config = WasUI.ConfigManager:GetConfig("user_settings")
+                if config then config:Load() end
+            end,
+            onCancel = function()
+            end
+        })
+    end
+
     return window
+end
+
+function WasUI:Popup(options, callback)
+    WasUI.ExternalPopupCalled = true
+    if WasUI.ConfigFolderCreated then
+        WasUI:ShowPopup(options, callback)
+    else
+        WasUI.PendingPopup = {options = options, callback = callback}
+    end
 end
 
 function WasUI:CreateButton(parent, text, onClick, size, iconName)
