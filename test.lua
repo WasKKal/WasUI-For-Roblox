@@ -2397,7 +2397,7 @@ function WasUI:ShowPopup(options, callback)
         padding.Parent = confirmButton
     end
 
-    local totalHeight = 60 + contentLabel.TextBounds.Y + 80
+    local totalHeight = 60 + contentLabel.TextBounds.Y + 120
     dialogFrame.Size = UDim2.new(0, 440, 0, totalHeight)
     buttonContainer.Position = UDim2.new(0, 10, 0, 60 + contentLabel.TextBounds.Y + 30)
     contentLabel.Position = UDim2.new(0, 10, 0, 60)
