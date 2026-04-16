@@ -2241,7 +2241,7 @@ function WasUI:ShowPopup(options, callback)
 
     local dialogFrame = CreateInstance("Frame", {
         Name = "Dialog",
-        Size = UDim2.new(0, 420, 0, 0),
+        Size = UDim2.new(0, 480, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
@@ -2385,9 +2385,10 @@ function WasUI:ShowPopup(options, callback)
         padding.Parent = confirmButton
     end
 
-    local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 50 
-dialogFrame.Size = UDim2.new(0, 510, 0, totalHeight) 
-buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 30)
+    local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 65
+    dialogFrame.Size = UDim2.new(0, 480, 0, totalHeight)
+    buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 20)
+
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
             local parentSize = dialogGui.AbsoluteSize
@@ -2967,94 +2968,67 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     Tween(textBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
                     textBox.PlaceholderColor3 = newTheme.Text
                 end
-elseif obj.Type == "Panel" then
-    Tween(instance, {BackgroundColor3 = newTheme.Background}, duration)
-    local titleBar = instance:FindFirstChild("TitleBar")
-    if titleBar then
-        Tween(titleBar, {BackgroundColor3 = newTheme.Primary}, duration)
-        local title = titleBar:FindFirstChild("Title")
-        if not title then
-            local titleContainer = titleBar:FindFirstChild("TitleContainer")
-            if titleContainer then
-                title = titleContainer:FindFirstChild("Title")
-            end
-        end
-        if title and title:IsA("TextLabel") then
-            Tween(title, {TextColor3 = newTheme.Text}, duration)
-        end
-        local closeBtn = titleBar:FindFirstChild("CloseButton")
-        if closeBtn and closeBtn:IsA("ImageButton") then
-            local icon = closeBtn:FindFirstChildOfClass("ImageLabel")
-            if icon and not icon:GetAttribute("IgnoreThemeChange") then
-                Tween(icon, {ImageColor3 = newTheme.Text}, duration)
-            end
-        end
-        local searchBtn = titleBar:FindFirstChild("SearchButton")
-        if searchBtn and searchBtn:IsA("ImageButton") then
-            local icon = searchBtn:FindFirstChildOfClass("ImageLabel")
-            if icon and not icon:GetAttribute("IgnoreThemeChange") then
-                Tween(icon, {ImageColor3 = newTheme.Text}, duration)
-            end
-        end
-        local searchContainer = titleBar:FindFirstChild("SearchContainer")
-        if searchContainer then
-            local searchBox = searchContainer:FindFirstChild("SearchBox")
-            if searchBox and searchBox:IsA("TextBox") then
-                Tween(searchBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
-                searchBox.PlaceholderColor3 = newTheme.Text
-            end
-        end
-    end
-    local announcementBar = instance:FindFirstChild("AnnouncementBar")
-    if announcementBar then
-        Tween(announcementBar, {BackgroundColor3 = newTheme.Section}, duration)
-        local username = announcementBar:FindFirstChild("Username")
-        local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
-        local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
-        if username and username:IsA("TextLabel") then
-            Tween(username, {TextColor3 = newTheme.Text}, duration)
-        end
-        if executorLabel and executorLabel:IsA("TextLabel") then
-            Tween(executorLabel, {TextColor3 = newTheme.Text}, duration)
-        end
-        if welcomeLabel and welcomeLabel:IsA("TextLabel") then
-            Tween(welcomeLabel, {TextColor3 = newTheme.Text}, duration)
-        end
-        local avatar = announcementBar:FindFirstChild("Avatar")
-        if avatar and avatar:IsA("ImageButton") then
-            local stroke = avatar:FindFirstChildOfClass("UIStroke")
-            if stroke then
-                Tween(stroke, {Color = newTheme.Text}, duration)
-            end
-        end
-    end
-    local tabBar = instance:FindFirstChild("TabBar")
-    if tabBar then
-        Tween(tabBar, {BackgroundColor3 = newTheme.Primary}, duration)
-        local tabContainer = tabBar:FindFirstChild("TabContainer")
-        if tabContainer then
-            for _, btn in ipairs(tabContainer:GetChildren()) do
-                if btn:IsA("TextButton") then
-                    Tween(btn, {BackgroundColor3 = newTheme.TabButton, TextColor3 = newTheme.Text}, duration)
-                    local underline = btn:FindFirstChild("Underline")
-                    if underline and underline:IsA("Frame") then
-                        Tween(underline, {BackgroundColor3 = newTheme.Accent}, duration)
+            elseif obj.Type == "Panel" then
+                Tween(instance, {BackgroundColor3 = newTheme.Background}, duration)
+                local titleBar = instance:FindFirstChild("TitleBar")
+                if titleBar then
+                    Tween(titleBar, {BackgroundColor3 = newTheme.Primary}, duration)
+                    local title = titleBar:FindFirstChild("Title")
+                    if not title then
+                        local titleContainer = titleBar:FindFirstChild("TitleContainer")
+                        if titleContainer then
+                            title = titleContainer:FindFirstChild("Title")
+                        end
+                    end
+                    if title and title:IsA("TextLabel") then
+                        Tween(title, {TextColor3 = newTheme.Text}, duration)
+                    end
+                    local closeBtn = titleBar:FindFirstChild("CloseButton")
+                    if closeBtn and closeBtn:IsA("ImageButton") then
+                        local icon = closeBtn:FindFirstChildOfClass("ImageLabel")
+                        if icon and not icon:GetAttribute("IgnoreThemeChange") then
+                            Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+                        end
+                    end
+                    local searchBtn = titleBar:FindFirstChild("SearchButton")
+                    if searchBtn and searchBtn:IsA("ImageButton") then
+                        local icon = searchBtn:FindFirstChildOfClass("ImageLabel")
+                        if icon and not icon:GetAttribute("IgnoreThemeChange") then
+                            Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+                        end
+                    end
+                    local searchContainer = titleBar:FindFirstChild("SearchContainer")
+                    if searchContainer then
+                        local searchBox = searchContainer:FindFirstChild("SearchBox")
+                        if searchBox and searchBox:IsA("TextBox") then
+                            Tween(searchBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+                            searchBox.PlaceholderColor3 = newTheme.Text
+                        end
                     end
                 end
-            end
-        end
-    end
-    local dotContainer = instance:FindFirstChild("TitleBar"):FindFirstChild("DotContainer")
-    if dotContainer then
-        local minimizedTextLabel = dotContainer:FindFirstChild("MinimizedText")
-        if minimizedTextLabel and minimizedTextLabel:IsA("TextLabel") then
-            if newTheme == WasUI.Themes.Light then
-                Tween(minimizedTextLabel, {TextColor3 = Color3.fromRGB(0, 0, 0)}, duration)
-            else
-                Tween(minimizedTextLabel, {TextColor3 = newTheme.Text}, duration)
-            end
-        end
-    end
+                local announcementBar = instance:FindFirstChild("AnnouncementBar")
+                if announcementBar then
+                    Tween(announcementBar, {BackgroundColor3 = newTheme.Section}, duration)
+                    local username = announcementBar:FindFirstChild("Username")
+                    local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
+                    local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
+                    if username and username:IsA("TextLabel") then
+                        Tween(username, {TextColor3 = newTheme.Text}, duration)
+                    end
+                    if executorLabel and executorLabel:IsA("TextLabel") then
+                        Tween(executorLabel, {TextColor3 = newTheme.Text}, duration)
+                    end
+                    if welcomeLabel and welcomeLabel:IsA("TextLabel") then
+                        Tween(welcomeLabel, {TextColor3 = newTheme.Text}, duration)
+                    end
+                    local avatar = announcementBar:FindFirstChild("Avatar")
+                    if avatar and avatar:IsA("ImageButton") then
+                        local stroke = avatar:FindFirstChildOfClass("UIStroke")
+                        if stroke then
+                            Tween(stroke, {Color = newTheme.Text}, duration)
+                        end
+                    end
+                end
                 local tabBar = instance:FindFirstChild("TabBar")
                 if tabBar then
                     Tween(tabBar, {BackgroundColor3 = newTheme.Primary}, duration)
@@ -3082,11 +3056,21 @@ elseif obj.Type == "Panel" then
                         end
                     end
                 end
+                if instance.TitleTagContainers then
+                    for _, tagContainer in ipairs(instance.TitleTagContainers) do
+                        if tagContainer and tagContainer.Parent then
+                            local tagLabel = tagContainer:FindFirstChild("TagLabel")
+                            if tagLabel and tagLabel:IsA("TextLabel") then
+                                Tween(tagLabel, {TextColor3 = newTheme.Text}, duration)
+                            end
+                        end
+                    end
+                end
             elseif obj.Type == "ColorPickerButton" then
-    local titleLabel = instance:FindFirstChild("Title")
-    if titleLabel and titleLabel:IsA("TextLabel") then
-        Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
-    end
+                local titleLabel = instance:FindFirstChild("Title")
+                if titleLabel and titleLabel:IsA("TextLabel") then
+                    Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
+                end
             end
         end
     end
@@ -3396,100 +3380,100 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         ZIndex = 1,
         Parent = self.TitleBar
     })
-self.Title = CreateInstance("TextLabel", {
-    Name = "Title",
-    Size = UDim2.new(1, -140, 1, 0),
-    Position = UDim2.new(0, 54, 0, 0),
-    BackgroundTransparency = 1,
-    Text = name,
-    TextColor3 = WasUI.CurrentTheme.Text,
-    TextTransparency = 0,
-    Font = Enum.Font.GothamSemibold,
-    TextSize = 14,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    TextTruncate = Enum.TextTruncate.None,
-    AutomaticSize = Enum.AutomaticSize.X,
-    Active = false,
-    ZIndex = 2,
-    Parent = self.TitleBar
-})
+    self.Title = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(1, -140, 1, 0),
+        Position = UDim2.new(0, 54, 0, 0),
+        BackgroundTransparency = 1,
+        Text = name,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        TextTransparency = 0,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.None,
+        AutomaticSize = Enum.AutomaticSize.X,
+        Active = false,
+        ZIndex = 2,
+        Parent = self.TitleBar
+    })
     
-local titleTagsList = {}
-if type(titleTag) == "table" then
-    if titleTag[1] then
-        titleTagsList = titleTag
-    else
+    local titleTagsList = {}
+    if type(titleTag) == "table" then
+        if titleTag[1] then
+            titleTagsList = titleTag
+        else
+            titleTagsList = {titleTag}
+        end
+    elseif titleTag then
         titleTagsList = {titleTag}
     end
-elseif titleTag then
-    titleTagsList = {titleTag}
-end
 
-if #titleTagsList > 0 then
-    local titleContainer = CreateInstance("Frame", {
-        Name = "TitleContainer",
-        Size = UDim2.new(1, -120, 1, 0),
-        Position = UDim2.new(0, 60, 0, 0),
-        BackgroundTransparency = 1,
-        Parent = self.TitleBar,
-        ZIndex = 2
-    })
-    self.TitleContainer = titleContainer
-    local titleLayout = CreateInstance("UIListLayout", {
-        FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Left,
-        VerticalAlignment = Enum.VerticalAlignment.Center,
-        Padding = UDim.new(0, 6),
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = titleContainer
-    })
-    self.Title.Parent = titleContainer
-    self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
-    self.Title.TextXAlignment = Enum.TextXAlignment.Left
-    self.Title.Position = UDim2.new(0, 0, 0, 0)
-    local function updateTitleWidth()
-        self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
-    end
-    self.Title:GetPropertyChangedSignal("TextBounds"):Connect(updateTitleWidth)
-    updateTitleWidth()
-
-    local tagContainers = {}
-    for _, tag in ipairs(titleTagsList) do
-        local tagContainer = CreateInstance("Frame", {
-            Name = "TitleTagContainer",
-            Size = UDim2.new(0, 0, 0, 18),
-            BackgroundColor3 = tag.backgroundColor or WasUI.CurrentTheme.Accent,
-            BackgroundTransparency = 0.2,
-            BorderSizePixel = 0,
-            Parent = titleContainer,
-            ZIndex = 10
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
-        local tagLabel = CreateInstance("TextLabel", {
-            Name = "TagLabel",
-            Size = UDim2.new(1, -6, 1, 0),
-            Position = UDim2.new(0, 3, 0, 0),
+    if #titleTagsList > 0 then
+        local titleContainer = CreateInstance("Frame", {
+            Name = "TitleContainer",
+            Size = UDim2.new(1, -120, 1, 0),
+            Position = UDim2.new(0, 60, 0, 0),
             BackgroundTransparency = 1,
-            Text = tag.text,
-            TextColor3 = tag.textColor or WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 11,
-            TextXAlignment = Enum.TextXAlignment.Center,
-            TextYAlignment = Enum.TextYAlignment.Center,
-            Parent = tagContainer,
-            ZIndex = 11
+            Parent = self.TitleBar,
+            ZIndex = 2
         })
-        task.wait()
-        local textWidth = tagLabel.TextBounds.X
-        tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
-        tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
-        table.insert(tagContainers, tagContainer)
+        self.TitleContainer = titleContainer
+        local titleLayout = CreateInstance("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            HorizontalAlignment = Enum.HorizontalAlignment.Left,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            Padding = UDim.new(0, 6),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Parent = titleContainer
+        })
+        self.Title.Parent = titleContainer
+        self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
+        self.Title.TextXAlignment = Enum.TextXAlignment.Left
+        self.Title.Position = UDim2.new(0, 0, 0, 0)
+        local function updateTitleWidth()
+            self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
+        end
+        self.Title:GetPropertyChangedSignal("TextBounds"):Connect(updateTitleWidth)
+        updateTitleWidth()
+
+        local tagContainers = {}
+        for _, tag in ipairs(titleTagsList) do
+            local tagContainer = CreateInstance("Frame", {
+                Name = "TitleTagContainer",
+                Size = UDim2.new(0, 0, 0, 18),
+                BackgroundColor3 = tag.backgroundColor or WasUI.CurrentTheme.Accent,
+                BackgroundTransparency = 0.2,
+                BorderSizePixel = 0,
+                Parent = titleContainer,
+                ZIndex = 10
+            })
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
+            local tagLabel = CreateInstance("TextLabel", {
+                Name = "TagLabel",
+                Size = UDim2.new(1, -6, 1, 0),
+                Position = UDim2.new(0, 3, 0, 0),
+                BackgroundTransparency = 1,
+                Text = tag.text,
+                TextColor3 = tag.textColor or WasUI.CurrentTheme.Text,
+                Font = Enum.Font.GothamSemibold,
+                TextSize = 11,
+                TextXAlignment = Enum.TextXAlignment.Center,
+                TextYAlignment = Enum.TextYAlignment.Center,
+                Parent = tagContainer,
+                ZIndex = 11
+            })
+            task.wait()
+            local textWidth = tagLabel.TextBounds.X
+            tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
+            tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
+            table.insert(tagContainers, tagContainer)
+        end
+        self.TitleTagContainers = tagContainers
+    else
+        self.Title.Size = UDim2.new(1, -140, 1, 0)
+        self.Title.Position = UDim2.new(0, 54, 0, 0)
     end
-    self.TitleTagContainers = tagContainers
-else
-    self.Title.Size = UDim2.new(1, -140, 1, 0)
-    self.Title.Position = UDim2.new(0, 54, 0, 0)
-end
 
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
@@ -3880,120 +3864,114 @@ end
     self.OriginalSize = self.Instance.Size
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
     self.MinimizeToDots = function()
-    if self.IsMinimized then return end
-    
-    for i = #WasUI.OpenDropdowns, 1, -1 do
-        local dropdown = WasUI.OpenDropdowns[i]
-        if dropdown and dropdown.Close then
-            dropdown:Close(true)
-        end
-    end
-    
-    if isSearchActive then
-        expandSearchBox(false)
-    end
-    
-    for _, dialogGui in ipairs(WasUI.ActiveDialogs) do
-        if dialogGui and dialogGui.Parent then
-            local overlay = dialogGui:FindFirstChild("Overlay")
-            if overlay then
-                Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-                local dialogFrame = overlay:FindFirstChild("Dialog")
-                if dialogFrame then
-                    Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0.5, -150 + 20)}, 0.2)
-                end
+        if self.IsMinimized then return end
+        
+        for i = #WasUI.OpenDropdowns, 1, -1 do
+            local dropdown = WasUI.OpenDropdowns[i]
+            if dropdown and dropdown.Close then
+                dropdown:Close(true)
             end
+        end
+        
+        if isSearchActive then
+            expandSearchBox(false)
+        end
+        
+        for _, dialogGui in ipairs(WasUI.ActiveDialogs) do
+            if dialogGui and dialogGui.Parent then
+                local overlay = dialogGui:FindFirstChild("Overlay")
+                if overlay then
+                    Tween(overlay, {BackgroundTransparency = 1}, 0.2)
+                    local dialogFrame = overlay:FindFirstChild("Dialog")
+                    if dialogFrame then
+                        Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0.5, -150 + 20)}, 0.2)
+                    end
+                end
+                task.delay(0.2, function()
+                    dialogGui:Destroy()
+                end)
+            end
+        end
+        WasUI.ActiveDialogs = {}
+        
+        if WasUI.SettingsGui then
+            Tween(WasUI.SettingsPanel, {BackgroundTransparency = 1}, 0.2)
+            Tween(WasUI.SettingsPanel:FindFirstChildWhichIsA("UIScale"), {Scale = 0.8}, 0.2)
             task.delay(0.2, function()
-                dialogGui:Destroy()
+                if WasUI.SettingsGui then
+                    WasUI.SettingsGui:Destroy()
+                    WasUI.SettingsGui = nil
+                end
+                WasUI.SettingsPanel = nil
             end)
         end
-    end
-    WasUI.ActiveDialogs = {}
-    
-    if WasUI.SettingsGui then
-        Tween(WasUI.SettingsPanel, {BackgroundTransparency = 1}, 0.2)
-        Tween(WasUI.SettingsPanel:FindFirstChildWhichIsA("UIScale"), {Scale = 0.8}, 0.2)
-        task.delay(0.2, function()
-            if WasUI.SettingsGui then
-                WasUI.SettingsGui:Destroy()
-                WasUI.SettingsGui = nil
-            end
-            WasUI.SettingsPanel = nil
-        end)
-    end
-    
-    local tweenDuration = 0.3
-    local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
-    for _, dot in ipairs(dots) do
-        Tween(dot, {BackgroundTransparency = 1}, tweenDuration)
-    end
-    if self.MinimizedCustomText ~= "" then
-        self.MinimizedTextLabel.Visible = true
-        self.MinimizedTextLabel.TextTransparency = 1
-        Tween(self.MinimizedTextLabel, {TextTransparency = 0}, tweenDuration)
-    end
-    Tween(self.Instance, {
-        Size = self.MinimizedSize,
-        Position = self.Instance.Position
-    }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-    
-if self.TitleContainer then
-    self.TitleContainer.Visible = true
-elseif self.Title then
-    self.Title.Visible = true
-end
-    if self.AnnouncementBar then self.AnnouncementBar.Visible = false end
-    if self.TabBar then self.TabBar.Visible = false end
-    if self.ContentArea then self.ContentArea.Visible = false end
-    if closeButton then closeButton.Visible = false end
-    if searchButton then searchButton.Visible = false end
-    if searchContainer then searchContainer.Visible = false end
-    if self.DraggableArea then self.DraggableArea.Visible = false end
-    if self.DotContainer then self.DotContainer.Visible = true end
-    if self.SnowContainer then self.SnowContainer.Visible = false end
-    
-    self.IsMinimized = true
-end
-
-self.RestoreFromDots = function()
-    if not self.IsMinimized then return end
-    local tweenDuration = 0.3
-    local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
-    for _, dot in ipairs(dots) do
-        Tween(dot, {BackgroundTransparency = 0}, tweenDuration)
-    end
-    if self.MinimizedCustomText ~= "" then
-        Tween(self.MinimizedTextLabel, {TextTransparency = 1}, tweenDuration)
-        task.delay(tweenDuration, function()
-            self.MinimizedTextLabel.Visible = false
-        end)
-    end
-    Tween(self.Instance, {
-        Size = self.OriginalSize,
-        Position = self.Instance.Position
-    }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-    
-    if self.Title then self.Title.Visible = true end
-    if self.TitleTagContainer then self.TitleTagContainer.Visible = true end
-    if self.TitleTagContainers then
-        for _, tagContainer in ipairs(self.TitleTagContainers) do
-            local tagLabel = tagContainer:FindFirstChild("TagLabel")
-            if tagLabel then
-                Tween(tagLabel, {TextColor3 = newTheme.Text}, duration)
-            end
+        
+        local tweenDuration = 0.3
+        local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
+        for _, dot in ipairs(dots) do
+            Tween(dot, {BackgroundTransparency = 1}, tweenDuration)
         end
+        if self.MinimizedCustomText ~= "" then
+            self.MinimizedTextLabel.Visible = true
+            self.MinimizedTextLabel.TextTransparency = 1
+            Tween(self.MinimizedTextLabel, {TextTransparency = 0}, tweenDuration)
+        end
+        Tween(self.Instance, {
+            Size = self.MinimizedSize,
+            Position = self.Instance.Position
+        }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        
+        if self.TitleContainer then
+            self.TitleContainer.Visible = false
+        elseif self.Title then
+            self.Title.Visible = false
+        end
+        if self.AnnouncementBar then self.AnnouncementBar.Visible = false end
+        if self.TabBar then self.TabBar.Visible = false end
+        if self.ContentArea then self.ContentArea.Visible = false end
+        if closeButton then closeButton.Visible = false end
+        if searchButton then searchButton.Visible = false end
+        if searchContainer then searchContainer.Visible = false end
+        if self.DraggableArea then self.DraggableArea.Visible = false end
+        if self.DotContainer then self.DotContainer.Visible = true end
+        if self.SnowContainer then self.SnowContainer.Visible = false end
+        
+        self.IsMinimized = true
     end
-    if self.AnnouncementBar then self.AnnouncementBar.Visible = true end
-    if self.TabBar then self.TabBar.Visible = true end
-    if self.ContentArea then self.ContentArea.Visible = true end
-    if closeButton then closeButton.Visible = true end
-    if searchButton then searchButton.Visible = true end
-    if self.DraggableArea then self.DraggableArea.Visible = true end
-    if self.DotContainer then self.DotContainer.Visible = true end
-    if self.SnowContainer then self.SnowContainer.Visible = true end
-    
-    self.IsMinimized = false
-end
+    self.RestoreFromDots = function()
+        if not self.IsMinimized then return end
+        local tweenDuration = 0.3
+        local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
+        for _, dot in ipairs(dots) do
+            Tween(dot, {BackgroundTransparency = 0}, tweenDuration)
+        end
+        if self.MinimizedCustomText ~= "" then
+            Tween(self.MinimizedTextLabel, {TextTransparency = 1}, tweenDuration)
+            task.delay(tweenDuration, function()
+                self.MinimizedTextLabel.Visible = false
+            end)
+        end
+        Tween(self.Instance, {
+            Size = self.OriginalSize,
+            Position = self.Instance.Position
+        }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        
+        if self.TitleContainer then
+            self.TitleContainer.Visible = true
+        elseif self.Title then
+            self.Title.Visible = true
+        end
+        if self.AnnouncementBar then self.AnnouncementBar.Visible = true end
+        if self.TabBar then self.TabBar.Visible = true end
+        if self.ContentArea then self.ContentArea.Visible = true end
+        if closeButton then closeButton.Visible = true end
+        if searchButton then searchButton.Visible = true end
+        if self.DraggableArea then self.DraggableArea.Visible = true end
+        if self.DotContainer then self.DotContainer.Visible = true end
+        if self.SnowContainer then self.SnowContainer.Visible = true end
+        
+        self.IsMinimized = false
+    end
     self.DotAreaButton.MouseButton1Click:Connect(function()
         if self.IsMinimized then
             self:RestoreFromDots()
