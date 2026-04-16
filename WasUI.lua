@@ -2386,7 +2386,7 @@ function WasUI:ShowPopup(options, callback)
 
     local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 50 
 dialogFrame.Size = UDim2.new(0, 510, 0, totalHeight) 
-buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 10)
+buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 30)
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
             local parentSize = dialogGui.AbsoluteSize
