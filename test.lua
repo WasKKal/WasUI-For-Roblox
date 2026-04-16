@@ -3420,37 +3420,51 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.TitleBar
     })
     
-    if titleTag then
-        local tagContainer = CreateInstance("Frame", {
-            Name = "TitleTagContainer",
-            Size = UDim2.new(0, 0, 0, 18),
-            Position = UDim2.new(1, 4, 0.5, -9),
-            BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
-            BackgroundTransparency = 0.2,
-            BorderSizePixel = 0,
-            Parent = self.TitleBar,
-            ZIndex = 1003
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
-        local tagLabel = CreateInstance("TextLabel", {
-            Name = "TagLabel",
-            Size = UDim2.new(1, -6, 1, 0),
-            Position = UDim2.new(0, 3, 0, 0),
-            BackgroundTransparency = 1,
-            Text = titleTag.text,
-            TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 11,
-            TextXAlignment = Enum.TextXAlignment.Center,
-            TextYAlignment = Enum.TextYAlignment.Center,
-            Parent = tagContainer,
-            ZIndex = 1004
-        })
-        tagContainer.Size = UDim2.new(0, tagLabel.TextBounds.X + 6, 0, 18)
-        tagLabel.Size = UDim2.new(0, tagLabel.TextBounds.X, 1, 0)
-        self.Title.Size = UDim2.new(1, -140 - (tagContainer.Size.X.Offset + 8), 1, 0)
+if titleTag then
+    local tagContainer = CreateInstance("Frame", {
+        Name = "TitleTagContainer",
+        Size = UDim2.new(0, 0, 0, 18),
+        Position = UDim2.new(1, 4, 0.5, -9),
+        BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
+        BackgroundTransparency = 0.2,
+        BorderSizePixel = 0,
+        Parent = self.TitleBar,
+        ZIndex = 10
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
+    local tagLabel = CreateInstance("TextLabel", {
+        Name = "TagLabel",
+        Size = UDim2.new(1, -6, 1, 0),
+        Position = UDim2.new(0, 3, 0, 0),
+        BackgroundTransparency = 1,
+        Text = titleTag.text,
+        TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Parent = tagContainer,
+        ZIndex = 11
+    })
+    task.wait()
+    local textWidth = tagLabel.TextBounds.X
+    tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
+    tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
+    local titleOffset = self.Title.Size.X.Offset
+    local newTitleWidth = titleOffset - (textWidth + 12)
+    if newTitleWidth < 100 then
+        newTitleWidth = 100
     end
-
+    self.Title.Size = UDim2.new(self.Title.Size.X.Scale, newTitleWidth, self.Title.Size.Y.Scale, self.Title.Size.Y.Offset)
+    tagLabel:GetPropertyChangedSignal("TextBounds"):Connect(function()
+        local newWidth = tagLabel.TextBounds.X
+        tagContainer.Size = UDim2.new(0, newWidth + 8, 0, 18)
+        tagLabel.Size = UDim2.new(0, newWidth, 1, 0)
+        local updatedTitleWidth = self.Title.Size.X.Offset - (newWidth + 12)
+        if updatedTitleWidth < 100 then updatedTitleWidth = 100 end
+        self.Title.Size = UDim2.new(self.Title.Size.X.Scale, updatedTitleWidth, self.Title.Size.Y.Scale, self.Title.Size.Y.Offset)
+    end)
+end
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 28, 1, 0),
