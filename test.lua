@@ -2239,11 +2239,11 @@ function WasUI:ShowPopup(options, callback)
     dialogGui.DisplayOrder = 2000
     dialogGui.Parent = game:GetService("CoreGui")
 
+    -- 完全透明的遮罩层（无黑色背景）
     local overlay = CreateInstance("Frame", {
         Name = "Overlay",
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-        BackgroundTransparency = 0.5,
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Active = true,
         Selectable = true,
@@ -2397,9 +2397,10 @@ function WasUI:ShowPopup(options, callback)
         padding.Parent = confirmButton
     end
 
-    local totalHeight = 60 + contentLabel.TextBounds.Y + 70
+    -- 增加底部留白，防止按钮被裁剪
+    local totalHeight = 60 + contentLabel.TextBounds.Y + 80
     dialogFrame.Size = UDim2.new(0, 400, 0, totalHeight)
-    buttonContainer.Position = UDim2.new(0, 10, 0, 60 + contentLabel.TextBounds.Y + 20)
+    buttonContainer.Position = UDim2.new(0, 10, 0, 60 + contentLabel.TextBounds.Y + 30)
     contentLabel.Position = UDim2.new(0, 10, 0, 60)
 
     local function updatePosition()
@@ -2414,8 +2415,7 @@ function WasUI:ShowPopup(options, callback)
     updatePosition()
 
     local function animateClose()
-        Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-        Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0.5, -totalHeight/2 + 20)}, 0.2)
+        Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
         for i, d in ipairs(WasUI.ActiveDialogs) do
@@ -2436,7 +2436,8 @@ function WasUI:ShowPopup(options, callback)
         animateClose()
     end)
 
-    local function onOverlayClick(input)
+    -- 点击外部关闭时不触发任何回调，也不显示主窗口
+    overlay.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             local mousePos = input.Position
             local framePos = dialogFrame.AbsolutePosition
@@ -2444,17 +2445,14 @@ function WasUI:ShowPopup(options, callback)
             local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
                             mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
             if not inPanel then
-                if onCancel then onCancel() end
                 animateClose()
             end
         end
-    end
-    overlay.InputBegan:Connect(onOverlayClick)
+    end)
 
     Tween(dialogFrame, {BackgroundTransparency = 0}, 0.2)
-    Tween(overlay, {BackgroundTransparency = 0.5}, 0.2)
-
     table.insert(WasUI.ActiveDialogs, dialogGui)
+
     return dialogGui
 end
 
