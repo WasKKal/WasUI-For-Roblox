@@ -130,6 +130,7 @@ WasUI.ConfigFolderName = nil
 
 WasUI.ActiveDialogs = {}
 WasUI.PendingPopup = nil
+WasUI.ExternalPopupCalled = false
 
 local function RecordOriginalTransparency(instance)
     if instance and instance:IsA("GuiObject") then
@@ -5056,7 +5057,20 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
         end
     end
     
-    if hasConfig then
+    local showBuiltinPopup = true
+    if WasUI.ExternalPopupCalled or WasUI.PendingPopup then
+        showBuiltinPopup = false
+    end
+
+    local hasConfig = false
+    if WasUI.ConfigManager then
+        local config = WasUI.ConfigManager:GetConfig("user_settings")
+        if config and next(config.Data) then
+            hasConfig = true
+        end
+    end
+
+    if hasConfig and showBuiltinPopup then
         window:SetVisible(false)
         WasUI:ShowPopup({
             title = "找到配置文件",
@@ -5076,11 +5090,12 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
     else
         window:SetVisible(true)
     end
-    
+
     return window
 end
 
 function WasUI:Popup(options, callback)
+    WasUI.ExternalPopupCalled = true
     if WasUI.ConfigFolderCreated then
         WasUI:ShowPopup(options, callback)
     else
