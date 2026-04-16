@@ -2931,6 +2931,11 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     local fill = track:FindFirstChild("Fill")
                     if fill and fill:IsA("Frame") then
                         Tween(fill, {BackgroundColor3 = newTheme.Accent}, duration)
+                        local sliderInstance = instance
+                        if sliderInstance and sliderInstance.Value and sliderInstance.Min and sliderInstance.Max then
+                            local t = (sliderInstance.Value - sliderInstance.Min) / (sliderInstance.Max - sliderInstance.Min)
+                            fill.Size = UDim2.new(t, 0, 1, 0)
+                        end
                     end
                     local knob = track:FindFirstChild("Knob")
                     if knob and knob:IsA("Frame") then
