@@ -4341,28 +4341,23 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Size = UDim2.new(0, 300, 0, 320),
             Position = UDim2.new(0.5, -150, 0.5, -160),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
-            BackgroundTransparency = 0.2,
+            BackgroundTransparency = 1,
             BorderSizePixel = 0,
             ClipsDescendants = true,
-            ZIndex = 1000,
+            ZIndex = 1000,        
             Parent = settingsGui
         })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
-        local scale = Instance.new("UIScale")
-        scale.Scale = 0.8
-        scale.Parent = settingsFrame
-        settingsFrame.BackgroundTransparency = 1
-        WasUI.SettingsGui = settingsGui
-        WasUI.SettingsPanel = settingsFrame
+        
         local titleBar = CreateInstance("Frame", {
             Name = "TitleBar",
             Size = UDim2.new(1, 0, 0, 30),
             BackgroundColor3 = WasUI.CurrentTheme.Primary,
             BackgroundTransparency = 0.3,
             BorderSizePixel = 0,
+            ZIndex = 1001,        
             Parent = settingsFrame
         })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = titleBar})
+        
         local titleLabel = CreateInstance("TextLabel", {
             Name = "Title",
             Size = UDim2.new(1, -30, 1, 0),
@@ -4373,9 +4368,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Font = Enum.Font.GothamBold,
             TextSize = 14,
             TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 1001,
+            ZIndex = 1002,       
             Parent = titleBar
         })
+        
         local closeBtn = CreateInstance("TextButton", {
             Name = "Close",
             Size = UDim2.new(0, 24, 0, 24),
@@ -4385,7 +4381,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.GothamBold,
             TextSize = 18,
-            ZIndex = 1001,
+            ZIndex = 1002,
             Parent = titleBar
         })
         closeBtn.MouseButton1Click:Connect(function()
