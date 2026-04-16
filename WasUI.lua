@@ -4467,7 +4467,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             local newThemeName = themeDisplayNames[nextIndex]
             themeDropdown.Text = newThemeName
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-            Tween(scale, {Scale = 0.8}, 0.2)
             task.wait(0.2)
             if WasUI.SettingsGui then
                 WasUI.SettingsGui:Destroy()
