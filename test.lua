@@ -2397,9 +2397,8 @@ function WasUI:ShowPopup(options, callback)
         padding.Parent = confirmButton
     end
 
-    -- 增加底部留白，防止按钮被裁剪
     local totalHeight = 60 + contentLabel.TextBounds.Y + 80
-    dialogFrame.Size = UDim2.new(0, 400, 0, totalHeight)
+    dialogFrame.Size = UDim2.new(0, 440, 0, totalHeight)
     buttonContainer.Position = UDim2.new(0, 10, 0, 60 + contentLabel.TextBounds.Y + 30)
     contentLabel.Position = UDim2.new(0, 10, 0, 60)
 
