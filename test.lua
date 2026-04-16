@@ -2222,7 +2222,6 @@ function WasUI:CreateConfirmToggle(parent, title, initialState, confirmOptions, 
     
     return toggle
 end
-
 function WasUI:ShowPopup(options, callback)
     local title = options.title or "提示"
     local titleIcon = options.titleIcon
@@ -2239,7 +2238,6 @@ function WasUI:ShowPopup(options, callback)
     dialogGui.DisplayOrder = 2000
     dialogGui.Parent = game:GetService("CoreGui")
 
-    -- 完全透明的遮罩层（无黑色背景）
     local overlay = CreateInstance("Frame", {
         Name = "Overlay",
         Size = UDim2.new(1, 0, 1, 0),
@@ -2297,36 +2295,35 @@ function WasUI:ShowPopup(options, callback)
         ZIndex = 1002
     })
 
-if titleTag then
-    local tagContainer = CreateInstance("Frame", {
-        Name = "TitleTagContainer",
-        Size = UDim2.new(0, 0, 0, 18),
-        Position = UDim2.new(1, 4, 0.5, -9),
-        BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
-        BackgroundTransparency = 0.2,
-        BorderSizePixel = 0,
-        Parent = self.TitleBar,
-        ZIndex = 1003
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
-    local tagLabel = CreateInstance("TextLabel", {
-        Name = "TagLabel",
-        Size = UDim2.new(1, -6, 1, 0),
-        Position = UDim2.new(0, 3, 0, 0),
-        BackgroundTransparency = 1,
-        Text = titleTag.text,
-        TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 11,
-        TextXAlignment = Enum.TextXAlignment.Center,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        Parent = tagContainer,
-        ZIndex = 1004
-    })
-    tagContainer.Size = UDim2.new(0, tagLabel.TextBounds.X + 6, 0, 18)
-    tagLabel.Size = UDim2.new(0, tagLabel.TextBounds.X, 1, 0)
-    self.Title.Size = UDim2.new(1, -140 - (tagContainer.Size.X.Offset + 8), 1, 0)
-end
+    if titleTag then
+        local tagContainer = CreateInstance("Frame", {
+            Name = "TagContainer",
+            Size = UDim2.new(0, 0, 0, 20),
+            Position = UDim2.new(1, 4, 0.5, -10),
+            BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
+            BackgroundTransparency = 0.2,
+            BorderSizePixel = 0,
+            Parent = titleContainer,
+            ZIndex = 1003
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tagContainer})
+        local tagLabel = CreateInstance("TextLabel", {
+            Name = "TagLabel",
+            Size = UDim2.new(1, -8, 1, 0),
+            Position = UDim2.new(0, 4, 0, 0),
+            BackgroundTransparency = 1,
+            Text = titleTag.text,
+            TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            Parent = tagContainer,
+            ZIndex = 1004
+        })
+        tagContainer.Size = UDim2.new(0, tagLabel.TextBounds.X + 8, 0, 20)
+        tagLabel.Size = UDim2.new(0, tagLabel.TextBounds.X, 1, 0)
+    end
 
     local contentLabel = CreateInstance("TextLabel", {
         Name = "Content",
@@ -2398,10 +2395,11 @@ end
         padding.Parent = confirmButton
     end
 
+    -- 增加弹窗高度，防止按钮被裁剪
     local totalHeight = 60 + contentLabel.TextBounds.Y + 120
-    dialogFrame.Size = UDim2.new(0, 440, 0, totalHeight)
-    buttonContainer.Position = UDim2.new(0, 10, 0, 60 + contentLabel.TextBounds.Y + 30)
-    contentLabel.Position = UDim2.new(0, 10, 0, 60)
+    dialogFrame.Size = UDim2.new(0, 420, 0, totalHeight)
+    buttonContainer.Position = UDim2.new(0, 10, 0, 60 + contentLabel.TextBounds.Y + 50)
+    contentLabel.Position = UDim2.new(0, 10, 0, 70)
 
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
@@ -2414,10 +2412,28 @@ end
     dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
     updatePosition()
 
+    -- 查找并隐藏主窗口（如果存在且可见）
+    local mainWindow = nil
+    for _, obj in ipairs(WasUI.Objects) do
+        if obj.Type == "Panel" and obj.Object and obj.Object.Visible then
+            mainWindow = obj.Object
+            break
+        end
+    end
+    local wasWindowVisible = false
+    if mainWindow and mainWindow.Visible then
+        wasWindowVisible = true
+        mainWindow.Visible = false
+    end
+
     local function animateClose()
         Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
+        -- 恢复主窗口显示
+        if wasWindowVisible and mainWindow then
+            mainWindow.Visible = true
+        end
         for i, d in ipairs(WasUI.ActiveDialogs) do
             if d == dialogGui then
                 table.remove(WasUI.ActiveDialogs, i)
@@ -2436,7 +2452,6 @@ end
         animateClose()
     end)
 
-    -- 点击外部关闭时不触发任何回调，也不显示主窗口
     overlay.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             local mousePos = input.Position
@@ -5046,15 +5061,7 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
     screenGui.Parent = game:GetService("CoreGui")
     local window = Panel:New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position, backgroundUrl, snowEnabled, titleTag)
     RecordOriginalTransparency(window.Instance)
-    
-    local hasConfig = false
-    if WasUI.ConfigManager then
-        local config = WasUI.ConfigManager:GetConfig("user_settings")
-        if config and next(config.Data) then
-            hasConfig = true
-        end
-    end
-    
+
     local showBuiltinPopup = true
     if WasUI.ExternalPopupCalled or WasUI.PendingPopup then
         showBuiltinPopup = false
@@ -5069,7 +5076,6 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
     end
 
     if hasConfig and showBuiltinPopup then
-        window:SetVisible(false)
         WasUI:ShowPopup({
             title = "找到配置文件",
             titleIcon = "file-cog",
@@ -5079,14 +5085,10 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
             onConfirm = function()
                 local config = WasUI.ConfigManager:GetConfig("user_settings")
                 if config then config:Load() end
-                window:SetVisible(true)
             end,
             onCancel = function()
-                window:SetVisible(true)
             end
         })
-    else
-        window:SetVisible(true)
     end
 
     return window
