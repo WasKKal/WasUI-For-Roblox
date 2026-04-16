@@ -129,7 +129,6 @@ WasUI.ConfigFolderCreated = false
 WasUI.ConfigFolderName = nil
 
 WasUI.ActiveDialogs = {}
-WasUI.PendingPopup = nil
 WasUI.ExternalPopupCalled = false
 
 local function RecordOriginalTransparency(instance)
@@ -2222,6 +2221,7 @@ function WasUI:CreateConfirmToggle(parent, title, initialState, confirmOptions, 
     
     return toggle
 end
+
 function WasUI:ShowPopup(options, callback)
     local title = options.title or "提示"
     local titleIcon = options.titleIcon
@@ -2395,7 +2395,6 @@ function WasUI:ShowPopup(options, callback)
         padding.Parent = confirmButton
     end
 
-    -- 增加弹窗高度，防止按钮被裁剪
     local totalHeight = 60 + contentLabel.TextBounds.Y + 120
     dialogFrame.Size = UDim2.new(0, 420, 0, totalHeight)
     buttonContainer.Position = UDim2.new(0, 10, 0, 60 + contentLabel.TextBounds.Y + 50)
@@ -2412,11 +2411,14 @@ function WasUI:ShowPopup(options, callback)
     dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
     updatePosition()
 
-    -- 查找并隐藏主窗口（如果存在且可见）
     local mainWindow = nil
+    local borderFlow = nil
+    local snowContainer = nil
     for _, obj in ipairs(WasUI.Objects) do
-        if obj.Type == "Panel" and obj.Object and obj.Object.Visible then
+        if obj.Type == "Panel" and obj.Object then
             mainWindow = obj.Object
+            if mainWindow.BorderFlow then borderFlow = mainWindow.BorderFlow end
+            if mainWindow.SnowContainer then snowContainer = mainWindow.SnowContainer end
             break
         end
     end
@@ -2424,15 +2426,18 @@ function WasUI:ShowPopup(options, callback)
     if mainWindow and mainWindow.Visible then
         wasWindowVisible = true
         mainWindow.Visible = false
+        if borderFlow then borderFlow.Visible = false end
+        if snowContainer then snowContainer.Visible = false end
     end
 
     local function animateClose()
         Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
-        -- 恢复主窗口显示
         if wasWindowVisible and mainWindow then
             mainWindow.Visible = true
+            if borderFlow then borderFlow.Visible = true end
+            if snowContainer then snowContainer.Visible = true end
         end
         for i, d in ipairs(WasUI.ActiveDialogs) do
             if d == dialogGui then
@@ -3420,51 +3425,52 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.TitleBar
     })
     
-if titleTag then
-    local tagContainer = CreateInstance("Frame", {
-        Name = "TitleTagContainer",
-        Size = UDim2.new(0, 0, 0, 18),
-        Position = UDim2.new(1, 4, 0.5, -9),
-        BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
-        BackgroundTransparency = 0.2,
-        BorderSizePixel = 0,
-        Parent = self.TitleBar,
-        ZIndex = 10
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
-    local tagLabel = CreateInstance("TextLabel", {
-        Name = "TagLabel",
-        Size = UDim2.new(1, -6, 1, 0),
-        Position = UDim2.new(0, 3, 0, 0),
-        BackgroundTransparency = 1,
-        Text = titleTag.text,
-        TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 11,
-        TextXAlignment = Enum.TextXAlignment.Center,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        Parent = tagContainer,
-        ZIndex = 11
-    })
-    task.wait()
-    local textWidth = tagLabel.TextBounds.X
-    tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
-    tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
-    local titleOffset = self.Title.Size.X.Offset
-    local newTitleWidth = titleOffset - (textWidth + 12)
-    if newTitleWidth < 100 then
-        newTitleWidth = 100
+    if titleTag then
+        local tagContainer = CreateInstance("Frame", {
+            Name = "TitleTagContainer",
+            Size = UDim2.new(0, 0, 0, 18),
+            Position = UDim2.new(1, 4, 0.5, -9),
+            BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
+            BackgroundTransparency = 0.2,
+            BorderSizePixel = 0,
+            Parent = self.TitleBar,
+            ZIndex = 10
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
+        local tagLabel = CreateInstance("TextLabel", {
+            Name = "TagLabel",
+            Size = UDim2.new(1, -6, 1, 0),
+            Position = UDim2.new(0, 3, 0, 0),
+            BackgroundTransparency = 1,
+            Text = titleTag.text,
+            TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 11,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            Parent = tagContainer,
+            ZIndex = 11
+        })
+        task.wait()
+        local textWidth = tagLabel.TextBounds.X
+        tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
+        tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
+        local titleOffset = self.Title.Size.X.Offset
+        local newTitleWidth = titleOffset - (textWidth + 12)
+        if newTitleWidth < 100 then
+            newTitleWidth = 100
+        end
+        self.Title.Size = UDim2.new(self.Title.Size.X.Scale, newTitleWidth, self.Title.Size.Y.Scale, self.Title.Size.Y.Offset)
+        tagLabel:GetPropertyChangedSignal("TextBounds"):Connect(function()
+            local newWidth = tagLabel.TextBounds.X
+            tagContainer.Size = UDim2.new(0, newWidth + 8, 0, 18)
+            tagLabel.Size = UDim2.new(0, newWidth, 1, 0)
+            local updatedTitleWidth = self.Title.Size.X.Offset - (newWidth + 12)
+            if updatedTitleWidth < 100 then updatedTitleWidth = 100 end
+            self.Title.Size = UDim2.new(self.Title.Size.X.Scale, updatedTitleWidth, self.Title.Size.Y.Scale, self.Title.Size.Y.Offset)
+        end)
     end
-    self.Title.Size = UDim2.new(self.Title.Size.X.Scale, newTitleWidth, self.Title.Size.Y.Scale, self.Title.Size.Y.Offset)
-    tagLabel:GetPropertyChangedSignal("TextBounds"):Connect(function()
-        local newWidth = tagLabel.TextBounds.X
-        tagContainer.Size = UDim2.new(0, newWidth + 8, 0, 18)
-        tagLabel.Size = UDim2.new(0, newWidth, 1, 0)
-        local updatedTitleWidth = self.Title.Size.X.Offset - (newWidth + 12)
-        if updatedTitleWidth < 100 then updatedTitleWidth = 100 end
-        self.Title.Size = UDim2.new(self.Title.Size.X.Scale, updatedTitleWidth, self.Title.Size.Y.Scale, self.Title.Size.Y.Offset)
-    end)
-end
+
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 28, 1, 0),
