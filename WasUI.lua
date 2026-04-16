@@ -2384,11 +2384,9 @@ function WasUI:ShowPopup(options, callback)
         padding.Parent = confirmButton
     end
 
-    -- 增加高度：内容起始 56，内容高度，按钮容器高度 40，底部留白 30（原来20）
-    local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 30
-    dialogFrame.Size = UDim2.new(0, 420, 0, totalHeight)
-    buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 10)
-
+    local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 50 
+dialogFrame.Size = UDim2.new(0, 450, 0, totalHeight) 
+buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 15)
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
             local parentSize = dialogGui.AbsoluteSize
@@ -3360,32 +3358,33 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         ZIndex = 1,
         Parent = self.TitleBar
     })
-    self.Title = CreateInstance("TextLabel", {
-        Name = "Title",
-        Size = UDim2.new(1, -140, 1, 0),
-        Position = UDim2.new(0, 54, 0, 0),
-        BackgroundTransparency = 1,
-        Text = name,
-        TextColor3 = WasUI.CurrentTheme.Text,
-        TextTransparency = 0,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextTruncate = Enum.TextTruncate.AtEnd,
-        Active = false,
-        ZIndex = 2,
-        Parent = self.TitleBar
-    })
+self.Title = CreateInstance("TextLabel", {
+    Name = "Title",
+    Size = UDim2.new(1, -140, 1, 0),
+    Position = UDim2.new(0, 54, 0, 0),
+    BackgroundTransparency = 1,
+    Text = name,
+    TextColor3 = WasUI.CurrentTheme.Text,
+    TextTransparency = 0,
+    Font = Enum.Font.GothamSemibold,
+    TextSize = 14,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    TextTruncate = Enum.TextTruncate.None,
+    AutomaticSize = Enum.AutomaticSize.X,
+    Active = false,
+    ZIndex = 2,
+    Parent = self.TitleBar
+})
     
-if titleTag then
-    local titleContainer = CreateInstance("Frame", {
-        Name = "TitleContainer",
-        Size = UDim2.new(1, -30, 1, 0),
-        Position = UDim2.new(0, 50, 0, 0),
-        BackgroundTransparency = 1,
-        Parent = self.TitleBar,
-        ZIndex = 2
-    })
+        if titleTag then
+           local titleContainer = CreateInstance("Frame", {
+            Name = "TitleContainer",
+            Size = UDim2.new(1, -120, 1, 0),
+            Position = UDim2.new(0, 50, 0, 0),
+            BackgroundTransparency = 1,
+            Parent = self.TitleBar,
+            ZIndex = 2
+        })
     local titleLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
