@@ -2297,35 +2297,36 @@ function WasUI:ShowPopup(options, callback)
         ZIndex = 1002
     })
 
-    if titleTag then
-        local tagContainer = CreateInstance("Frame", {
-            Name = "TagContainer",
-            Size = UDim2.new(0, 0, 0, 20),
-            Position = UDim2.new(1, 4, 0.5, -10),
-            BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
-            BackgroundTransparency = 0.2,
-            BorderSizePixel = 0,
-            Parent = titleContainer,
-            ZIndex = 1003
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tagContainer})
-        local tagLabel = CreateInstance("TextLabel", {
-            Name = "TagLabel",
-            Size = UDim2.new(1, -8, 1, 0),
-            Position = UDim2.new(0, 4, 0, 0),
-            BackgroundTransparency = 1,
-            Text = titleTag.text,
-            TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 12,
-            TextXAlignment = Enum.TextXAlignment.Center,
-            TextYAlignment = Enum.TextYAlignment.Center,
-            Parent = tagContainer,
-            ZIndex = 1004
-        })
-        tagContainer.Size = UDim2.new(0, tagLabel.TextBounds.X + 8, 0, 20)
-        tagLabel.Size = UDim2.new(0, tagLabel.TextBounds.X, 1, 0)
-    end
+if titleTag then
+    local tagContainer = CreateInstance("Frame", {
+        Name = "TitleTagContainer",
+        Size = UDim2.new(0, 0, 0, 18),
+        Position = UDim2.new(1, 4, 0.5, -9),
+        BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
+        BackgroundTransparency = 0.2,
+        BorderSizePixel = 0,
+        Parent = self.TitleBar,
+        ZIndex = 1003
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
+    local tagLabel = CreateInstance("TextLabel", {
+        Name = "TagLabel",
+        Size = UDim2.new(1, -6, 1, 0),
+        Position = UDim2.new(0, 3, 0, 0),
+        BackgroundTransparency = 1,
+        Text = titleTag.text,
+        TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Parent = tagContainer,
+        ZIndex = 1004
+    })
+    tagContainer.Size = UDim2.new(0, tagLabel.TextBounds.X + 6, 0, 18)
+    tagLabel.Size = UDim2.new(0, tagLabel.TextBounds.X, 1, 0)
+    self.Title.Size = UDim2.new(1, -140 - (tagContainer.Size.X.Offset + 8), 1, 0)
+end
 
     local contentLabel = CreateInstance("TextLabel", {
         Name = "Content",
