@@ -3422,6 +3422,7 @@ self.Title = CreateInstance("TextLabel", {
             Parent = self.TitleBar,
             ZIndex = 2
         })
+        self.TitleContainer = titleContainer
     local titleLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
@@ -3919,8 +3920,11 @@ end
         Position = self.Instance.Position
     }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
     
-    if self.Title then self.Title.Visible = false end
-    if self.TitleTagContainer then self.TitleTagContainer.Visible = false end
+    if self.TitleContainer then
+        self.TitleContainer.Visible = false
+            elseif self.Title then
+        self.Title.Visible = false
+        end
     if self.AnnouncementBar then self.AnnouncementBar.Visible = false end
     if self.TabBar then self.TabBar.Visible = false end
     if self.ContentArea then self.ContentArea.Visible = false end
