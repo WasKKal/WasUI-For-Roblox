@@ -3414,16 +3414,27 @@ self.Title = CreateInstance("TextLabel", {
     Parent = self.TitleBar
 })
     
-        if titleTag then
-           local titleContainer = CreateInstance("Frame", {
-            Name = "TitleContainer",
-            Size = UDim2.new(1, -120, 1, 0),
-            Position = UDim2.new(0, 53, 0, 0),
-            BackgroundTransparency = 1,
-            Parent = self.TitleBar,
-            ZIndex = 2
-        })
-        self.TitleContainer = titleContainer
+local titleTagsList = {}
+if type(titleTag) == "table" then
+    if titleTag[1] then
+        titleTagsList = titleTag
+    else
+        titleTagsList = {titleTag}
+    end
+elseif titleTag then
+    titleTagsList = {titleTag}
+end
+
+if #titleTagsList > 0 then
+    local titleContainer = CreateInstance("Frame", {
+        Name = "TitleContainer",
+        Size = UDim2.new(1, -120, 1, 0),
+        Position = UDim2.new(0, 60, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = self.TitleBar,
+        ZIndex = 2
+    })
+    self.TitleContainer = titleContainer
     local titleLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
@@ -3436,40 +3447,45 @@ self.Title = CreateInstance("TextLabel", {
     self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
     self.Title.TextXAlignment = Enum.TextXAlignment.Left
     self.Title.Position = UDim2.new(0, 0, 0, 0)
-    local tagContainer = CreateInstance("Frame", {
-        Name = "TitleTagContainer",
-        Size = UDim2.new(0, 0, 0, 18),
-        BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
-        BackgroundTransparency = 0.2,
-        BorderSizePixel = 0,
-        Parent = titleContainer,
-        ZIndex = 10
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
-    local tagLabel = CreateInstance("TextLabel", {
-        Name = "TagLabel",
-        Size = UDim2.new(1, -6, 1, 0),
-        Position = UDim2.new(0, 3, 0, 0),
-        BackgroundTransparency = 1,
-        Text = titleTag.text,
-        TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 11,
-        TextXAlignment = Enum.TextXAlignment.Center,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        Parent = tagContainer,
-        ZIndex = 11
-    })
-    task.wait()
-    local textWidth = tagLabel.TextBounds.X
-    tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
-    tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
-    self.TitleTagContainer = titleContainer
     local function updateTitleWidth()
         self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
     end
     self.Title:GetPropertyChangedSignal("TextBounds"):Connect(updateTitleWidth)
     updateTitleWidth()
+
+    local tagContainers = {}
+    for _, tag in ipairs(titleTagsList) do
+        local tagContainer = CreateInstance("Frame", {
+            Name = "TitleTagContainer",
+            Size = UDim2.new(0, 0, 0, 18),
+            BackgroundColor3 = tag.backgroundColor or WasUI.CurrentTheme.Accent,
+            BackgroundTransparency = 0.2,
+            BorderSizePixel = 0,
+            Parent = titleContainer,
+            ZIndex = 10
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
+        local tagLabel = CreateInstance("TextLabel", {
+            Name = "TagLabel",
+            Size = UDim2.new(1, -6, 1, 0),
+            Position = UDim2.new(0, 3, 0, 0),
+            BackgroundTransparency = 1,
+            Text = tag.text,
+            TextColor3 = tag.textColor or WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 11,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            Parent = tagContainer,
+            ZIndex = 11
+        })
+        task.wait()
+        local textWidth = tagLabel.TextBounds.X
+        tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
+        tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
+        table.insert(tagContainers, tagContainer)
+    end
+    self.TitleTagContainers = tagContainers
 else
     self.Title.Size = UDim2.new(1, -140, 1, 0)
     self.Title.Position = UDim2.new(0, 54, 0, 0)
@@ -3921,11 +3937,11 @@ end
         Position = self.Instance.Position
     }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
     
-    if self.TitleContainer then
-        self.TitleContainer.Visible = false
-            elseif self.Title then
-        self.Title.Visible = false
-        end
+if self.TitleContainer then
+    self.TitleContainer.Visible = true
+elseif self.Title then
+    self.Title.Visible = true
+end
     if self.AnnouncementBar then self.AnnouncementBar.Visible = false end
     if self.TabBar then self.TabBar.Visible = false end
     if self.ContentArea then self.ContentArea.Visible = false end
@@ -3959,6 +3975,14 @@ self.RestoreFromDots = function()
     
     if self.Title then self.Title.Visible = true end
     if self.TitleTagContainer then self.TitleTagContainer.Visible = true end
+    if self.TitleTagContainers then
+        for _, tagContainer in ipairs(self.TitleTagContainers) do
+            local tagLabel = tagContainer:FindFirstChild("TagLabel")
+            if tagLabel then
+                Tween(tagLabel, {TextColor3 = newTheme.Text}, duration)
+            end
+        end
+    end
     if self.AnnouncementBar then self.AnnouncementBar.Visible = true end
     if self.TabBar then self.TabBar.Visible = true end
     if self.ContentArea then self.ContentArea.Visible = true end
