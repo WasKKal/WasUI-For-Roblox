@@ -3862,112 +3862,109 @@ end
     self.OriginalSize = self.Instance.Size
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
     self.MinimizeToDots = function()
-        if self.IsMinimized then return end
-        
-        for i = #WasUI.OpenDropdowns, 1, -1 do
-            local dropdown = WasUI.OpenDropdowns[i]
-            if dropdown and dropdown.Close then
-                dropdown:Close(true)
-            end
+    if self.IsMinimized then return end
+    
+    for i = #WasUI.OpenDropdowns, 1, -1 do
+        local dropdown = WasUI.OpenDropdowns[i]
+        if dropdown and dropdown.Close then
+            dropdown:Close(true)
         end
-        
-        if isSearchActive then
-            expandSearchBox(false)
-        end
-        
-        for _, dialogGui in ipairs(WasUI.ActiveDialogs) do
-            if dialogGui and dialogGui.Parent then
-                local overlay = dialogGui:FindFirstChild("Overlay")
-                if overlay then
-                    Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-                    local dialogFrame = overlay:FindFirstChild("Dialog")
-                    if dialogFrame then
-                        Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0.5, -150 + 20)}, 0.2)
-                    end
+    end
+    
+    if isSearchActive then
+        expandSearchBox(false)
+    end
+    
+    for _, dialogGui in ipairs(WasUI.ActiveDialogs) do
+        if dialogGui and dialogGui.Parent then
+            local overlay = dialogGui:FindFirstChild("Overlay")
+            if overlay then
+                Tween(overlay, {BackgroundTransparency = 1}, 0.2)
+                local dialogFrame = overlay:FindFirstChild("Dialog")
+                if dialogFrame then
+                    Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0.5, -150 + 20)}, 0.2)
                 end
-                task.delay(0.2, function()
-                    dialogGui:Destroy()
-                end)
             end
-        end
-        WasUI.ActiveDialogs = {}
-        
-        if WasUI.SettingsGui then
-            Tween(WasUI.SettingsPanel, {BackgroundTransparency = 1}, 0.2)
-            Tween(WasUI.SettingsPanel:FindFirstChildWhichIsA("UIScale"), {Scale = 0.8}, 0.2)
             task.delay(0.2, function()
-                if WasUI.SettingsGui then
-                    WasUI.SettingsGui:Destroy()
-                    WasUI.SettingsGui = nil
-                end
-                WasUI.SettingsPanel = nil
+                dialogGui:Destroy()
             end)
         end
-        
-        local tweenDuration = 0.3
-        local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
-        for _, dot in ipairs(dots) do
-            Tween(dot, {BackgroundTransparency = 1}, tweenDuration)
-        end
-        if self.MinimizedCustomText ~= "" then
-            self.MinimizedTextLabel.Visible = true
-            self.MinimizedTextLabel.TextTransparency = 1
-            Tween(self.MinimizedTextLabel, {TextTransparency = 0}, tweenDuration)
-        end
-        Tween(self.Instance, {
-            Size = self.MinimizedSize,
-            Position = self.Instance.Position
-        }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-        self.Title.Visible = false
-        if self.TitleTagContainer then
-            self.TitleTagContainer.Visible = false
-        end
-        self.AnnouncementBar.Visible = false
-        self.TabBar.Visible = false
-        self.ContentArea.Visible = false
-        closeButton.Visible = false
-        searchButton.Visible = false
-        searchContainer.Visible = false
-        self.DraggableArea.Visible = false
-        self.DotContainer.Visible = true
-        if self.SnowContainer then
-            self.SnowContainer.Visible = false
-        end
-        self.IsMinimized = true
     end
-    self.RestoreFromDots = function()
-        if not self.IsMinimized then return end
-        local tweenDuration = 0.3
-        local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
-        for _, dot in ipairs(dots) do
-            Tween(dot, {BackgroundTransparency = 0}, tweenDuration)
-        end
-        if self.MinimizedCustomText ~= "" then
-            Tween(self.MinimizedTextLabel, {TextTransparency = 1}, tweenDuration)
-            task.delay(tweenDuration, function()
-                self.MinimizedTextLabel.Visible = false
-            end)
-        end
-        Tween(self.Instance, {
-            Size = self.OriginalSize,
-            Position = self.Instance.Position
-        }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-        self.Title.Visible = false
-        if self.TitleTagContainer then
-            self.TitleTagContainer.Visible = false
-        end
-        self.AnnouncementBar.Visible = true
-        self.TabBar.Visible = true
-        self.ContentArea.Visible = true
-        closeButton.Visible = true
-        searchButton.Visible = true
-        self.DraggableArea.Visible = true
-        self.DotContainer.Visible = true
-        if self.SnowContainer then
-            self.SnowContainer.Visible = true
-        end
-        self.IsMinimized = false
+    WasUI.ActiveDialogs = {}
+    
+    if WasUI.SettingsGui then
+        Tween(WasUI.SettingsPanel, {BackgroundTransparency = 1}, 0.2)
+        Tween(WasUI.SettingsPanel:FindFirstChildWhichIsA("UIScale"), {Scale = 0.8}, 0.2)
+        task.delay(0.2, function()
+            if WasUI.SettingsGui then
+                WasUI.SettingsGui:Destroy()
+                WasUI.SettingsGui = nil
+            end
+            WasUI.SettingsPanel = nil
+        end)
     end
+    
+    local tweenDuration = 0.3
+    local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
+    for _, dot in ipairs(dots) do
+        Tween(dot, {BackgroundTransparency = 1}, tweenDuration)
+    end
+    if self.MinimizedCustomText ~= "" then
+        self.MinimizedTextLabel.Visible = true
+        self.MinimizedTextLabel.TextTransparency = 1
+        Tween(self.MinimizedTextLabel, {TextTransparency = 0}, tweenDuration)
+    end
+    Tween(self.Instance, {
+        Size = self.MinimizedSize,
+        Position = self.Instance.Position
+    }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    
+    if self.Title then self.Title.Visible = false end
+    if self.TitleTagContainer then self.TitleTagContainer.Visible = false end
+    if self.AnnouncementBar then self.AnnouncementBar.Visible = false end
+    if self.TabBar then self.TabBar.Visible = false end
+    if self.ContentArea then self.ContentArea.Visible = false end
+    if closeButton then closeButton.Visible = false end
+    if searchButton then searchButton.Visible = false end
+    if searchContainer then searchContainer.Visible = false end
+    if self.DraggableArea then self.DraggableArea.Visible = false end
+    if self.DotContainer then self.DotContainer.Visible = true end
+    if self.SnowContainer then self.SnowContainer.Visible = false end
+    
+    self.IsMinimized = true
+end
+
+self.RestoreFromDots = function()
+    if not self.IsMinimized then return end
+    local tweenDuration = 0.3
+    local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
+    for _, dot in ipairs(dots) do
+        Tween(dot, {BackgroundTransparency = 0}, tweenDuration)
+    end
+    if self.MinimizedCustomText ~= "" then
+        Tween(self.MinimizedTextLabel, {TextTransparency = 1}, tweenDuration)
+        task.delay(tweenDuration, function()
+            self.MinimizedTextLabel.Visible = false
+        end)
+    end
+    Tween(self.Instance, {
+        Size = self.OriginalSize,
+        Position = self.Instance.Position
+    }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    
+    if self.Title then self.Title.Visible = true end
+    if self.TitleTagContainer then self.TitleTagContainer.Visible = true end
+    if self.AnnouncementBar then self.AnnouncementBar.Visible = true end
+    if self.TabBar then self.TabBar.Visible = true end
+    if self.ContentArea then self.ContentArea.Visible = true end
+    if closeButton then closeButton.Visible = true end
+    if searchButton then searchButton.Visible = true end
+    if self.DraggableArea then self.DraggableArea.Visible = true end
+    if self.DotContainer then self.DotContainer.Visible = true end
+    if self.SnowContainer then self.SnowContainer.Visible = true end
+    
+    self.IsMinimized = false
+end
     self.DotAreaButton.MouseButton1Click:Connect(function()
         if self.IsMinimized then
             self:RestoreFromDots()
