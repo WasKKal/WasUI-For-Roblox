@@ -2384,10 +2384,11 @@ function WasUI:ShowPopup(options, callback)
         padding.Parent = confirmButton
     end
 
-    local totalHeight = 50 + contentLabel.TextBounds.Y + 60
+    -- 增加 50px 上下宽度（总高度增加 50）
+    local totalHeight = 50 + contentLabel.TextBounds.Y + 60 + 50
     dialogFrame.Size = UDim2.new(0, 380, 0, totalHeight)
-    buttonContainer.Position = UDim2.new(0, 10, 0, 50 + contentLabel.TextBounds.Y + 15)
-    contentLabel.Position = UDim2.new(0, 10, 0, 50)
+    buttonContainer.Position = UDim2.new(0, 10, 0, 50 + contentLabel.TextBounds.Y + 15 + 25) -- 按钮下移 25px（一半）
+    contentLabel.Position = UDim2.new(0, 10, 0, 50 + 10) -- 内容下移 10px，保持上下均匀
 
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
@@ -2427,7 +2428,6 @@ function WasUI:ShowPopup(options, callback)
 
     return dialogGui
 end
-
 function WasUI:ShowColorPicker(options, callback)
     local title = options.title or "选择颜色"
     local defaultColor = options.defaultColor or Color3.fromRGB(255, 255, 255)
