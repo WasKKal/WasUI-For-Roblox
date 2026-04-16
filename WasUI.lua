@@ -2966,61 +2966,94 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     Tween(textBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
                     textBox.PlaceholderColor3 = newTheme.Text
                 end
-            elseif obj.Type == "Panel" then
-                Tween(instance, {BackgroundColor3 = newTheme.Background}, duration)
-                local titleBar = instance:FindFirstChild("TitleBar")
-                if titleBar then
-                    Tween(titleBar, {BackgroundColor3 = newTheme.Primary}, duration)
-                    local title = titleBar:FindFirstChild("Title")
-                    if title and title:IsA("TextLabel") then
-                        Tween(title, {TextColor3 = newTheme.Text}, duration)
-                    end
-                    local closeBtn = titleBar:FindFirstChild("CloseButton")
-                    if closeBtn and closeBtn:IsA("ImageButton") then
-                        local icon = closeBtn:FindFirstChildOfClass("ImageLabel")
-                        if icon and not icon:GetAttribute("IgnoreThemeChange") then
-                            Tween(icon, {ImageColor3 = newTheme.Text}, duration)
-                        end
-                    end
-                    local searchBtn = titleBar:FindFirstChild("SearchButton")
-                    if searchBtn and searchBtn:IsA("ImageButton") then
-                        local icon = searchBtn:FindFirstChildOfClass("ImageLabel")
-                        if icon and not icon:GetAttribute("IgnoreThemeChange") then
-                            Tween(icon, {ImageColor3 = newTheme.Text}, duration)
-                        end
-                    end
-                    local searchContainer = titleBar:FindFirstChild("SearchContainer")
-                    if searchContainer then
-                        local searchBox = searchContainer:FindFirstChild("SearchBox")
-                        if searchBox and searchBox:IsA("TextBox") then
-                            Tween(searchBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
-                            searchBox.PlaceholderColor3 = newTheme.Text
-                        end
+elseif obj.Type == "Panel" then
+    Tween(instance, {BackgroundColor3 = newTheme.Background}, duration)
+    local titleBar = instance:FindFirstChild("TitleBar")
+    if titleBar then
+        Tween(titleBar, {BackgroundColor3 = newTheme.Primary}, duration)
+        local title = titleBar:FindFirstChild("Title")
+        if not title then
+            local titleContainer = titleBar:FindFirstChild("TitleContainer")
+            if titleContainer then
+                title = titleContainer:FindFirstChild("Title")
+            end
+        end
+        if title and title:IsA("TextLabel") then
+            Tween(title, {TextColor3 = newTheme.Text}, duration)
+        end
+        local closeBtn = titleBar:FindFirstChild("CloseButton")
+        if closeBtn and closeBtn:IsA("ImageButton") then
+            local icon = closeBtn:FindFirstChildOfClass("ImageLabel")
+            if icon and not icon:GetAttribute("IgnoreThemeChange") then
+                Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+            end
+        end
+        local searchBtn = titleBar:FindFirstChild("SearchButton")
+        if searchBtn and searchBtn:IsA("ImageButton") then
+            local icon = searchBtn:FindFirstChildOfClass("ImageLabel")
+            if icon and not icon:GetAttribute("IgnoreThemeChange") then
+                Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+            end
+        end
+        local searchContainer = titleBar:FindFirstChild("SearchContainer")
+        if searchContainer then
+            local searchBox = searchContainer:FindFirstChild("SearchBox")
+            if searchBox and searchBox:IsA("TextBox") then
+                Tween(searchBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+                searchBox.PlaceholderColor3 = newTheme.Text
+            end
+        end
+    end
+    local announcementBar = instance:FindFirstChild("AnnouncementBar")
+    if announcementBar then
+        Tween(announcementBar, {BackgroundColor3 = newTheme.Section}, duration)
+        local username = announcementBar:FindFirstChild("Username")
+        local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
+        local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
+        if username and username:IsA("TextLabel") then
+            Tween(username, {TextColor3 = newTheme.Text}, duration)
+        end
+        if executorLabel and executorLabel:IsA("TextLabel") then
+            Tween(executorLabel, {TextColor3 = newTheme.Text}, duration)
+        end
+        if welcomeLabel and welcomeLabel:IsA("TextLabel") then
+            Tween(welcomeLabel, {TextColor3 = newTheme.Text}, duration)
+        end
+        local avatar = announcementBar:FindFirstChild("Avatar")
+        if avatar and avatar:IsA("ImageButton") then
+            local stroke = avatar:FindFirstChildOfClass("UIStroke")
+            if stroke then
+                Tween(stroke, {Color = newTheme.Text}, duration)
+            end
+        end
+    end
+    local tabBar = instance:FindFirstChild("TabBar")
+    if tabBar then
+        Tween(tabBar, {BackgroundColor3 = newTheme.Primary}, duration)
+        local tabContainer = tabBar:FindFirstChild("TabContainer")
+        if tabContainer then
+            for _, btn in ipairs(tabContainer:GetChildren()) do
+                if btn:IsA("TextButton") then
+                    Tween(btn, {BackgroundColor3 = newTheme.TabButton, TextColor3 = newTheme.Text}, duration)
+                    local underline = btn:FindFirstChild("Underline")
+                    if underline and underline:IsA("Frame") then
+                        Tween(underline, {BackgroundColor3 = newTheme.Accent}, duration)
                     end
                 end
-                local announcementBar = instance:FindFirstChild("AnnouncementBar")
-                if announcementBar then
-                    Tween(announcementBar, {BackgroundColor3 = newTheme.Section}, duration)
-                    local username = announcementBar:FindFirstChild("Username")
-                    local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
-                    local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
-                    if username and username:IsA("TextLabel") then
-                        Tween(username, {TextColor3 = newTheme.Text}, duration)
-                    end
-                    if executorLabel and executorLabel:IsA("TextLabel") then
-                        Tween(executorLabel, {TextColor3 = newTheme.Text}, duration)
-                    end
-                    if welcomeLabel and welcomeLabel:IsA("TextLabel") then
-                        Tween(welcomeLabel, {TextColor3 = newTheme.Text}, duration)
-                    end
-                    local avatar = announcementBar:FindFirstChild("Avatar")
-                    if avatar and avatar:IsA("ImageButton") then
-                        local stroke = avatar:FindFirstChildOfClass("UIStroke")
-                        if stroke then
-                            Tween(stroke, {Color = newTheme.Text}, duration)
-                        end
-                    end
-                end
+            end
+        end
+    end
+    local dotContainer = instance:FindFirstChild("TitleBar"):FindFirstChild("DotContainer")
+    if dotContainer then
+        local minimizedTextLabel = dotContainer:FindFirstChild("MinimizedText")
+        if minimizedTextLabel and minimizedTextLabel:IsA("TextLabel") then
+            if newTheme == WasUI.Themes.Light then
+                Tween(minimizedTextLabel, {TextColor3 = Color3.fromRGB(0, 0, 0)}, duration)
+            else
+                Tween(minimizedTextLabel, {TextColor3 = newTheme.Text}, duration)
+            end
+        end
+    end
                 local tabBar = instance:FindFirstChild("TabBar")
                 if tabBar then
                     Tween(tabBar, {BackgroundColor3 = newTheme.Primary}, duration)
@@ -3049,6 +3082,10 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     end
                 end
             elseif obj.Type == "ColorPickerButton" then
+    local titleLabel = instance:FindFirstChild("Title")
+    if titleLabel and titleLabel:IsA("TextLabel") then
+        Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
+    end
             end
         end
     end
