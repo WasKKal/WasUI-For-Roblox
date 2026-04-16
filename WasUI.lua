@@ -1,4 +1,4 @@
---Version 1.0.9.5
+--Version 1.0.9.6
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -29,7 +29,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.0.9.5"
+WasUI.Version = "1.0.9.6"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -366,6 +366,9 @@ local function CreateInstance(className, properties)
 end
 
 local function Tween(instance, properties, duration, easingStyle, easingDirection)
+    if not instance or not instance:IsDescendantOf(game) then
+        return nil
+    end
     easingStyle = easingStyle or Enum.EasingStyle.Quad
     easingDirection = easingDirection or Enum.EasingDirection.Out
     local tweenInfo = TweenInfo.new(duration or 0.3, easingStyle, easingDirection)
@@ -375,6 +378,9 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
 end
 
 local function SpringTween(instance, properties, duration)
+    if not instance or not instance:IsDescendantOf(game) then
+        return nil
+    end
     local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
     local tween = TweenService:Create(instance, tweenInfo, properties)
     tween:Play()
@@ -1286,6 +1292,7 @@ function Category:New(name, parent, title)
         ZIndex = 2,
         Parent = self.Instance
     })
+    titleLabel:SetAttribute("IsLabel", true)
     local line = CreateInstance("Frame", {
         Name = "Line",
         Size = UDim2.new(1, -4, 0, 1),
@@ -2885,7 +2892,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
     local duration = 0.35
     for _, obj in ipairs(WasUI.Objects) do
         local instance = obj.Object
-        if not instance or not instance.Parent then
+        if not instance or not instance:IsDescendantOf(game) then
             continue
         end
         if obj.Type == "Button" then
@@ -2933,18 +2940,6 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 local fill = track:FindFirstChild("Fill")
                 if fill and fill:IsA("Frame") then
                     Tween(fill, {BackgroundColor3 = newTheme.Accent}, duration)
-                    -- 强制刷新填充宽度（确保比例正确）
-                    local sliderObj = nil
-                    for _, ctrl in ipairs(WasUI.Objects) do
-                        if ctrl.Object == instance and ctrl.Type == "Slider" then
-                            sliderObj = ctrl
-                            break
-                        end
-                    end
-                    if sliderObj and sliderObj.Value and sliderObj.Min and sliderObj.Max then
-                        local t = (sliderObj.Value - sliderObj.Min) / (sliderObj.Max - sliderObj.Min)
-                        fill.Size = UDim2.new(t, 0, 1, 0)
-                    end
                 end
                 local knob = track:FindFirstChild("Knob")
                 if knob and knob:IsA("Frame") then
@@ -3072,7 +3067,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
             end
             if instance.TitleTagContainers then
                 for _, tagContainer in ipairs(instance.TitleTagContainers) do
-                    if tagContainer and tagContainer.Parent then
+                    if tagContainer and tagContainer:IsDescendantOf(game) then
                         local tagLabel = tagContainer:FindFirstChild("TagLabel")
                         if tagLabel and tagLabel:IsA("TextLabel") then
                             Tween(tagLabel, {TextColor3 = newTheme.Text}, duration)
@@ -3087,7 +3082,6 @@ local function AnimateThemeChange(oldTheme, newTheme)
             end
         end
     end
-    -- 以下其他原有动画代码保持不变（DropdownGui, Notifications, SnowContainer, ShortcutButtons, ActiveDialogs）
     if WasUI.DropdownGui then
         for _, container in ipairs(WasUI.DropdownGui:GetChildren()) do
             if container:IsA("ScrollingFrame") then
@@ -3651,17 +3645,26 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             end
             searchResultTab = nil
         end
+        for tabName, btn in pairs(originalTabButtons) do
+            local frame = originalTabFrames[tabName]
+            if frame then
+                frame.Parent = self.ContentArea
+                frame.Visible = true
+            end
+            if btn then
+                btn.Parent = self.TabContainer
+            end
+        end
         for _, moved in ipairs(movedControls) do
-            if moved.control and moved.control.Parent then
+            if moved.control and moved.control.Parent ~= moved.originalParent then
                 moved.control.Parent = moved.originalParent
+                moved.control.Visible = true
             end
         end
         movedControls = {}
         self.Tabs = {}
         for tabName, btn in pairs(originalTabButtons) do
             local frame = originalTabFrames[tabName]
-            frame.Parent = self.ContentArea
-            btn.Parent = self.TabContainer
             self.Tabs[tabName] = {
                 Button = btn,
                 Underline = btn:FindFirstChild("Underline"),
@@ -3676,6 +3679,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             local firstTab = next(self.Tabs)
             self:SetActiveTab(firstTab)
         end
+        if self.ContentArea and self.ContentArea.UIListLayout then
+            task.wait()
+            self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, self.ContentArea.UIListLayout.AbsoluteContentSize.Y + 8)
+        end
+        isSearchActive = false
     end
     local function collectSearchableControls()
         local controls = {}
@@ -3700,7 +3708,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                                 })
                             end
                         end
-                        if child:IsA("Frame") and child.Name ~= "Spacing" then
+                        if child:IsA("Frame") and child.Name ~= "Spacing" and not child:IsA("ScrollingFrame") then
                             collectFromFrame(child)
                         end
                     end
@@ -4353,20 +4361,22 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
             ClipsDescendants = true,
-            ZIndex = 1000,        
+            ZIndex = 1000,
             Parent = settingsGui
         })
-        
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
+        WasUI.SettingsGui = settingsGui
+        WasUI.SettingsPanel = settingsFrame
         local titleBar = CreateInstance("Frame", {
             Name = "TitleBar",
             Size = UDim2.new(1, 0, 0, 30),
-            BackgroundColor3 = WasUI.CurrentTheme.Primary,
+            BackgroundColor3 = WasUI.CurrentTheme.Background:lerp(Color3.fromRGB(0, 0, 0), 0.2),
             BackgroundTransparency = 0.3,
             BorderSizePixel = 0,
-            ZIndex = 1001,        
+            ZIndex = 1001,
             Parent = settingsFrame
         })
-        
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = titleBar})
         local titleLabel = CreateInstance("TextLabel", {
             Name = "Title",
             Size = UDim2.new(1, -30, 1, 0),
@@ -4377,10 +4387,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Font = Enum.Font.GothamBold,
             TextSize = 14,
             TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 1002,       
+            ZIndex = 1002,
             Parent = titleBar
         })
-        
         local closeBtn = CreateInstance("TextButton", {
             Name = "Close",
             Size = UDim2.new(0, 24, 0, 24),
@@ -4395,7 +4404,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         closeBtn.MouseButton1Click:Connect(function()
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-            Tween(scale, {Scale = 0.8}, 0.2)
             task.wait(0.2)
             if WasUI.SettingsGui then
                 WasUI.SettingsGui:Destroy()
@@ -4606,7 +4614,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             end
         end)
         refreshCanvas()
-        settingsFrame.BackgroundTransparency = 1
         Tween(settingsFrame, {BackgroundTransparency = 0.2}, 0.25)
         local function onScreenClick(input)
             if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
@@ -4617,7 +4624,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                             mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
             if not inPanel then
                 Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-                Tween(scale, {Scale = 0.8}, 0.2)
                 task.wait(0.2)
                 if WasUI.SettingsGui then
                     WasUI.SettingsGui:Destroy()
