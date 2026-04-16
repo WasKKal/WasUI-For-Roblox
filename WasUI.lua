@@ -2238,32 +2238,21 @@ function WasUI:ShowPopup(options, callback)
     dialogGui.DisplayOrder = 2000
     dialogGui.Parent = game:GetService("CoreGui")
 
-    local overlay = CreateInstance("Frame", {
-        Name = "Overlay",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Active = true,
-        Selectable = true,
-        Parent = dialogGui,
-        ZIndex = 999
-    })
-
     local dialogFrame = CreateInstance("Frame", {
         Name = "Dialog",
-        Size = UDim2.new(0, 400, 0, 0),
+        Size = UDim2.new(0, 380, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
         ClipsDescendants = true,
-        Parent = overlay,
+        Parent = dialogGui,
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
 
     local titleContainer = CreateInstance("Frame", {
         Name = "TitleContainer",
-        Size = UDim2.new(1, -20, 0, 40),
+        Size = UDim2.new(1, -20, 0, 30),
         Position = UDim2.new(0, 10, 0, 10),
         BackgroundTransparency = 1,
         Parent = dialogFrame,
@@ -2328,7 +2317,7 @@ function WasUI:ShowPopup(options, callback)
     local contentLabel = CreateInstance("TextLabel", {
         Name = "Content",
         Size = UDim2.new(1, -20, 0, 0),
-        Position = UDim2.new(0, 10, 0, 60),
+        Position = UDim2.new(0, 10, 0, 50),
         BackgroundTransparency = 1,
         Text = content,
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -2344,8 +2333,8 @@ function WasUI:ShowPopup(options, callback)
 
     local buttonContainer = CreateInstance("Frame", {
         Name = "ButtonContainer",
-        Size = UDim2.new(1, -20, 0, 40),
-        Position = UDim2.new(0, 10, 0, 70),
+        Size = UDim2.new(1, -20, 0, 36),
+        Position = UDim2.new(0, 10, 0, 60),
         BackgroundTransparency = 1,
         Parent = dialogFrame,
         ZIndex = 1001
@@ -2395,14 +2384,14 @@ function WasUI:ShowPopup(options, callback)
         padding.Parent = confirmButton
     end
 
-    local totalHeight = 60 + contentLabel.TextBounds.Y + 120
-    dialogFrame.Size = UDim2.new(0, 420, 0, totalHeight)
-    buttonContainer.Position = UDim2.new(0, 10, 0, 60 + contentLabel.TextBounds.Y + 50)
-    contentLabel.Position = UDim2.new(0, 10, 0, 70)
+    local totalHeight = 50 + contentLabel.TextBounds.Y + 60
+    dialogFrame.Size = UDim2.new(0, 380, 0, totalHeight)
+    buttonContainer.Position = UDim2.new(0, 10, 0, 50 + contentLabel.TextBounds.Y + 15)
+    contentLabel.Position = UDim2.new(0, 10, 0, 50)
 
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
-            local parentSize = overlay.AbsoluteSize
+            local parentSize = dialogGui.AbsoluteSize
             local frameSize = dialogFrame.AbsoluteSize
             dialogFrame.Position = UDim2.new(0.5, -frameSize.X/2, 0.5, -frameSize.Y/2)
         end
@@ -2411,34 +2400,10 @@ function WasUI:ShowPopup(options, callback)
     dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
     updatePosition()
 
-    local mainWindow = nil
-    local borderFlow = nil
-    local snowContainer = nil
-    for _, obj in ipairs(WasUI.Objects) do
-        if obj.Type == "Panel" and obj.Object then
-            mainWindow = obj.Object
-            if mainWindow.BorderFlow then borderFlow = mainWindow.BorderFlow end
-            if mainWindow.SnowContainer then snowContainer = mainWindow.SnowContainer end
-            break
-        end
-    end
-    local wasWindowVisible = false
-    if mainWindow and mainWindow.Visible then
-        wasWindowVisible = true
-        mainWindow.Visible = false
-        if borderFlow then borderFlow.Visible = false end
-        if snowContainer then snowContainer.Visible = false end
-    end
-
     local function animateClose()
         Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
-        if wasWindowVisible and mainWindow then
-            mainWindow.Visible = true
-            if borderFlow then borderFlow.Visible = true end
-            if snowContainer then snowContainer.Visible = true end
-        end
         for i, d in ipairs(WasUI.ActiveDialogs) do
             if d == dialogGui then
                 table.remove(WasUI.ActiveDialogs, i)
@@ -2455,19 +2420,6 @@ function WasUI:ShowPopup(options, callback)
     confirmButton.MouseButton1Click:Connect(function()
         if onConfirm then onConfirm() end
         animateClose()
-    end)
-
-    overlay.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local mousePos = input.Position
-            local framePos = dialogFrame.AbsolutePosition
-            local frameSize = dialogFrame.AbsoluteSize
-            local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
-                            mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
-            if not inPanel then
-                animateClose()
-            end
-        end
     end)
 
     Tween(dialogFrame, {BackgroundTransparency = 0}, 0.2)
