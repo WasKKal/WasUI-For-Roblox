@@ -2385,8 +2385,8 @@ function WasUI:ShowPopup(options, callback)
     end
 
     local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 50 
-dialogFrame.Size = UDim2.new(0, 450, 0, totalHeight) 
-buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 15)
+dialogFrame.Size = UDim2.new(0, 480, 0, totalHeight) 
+buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 20)
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
             local parentSize = dialogGui.AbsoluteSize
@@ -3380,7 +3380,7 @@ self.Title = CreateInstance("TextLabel", {
            local titleContainer = CreateInstance("Frame", {
             Name = "TitleContainer",
             Size = UDim2.new(1, -120, 1, 0),
-            Position = UDim2.new(0, 50, 0, 0),
+            Position = UDim2.new(0, 60, 0, 0),
             BackgroundTransparency = 1,
             Parent = self.TitleBar,
             ZIndex = 2
