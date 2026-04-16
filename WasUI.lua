@@ -4602,8 +4602,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             end
         end)
         refreshCanvas()
+        settingsFrame.BackgroundTransparency = 1
         Tween(settingsFrame, {BackgroundTransparency = 0.2}, 0.25)
-        Tween(scale, {Scale = 1}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         local function onScreenClick(input)
             if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
             local mousePos = input.Position
