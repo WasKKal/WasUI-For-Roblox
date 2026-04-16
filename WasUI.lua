@@ -2384,9 +2384,10 @@ function WasUI:ShowPopup(options, callback)
         padding.Parent = confirmButton
     end
 
-    local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 20
+    -- 增加高度：内容起始 56，内容高度，按钮容器高度 40，底部留白 30（原来20）
+    local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 30
     dialogFrame.Size = UDim2.new(0, 420, 0, totalHeight)
-    buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 8)
+    buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 10)
 
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
@@ -3376,65 +3377,65 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.TitleBar
     })
     
-    if titleTag then
-        local titleContainer = CreateInstance("Frame", {
-            Name = "TitleContainer",
-            Size = UDim2.new(1, -30, 1, 0),
-            Position = UDim2.new(0, 50, 0, 0),
-            BackgroundTransparency = 1,
-            Parent = self.TitleBar,
-            ZIndex = 2
-        })
-        local titleLayout = CreateInstance("UIListLayout", {
-            FillDirection = Enum.FillDirection.Horizontal,
-            HorizontalAlignment = Enum.HorizontalAlignment.Left,
-            VerticalAlignment = Enum.VerticalAlignment.Center,
-            Padding = UDim.new(0, 6),
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Parent = titleContainer
-        })
-        self.Title.Parent = titleContainer
+if titleTag then
+    local titleContainer = CreateInstance("Frame", {
+        Name = "TitleContainer",
+        Size = UDim2.new(1, -30, 1, 0),
+        Position = UDim2.new(0, 50, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = self.TitleBar,
+        ZIndex = 2
+    })
+    local titleLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 6),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = titleContainer
+    })
+    self.Title.Parent = titleContainer
+    self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
+    self.Title.TextXAlignment = Enum.TextXAlignment.Left
+    self.Title.Position = UDim2.new(0, 0, 0, 0)
+    local tagContainer = CreateInstance("Frame", {
+        Name = "TitleTagContainer",
+        Size = UDim2.new(0, 0, 0, 18),
+        BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
+        BackgroundTransparency = 0.2,
+        BorderSizePixel = 0,
+        Parent = titleContainer,
+        ZIndex = 10
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
+    local tagLabel = CreateInstance("TextLabel", {
+        Name = "TagLabel",
+        Size = UDim2.new(1, -6, 1, 0),
+        Position = UDim2.new(0, 3, 0, 0),
+        BackgroundTransparency = 1,
+        Text = titleTag.text,
+        TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Parent = tagContainer,
+        ZIndex = 11
+    })
+    task.wait()
+    local textWidth = tagLabel.TextBounds.X
+    tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
+    tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
+    self.TitleTagContainer = titleContainer
+    local function updateTitleWidth()
         self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
-        self.Title.TextXAlignment = Enum.TextXAlignment.Left
-        self.Title.Position = UDim2.new(0, 0, 0, 0)
-        local tagContainer = CreateInstance("Frame", {
-            Name = "TitleTagContainer",
-            Size = UDim2.new(0, 0, 0, 18),
-            BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
-            BackgroundTransparency = 0.2,
-            BorderSizePixel = 0,
-            Parent = titleContainer,
-            ZIndex = 10
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
-        local tagLabel = CreateInstance("TextLabel", {
-            Name = "TagLabel",
-            Size = UDim2.new(1, -6, 1, 0),
-            Position = UDim2.new(0, 3, 0, 0),
-            BackgroundTransparency = 1,
-            Text = titleTag.text,
-            TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 11,
-            TextXAlignment = Enum.TextXAlignment.Center,
-            TextYAlignment = Enum.TextYAlignment.Center,
-            Parent = tagContainer,
-            ZIndex = 11
-        })
-        task.wait()
-        local textWidth = tagLabel.TextBounds.X
-        tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
-        tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
-        self.TitleTagContainer = titleContainer
-        local function updateTitleWidth()
-            self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
-        end
-        self.Title:GetPropertyChangedSignal("TextBounds"):Connect(updateTitleWidth)
-        updateTitleWidth()
-    else
-        self.Title.Size = UDim2.new(1, -140, 1, 0)
-        self.Title.Position = UDim2.new(0, 54, 0, 0)
     end
+    self.Title:GetPropertyChangedSignal("TextBounds"):Connect(updateTitleWidth)
+    updateTitleWidth()
+else
+    self.Title.Size = UDim2.new(1, -140, 1, 0)
+    self.Title.Position = UDim2.new(0, 54, 0, 0)
+end
 
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
@@ -3915,9 +3916,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Size = self.OriginalSize,
             Position = self.Instance.Position
         }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-        self.Title.Visible = true
+        self.Title.Visible = false
         if self.TitleTagContainer then
-            self.TitleTagContainer.Visible = true
+            self.TitleTagContainer.Visible = false
         end
         self.AnnouncementBar.Visible = true
         self.TabBar.Visible = true
