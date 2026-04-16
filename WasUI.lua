@@ -54,6 +54,7 @@ function WasUI:SetDefaultTheme(themeName)
     if self.Themes[themeName] then
         self.DefaultTheme = themeName
         self.CurrentThemeName = themeName
+        self.CurrentTheme = self.Themes[themeName]
         return true
     end
     return false
