@@ -2455,19 +2455,27 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         ZIndex = 2
     })
     
-    self.Icon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
-    if self.Icon then
-        self.Icon.Parent = self.Header
-        self.Icon.Position = UDim2.new(1, -18, 0.5, -8)
-        self.Icon.AnchorPoint = Vector2.new(1, 0.5)
-        self.Icon.ZIndex = 3
-        self.Icon.Rotation = self.Collapsed and -90 or 0
-    end
+    local titleContainer = CreateInstance("Frame", {
+        Name = "TitleContainer",
+        Size = UDim2.new(1, -20, 1, 0),
+        Position = UDim2.new(0, 2, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = self.Header,
+        ZIndex = 2
+    })
+    
+    local titleLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 6),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = titleContainer
+    })
     
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(0.95, -40, 1, 0),
-        Position = UDim2.new(0, 22, 0, 0),
+        Size = UDim2.new(0, 0, 1, 0),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -2475,9 +2483,17 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         TextSize = 16,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
+        AutomaticSize = Enum.AutomaticSize.X,
         ZIndex = 2,
-        Parent = self.Header
+        Parent = titleContainer
     })
+    
+    self.Icon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
+    if self.Icon then
+        self.Icon.Parent = titleContainer
+        self.Icon.ZIndex = 3
+        self.Icon.Rotation = self.Collapsed and -90 or 0
+    end
     
     local line = CreateInstance("Frame", {
         Name = "Line",
@@ -2809,6 +2825,20 @@ function WasUI:ShowPopup(options, callback)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
 
+        local mainWindow = nil
+        for _, obj in ipairs(WasUI.Objects) do
+            if obj.Type == "Panel" and obj.Object and obj.Object.Visible then
+                mainWindow = obj.Object
+                break
+            end
+        end
+        local wasWindowVisible = false
+        if mainWindow and mainWindow.Visible then
+            wasWindowVisible = true
+            mainWindow.Visible = false
+            if mainWindow.BorderFlow then mainWindow.BorderFlow.Visible = false end
+            if mainWindow.SnowContainer then mainWindow.SnowContainer.Visible = false end
+        end
     local titleContainer = CreateInstance("Frame", {
         Name = "TitleContainer",
         Size = UDim2.new(1, -20, 0, 36),
