@@ -2731,21 +2731,29 @@ function WasUI:ShowConfirmDialog(options, callback)
     updatePosition()
     
 local function animateClose()
-    Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
-    task.wait(0.2)
-    dialogGui:Destroy()
-    if wasWindowVisible and mainWindow then
-        mainWindow.Visible = true
-        if mainWindow.BorderFlow then mainWindow.BorderFlow.Visible = true end
-        if mainWindow.SnowContainer then mainWindow.SnowContainer.Visible = true end
-    end
-    for i, d in ipairs(WasUI.ActiveDialogs) do
-        if d == dialogGui then
-            table.remove(WasUI.ActiveDialogs, i)
-            break
+        Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+        task.wait(0.2)
+        dialogGui:Destroy()
+        if wasWindowVisible and mainWindow then
+            if type(mainWindow.IsMinimized) == "boolean" and mainWindow.IsMinimized and mainWindow.RestoreFromDots then
+                mainWindow:RestoreFromDots()
+            end
+            mainWindow.Visible = true
+            local borderFlow = mainWindow:FindFirstChild("BorderFlow")
+            if borderFlow then
+                borderFlow.Visible = true
+                borderFlow.ZIndex = -1
+            end
+            local snowContainer = mainWindow:FindFirstChild("SnowContainer")
+            if snowContainer then snowContainer.Visible = true end
+        end
+        for i, d in ipairs(WasUI.ActiveDialogs) do
+            if d == dialogGui then
+                table.remove(WasUI.ActiveDialogs, i)
+                break
+            end
         end
     end
-end
     
     cancelButton.MouseButton1Click:Connect(function()
         if onCancel then onCancel() end
@@ -2838,23 +2846,6 @@ function WasUI:ShowPopup(options, callback)
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
-
-    local mainWindow = nil
-    for _, obj in ipairs(WasUI.Objects) do
-        if obj.Type == "Panel" and obj.Object and obj.Object.Visible then
-            mainWindow = obj.Object
-            break
-        end
-    end
-    local wasWindowVisible = false
-    if mainWindow and mainWindow.Visible then
-        wasWindowVisible = true
-        mainWindow.Visible = false
-        local borderFlow = mainWindow:FindFirstChild("BorderFlow")
-        if borderFlow then borderFlow.Visible = false end
-        local snowContainer = mainWindow:FindFirstChild("SnowContainer")
-        if snowContainer then snowContainer.Visible = false end
-    end
 
     local titleContainer = CreateInstance("Frame", {
         Name = "TitleContainer",
@@ -3009,19 +3000,6 @@ function WasUI:ShowPopup(options, callback)
         Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
-        if wasWindowVisible and mainWindow then
-            if mainWindow.IsMinimized then
-                mainWindow:RestoreFromDots()
-            end
-            mainWindow.Visible = true
-            local borderFlow = mainWindow:FindFirstChild("BorderFlow")
-            if borderFlow then
-                borderFlow.Visible = true
-                borderFlow.ZIndex = -1
-            end
-            local snowContainer = mainWindow:FindFirstChild("SnowContainer")
-            if snowContainer then snowContainer.Visible = true end
-        end
         for i, d in ipairs(WasUI.ActiveDialogs) do
             if d == dialogGui then
                 table.remove(WasUI.ActiveDialogs, i)
