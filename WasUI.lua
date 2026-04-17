@@ -2495,40 +2495,75 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         Name = "Content",
         Size = UDim2.new(1, 0, 0, 0),
         BackgroundTransparency = 1,
-        AutomaticSize = Enum.AutomaticSize.Y,
         ClipsDescendants = true,
         Parent = parent,
         ZIndex = 2
     })
     
-    local function updateLayout()
+    local contentListLayout = CreateInstance("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 4),
+        Parent = self.Content
+    })
+    
+    local function getContentHeight()
+        return contentListLayout.AbsoluteContentSize.Y
+    end
+    
+    local heightTween = nil
+    
+    local function updateParentScroller()
+        local parentScroller = self.Content.Parent
+        while parentScroller and not parentScroller:IsA("ScrollingFrame") do
+            parentScroller = parentScroller.Parent
+        end
+        if parentScroller and parentScroller:IsA("ScrollingFrame") then
+            local layout = parentScroller:FindFirstChildOfClass("UIListLayout")
+            if layout then
+                parentScroller.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8)
+            end
+        end
+    end
+    
+    local function updateLayout(animate)
+        if heightTween then
+            heightTween:Cancel()
+            heightTween = nil
+        end
+        
+        local targetHeight = self.Collapsed and 0 or getContentHeight()
+        
+        if animate then
+            heightTween = TweenService:Create(self.Content, 
+                TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                {Size = UDim2.new(1, 0, 0, targetHeight)}
+            )
+            heightTween:Play()
+            heightTween.Completed:Connect(function()
+                heightTween = nil
+                updateParentScroller()
+            end)
+        else
+            self.Content.Size = UDim2.new(1, 0, 0, targetHeight)
+            updateParentScroller()
+        end
+        
         if self.Collapsed then
-            self.Content.Visible = false
             if self.Icon then
                 Tween(self.Icon, {Rotation = -90}, 0.2)
             end
         else
-            self.Content.Visible = true
-            self.Content.Size = UDim2.new(1, 0, 0, 0)
             if self.Icon then
                 Tween(self.Icon, {Rotation = 0}, 0.2)
             end
-            task.defer(function()
-                if self.Content and self.Content.Parent then
-                    local parentScroller = self.Content.Parent
-                    while parentScroller and not parentScroller:IsA("ScrollingFrame") do
-                        parentScroller = parentScroller.Parent
-                    end
-                    if parentScroller and parentScroller:IsA("ScrollingFrame") then
-                        local layout = parentScroller:FindFirstChildOfClass("UIListLayout")
-                        if layout then
-                            parentScroller.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8)
-                        end
-                    end
-                end
-            end)
         end
+        
         if self.OnToggle then self.OnToggle(self.Collapsed) end
+    end
+    
+    local function toggleState()
+        self.Collapsed = not self.Collapsed
+        updateLayout(true)
     end
     
     local button = CreateInstance("TextButton", {
@@ -2542,11 +2577,6 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         Active = true,
     })
     
-    local function toggleState()
-        self.Collapsed = not self.Collapsed
-        updateLayout()
-    end
-    
     button.MouseButton1Click:Connect(toggleState)
     
     button.InputBegan:Connect(function(input)
@@ -2555,7 +2585,25 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         end
     end)
     
-    updateLayout()
+    contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        if not self.Collapsed then
+            local newHeight = getContentHeight()
+            if self.Content.Size.Y.Offset ~= newHeight then
+                if heightTween then heightTween:Cancel() end
+                heightTween = TweenService:Create(self.Content,
+                    TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                    {Size = UDim2.new(1, 0, 0, newHeight)}
+                )
+                heightTween:Play()
+                heightTween.Completed:Connect(function()
+                    heightTween = nil
+                    updateParentScroller()
+                end)
+            end
+        end
+    end)
+    
+    updateLayout(false)
     
     table.insert(WasUI.Objects, {Object = self.Header, Type = "CollapsibleSectionHeader"})
     table.insert(WasUI.Objects, {Object = self.Content, Type = "CollapsibleSectionContent"})
