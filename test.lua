@@ -2127,17 +2127,32 @@ function WasUI:CreateTooltip(target, text, options)
     local delay = options.delay or 0.5
     local followMouse = options.followMouse or false
     
+    -- 获取实际的 GUI 实例（兼容传入 Control 对象）
+    local actualTarget = target
+    if target and target.Instance and target.Instance:IsA("GuiObject") then
+        actualTarget = target.Instance
+    elseif not target:IsA("GuiObject") then
+        warn("CreateTooltip: target must be a GuiObject or Control with Instance")
+        return
+    end
+    
     local tooltipGui = nil
     local tooltipFrame = nil
     local timer = nil
+    local longPressTimer = nil
+    local isLongPress = false
+    local touchStartPos = nil
     
     local function hideTooltip()
         if timer then task.cancel(timer); timer = nil end
+        if longPressTimer then task.cancel(longPressTimer); longPressTimer = nil end
         if tooltipGui then
             tooltipGui:Destroy()
             tooltipGui = nil
             tooltipFrame = nil
         end
+        isLongPress = false
+        touchStartPos = nil
     end
     
     local function showTooltip()
@@ -2187,12 +2202,12 @@ function WasUI:CreateTooltip(target, text, options)
         tooltipFrame.Size = UDim2.new(0, width, 0, height)
         
         local function updatePosition()
-            if not target or not target.Parent then
+            if not actualTarget or not actualTarget.Parent then
                 hideTooltip()
                 return
             end
-            local targetPos = target.AbsolutePosition
-            local targetSize = target.AbsoluteSize
+            local targetPos = actualTarget.AbsolutePosition
+            local targetSize = actualTarget.AbsoluteSize
             local viewportSize = Workspace.CurrentCamera.ViewportSize
             local x = targetPos.X + targetSize.X/2 - width/2
             local y = targetPos.Y + targetSize.Y + offset.Y
@@ -2207,21 +2222,58 @@ function WasUI:CreateTooltip(target, text, options)
         end
         
         updatePosition()
-        if followMouse and target:IsA("GuiButton") then
-            target.MouseMoved:Connect(updatePosition)
+        if followMouse and actualTarget:IsA("GuiButton") then
+            actualTarget.MouseMoved:Connect(updatePosition)
         end
-        target.AncestryChanged:Connect(function()
-            if not target.Parent then hideTooltip() end
+        actualTarget.AncestryChanged:Connect(function()
+            if not actualTarget.Parent then hideTooltip() end
         end)
     end
     
-    target.MouseEnter:Connect(function()
-        timer = task.delay(delay, showTooltip)
-    end)
-    target.MouseLeave:Connect(function()
-        hideTooltip()
-    end)
-    target.Destroying:Connect(hideTooltip)
+    -- 鼠标悬停支持
+    if actualTarget.MouseEnter then
+        actualTarget.MouseEnter:Connect(function()
+            timer = task.delay(delay, showTooltip)
+        end)
+        actualTarget.MouseLeave:Connect(function()
+            hideTooltip()
+        end)
+    end
+    
+    -- 触摸长按支持（手机端）
+    if actualTarget.InputBegan then
+        actualTarget.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then
+                touchStartPos = input.Position
+                longPressTimer = task.delay(delay, function()
+                    isLongPress = true
+                    showTooltip()
+                end)
+            end
+        end)
+        actualTarget.InputEnded:Connect(function(input)
+            if longPressTimer then
+                task.cancel(longPressTimer)
+                longPressTimer = nil
+            end
+            if isLongPress then
+                isLongPress = false
+                hideTooltip()
+            end
+            touchStartPos = nil
+        end)
+        actualTarget.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch and touchStartPos then
+                if (input.Position - touchStartPos).Magnitude > 10 then
+                    if longPressTimer then task.cancel(longPressTimer); longPressTimer = nil end
+                    if isLongPress then hideTooltip() end
+                    touchStartPos = nil
+                end
+            end
+        end)
+    end
+    
+    actualTarget.Destroying:Connect(hideTooltip)
     
     return {
         Destroy = hideTooltip
