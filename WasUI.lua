@@ -658,11 +658,12 @@ local function UpdateCircularProgress(fill, progress)
     local maxSize = fill.Parent.AbsoluteSize.X
     local newSize = maxSize * progress
     fill.Size = UDim2.new(0, newSize, 0, newSize)
-    fill.Position = UDim2.new(0.5, -newSize/2, 0.5, -newSize/2)
+    fill.AnchorPoint = Vector2.new(0.5, 0.5)
+    fill.Position = UDim2.new(0.5, 0, 0.5, 0)
 end
 
 local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
-    longPressTime = longPressTime or 3
+    longPressTime = longPressTime or 1.5
     local timer = nil
     local pressed = false
     local startPos = nil
