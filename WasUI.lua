@@ -2739,6 +2739,12 @@ local function animateClose()
         if borderFlow then borderFlow.Visible = true end
         local snowContainer = mainWindow:FindFirstChild("SnowContainer")
         if snowContainer then snowContainer.Visible = true end
+        local contentArea = mainWindow:FindFirstChild("ContentArea")
+        if contentArea then contentArea.Visible = true end
+        local tabBar = mainWindow:FindFirstChild("TabBar")
+        if tabBar then tabBar.Visible = true end
+        local announcementBar = mainWindow:FindFirstChild("AnnouncementBar")
+        if announcementBar then announcementBar.Visible = true end
     end
     for i, d in ipairs(WasUI.ActiveDialogs) do
         if d == dialogGui then
