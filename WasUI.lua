@@ -3066,19 +3066,6 @@ function WasUI:ShowColorPicker(options, callback)
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = dialogFrame})
-    
-    dialogGui:SetAttribute("UserInputService", UserInputService)
-    local function disableScrollingOnTouch()
-        local scroller = dialogFrame:FindFirstChildOfClass("ScrollingFrame")
-        if scroller then
-            scroller.ScrollingEnabled = false
-        end
-    end
-    dialogGui.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            disableScrollingOnTouch()
-        end
-    end)
 
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
