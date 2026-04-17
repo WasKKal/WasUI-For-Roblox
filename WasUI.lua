@@ -11,6 +11,7 @@ local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
 local ContentProvider = game:GetService("ContentProvider")
+local TextService = game:GetService("TextService")
 
 if _G.WasUIModule then
     warn("WasUI已加载 请勿重复加载")
@@ -264,6 +265,32 @@ function WasUI:CreateFolder(folderName)
             delfile(filePath)
         end
         return true
+    end
+    
+    function WasUI.ConfigManager:GetConfigNames()
+        if not ensureConfigFolderExists() then return {} end
+        return self:AllConfigs()
+    end
+    
+    function WasUI.ConfigManager:LoadConfigByName(configName)
+        local config = self:GetConfig(configName)
+        if config then
+            config:Load()
+            return true
+        end
+        return false
+    end
+    
+    function WasUI.ConfigManager:SaveConfigByName(configName, data)
+        local config = self:GetConfig(configName)
+        for k, v in pairs(data) do
+            config:Set(k, v)
+        end
+        config:Save()
+    end
+    
+    function WasUI.ConfigManager:DeleteConfigByName(configName)
+        self:DeleteConfig(configName)
     end
     
     WasUI:Notify({Title = "配置系统", Content = "已创建配置文件夹: " .. folderName, Duration = 2})
@@ -600,26 +627,15 @@ local function CreateCircularProgress(parent, position, radius, thickness, color
     container.BackgroundTransparency = 1
     container.Parent = parent
     
-    local bgCircle = Instance.new("Frame")
-    bgCircle.Size = UDim2.new(1, 0, 1, 0)
-    bgCircle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    bgCircle.BackgroundTransparency = 0.7
-    bgCircle.BorderSizePixel = 0
-    bgCircle.Parent = container
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.BackgroundTransparency = 0.6
+    bg.BorderSizePixel = 0
+    bg.Parent = container
     local bgCorner = Instance.new("UICorner")
     bgCorner.CornerRadius = UDim.new(1, 0)
-    bgCorner.Parent = bgCircle
-    
-    local ring = Instance.new("Frame")
-    ring.Size = UDim2.new(1, -thickness * 2, 1, -thickness * 2)
-    ring.Position = UDim2.new(0, thickness, 0, thickness)
-    ring.BackgroundColor3 = color or Color3.fromRGB(255, 255, 255)
-    ring.BackgroundTransparency = 0
-    ring.BorderSizePixel = 0
-    ring.Parent = container
-    local ringCorner = Instance.new("UICorner")
-    ringCorner.CornerRadius = UDim.new(1, 0)
-    ringCorner.Parent = ring
+    bgCorner.Parent = bg
     
     local fill = Instance.new("Frame")
     fill.Name = "Fill"
@@ -627,23 +643,26 @@ local function CreateCircularProgress(parent, position, radius, thickness, color
     fill.BackgroundColor3 = color or Color3.fromRGB(255, 255, 255)
     fill.BackgroundTransparency = 0.5
     fill.BorderSizePixel = 0
-    fill.Parent = ring
+    fill.Parent = container
     local fillCorner = Instance.new("UICorner")
     fillCorner.CornerRadius = UDim.new(1, 0)
     fillCorner.Parent = fill
+    fill.AnchorPoint = Vector2.new(0.5, 0.5)
+    fill.Position = UDim2.new(0.5, 0, 0.5, 0)
     
     return container, fill
 end
 
 local function UpdateCircularProgress(fill, progress)
     if not fill or not fill.Parent then return end
-    local scale = progress
-    fill.Size = UDim2.new(scale, 0, scale, 0)
-    fill.Position = UDim2.new(0.5, -fill.AbsoluteSize.X/2, 0.5, -fill.AbsoluteSize.Y/2)
+    local maxSize = fill.Parent.AbsoluteSize.X
+    local newSize = maxSize * progress
+    fill.Size = UDim2.new(0, newSize, 0, newSize)
+    fill.Position = UDim2.new(0.5, -newSize/2, 0.5, -newSize/2)
 end
 
 local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
-    longPressTime = longPressTime or 5
+    longPressTime = longPressTime or 3
     local timer = nil
     local pressed = false
     local startPos = nil
@@ -1055,6 +1074,10 @@ function Button:New(name, parent, text, onClick, size, iconName)
     local scale = Instance.new("UIScale", self.Instance)
     
     local isPressed = false
+    local isDragging = false
+    local dragStartPos = nil
+    local dragThreshold = 10
+    local dragConnection = nil
     
     local function resetPress()
         if isPressed then
@@ -1062,6 +1085,9 @@ function Button:New(name, parent, text, onClick, size, iconName)
             Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
             SpringTween(scale, {Scale = 1}, 0.25)
         end
+        if dragConnection then dragConnection:Disconnect() end
+        isDragging = false
+        dragStartPos = nil
     end
     
     self.Instance.MouseEnter:Connect(function()
@@ -1078,23 +1104,65 @@ function Button:New(name, parent, text, onClick, size, iconName)
     end)
     self.Instance.MouseButton1Down:Connect(function()
         isPressed = true
+        dragStartPos = UserInputService:GetMouseLocation()
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
         SpringTween(scale, {Scale = 0.97}, 0.2)
+        dragConnection = UserInputService.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement and dragStartPos then
+                local delta = (UserInputService:GetMouseLocation() - dragStartPos).Magnitude
+                if delta > dragThreshold then
+                    isDragging = true
+                end
+            end
+        end)
     end)
     self.Instance.MouseButton1Up:Connect(function()
         if isPressed then
             isPressed = false
             Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
             SpringTween(scale, {Scale = 1}, 0.25)
-            if onClick then onClick() end
+            if not isDragging and onClick then
+                onClick()
+            end
         end
+        if dragConnection then dragConnection:Disconnect() end
+        isDragging = false
+        dragStartPos = nil
     end)
     
     if UserInputService.TouchEnabled then
+        local touchStartPos = nil
+        local touchDragging = false
+        local touchConnection = nil
+        self.Instance.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then
+                isPressed = true
+                touchStartPos = input.Position
+                Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
+                SpringTween(scale, {Scale = 0.97}, 0.2)
+                touchConnection = UserInputService.InputChanged:Connect(function(inp)
+                    if inp.UserInputType == Enum.UserInputType.Touch and touchStartPos then
+                        local delta = (inp.Position - touchStartPos).Magnitude
+                        if delta > dragThreshold then
+                            touchDragging = true
+                        end
+                    end
+                end)
+            end
+        end)
         self.Instance.InputEnded:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Touch then
-                resetPress()
-                if onClick then onClick() end
+                if isPressed then
+                    isPressed = false
+                    Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
+                    SpringTween(scale, {Scale = 1}, 0.25)
+                    if not touchDragging and onClick then
+                        onClick()
+                    end
+                end
+                if touchConnection then touchConnection:Disconnect() end
+                touchDragging = false
+                touchStartPos = nil
             end
         end)
     end
@@ -1942,8 +2010,18 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             setValueImmediately(newValue)
         end
     end
+    
+    local parentScrollingFrame = self.Container.Parent
+    while parentScrollingFrame and not parentScrollingFrame:IsA("ScrollingFrame") do
+        parentScrollingFrame = parentScrollingFrame.Parent
+    end
+    local originalScrollingEnabled = parentScrollingFrame and parentScrollingFrame.ScrollingEnabled
+    
     self.SliderTrack.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if parentScrollingFrame then
+                parentScrollingFrame.ScrollingEnabled = false
+            end
             local pos = input.Position
             local trackPos = self.SliderTrack.AbsolutePosition
             local trackSize = self.SliderTrack.AbsoluteSize.X
@@ -1957,13 +2035,31 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             showTooltip(self.Value)
         end
     end)
+    self.SliderTrack.InputEnded:Connect(function()
+        if parentScrollingFrame then
+            parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
+        end
+        hideTooltip()
+        if moveConn then moveConn:Disconnect() end
+    end)
     self.Knob.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if parentScrollingFrame then
+                parentScrollingFrame.ScrollingEnabled = false
+            end
             dragging = true
             stopAnimation()
             SpringTween(knobScale, {Scale = 1.2}, 0.15)
             showTooltip(self.Value)
         end
+    end)
+    self.Knob.InputEnded:Connect(function(input)
+        if parentScrollingFrame then
+            parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
+        end
+        dragging = false
+        SpringTween(knobScale, {Scale = 1}, 0.25)
+        hideTooltip()
     end)
     local moveConn = nil
     self.SliderTrack.InputBegan:Connect(function()
@@ -1973,21 +2069,10 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             end
         end)
     end)
-    self.SliderTrack.InputEnded:Connect(function()
-        hideTooltip()
-        if moveConn then moveConn:Disconnect() end
-    end)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local pos = input.Position
             updateFromMousePosition(pos.X)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-            SpringTween(knobScale, {Scale = 1}, 0.25)
-            hideTooltip()
         end
     end)
     AddRipple(self.SliderTrack)
@@ -2218,6 +2303,7 @@ function WasUI:CreateTooltip(target, text, options)
     local longPressTimer = nil
     local isLongPress = false
     local touchStartPos = nil
+    local currentTouchPoint = nil
     
     local function hideTooltip()
         if timer then task.cancel(timer); timer = nil end
@@ -2229,9 +2315,10 @@ function WasUI:CreateTooltip(target, text, options)
         end
         isLongPress = false
         touchStartPos = nil
+        currentTouchPoint = nil
     end
     
-    local function showTooltip()
+    local function showTooltipAtPoint(point)
         if tooltipGui then return end
         tooltipGui = Instance.new("ScreenGui")
         tooltipGui.Name = "WasUI_Tooltip"
@@ -2273,38 +2360,32 @@ function WasUI:CreateTooltip(target, text, options)
             Parent = tooltipFrame
         })
         
-        local textBounds = label.TextBounds
+        local textBounds = TextService:GetTextSize(text, 12, Enum.Font.Gotham, Vector2.new(1000, 1000))
         local width = math.max(60, textBounds.X + 16)
         local height = textBounds.Y + 8
         tooltipFrame.Size = UDim2.new(0, width, 0, height)
         
-        local function updatePosition()
-            if not actualTarget or not actualTarget.Parent then
-                hideTooltip()
-                return
-            end
+        local viewportSize = Workspace.CurrentCamera.ViewportSize
+        local x = point.X - width/2
+        local y = point.Y + offset.Y
+        if y + height > viewportSize.Y then
+            y = point.Y - height - offset.Y
+        end
+        if x + width > viewportSize.X then
+            x = viewportSize.X - width - 5
+        end
+        if x < 5 then x = 5 end
+        tooltipFrame.Position = UDim2.new(0, x, 0, y)
+    end
+    
+    local function showTooltip()
+        if tooltipGui then return end
+        if actualTarget and actualTarget.Parent then
             local targetPos = actualTarget.AbsolutePosition
             local targetSize = actualTarget.AbsoluteSize
-            local viewportSize = Workspace.CurrentCamera.ViewportSize
-            local x = targetPos.X + targetSize.X/2 - width/2
-            local y = targetPos.Y + targetSize.Y + offset.Y
-            if y + height > viewportSize.Y then
-                y = targetPos.Y - height - offset.Y
-            end
-            if x + width > viewportSize.X then
-                x = viewportSize.X - width - 5
-            end
-            if x < 5 then x = 5 end
-            tooltipFrame.Position = UDim2.new(0, x, 0, y)
+            local point = Vector2.new(targetPos.X + targetSize.X/2, targetPos.Y + targetSize.Y)
+            showTooltipAtPoint(point)
         end
-        
-        updatePosition()
-        if followMouse and actualTarget:IsA("GuiButton") then
-            actualTarget.MouseMoved:Connect(updatePosition)
-        end
-        actualTarget.AncestryChanged:Connect(function()
-            if not actualTarget.Parent then hideTooltip() end
-        end)
     end
     
     if actualTarget.MouseEnter then
@@ -2319,10 +2400,11 @@ function WasUI:CreateTooltip(target, text, options)
     if actualTarget.InputBegan then
         actualTarget.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Touch then
+                currentTouchPoint = input.Position
                 touchStartPos = input.Position
                 longPressTimer = task.delay(delay, function()
                     isLongPress = true
-                    showTooltip()
+                    showTooltipAtPoint(currentTouchPoint)
                 end)
             end
         end)
@@ -2336,6 +2418,7 @@ function WasUI:CreateTooltip(target, text, options)
                 hideTooltip()
             end
             touchStartPos = nil
+            currentTouchPoint = nil
         end)
         actualTarget.InputChanged:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Touch and touchStartPos then
@@ -2343,6 +2426,7 @@ function WasUI:CreateTooltip(target, text, options)
                     if longPressTimer then task.cancel(longPressTimer); longPressTimer = nil end
                     if isLongPress then hideTooltip() end
                     touchStartPos = nil
+                    currentTouchPoint = nil
                 end
             end
         end)
@@ -2371,18 +2455,10 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         ZIndex = 2
     })
     
-    self.Icon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
-    if self.Icon then
-        self.Icon.Parent = self.Header
-        self.Icon.Position = UDim2.new(0, 2, 0.5, -8)
-        self.Icon.ZIndex = 3
-        self.Icon.Rotation = self.Collapsed and -90 or 0
-    end
-    
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(0.9, -20, 1, 0),
-        Position = UDim2.new(0, 22, 0, 0),
+        Size = UDim2.new(0, 0, 1, 0),
+        Position = UDim2.new(0, 24, 0, 0),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -2390,9 +2466,19 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         TextSize = 16,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
+        AutomaticSize = Enum.AutomaticSize.X,
         ZIndex = 2,
         Parent = self.Header
     })
+    
+    self.Icon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
+    if self.Icon then
+        self.Icon.Parent = self.Header
+        self.Icon.ZIndex = 3
+        self.Icon.AnchorPoint = Vector2.new(0, 0.5)
+        self.Icon.Position = UDim2.new(0, 4, 0.5, 0)
+        self.Icon.Rotation = self.Collapsed and -90 or 0
+    end
     
     local line = CreateInstance("Frame", {
         Name = "Line",
@@ -2619,18 +2705,22 @@ function WasUI:ShowConfirmDialog(options, callback)
     dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
     updatePosition()
     
-    local function animateClose()
-        Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-        Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0.5, -totalHeight/2 + 20)}, 0.2)
-        task.wait(0.2)
-        dialogGui:Destroy()
-        for i, d in ipairs(WasUI.ActiveDialogs) do
-            if d == dialogGui then
-                table.remove(WasUI.ActiveDialogs, i)
-                break
-            end
+local function animateClose()
+    Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+    task.wait(0.2)
+    dialogGui:Destroy()
+    if wasWindowVisible and mainWindow then
+        mainWindow.Visible = true
+        if mainWindow.BorderFlow then mainWindow.BorderFlow.Visible = true end
+        if mainWindow.SnowContainer then mainWindow.SnowContainer.Visible = true end
+    end
+    for i, d in ipairs(WasUI.ActiveDialogs) do
+        if d == dialogGui then
+            table.remove(WasUI.ActiveDialogs, i)
+            break
         end
     end
+end
     
     cancelButton.MouseButton1Click:Connect(function()
         if onCancel then onCancel() end
@@ -2724,6 +2814,20 @@ function WasUI:ShowPopup(options, callback)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
 
+        local mainWindow = nil
+        for _, obj in ipairs(WasUI.Objects) do
+            if obj.Type == "Panel" and obj.Object and obj.Object.Visible then
+                mainWindow = obj.Object
+                break
+            end
+        end
+        local wasWindowVisible = false
+        if mainWindow and mainWindow.Visible then
+            wasWindowVisible = true
+            mainWindow.Visible = false
+            if mainWindow.BorderFlow then mainWindow.BorderFlow.Visible = false end
+            if mainWindow.SnowContainer then mainWindow.SnowContainer.Visible = false end
+        end
     local titleContainer = CreateInstance("Frame", {
         Name = "TitleContainer",
         Size = UDim2.new(1, -20, 0, 36),
@@ -2860,7 +2964,7 @@ function WasUI:ShowPopup(options, callback)
 
     local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 65
     dialogFrame.Size = UDim2.new(0, 480, 0, totalHeight)
-    buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 20)
+    buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 18)
 
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
@@ -3685,6 +3789,13 @@ end
 
 local Panel = {}
 Panel.__index = Panel
+
+function Panel.__index(self, key)
+    if key == "orderFlow" then
+        return rawget(self, "BorderFlow")
+    end
+    return Panel[key]
+end
 
 local function isPointOverButton(btn, point)
     if not btn or not btn.Parent then return false end
