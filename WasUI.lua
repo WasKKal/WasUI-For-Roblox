@@ -2720,18 +2720,22 @@ function WasUI:ShowConfirmDialog(options, callback)
     dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
     updatePosition()
     
-    local function animateClose()
-        Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-        Tween(dialogFrame, {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0.5, -totalHeight/2 + 20)}, 0.2)
-        task.wait(0.2)
-        dialogGui:Destroy()
-        for i, d in ipairs(WasUI.ActiveDialogs) do
-            if d == dialogGui then
-                table.remove(WasUI.ActiveDialogs, i)
-                break
-            end
+local function animateClose()
+    Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+    task.wait(0.2)
+    dialogGui:Destroy()
+    if wasWindowVisible and mainWindow then
+        mainWindow.Visible = true
+        if mainWindow.BorderFlow then mainWindow.BorderFlow.Visible = true end
+        if mainWindow.SnowContainer then mainWindow.SnowContainer.Visible = true end
+    end
+    for i, d in ipairs(WasUI.ActiveDialogs) do
+        if d == dialogGui then
+            table.remove(WasUI.ActiveDialogs, i)
+            break
         end
     end
+end
     
     cancelButton.MouseButton1Click:Connect(function()
         if onCancel then onCancel() end
