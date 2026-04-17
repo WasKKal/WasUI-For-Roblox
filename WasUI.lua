@@ -2455,6 +2455,7 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         ZIndex = 2
     })
     
+    -- 使用手动定位来避免 UIListLayout 的偏移问题，确保图标与文字垂直居中
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(0, 0, 1, 0),
@@ -2509,24 +2510,9 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
             end
         else
             self.Content.Visible = true
-            self.Content.Size = UDim2.new(1, 0, 0, 0)
             if self.Icon then
                 Tween(self.Icon, {Rotation = 0}, 0.2)
             end
-            task.defer(function()
-                if self.Content and self.Content.Parent then
-                    local parentScroller = self.Content.Parent
-                    while parentScroller and not parentScroller:IsA("ScrollingFrame") do
-                        parentScroller = parentScroller.Parent
-                    end
-                    if parentScroller and parentScroller:IsA("ScrollingFrame") then
-                        local layout = parentScroller:FindFirstChildOfClass("UIListLayout")
-                        if layout then
-                            parentScroller.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8)
-                        end
-                    end
-                end
-            end)
         end
         if self.OnToggle then self.OnToggle(self.Collapsed) end
     end
@@ -2538,20 +2524,11 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         Text = "",
         Parent = self.Header,
         ZIndex = 1,
-        AutoButtonColor = false,
-        Active = true, 
+        AutoButtonColor = false
     })
-    
-    local function toggleState()
+    button.MouseButton1Click:Connect(function()
         self.Collapsed = not self.Collapsed
         updateLayout()
-    end
-    
-    button.MouseButton1Click:Connect(toggleState)
-    button.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            toggleState()
-        end
     end)
     
     updateLayout()
@@ -2734,17 +2711,9 @@ local function animateClose()
     task.wait(0.2)
     dialogGui:Destroy()
     if wasWindowVisible and mainWindow then
-        if mainWindow.IsMinimized then
-            mainWindow:RestoreFromDots()
-        end
         mainWindow.Visible = true
-        local borderFlow = mainWindow:FindFirstChild("BorderFlow")
-        if borderFlow then
-            borderFlow.Visible = true
-            borderFlow.ZIndex = -1
-        end
-        local snowContainer = mainWindow:FindFirstChild("SnowContainer")
-        if snowContainer then snowContainer.Visible = true end
+        if mainWindow.BorderFlow then mainWindow.BorderFlow.Visible = true end
+        if mainWindow.SnowContainer then mainWindow.SnowContainer.Visible = true end
     end
     for i, d in ipairs(WasUI.ActiveDialogs) do
         if d == dialogGui then
@@ -2846,7 +2815,7 @@ function WasUI:ShowPopup(options, callback)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
 
-local mainWindow = nil
+        local mainWindow = nil
         for _, obj in ipairs(WasUI.Objects) do
             if obj.Type == "Panel" and obj.Object and obj.Object.Visible then
                 mainWindow = obj.Object
@@ -2857,16 +2826,9 @@ local mainWindow = nil
         if mainWindow and mainWindow.Visible then
             wasWindowVisible = true
             mainWindow.Visible = false
-            local borderFlow = mainWindow:FindFirstChild("BorderFlow")
-            if borderFlow then
-                borderFlow.Visible = false
-            end
-            local snowContainer = mainWindow:FindFirstChild("SnowContainer")
-            if snowContainer then
-                snowContainer.Visible = false
-            end
+            if mainWindow.BorderFlow then mainWindow.BorderFlow.Visible = false end
+            if mainWindow.SnowContainer then mainWindow.SnowContainer.Visible = false end
         end
-
     local titleContainer = CreateInstance("Frame", {
         Name = "TitleContainer",
         Size = UDim2.new(1, -20, 0, 36),
@@ -3829,6 +3791,7 @@ end
 local Panel = {}
 Panel.__index = Panel
 
+-- 修复外部访问 orderFlow 的错误，映射到 BorderFlow
 function Panel.__index(self, key)
     if key == "orderFlow" then
         return rawget(self, "BorderFlow")
