@@ -2735,8 +2735,10 @@ local function animateClose()
     dialogGui:Destroy()
     if wasWindowVisible and mainWindow then
         mainWindow.Visible = true
-        if mainWindow.BorderFlow then mainWindow.BorderFlow.Visible = true end
-        if mainWindow.SnowContainer then mainWindow.SnowContainer.Visible = true end
+        local borderFlow = mainWindow:FindFirstChild("BorderFlow")
+        if borderFlow then borderFlow.Visible = true end
+        local snowContainer = mainWindow:FindFirstChild("SnowContainer")
+        if snowContainer then snowContainer.Visible = true end
     end
     for i, d in ipairs(WasUI.ActiveDialogs) do
         if d == dialogGui then
