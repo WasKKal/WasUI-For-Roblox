@@ -1,4 +1,4 @@
---Version 1.0.9.6
+--Version 1.0.9.5
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -11,6 +11,7 @@ local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
 local ContentProvider = game:GetService("ContentProvider")
+local TextService = game:GetService("TextService")
 
 if _G.WasUIModule then
     warn("WasUI已加载 请勿重复加载")
@@ -29,7 +30,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.0.9.6"
+WasUI.Version = "1.0.9.5"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -264,6 +265,32 @@ function WasUI:CreateFolder(folderName)
             delfile(filePath)
         end
         return true
+    end
+    
+    function WasUI.ConfigManager:GetConfigNames()
+        if not ensureConfigFolderExists() then return {} end
+        return self:AllConfigs()
+    end
+    
+    function WasUI.ConfigManager:LoadConfigByName(configName)
+        local config = self:GetConfig(configName)
+        if config then
+            config:Load()
+            return true
+        end
+        return false
+    end
+    
+    function WasUI.ConfigManager:SaveConfigByName(configName, data)
+        local config = self:GetConfig(configName)
+        for k, v in pairs(data) do
+            config:Set(k, v)
+        end
+        config:Save()
+    end
+    
+    function WasUI.ConfigManager:DeleteConfigByName(configName)
+        self:DeleteConfig(configName)
     end
     
     WasUI:Notify({Title = "配置系统", Content = "已创建配置文件夹: " .. folderName, Duration = 2})
@@ -592,6 +619,120 @@ local function AddKeyBindLongPress(controlInstance, controlKey, controlType, cal
     UserInputService.InputChanged:Connect(checkMove)
 end
 
+local function CreateCircularProgress(parent, position, radius, thickness, color)
+    local container = Instance.new("Frame")
+    container.Name = "LongPressProgress"
+    container.Size = UDim2.new(0, radius * 2, 0, radius * 2)
+    container.Position = UDim2.new(0, position.X - radius, 0, position.Y - radius)
+    container.BackgroundTransparency = 1
+    container.Parent = parent
+    
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.BackgroundTransparency = 0.6
+    bg.BorderSizePixel = 0
+    bg.Parent = container
+    local bgCorner = Instance.new("UICorner")
+    bgCorner.CornerRadius = UDim.new(1, 0)
+    bgCorner.Parent = bg
+    
+    local fill = Instance.new("Frame")
+    fill.Name = "Fill"
+    fill.Size = UDim2.new(0, 0, 0, 0)
+    fill.BackgroundColor3 = color or Color3.fromRGB(255, 255, 255)
+    fill.BackgroundTransparency = 0.5
+    fill.BorderSizePixel = 0
+    fill.Parent = container
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(1, 0)
+    fillCorner.Parent = fill
+    fill.AnchorPoint = Vector2.new(0.5, 0.5)
+    fill.Position = UDim2.new(0.5, 0, 0.5, 0)
+    
+    return container, fill
+end
+
+local function UpdateCircularProgress(fill, progress)
+    if not fill or not fill.Parent then return end
+    local maxSize = fill.Parent.AbsoluteSize.X
+    local newSize = maxSize * progress
+    fill.Size = UDim2.new(0, newSize, 0, newSize)
+    fill.Position = UDim2.new(0.5, -newSize/2, 0.5, -newSize/2)
+end
+
+local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
+    longPressTime = longPressTime or 3
+    local timer = nil
+    local pressed = false
+    local startPos = nil
+    local progressContainer = nil
+    local progressFill = nil
+    local progressStartTime = nil
+    local progressUpdateConn = nil
+
+    local function updateProgress()
+        if not pressed then return end
+        local elapsed = tick() - progressStartTime
+        local progress = math.min(1, elapsed / longPressTime)
+        if progressFill then
+            UpdateCircularProgress(progressFill, progress)
+        end
+        if elapsed >= longPressTime then
+            if timer then task.cancel(timer); timer = nil end
+            if progressUpdateConn then progressUpdateConn:Disconnect() end
+            if progressContainer then progressContainer:Destroy() end
+            onLongPress()
+            pressed = false
+        end
+    end
+
+    local function startPress(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            pressed = true
+            startPos = input.Position
+            progressStartTime = tick()
+            
+            local screenGui = Instance.new("ScreenGui")
+            screenGui.Name = "LongPressProgressGui"
+            screenGui.ResetOnSpawn = false
+            screenGui.DisplayOrder = 2000
+            screenGui.Parent = game:GetService("CoreGui")
+            progressContainer, progressFill = CreateCircularProgress(screenGui, startPos, 30, 4, WasUI.CurrentTheme.Accent)
+            
+            timer = task.delay(longPressTime, function()
+                if pressed then
+                    if progressUpdateConn then progressUpdateConn:Disconnect() end
+                    if progressContainer then progressContainer:Destroy() end
+                    onLongPress()
+                end
+                pressed = false
+            end)
+            progressUpdateConn = RunService.Heartbeat:Connect(updateProgress)
+        end
+    end
+
+    local function endPress()
+        if timer then task.cancel(timer); timer = nil end
+        if progressUpdateConn then progressUpdateConn:Disconnect() end
+        if progressContainer then progressContainer:Destroy() end
+        pressed = false
+        startPos = nil
+    end
+
+    local function checkMove(input)
+        if pressed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            if startPos and (input.Position - startPos).Magnitude > 10 then
+                endPress()
+            end
+        end
+    end
+
+    controlInstance.InputBegan:Connect(startPress)
+    controlInstance.InputEnded:Connect(endPress)
+    UserInputService.InputChanged:Connect(checkMove)
+end
+
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -620,46 +761,6 @@ UserInputService.InputBegan:Connect(function(input, processed)
         end
     end
 end)
-
-local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
-    longPressTime = longPressTime or 0.5
-    local timer = nil
-    local pressed = false
-    local startPos = nil
-
-    local function startPress(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            pressed = true
-            startPos = input.Position
-            timer = task.delay(longPressTime, function()
-                if pressed then
-                    onLongPress()
-                end
-            end)
-        end
-    end
-
-    local function endPress()
-        if timer then
-            task.cancel(timer)
-            timer = nil
-        end
-        pressed = false
-        startPos = nil
-    end
-
-    local function checkMove(input)
-        if pressed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            if startPos and (input.Position - startPos).Magnitude > 10 then
-                endPress()
-            end
-        end
-    end
-
-    controlInstance.InputBegan:Connect(startPress)
-    controlInstance.InputEnded:Connect(endPress)
-    UserInputService.InputChanged:Connect(checkMove)
-end
 
 local function AddRipple(instance, scaleFactor)
     scaleFactor = scaleFactor or 1.5
@@ -973,6 +1074,10 @@ function Button:New(name, parent, text, onClick, size, iconName)
     local scale = Instance.new("UIScale", self.Instance)
     
     local isPressed = false
+    local isDragging = false
+    local dragStartPos = nil
+    local dragThreshold = 10
+    local dragConnection = nil
     
     local function resetPress()
         if isPressed then
@@ -980,6 +1085,9 @@ function Button:New(name, parent, text, onClick, size, iconName)
             Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
             SpringTween(scale, {Scale = 1}, 0.25)
         end
+        if dragConnection then dragConnection:Disconnect() end
+        isDragging = false
+        dragStartPos = nil
     end
     
     self.Instance.MouseEnter:Connect(function()
@@ -996,23 +1104,65 @@ function Button:New(name, parent, text, onClick, size, iconName)
     end)
     self.Instance.MouseButton1Down:Connect(function()
         isPressed = true
+        dragStartPos = UserInputService:GetMouseLocation()
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
         SpringTween(scale, {Scale = 0.97}, 0.2)
+        dragConnection = UserInputService.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement and dragStartPos then
+                local delta = (UserInputService:GetMouseLocation() - dragStartPos).Magnitude
+                if delta > dragThreshold then
+                    isDragging = true
+                end
+            end
+        end)
     end)
     self.Instance.MouseButton1Up:Connect(function()
         if isPressed then
             isPressed = false
             Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
             SpringTween(scale, {Scale = 1}, 0.25)
-            if onClick then onClick() end
+            if not isDragging and onClick then
+                onClick()
+            end
         end
+        if dragConnection then dragConnection:Disconnect() end
+        isDragging = false
+        dragStartPos = nil
     end)
     
     if UserInputService.TouchEnabled then
+        local touchStartPos = nil
+        local touchDragging = false
+        local touchConnection = nil
+        self.Instance.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then
+                isPressed = true
+                touchStartPos = input.Position
+                Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
+                SpringTween(scale, {Scale = 0.97}, 0.2)
+                touchConnection = UserInputService.InputChanged:Connect(function(inp)
+                    if inp.UserInputType == Enum.UserInputType.Touch and touchStartPos then
+                        local delta = (inp.Position - touchStartPos).Magnitude
+                        if delta > dragThreshold then
+                            touchDragging = true
+                        end
+                    end
+                end)
+            end
+        end)
         self.Instance.InputEnded:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Touch then
-                resetPress()
-                if onClick then onClick() end
+                if isPressed then
+                    isPressed = false
+                    Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
+                    SpringTween(scale, {Scale = 1}, 0.25)
+                    if not touchDragging and onClick then
+                        onClick()
+                    end
+                end
+                if touchConnection then touchConnection:Disconnect() end
+                touchDragging = false
+                touchStartPos = nil
             end
         end)
     end
@@ -1029,7 +1179,7 @@ function Button:New(name, parent, text, onClick, size, iconName)
     AddLongPressToControl(self.Instance, function()
         CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
         WasUI:Notify({Title = "快捷键", Content = "已创建快捷按钮: " .. (text or name), Duration = 1.5})
-    end)
+    end, 5)
 
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Button"})
     return self
@@ -1214,7 +1364,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         else
             WasUI:Notify({Title = "快捷键", Content = "已移除快捷开关: " .. self.RainbowName, Duration = 1.5})
         end
-    end)
+    end, 5)
 
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
@@ -1860,8 +2010,18 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             setValueImmediately(newValue)
         end
     end
+    
+    local parentScrollingFrame = self.Container.Parent
+    while parentScrollingFrame and not parentScrollingFrame:IsA("ScrollingFrame") do
+        parentScrollingFrame = parentScrollingFrame.Parent
+    end
+    local originalScrollingEnabled = parentScrollingFrame and parentScrollingFrame.ScrollingEnabled
+    
     self.SliderTrack.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if parentScrollingFrame then
+                parentScrollingFrame.ScrollingEnabled = false
+            end
             local pos = input.Position
             local trackPos = self.SliderTrack.AbsolutePosition
             local trackSize = self.SliderTrack.AbsoluteSize.X
@@ -1875,13 +2035,31 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             showTooltip(self.Value)
         end
     end)
+    self.SliderTrack.InputEnded:Connect(function()
+        if parentScrollingFrame then
+            parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
+        end
+        hideTooltip()
+        if moveConn then moveConn:Disconnect() end
+    end)
     self.Knob.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if parentScrollingFrame then
+                parentScrollingFrame.ScrollingEnabled = false
+            end
             dragging = true
             stopAnimation()
             SpringTween(knobScale, {Scale = 1.2}, 0.15)
             showTooltip(self.Value)
         end
+    end)
+    self.Knob.InputEnded:Connect(function(input)
+        if parentScrollingFrame then
+            parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
+        end
+        dragging = false
+        SpringTween(knobScale, {Scale = 1}, 0.25)
+        hideTooltip()
     end)
     local moveConn = nil
     self.SliderTrack.InputBegan:Connect(function()
@@ -1891,21 +2069,10 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             end
         end)
     end)
-    self.SliderTrack.InputEnded:Connect(function()
-        hideTooltip()
-        if moveConn then moveConn:Disconnect() end
-    end)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local pos = input.Position
             updateFromMousePosition(pos.X)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-            SpringTween(knobScale, {Scale = 1}, 0.25)
-            hideTooltip()
         end
     end)
     AddRipple(self.SliderTrack)
@@ -1987,6 +2154,390 @@ end
 
 function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback, configKey)
     return TextInput:New("TextInput", parent, placeholder, defaultValue, callback, configKey)
+end
+
+local ProgressBar = setmetatable({}, {__index = Control})
+ProgressBar.__index = ProgressBar
+
+function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, configKey)
+    local self = Control:New(name, parent)
+    self.Min = min or 0
+    self.Max = max or 100
+    self.Value = math.clamp(defaultValue or self.Min, self.Min, self.Max)
+    self.Callback = callback
+    self.AnimationTween = nil
+    
+    self.Container = CreateInstance("Frame", {
+        Name = name,
+        Size = UDim2.new(1, 0, 0, 32),
+        BackgroundTransparency = 1,
+        ZIndex = 3,
+        Parent = parent
+    })
+    self.Container:SetAttribute("SearchText", title or "")
+    
+    if title then
+        self.TitleLabel = CreateInstance("TextLabel", {
+            Name = "Title",
+            Size = UDim2.new(0.4, 0, 0, 18),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Text = title,
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 3,
+            Parent = self.Container
+        })
+    end
+    
+    self.ValueLabel = CreateInstance("TextLabel", {
+        Name = "Value",
+        Size = UDim2.new(0.2, 0, 0, 18),
+        Position = UDim2.new(0.8, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = tostring(self.Value) .. "%",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        ZIndex = 3,
+        Parent = self.Container
+    })
+    
+    self.Track = CreateInstance("Frame", {
+        Name = "Track",
+        Size = UDim2.new(1, -2, 0, 12),
+        Position = UDim2.new(0, 2, 0, 18),
+        BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        ZIndex = 3,
+        Parent = self.Container
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.Track})
+    
+    self.Fill = CreateInstance("Frame", {
+        Name = "Fill",
+        Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Accent,
+        BorderSizePixel = 0,
+        ZIndex = 3,
+        Parent = self.Track
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.Fill})
+    
+    local stripe = CreateInstance("ImageLabel", {
+        Name = "Stripe",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://1288891801",
+        ImageTransparency = 0.7,
+        ScaleType = Enum.ScaleType.Tile,
+        TileSize = UDim2.new(0, 20, 0, 12),
+        Visible = true,
+        ZIndex = 4,
+        Parent = self.Fill
+    })
+    
+    local function updateFill()
+        local t = (self.Value - self.Min) / (self.Max - self.Min)
+        self.Fill:TweenSize(UDim2.new(t, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+        self.ValueLabel.Text = tostring(math.floor(self.Value)) .. "%"
+        if self.Callback then self.Callback(self.Value) end
+        if configKey and WasUI.ConfigManager then
+            local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+            if config then
+                config:Set(configKey, self.Value)
+                config:Save()
+            end
+        end
+    end
+    
+    function self:SetValue(newValue)
+        self.Value = math.clamp(newValue, self.Min, self.Max)
+        updateFill()
+    end
+    
+    function self:GetValue()
+        return self.Value
+    end
+    
+    if configKey and WasUI.ConfigManager then
+        local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+        if config then
+            local saved = config:Get(configKey)
+            if saved then self.Value = math.clamp(saved, self.Min, self.Max) end
+            config:Bind(configKey, self, function(value) self:SetValue(value) end)
+        end
+    end
+    
+    table.insert(WasUI.Objects, {Object = self.Container, Type = "ProgressBar"})
+    return self
+end
+
+function WasUI:CreateProgressBar(parent, title, min, max, defaultValue, callback, configKey)
+    return ProgressBar:New("ProgressBar", parent, title, min, max, defaultValue, callback, configKey)
+end
+
+function WasUI:CreateTooltip(target, text, options)
+    options = options or {}
+    local offset = options.offset or Vector2.new(0, 20)
+    local backgroundColor = options.backgroundColor or WasUI.CurrentTheme.Section
+    local textColor = options.textColor or WasUI.CurrentTheme.Text
+    local delay = options.delay or 0.5
+    local followMouse = options.followMouse or false
+    
+    local actualTarget = target
+    if target and target.Instance and target.Instance:IsA("GuiObject") then
+        actualTarget = target.Instance
+    elseif not target:IsA("GuiObject") then
+        warn("CreateTooltip: target must be a GuiObject or Control with Instance")
+        return
+    end
+    
+    local tooltipGui = nil
+    local tooltipFrame = nil
+    local timer = nil
+    local longPressTimer = nil
+    local isLongPress = false
+    local touchStartPos = nil
+    local currentTouchPoint = nil
+    
+    local function hideTooltip()
+        if timer then task.cancel(timer); timer = nil end
+        if longPressTimer then task.cancel(longPressTimer); longPressTimer = nil end
+        if tooltipGui then
+            tooltipGui:Destroy()
+            tooltipGui = nil
+            tooltipFrame = nil
+        end
+        isLongPress = false
+        touchStartPos = nil
+        currentTouchPoint = nil
+    end
+    
+    local function showTooltipAtPoint(point)
+        if tooltipGui then return end
+        tooltipGui = Instance.new("ScreenGui")
+        tooltipGui.Name = "WasUI_Tooltip"
+        tooltipGui.ResetOnSpawn = false
+        tooltipGui.DisplayOrder = 2000
+        tooltipGui.Parent = game:GetService("CoreGui")
+        
+        tooltipFrame = CreateInstance("Frame", {
+            Name = "Tooltip",
+            Size = UDim2.new(0, 0, 0, 0),
+            BackgroundColor3 = backgroundColor,
+            BackgroundTransparency = 0.1,
+            BorderSizePixel = 0,
+            ClipsDescendants = true,
+            ZIndex = 10000,
+            Parent = tooltipGui
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tooltipFrame})
+        local stroke = CreateInstance("UIStroke", {
+            Color = WasUI.CurrentTheme.Text,
+            Thickness = 1,
+            Transparency = 0.5,
+            Parent = tooltipFrame
+        })
+        
+        local label = CreateInstance("TextLabel", {
+            Name = "Label",
+            Size = UDim2.new(1, -8, 1, -4),
+            Position = UDim2.new(0, 4, 0, 2),
+            BackgroundTransparency = 1,
+            Text = text,
+            TextColor3 = textColor,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            TextWrapped = true,
+            ZIndex = 10001,
+            Parent = tooltipFrame
+        })
+        
+        local textBounds = TextService:GetTextSize(text, 12, Enum.Font.Gotham, Vector2.new(1000, 1000))
+        local width = math.max(60, textBounds.X + 16)
+        local height = textBounds.Y + 8
+        tooltipFrame.Size = UDim2.new(0, width, 0, height)
+        
+        local viewportSize = Workspace.CurrentCamera.ViewportSize
+        local x = point.X - width/2
+        local y = point.Y + offset.Y
+        if y + height > viewportSize.Y then
+            y = point.Y - height - offset.Y
+        end
+        if x + width > viewportSize.X then
+            x = viewportSize.X - width - 5
+        end
+        if x < 5 then x = 5 end
+        tooltipFrame.Position = UDim2.new(0, x, 0, y)
+    end
+    
+    local function showTooltip()
+        if tooltipGui then return end
+        if actualTarget and actualTarget.Parent then
+            local targetPos = actualTarget.AbsolutePosition
+            local targetSize = actualTarget.AbsoluteSize
+            local point = Vector2.new(targetPos.X + targetSize.X/2, targetPos.Y + targetSize.Y)
+            showTooltipAtPoint(point)
+        end
+    end
+    
+    if actualTarget.MouseEnter then
+        actualTarget.MouseEnter:Connect(function()
+            timer = task.delay(delay, showTooltip)
+        end)
+        actualTarget.MouseLeave:Connect(function()
+            hideTooltip()
+        end)
+    end
+    
+    if actualTarget.InputBegan then
+        actualTarget.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then
+                currentTouchPoint = input.Position
+                touchStartPos = input.Position
+                longPressTimer = task.delay(delay, function()
+                    isLongPress = true
+                    showTooltipAtPoint(currentTouchPoint)
+                end)
+            end
+        end)
+        actualTarget.InputEnded:Connect(function(input)
+            if longPressTimer then
+                task.cancel(longPressTimer)
+                longPressTimer = nil
+            end
+            if isLongPress then
+                isLongPress = false
+                hideTooltip()
+            end
+            touchStartPos = nil
+            currentTouchPoint = nil
+        end)
+        actualTarget.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch and touchStartPos then
+                if (input.Position - touchStartPos).Magnitude > 10 then
+                    if longPressTimer then task.cancel(longPressTimer); longPressTimer = nil end
+                    if isLongPress then hideTooltip() end
+                    touchStartPos = nil
+                    currentTouchPoint = nil
+                end
+            end
+        end)
+    end
+    
+    actualTarget.Destroying:Connect(hideTooltip)
+    
+    return {
+        Destroy = hideTooltip
+    }
+end
+
+local CollapsibleSection = setmetatable({}, {__index = Control})
+CollapsibleSection.__index = CollapsibleSection
+
+function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
+    local self = Control:New(name, parent)
+    self.Collapsed = defaultCollapsed or false
+    self.OnToggle = onToggle
+    
+    self.Header = CreateInstance("Frame", {
+        Name = "Header",
+        Size = UDim2.new(1, 0, 0, 28),
+        BackgroundTransparency = 1,
+        Parent = parent,
+        ZIndex = 2
+    })
+    
+    self.Icon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
+    if self.Icon then
+        self.Icon.Parent = self.Header
+        self.Icon.Position = UDim2.new(1, -18, 0.5, -8)
+        self.Icon.AnchorPoint = Vector2.new(1, 0.5)
+        self.Icon.ZIndex = 3
+        self.Icon.Rotation = self.Collapsed and -90 or 0
+    end
+    
+    self.TitleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(0.95, -40, 1, 0),
+        Position = UDim2.new(0, 22, 0, 0),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 16,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        ZIndex = 2,
+        Parent = self.Header
+    })
+    
+    local line = CreateInstance("Frame", {
+        Name = "Line",
+        Size = UDim2.new(1, -4, 0, 1),
+        Position = UDim2.new(0, 2, 1, -2),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.5,
+        BorderSizePixel = 0,
+        ZIndex = 2,
+        Parent = self.Header
+    })
+    
+    self.Content = CreateInstance("Frame", {
+        Name = "Content",
+        Size = UDim2.new(1, 0, 0, 0),
+        BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        ClipsDescendants = true,
+        Parent = parent,
+        ZIndex = 2
+    })
+    
+    local function updateLayout()
+        if self.Collapsed then
+            self.Content.Visible = false
+            if self.Icon then
+                Tween(self.Icon, {Rotation = -90}, 0.2)
+            end
+        else
+            self.Content.Visible = true
+            if self.Icon then
+                Tween(self.Icon, {Rotation = 0}, 0.2)
+            end
+        end
+        if self.OnToggle then self.OnToggle(self.Collapsed) end
+    end
+    
+    local button = CreateInstance("TextButton", {
+        Name = "ToggleButton",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        Parent = self.Header,
+        ZIndex = 1,
+        AutoButtonColor = false
+    })
+    button.MouseButton1Click:Connect(function()
+        self.Collapsed = not self.Collapsed
+        updateLayout()
+    end)
+    
+    updateLayout()
+    
+    table.insert(WasUI.Objects, {Object = self.Header, Type = "CollapsibleSectionHeader"})
+    table.insert(WasUI.Objects, {Object = self.Content, Type = "CollapsibleSectionContent"})
+    return self
+end
+
+function WasUI:CreateCollapsibleSection(parent, title, defaultCollapsed, onToggle)
+    return CollapsibleSection:New("CollapsibleSection", parent, title, defaultCollapsed, onToggle)
 end
 
 function WasUI:ShowConfirmDialog(options, callback)
@@ -2949,6 +3500,17 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     end
                 end
             end
+        elseif obj.Type == "ProgressBar" then
+            local titleLabel = instance:FindFirstChild("Title")
+            local valueLabel = instance:FindFirstChild("Value")
+            local track = instance:FindFirstChild("Track")
+            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+            if valueLabel then Tween(valueLabel, {TextColor3 = newTheme.Text}, duration) end
+            if track then
+                Tween(track, {BackgroundColor3 = newTheme.Input}, duration)
+                local fill = track:FindFirstChild("Fill")
+                if fill then Tween(fill, {BackgroundColor3 = newTheme.Accent}, duration) end
+            end
         elseif obj.Type == "Dropdown" then
             local titleLabel = instance:FindFirstChild("Title")
             local dropdownButton = instance:FindFirstChild("DropdownButton")
@@ -3080,6 +3642,16 @@ local function AnimateThemeChange(oldTheme, newTheme)
             if titleLabel and titleLabel:IsA("TextLabel") then
                 Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
             end
+        elseif obj.Type == "CollapsibleSectionHeader" then
+            local titleLabel = instance:FindFirstChild("Title")
+            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+            local line = instance:FindFirstChild("Line")
+            if line then Tween(line, {BackgroundColor3 = newTheme.Primary}, duration) end
+            local icon = instance:FindFirstChildOfClass("ImageLabel")
+            if icon and not icon:GetAttribute("IgnoreThemeChange") then
+                Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+            end
+        elseif obj.Type == "CollapsibleSectionContent" then
         end
     end
     if WasUI.DropdownGui then
