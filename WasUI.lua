@@ -2509,9 +2509,24 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
             end
         else
             self.Content.Visible = true
+            self.Content.Size = UDim2.new(1, 0, 0, 0)
             if self.Icon then
                 Tween(self.Icon, {Rotation = 0}, 0.2)
             end
+            task.defer(function()
+                if self.Content and self.Content.Parent then
+                    local parentScroller = self.Content.Parent
+                    while parentScroller and not parentScroller:IsA("ScrollingFrame") do
+                        parentScroller = parentScroller.Parent
+                    end
+                    if parentScroller and parentScroller:IsA("ScrollingFrame") then
+                        local layout = parentScroller:FindFirstChildOfClass("UIListLayout")
+                        if layout then
+                            parentScroller.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8)
+                        end
+                    end
+                end
+            end)
         end
         if self.OnToggle then self.OnToggle(self.Collapsed) end
     end
@@ -2523,11 +2538,20 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         Text = "",
         Parent = self.Header,
         ZIndex = 1,
-        AutoButtonColor = false
+        AutoButtonColor = false,
+        Active = true, 
     })
-    button.MouseButton1Click:Connect(function()
+    
+    local function toggleState()
         self.Collapsed = not self.Collapsed
         updateLayout()
+    end
+    
+    button.MouseButton1Click:Connect(toggleState)
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            toggleState()
+        end
     end)
     
     updateLayout()
@@ -3042,6 +3066,19 @@ function WasUI:ShowColorPicker(options, callback)
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = dialogFrame})
+    
+    dialogGui:SetAttribute("UserInputService", UserInputService)
+    local function disableScrollingOnTouch()
+        local scroller = dialogFrame:FindFirstChildOfClass("ScrollingFrame")
+        if scroller then
+            scroller.ScrollingEnabled = false
+        end
+    end
+    dialogGui.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            disableScrollingOnTouch()
+        end
+    end)
 
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
