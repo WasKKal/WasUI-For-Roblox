@@ -2838,7 +2838,7 @@ function WasUI:ShowPopup(options, callback)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
 
-        local mainWindow = nil
+local mainWindow = nil
         for _, obj in ipairs(WasUI.Objects) do
             if obj.Type == "Panel" and obj.Object and obj.Object.Visible then
                 mainWindow = obj.Object
@@ -2849,9 +2849,16 @@ function WasUI:ShowPopup(options, callback)
         if mainWindow and mainWindow.Visible then
             wasWindowVisible = true
             mainWindow.Visible = false
-            if mainWindow.BorderFlow then mainWindow.BorderFlow.Visible = false end
-            if mainWindow.SnowContainer then mainWindow.SnowContainer.Visible = false end
+            local borderFlow = mainWindow:FindFirstChild("BorderFlow")
+            if borderFlow then
+                borderFlow.Visible = false
+            end
+            local snowContainer = mainWindow:FindFirstChild("SnowContainer")
+            if snowContainer then
+                snowContainer.Visible = false
+            end
         end
+
     local titleContainer = CreateInstance("Frame", {
         Name = "TitleContainer",
         Size = UDim2.new(1, -20, 0, 36),
