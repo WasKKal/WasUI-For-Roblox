@@ -592,6 +592,128 @@ local function AddKeyBindLongPress(controlInstance, controlKey, controlType, cal
     UserInputService.InputChanged:Connect(checkMove)
 end
 
+local function CreateCircularProgress(parent, position, radius, thickness, color)
+    local container = Instance.new("Frame")
+    container.Name = "LongPressProgress"
+    container.Size = UDim2.new(0, radius * 2, 0, radius * 2)
+    container.Position = UDim2.new(0, position.X - radius, 0, position.Y - radius)
+    container.BackgroundTransparency = 1
+    container.Parent = parent
+    
+    local bgCircle = Instance.new("Frame")
+    bgCircle.Size = UDim2.new(1, 0, 1, 0)
+    bgCircle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bgCircle.BackgroundTransparency = 0.7
+    bgCircle.BorderSizePixel = 0
+    bgCircle.Parent = container
+    local bgCorner = Instance.new("UICorner")
+    bgCorner.CornerRadius = UDim.new(1, 0)
+    bgCorner.Parent = bgCircle
+    
+    local ring = Instance.new("Frame")
+    ring.Size = UDim2.new(1, -thickness * 2, 1, -thickness * 2)
+    ring.Position = UDim2.new(0, thickness, 0, thickness)
+    ring.BackgroundColor3 = color or Color3.fromRGB(255, 255, 255)
+    ring.BackgroundTransparency = 0
+    ring.BorderSizePixel = 0
+    ring.Parent = container
+    local ringCorner = Instance.new("UICorner")
+    ringCorner.CornerRadius = UDim.new(1, 0)
+    ringCorner.Parent = ring
+    
+    local fill = Instance.new("Frame")
+    fill.Name = "Fill"
+    fill.Size = UDim2.new(0, 0, 0, 0)
+    fill.BackgroundColor3 = color or Color3.fromRGB(255, 255, 255)
+    fill.BackgroundTransparency = 0.5
+    fill.BorderSizePixel = 0
+    fill.Parent = ring
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(1, 0)
+    fillCorner.Parent = fill
+    
+    return container, fill
+end
+
+local function UpdateCircularProgress(fill, progress)
+    if not fill or not fill.Parent then return end
+    local scale = progress
+    fill.Size = UDim2.new(scale, 0, scale, 0)
+    fill.Position = UDim2.new(0.5, -fill.AbsoluteSize.X/2, 0.5, -fill.AbsoluteSize.Y/2)
+end
+
+local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
+    longPressTime = longPressTime or 5
+    local timer = nil
+    local pressed = false
+    local startPos = nil
+    local progressContainer = nil
+    local progressFill = nil
+    local progressStartTime = nil
+    local progressUpdateConn = nil
+
+    local function updateProgress()
+        if not pressed then return end
+        local elapsed = tick() - progressStartTime
+        local progress = math.min(1, elapsed / longPressTime)
+        if progressFill then
+            UpdateCircularProgress(progressFill, progress)
+        end
+        if elapsed >= longPressTime then
+            if timer then task.cancel(timer); timer = nil end
+            if progressUpdateConn then progressUpdateConn:Disconnect() end
+            if progressContainer then progressContainer:Destroy() end
+            onLongPress()
+            pressed = false
+        end
+    end
+
+    local function startPress(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            pressed = true
+            startPos = input.Position
+            progressStartTime = tick()
+            
+            local screenGui = Instance.new("ScreenGui")
+            screenGui.Name = "LongPressProgressGui"
+            screenGui.ResetOnSpawn = false
+            screenGui.DisplayOrder = 2000
+            screenGui.Parent = game:GetService("CoreGui")
+            progressContainer, progressFill = CreateCircularProgress(screenGui, startPos, 30, 4, WasUI.CurrentTheme.Accent)
+            
+            timer = task.delay(longPressTime, function()
+                if pressed then
+                    if progressUpdateConn then progressUpdateConn:Disconnect() end
+                    if progressContainer then progressContainer:Destroy() end
+                    onLongPress()
+                end
+                pressed = false
+            end)
+            progressUpdateConn = RunService.Heartbeat:Connect(updateProgress)
+        end
+    end
+
+    local function endPress()
+        if timer then task.cancel(timer); timer = nil end
+        if progressUpdateConn then progressUpdateConn:Disconnect() end
+        if progressContainer then progressContainer:Destroy() end
+        pressed = false
+        startPos = nil
+    end
+
+    local function checkMove(input)
+        if pressed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            if startPos and (input.Position - startPos).Magnitude > 10 then
+                endPress()
+            end
+        end
+    end
+
+    controlInstance.InputBegan:Connect(startPress)
+    controlInstance.InputEnded:Connect(endPress)
+    UserInputService.InputChanged:Connect(checkMove)
+end
+
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -620,46 +742,6 @@ UserInputService.InputBegan:Connect(function(input, processed)
         end
     end
 end)
-
-local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
-    longPressTime = longPressTime or 0.5
-    local timer = nil
-    local pressed = false
-    local startPos = nil
-
-    local function startPress(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            pressed = true
-            startPos = input.Position
-            timer = task.delay(longPressTime, function()
-                if pressed then
-                    onLongPress()
-                end
-            end)
-        end
-    end
-
-    local function endPress()
-        if timer then
-            task.cancel(timer)
-            timer = nil
-        end
-        pressed = false
-        startPos = nil
-    end
-
-    local function checkMove(input)
-        if pressed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            if startPos and (input.Position - startPos).Magnitude > 10 then
-                endPress()
-            end
-        end
-    end
-
-    controlInstance.InputBegan:Connect(startPress)
-    controlInstance.InputEnded:Connect(endPress)
-    UserInputService.InputChanged:Connect(checkMove)
-end
 
 local function AddRipple(instance, scaleFactor)
     scaleFactor = scaleFactor or 1.5
@@ -1029,7 +1111,7 @@ function Button:New(name, parent, text, onClick, size, iconName)
     AddLongPressToControl(self.Instance, function()
         CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
         WasUI:Notify({Title = "快捷键", Content = "已创建快捷按钮: " .. (text or name), Duration = 1.5})
-    end)
+    end, 5)
 
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Button"})
     return self
@@ -1214,7 +1296,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         else
             WasUI:Notify({Title = "快捷键", Content = "已移除快捷开关: " .. self.RainbowName, Duration = 1.5})
         end
-    end)
+    end, 5)
 
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
@@ -2114,11 +2196,6 @@ function WasUI:CreateProgressBar(parent, title, min, max, defaultValue, callback
     return ProgressBar:New("ProgressBar", parent, title, min, max, defaultValue, callback, configKey)
 end
 
-local TooltipManager = {
-    ActiveTooltip = nil,
-    Delay = 0.5,
-}
-
 function WasUI:CreateTooltip(target, text, options)
     options = options or {}
     local offset = options.offset or Vector2.new(0, 20)
@@ -2127,7 +2204,6 @@ function WasUI:CreateTooltip(target, text, options)
     local delay = options.delay or 0.5
     local followMouse = options.followMouse or false
     
-    -- 获取实际的 GUI 实例（兼容传入 Control 对象）
     local actualTarget = target
     if target and target.Instance and target.Instance:IsA("GuiObject") then
         actualTarget = target.Instance
@@ -2193,6 +2269,7 @@ function WasUI:CreateTooltip(target, text, options)
             TextXAlignment = Enum.TextXAlignment.Center,
             TextYAlignment = Enum.TextYAlignment.Center,
             TextWrapped = true,
+            ZIndex = 10001,
             Parent = tooltipFrame
         })
         
@@ -2230,7 +2307,6 @@ function WasUI:CreateTooltip(target, text, options)
         end)
     end
     
-    -- 鼠标悬停支持
     if actualTarget.MouseEnter then
         actualTarget.MouseEnter:Connect(function()
             timer = task.delay(delay, showTooltip)
@@ -2240,7 +2316,6 @@ function WasUI:CreateTooltip(target, text, options)
         end)
     end
     
-    -- 触摸长按支持（手机端）
     if actualTarget.InputBegan then
         actualTarget.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Touch then
