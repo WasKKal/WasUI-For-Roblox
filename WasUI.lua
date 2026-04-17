@@ -13,29 +13,18 @@ local GuiService = game:GetService("GuiService")
 local ContentProvider = game:GetService("ContentProvider")
 local TextService = game:GetService("TextService")
 
-local function _G()
-    return function(s)
-        local r = ""
-        for i = 1, #s do
-            local b = s:byte(i)
-            r = r .. string.char(b + (i % 7))
-        end
-        return r
-    end
-end
-
-local function _N()
-    local c = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    local r = ""
-    for i = 1, 8 do
-        r = r .. c:sub(math.random(1, #c), math.random(1, #c))
-    end
-    return r
-end
-
 if _G.WasUIModule then
     warn("WasUI已加载 请勿重复加载")
     return _G.WasUIModule
+end
+
+local function _N()
+    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    local result = ""
+    for i = 1, 8 do
+        result = result .. chars:sub(math.random(1, #chars), math.random(1, #chars))
+    end
+    return result
 end
 
 local function copyToClipboard(text)
@@ -452,7 +441,7 @@ local function CreateRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
     local screenGui = CreateInstance("ScreenGui", {
-        Name = _N() .. featureName,
+        Name = _N(),
         ResetOnSpawn = false,
         DisplayOrder = 100,
         Parent = game:GetService("CoreGui")
@@ -834,7 +823,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     end
 
     local btnFrame = CreateInstance("Frame", {
-        Name = _N() .. (rainbowKey or displayName),
+        Name = _N(),
         Size = UDim2.new(0, 0, 0, 32),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.2,
@@ -1219,7 +1208,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     self.FeatureName = featureName or name
     self.RainbowName = rainbowName or self.FeatureName
     self.Container = CreateInstance("Frame", {
-        Name = _N() .. "_Container",
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 28),
         BackgroundTransparency = 1,
         Parent = parent,
@@ -1244,7 +1233,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     end
     local offColor = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
     self.Background = CreateInstance("ImageButton", {
-        Name = _N() .. "_BG",
+        Name = _N(),
         Size = UDim2.new(0, 36, 0, 18),
         Position = title and UDim2.new(1, -40, 0.5, -9) or UDim2.new(1, -40, 0.5, -9),
         BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or offColor,
@@ -1257,7 +1246,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     self.Background:SetAttribute("Toggled", self.Toggled)
     local bgCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Background})
     self.Knob = CreateInstance("Frame", {
-        Name = _N() .. "_Knob",
+        Name = _N(),
         Size = UDim2.new(0, 16, 0, 16),
         Position = self.Toggled and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -1608,7 +1597,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         self.OptionButtons = {}
         for i, option in ipairs(self.Options) do
             local optionButton = CreateInstance("TextButton", {
-                Name = _N() .. option,
+                Name = _N(),
                 Size = UDim2.new(1, 0, 0, 28),
                 BackgroundColor3 = WasUI.CurrentTheme.Input,
                 BackgroundTransparency = 0.3,
@@ -3731,8 +3720,9 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     end
                 end
             end
-            if instance.TitleTagContainers then
-                for _, tagContainer in ipairs(instance.TitleTagContainers) do
+            local titleTagContainers = rawget(instance, "TitleTagContainers")
+            if titleTagContainers then
+                for _, tagContainer in ipairs(titleTagContainers) do
                     if tagContainer and tagContainer:IsDescendantOf(game) then
                         local tagLabel = tagContainer:FindFirstChild("TagLabel")
                         if tagLabel and tagLabel:IsA("TextLabel") then
@@ -5461,7 +5451,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     function self:AddTab(tabName, icon)
         self.TabOrderCounter = self.TabOrderCounter + 1
         local tabButton = CreateInstance("TextButton", {
-            Name = _N() .. tabName,
+            Name = _N(),
             Size = UDim2.new(0, 90, 0, 24),
             BackgroundColor3 = WasUI.CurrentTheme.TabButton,
             BackgroundTransparency = 0.5,
@@ -5485,7 +5475,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = tabButton
         })
         local tabFrame = CreateInstance("Frame", {
-            Name = _N() .. tabName,
+            Name = _N(),
             Size = UDim2.new(1, 0, 0, 0),
             BackgroundTransparency = 1,
             Visible = false,
@@ -5716,7 +5706,7 @@ function WasUI:Notify(options)
     local borderColor = options.BorderColor or WasUI.CurrentTheme.Text
     local notificationId = HttpService:GenerateGUID(false)
     local frame = CreateInstance("Frame", {
-        Name = _N() .. notificationId,
+        Name = _N(),
         Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
         Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, WasUI.NotificationTop),
         BackgroundColor3 = bgColor,
@@ -5788,7 +5778,9 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = game:GetService("CoreGui")
-    local window = Panel:New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position, backgroundUrl, snowEnabled, titleTag)
+    local internalName = _N()
+    local window = Panel:New(internalName, screenGui, size or UDim2.new(0, 380, 0, 350), position, backgroundUrl, snowEnabled, titleTag)
+    window:SetTitle(title)
     RecordOriginalTransparency(window.Instance)
 
     local showBuiltinPopup = true
