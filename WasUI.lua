@@ -3538,7 +3538,6 @@ end
 
 local function AnimateThemeChange(oldTheme, newTheme)
     local duration = 0.35
-    -- 清理已销毁的对象
     for i = #WasUI.Objects, 1, -1 do
         local obj = WasUI.Objects[i]
         if not obj.Object or not obj.Object:IsDescendantOf(game) then
@@ -3720,24 +3719,28 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     end
                 end
             end
-local dotContainer = rawget(instance, "DotContainer")
-            if dotContainer then
-                local minimizedTextLabel = dotContainer:FindFirstChild("MinimizedText")
-                if minimizedTextLabel and minimizedTextLabel:IsA("TextLabel") then
-                    if newTheme == WasUI.Themes.Light then
-                        Tween(minimizedTextLabel, {TextColor3 = Color3.fromRGB(0, 0, 0)}, duration)
-                    else
-                        Tween(minimizedTextLabel, {TextColor3 = newTheme.Text}, duration)
+            local panelData = instance.PanelData
+            if panelData then
+                local dotContainer = panelData.DotContainer
+                if dotContainer then
+                    local minimizedTextLabel = dotContainer:FindFirstChild("MinimizedText")
+                    if minimizedTextLabel and minimizedTextLabel:IsA("TextLabel") then
+                        if newTheme == WasUI.Themes.Light then
+                            Tween(minimizedTextLabel, {TextColor3 = Color3.fromRGB(0, 0, 0)}, duration)
+                        else
+                            Tween(minimizedTextLabel, {TextColor3 = newTheme.Text}, duration)
+                        end
                     end
                 end
-            end
-        local titleTagContainers = rawget(instance, "TitleTagContainers")
-            if titleTagContainers then
-                for _, tagContainer in ipairs(titleTagContainers) do
-                    if tagContainer and tagContainer:IsDescendantOf(game) then
-                        local tagLabel = tagContainer:FindFirstChild("TagLabel")
-                        if tagLabel and tagLabel:IsA("TextLabel") then
-                            Tween(tagLabel, {TextColor3 = newTheme.Text}, duration)
+                
+                local titleTagContainers = panelData.TitleTagContainers
+                if titleTagContainers then
+                    for _, tagContainer in ipairs(titleTagContainers) do
+                        if tagContainer and tagContainer:IsDescendantOf(game) then
+                            local tagLabel = tagContainer:FindFirstChild("TagLabel")
+                            if tagLabel and tagLabel:IsA("TextLabel") then
+                                Tween(tagLabel, {TextColor3 = newTheme.Text}, duration)
+                            end
                         end
                     end
                 end
@@ -3756,8 +3759,6 @@ local dotContainer = rawget(instance, "DotContainer")
             if icon and not icon:GetAttribute("IgnoreThemeChange") then
                 Tween(icon, {ImageColor3 = newTheme.Text}, duration)
             end
-        elseif obj.Type == "CollapsibleSectionContent" then
-            -- 无操作
         elseif obj.Type == "TabArrow" then
             Tween(instance, {ImageColor3 = newTheme.Text}, duration)
         end
@@ -5768,6 +5769,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self.SnowContainer.Visible = true
         end
     end)
+    self.Instance.PanelData = self
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel"})
     return self
 end
