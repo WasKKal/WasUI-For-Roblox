@@ -5905,7 +5905,7 @@ function WasUI:CreateButton(parent, text, onClick, size, iconName)
 end
 
 function WasUI:CreateToggle(parent, initialState, onToggle, featureName, rainbowName, configKey)
-    return ToggleSwitch:New("Toggle", parent, nil, initialState, onToggle, featureName, rainbowName, nil, configKey)
+    return self:CreateToggleWithTitle(parent, featureName or "", initialState, onToggle, featureName, rainbowName, nil, configKey)
 end
 
 function WasUI:CreateToggleWithTitle(parent, title, initialState, onToggle, featureName, rainbowName, iconName, configKey)
