@@ -1,4 +1,4 @@
---Version 1.0.9.7
+--Version 1.0.9.6
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -39,7 +39,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.0.9.7"
+WasUI.Version = "1.0.9.6"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -1236,8 +1236,8 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         })
     end
     
-local offColor = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
-local bgPos = title and UDim2.new(1, -40, 0.5, -9) or UDim2.new(0, 0, 0.5, -9)
+    local offColor = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+    local bgPos = title and UDim2.new(1, -40, 0.5, -9) or UDim2.new(0, 0, 0.5, -9)
     self.Background = CreateInstance("ImageButton", {
         Name = _N(),
         Size = UDim2.new(0, 36, 0, 18),
@@ -3538,11 +3538,16 @@ end
 
 local function AnimateThemeChange(oldTheme, newTheme)
     local duration = 0.35
+    -- 清理已销毁的对象
+    for i = #WasUI.Objects, 1, -1 do
+        local obj = WasUI.Objects[i]
+        if not obj.Object or not obj.Object:IsDescendantOf(game) then
+            table.remove(WasUI.Objects, i)
+        end
+    end
     for _, obj in ipairs(WasUI.Objects) do
         local instance = obj.Object
-        if not instance or not instance:IsDescendantOf(game) then
-            continue
-        end
+        if not instance then continue end
         if obj.Type == "Button" then
             Tween(instance, {BackgroundColor3 = newTheme.Primary, TextColor3 = newTheme.Text}, duration)
             local icon = instance:FindFirstChildOfClass("ImageLabel")
@@ -3752,6 +3757,9 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 Tween(icon, {ImageColor3 = newTheme.Text}, duration)
             end
         elseif obj.Type == "CollapsibleSectionContent" then
+            -- 无操作
+        elseif obj.Type == "TabArrow" then
+            Tween(instance, {ImageColor3 = newTheme.Text}, duration)
         end
     end
     if WasUI.DropdownGui then
@@ -5414,84 +5422,57 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.TabBar
     })
     
-    local leftFade, rightFade
-    local function updateTabFadeVisibility()
+    -- 左右箭头指示器
+    local leftArrow, rightArrow
+    local function updateArrowVisibility()
         if not self.TabContainer then return end
         local canvasPos = self.TabContainer.CanvasPosition.X
         local canvasSize = self.TabContainer.CanvasSize.X.Offset
         local containerSize = self.TabContainer.AbsoluteSize.X
+
         if canvasSize <= containerSize then
-            if leftFade then leftFade.Visible = false end
-            if rightFade then rightFade.Visible = false end
+            if leftArrow then leftArrow.Visible = false end
+            if rightArrow then rightArrow.Visible = false end
             return
         end
 
-        if leftFade then leftFade.Visible = canvasPos > 5 end
-        if rightFade then rightFade.Visible = canvasPos < canvasSize - containerSize - 5 end
+        if leftArrow then leftArrow.Visible = canvasPos > 5 end
+        if rightArrow then rightArrow.Visible = canvasPos < canvasSize - containerSize - 5 end
     end
 
-    local fadeWidth = 30
-    leftFade = CreateInstance("Frame", {
-        Name = _N(),
-        Size = UDim2.new(0, fadeWidth, 1, 0),
-        Position = UDim2.new(0, 0, 0, 0),
-        BackgroundTransparency = 1,
-        ZIndex = 10,
-        Visible = false,
-        Parent = self.TabBar
-    })
-    local leftGradient = Instance.new("UIGradient")
-    leftGradient.Transparency = NumberSequence.new{
-        NumberSequenceKeypoint.new(0, 1),
-        NumberSequenceKeypoint.new(1, 0)
-    }
-    leftGradient.Color = ColorSequence.new(Color3.new(1,1,1))
-    leftGradient.Parent = leftFade
-    local leftFill = CreateInstance("Frame", {
-        Name = _N(),
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BorderSizePixel = 0,
-        Parent = leftFade
-    })
-    leftFill.BackgroundTransparency = 0.2
-    rightFade = CreateInstance("Frame", {
-        Name = _N(),
-        Size = UDim2.new(0, fadeWidth, 1, 0),
-        Position = UDim2.new(1, -fadeWidth, 0, 0),
-        BackgroundTransparency = 1,
-        ZIndex = 10,
-        Visible = false,
-        Parent = self.TabBar
-    })
-    local rightGradient = Instance.new("UIGradient")
-    rightGradient.Transparency = NumberSequence.new{
-        NumberSequenceKeypoint.new(0, 0),
-        NumberSequenceKeypoint.new(1, 1)
-    }
-    rightGradient.Color = ColorSequence.new(Color3.new(1,1,1))
-    rightGradient.Parent = rightFade
-    local rightFill = CreateInstance("Frame", {
-        Name = _N(),
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = WasUI.CurrentTheme.Primary,
-        BorderSizePixel = 0,
-        Parent = rightFade
-    })
-    rightFill.BackgroundTransparency = 0.2
+    leftArrow = WasUI:CreateIcon("chevron-left", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
+    if leftArrow then
+        leftArrow.Name = _N()
+        leftArrow.Position = UDim2.new(0, -6, 0.5, -8)
+        leftArrow.BackgroundTransparency = 1
+        leftArrow.ZIndex = 20
+        leftArrow.Visible = false
+        leftArrow.Parent = self.TabBar
+        table.insert(WasUI.Objects, {Object = leftArrow, Type = "TabArrow"})
+    end
 
-    self.TabContainer:GetPropertyChangedSignal("CanvasPosition"):Connect(updateTabFadeVisibility)
-    self.TabContainer:GetPropertyChangedSignal("CanvasSize"):Connect(updateTabFadeVisibility)
-    self.TabContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateTabFadeVisibility)
+    rightArrow = WasUI:CreateIcon("chevron-right", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
+    if rightArrow then
+        rightArrow.Name = _N()
+        rightArrow.Position = UDim2.new(1, -10, 0.5, -8)
+        rightArrow.BackgroundTransparency = 1
+        rightArrow.ZIndex = 20
+        rightArrow.Visible = false
+        rightArrow.Parent = self.TabBar
+        table.insert(WasUI.Objects, {Object = rightArrow, Type = "TabArrow"})
+    end
+
+    self.TabContainer:GetPropertyChangedSignal("CanvasPosition"):Connect(updateArrowVisibility)
+    self.TabContainer:GetPropertyChangedSignal("CanvasSize"):Connect(updateArrowVisibility)
+    self.TabContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateArrowVisibility)
     
     local function delayedUpdate()
         task.wait()
-        updateTabFadeVisibility()
+        updateArrowVisibility()
     end
     self.TabContainer.ChildAdded:Connect(delayedUpdate)
     self.TabContainer.ChildRemoved:Connect(delayedUpdate)
-    
-    task.defer(updateTabFadeVisibility)
+    task.defer(updateArrowVisibility)
     
     local tabListLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
