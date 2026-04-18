@@ -506,8 +506,9 @@ end)
 
 local function GetShortcutKey(controlType, controlId, rainbowName)
     local base = ""
-    if rainbowName and rainbowName ~= "" then
-        base = "shortcut_" .. rainbowName
+    local safeRainbowName = (type(rainbowName) == "string" and rainbowName ~= "") and rainbowName or nil
+    if safeRainbowName then
+        base = "shortcut_" .. safeRainbowName
     else
         base = "shortcut_" .. controlType .. "_" .. tostring(controlId)
     end
@@ -1206,7 +1207,9 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     self.Toggled = initialState or false
     self.ToggleCallback = onToggle
     self.FeatureName = featureName or name
-    self.RainbowName = rainbowName or self.FeatureName
+    self.RainbowName = (type(rainbowName) == "string" and rainbowName) 
+                       or (type(self.FeatureName) == "string" and self.FeatureName) 
+                       or name
     self.Container = CreateInstance("Frame", {
         Name = _N(),
         Size = UDim2.new(1, 0, 0, 28),
@@ -5417,7 +5420,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         local canvasPos = self.TabContainer.CanvasPosition.X
         local canvasSize = self.TabContainer.CanvasSize.X.Offset
         local containerSize = self.TabContainer.AbsoluteSize.X
-
         if canvasSize <= containerSize then
             if leftFade then leftFade.Visible = false end
             if rightFade then rightFade.Visible = false end
@@ -5429,34 +5431,66 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     end
 
     local fadeWidth = 30
-    leftFade = CreateInstance("ImageLabel", {
+    leftFade = CreateInstance("Frame", {
         Name = _N(),
         Size = UDim2.new(0, fadeWidth, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
-        Image = "rbxassetid://6068744967",
-        ImageTransparency = 0.5,
-        ScaleType = Enum.ScaleType.Stretch,
         ZIndex = 10,
         Visible = false,
         Parent = self.TabBar
     })
-    rightFade = CreateInstance("ImageLabel", {
+    local leftGradient = Instance.new("UIGradient")
+    leftGradient.Transparency = NumberSequence.new{
+        NumberSequenceKeypoint.new(0, 1),
+        NumberSequenceKeypoint.new(1, 0)
+    }
+    leftGradient.Color = ColorSequence.new(Color3.new(1,1,1))
+    leftGradient.Parent = leftFade
+    local leftFill = CreateInstance("Frame", {
+        Name = _N(),
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BorderSizePixel = 0,
+        Parent = leftFade
+    })
+    leftFill.BackgroundTransparency = 0.2
+    rightFade = CreateInstance("Frame", {
         Name = _N(),
         Size = UDim2.new(0, fadeWidth, 1, 0),
         Position = UDim2.new(1, -fadeWidth, 0, 0),
         BackgroundTransparency = 1,
-        Image = "rbxassetid://6068744683",
-        ImageTransparency = 0.5,
-        ScaleType = Enum.ScaleType.Stretch,
         ZIndex = 10,
         Visible = false,
         Parent = self.TabBar
     })
+    local rightGradient = Instance.new("UIGradient")
+    rightGradient.Transparency = NumberSequence.new{
+        NumberSequenceKeypoint.new(0, 0),
+        NumberSequenceKeypoint.new(1, 1)
+    }
+    rightGradient.Color = ColorSequence.new(Color3.new(1,1,1))
+    rightGradient.Parent = rightFade
+    local rightFill = CreateInstance("Frame", {
+        Name = _N(),
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BorderSizePixel = 0,
+        Parent = rightFade
+    })
+    rightFill.BackgroundTransparency = 0.2
 
     self.TabContainer:GetPropertyChangedSignal("CanvasPosition"):Connect(updateTabFadeVisibility)
     self.TabContainer:GetPropertyChangedSignal("CanvasSize"):Connect(updateTabFadeVisibility)
     self.TabContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateTabFadeVisibility)
+    
+    local function delayedUpdate()
+        task.wait()
+        updateTabFadeVisibility()
+    end
+    self.TabContainer.ChildAdded:Connect(delayedUpdate)
+    self.TabContainer.ChildRemoved:Connect(delayedUpdate)
+    
     task.defer(updateTabFadeVisibility)
     
     local tabListLayout = CreateInstance("UIListLayout", {
