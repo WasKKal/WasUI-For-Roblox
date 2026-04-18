@@ -1233,8 +1233,8 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         })
     end
     
-    local offColor = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
-    local bgPos = title and UDim2.new(1, -40, 0.5, -9) or UDim2.new(0.5, -18, 0.5, -9)
+local offColor = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+local bgPos = title and UDim2.new(1, -40, 0.5, -9) or UDim2.new(0, 0, 0.5, -9)
     self.Background = CreateInstance("ImageButton", {
         Name = _N(),
         Size = UDim2.new(0, 36, 0, 18),
