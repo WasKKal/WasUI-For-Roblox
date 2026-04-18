@@ -3710,7 +3710,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     end
                 end
             end
-            local panelData = instance.PanelData
+local panelData = obj.PanelData
             if panelData then
                 local dotContainer = panelData.DotContainer
                 if dotContainer then
@@ -5759,8 +5759,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self.SnowContainer.Visible = true
         end
     end)
-    self.Instance.PanelData = self
-    table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel"})
+table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel", PanelData = self})
     return self
 end
 
