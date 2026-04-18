@@ -1,4 +1,4 @@
---Version 1.0.9.6
+--Version 1.0.9.7
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -39,7 +39,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.0.9.6"
+WasUI.Version = "1.0.9.7"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -1215,7 +1215,8 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         ZIndex = 2
     })
     self.Container:SetAttribute("SearchText", title or "")
-    if title then
+    
+    if title ~= nil then
         self.TitleLabel = CreateInstance("TextLabel", {
             Name = _N(),
             Size = UDim2.new(0.7, 0, 1, 0),
@@ -1231,11 +1232,13 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             Parent = self.Container
         })
     end
+    
     local offColor = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+    local bgPos = title and UDim2.new(1, -40, 0.5, -9) or UDim2.new(0.5, -18, 0.5, -9)
     self.Background = CreateInstance("ImageButton", {
         Name = _N(),
         Size = UDim2.new(0, 36, 0, 18),
-        Position = title and UDim2.new(1, -40, 0.5, -9) or UDim2.new(1, -40, 0.5, -9),
+        Position = bgPos,
         BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or offColor,
         Image = "",
         BorderSizePixel = 0,
@@ -5027,8 +5030,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = _N(),
-            Size = UDim2.new(0, 300, 0, 320),
-            Position = UDim2.new(0.5, -150, 0.5, -160),
+            Size = UDim2.new(0, 300, 0, 360),
+            Position = UDim2.new(0.5, -150, 0.5, -180),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
@@ -5256,10 +5259,34 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             updateSnowToggle(not self.SnowEnabled)
         end)
 
+        local refreshThemeButton = CreateInstance("TextButton", {
+            Name = _N(),
+            Size = UDim2.new(1, 0, 0, 32),
+            BackgroundColor3 = WasUI.CurrentTheme.Primary,
+            BackgroundTransparency = 0.3,
+            Text = "刷新主题",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 12,
+            AutoButtonColor = false,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = refreshThemeButton})
+        refreshThemeButton.MouseEnter:Connect(function()
+            Tween(refreshThemeButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
+        end)
+        refreshThemeButton.MouseLeave:Connect(function()
+            Tween(refreshThemeButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
+        end)
+        refreshThemeButton.MouseButton1Click:Connect(function()
+            WasUI:SetTheme(WasUI.CurrentThemeName)
+            WasUI:Notify({Title = "主题", Content = "已刷新主题样式", Duration = 1.5})
+        end)
+
         local groupButton = CreateInstance("TextButton", {
             Name = _N(),
             Size = UDim2.new(1, 0, 0, 32),
-            Position = UDim2.new(0, 0, 1, -40),
             BackgroundColor3 = WasUI.CurrentTheme.Primary,
             BackgroundTransparency = 0.3,
             Text = WasUI.GroupButtonText,
@@ -5383,6 +5410,55 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         ZIndex = 2,
         Parent = self.TabBar
     })
+    
+    local leftFade, rightFade
+    local function updateTabFadeVisibility()
+        if not self.TabContainer then return end
+        local canvasPos = self.TabContainer.CanvasPosition.X
+        local canvasSize = self.TabContainer.CanvasSize.X.Offset
+        local containerSize = self.TabContainer.AbsoluteSize.X
+
+        if canvasSize <= containerSize then
+            if leftFade then leftFade.Visible = false end
+            if rightFade then rightFade.Visible = false end
+            return
+        end
+
+        if leftFade then leftFade.Visible = canvasPos > 5 end
+        if rightFade then rightFade.Visible = canvasPos < canvasSize - containerSize - 5 end
+    end
+
+    local fadeWidth = 30
+    leftFade = CreateInstance("ImageLabel", {
+        Name = _N(),
+        Size = UDim2.new(0, fadeWidth, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://6068744967",
+        ImageTransparency = 0.5,
+        ScaleType = Enum.ScaleType.Stretch,
+        ZIndex = 10,
+        Visible = false,
+        Parent = self.TabBar
+    })
+    rightFade = CreateInstance("ImageLabel", {
+        Name = _N(),
+        Size = UDim2.new(0, fadeWidth, 1, 0),
+        Position = UDim2.new(1, -fadeWidth, 0, 0),
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://6068744683",
+        ImageTransparency = 0.5,
+        ScaleType = Enum.ScaleType.Stretch,
+        ZIndex = 10,
+        Visible = false,
+        Parent = self.TabBar
+    })
+
+    self.TabContainer:GetPropertyChangedSignal("CanvasPosition"):Connect(updateTabFadeVisibility)
+    self.TabContainer:GetPropertyChangedSignal("CanvasSize"):Connect(updateTabFadeVisibility)
+    self.TabContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateTabFadeVisibility)
+    task.defer(updateTabFadeVisibility)
+    
     local tabListLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
