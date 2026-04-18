@@ -3720,7 +3720,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     end
                 end
             end
-            local dotContainer = instance:FindFirstChild("TitleBar"):FindFirstChild("DotContainer")
+local dotContainer = rawget(instance, "DotContainer")
             if dotContainer then
                 local minimizedTextLabel = dotContainer:FindFirstChild("MinimizedText")
                 if minimizedTextLabel and minimizedTextLabel:IsA("TextLabel") then
@@ -3731,7 +3731,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     end
                 end
             end
-            local titleTagContainers = rawget(instance, "TitleTagContainers")
+        local titleTagContainers = rawget(instance, "TitleTagContainers")
             if titleTagContainers then
                 for _, tagContainer in ipairs(titleTagContainers) do
                     if tagContainer and tagContainer:IsDescendantOf(game) then
