@@ -1,4 +1,4 @@
---Version 1.0.9.5
+--Version 1.0.9.6
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -12,6 +12,26 @@ local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
 local ContentProvider = game:GetService("ContentProvider")
 local TextService = game:GetService("TextService")
+
+local function _G()
+    return function(s)
+        local r = ""
+        for i = 1, #s do
+            local b = s:byte(i)
+            r = r .. string.char(b + (i % 7))
+        end
+        return r
+    end
+end
+
+local function _N()
+    local c = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    local r = ""
+    for i = 1, 8 do
+        r = r .. c:sub(math.random(1, #c), math.random(1, #c))
+    end
+    return r
+end
 
 if _G.WasUIModule then
     warn("WasUI已加载 请勿重复加载")
@@ -30,7 +50,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.0.9.5"
+WasUI.Version = "1.0.9.6"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -44,7 +64,7 @@ WasUI.GroupButtonText = "加入WasUI主群"
 WasUI.GroupCopyContent = "786284990"
 
 local WasUI_Folder = Instance.new("Folder")
-WasUI_Folder.Name = "WasUI_Config"
+WasUI_Folder.Name = _N()
 WasUI_Folder.Parent = ReplicatedStorage
 
 WasUI.DefaultTheme = "Dark"
@@ -300,7 +320,7 @@ end
 local function EnsureShortcutGui()
     if not WasUI.ShortcutGui or not WasUI.ShortcutGui.Parent then
         WasUI.ShortcutGui = Instance.new("ScreenGui")
-        WasUI.ShortcutGui.Name = "WasUI_Shortcuts"
+        WasUI.ShortcutGui.Name = _N()
         WasUI.ShortcutGui.ResetOnSpawn = false
         WasUI.ShortcutGui.DisplayOrder = 500
         WasUI.ShortcutGui.Parent = game:GetService("CoreGui")
@@ -311,7 +331,7 @@ EnsureShortcutGui()
 local function EnsureNotificationGui()
     if not WasUI.NotificationGui or not WasUI.NotificationGui.Parent then
         WasUI.NotificationGui = Instance.new("ScreenGui")
-        WasUI.NotificationGui.Name = "WasUI_Notifications"
+        WasUI.NotificationGui.Name = _N()
         WasUI.NotificationGui.ResetOnSpawn = false
         WasUI.NotificationGui.DisplayOrder = 999
         WasUI.NotificationGui.Parent = game:GetService("CoreGui")
@@ -321,7 +341,7 @@ end
 local function EnsureDropdownGui()
     if not WasUI.DropdownGui or not WasUI.DropdownGui.Parent then
         WasUI.DropdownGui = Instance.new("ScreenGui")
-        WasUI.DropdownGui.Name = "WasUI_Dropdowns"
+        WasUI.DropdownGui.Name = _N()
         WasUI.DropdownGui.ResetOnSpawn = false
         WasUI.DropdownGui.DisplayOrder = 1000
         WasUI.DropdownGui.Parent = game:GetService("CoreGui")
@@ -432,13 +452,13 @@ local function CreateRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
     local screenGui = CreateInstance("ScreenGui", {
-        Name = "FeatureRainbowText_" .. featureName,
+        Name = _N() .. featureName,
         ResetOnSpawn = false,
         DisplayOrder = 100,
         Parent = game:GetService("CoreGui")
     })
     local textLabel = CreateInstance("TextLabel", {
-        Name = "RainbowText",
+        Name = _N(),
         Size = UDim2.new(0, 180, 0, 0),
         Position = UDim2.new(1, -190, 0, 0),
         BackgroundTransparency = 1,
@@ -507,10 +527,10 @@ local function GetShortcutKey(controlType, controlId, rainbowName)
 end
 
 local function SaveShortcutPosition(key, position)
-    local folder = ReplicatedStorage:FindFirstChild("WasUI_Config")
+    local folder = ReplicatedStorage:FindFirstChild(WasUI_Folder.Name)
     if not folder then
         folder = Instance.new("Folder")
-        folder.Name = "WasUI_Config"
+        folder.Name = WasUI_Folder.Name
         folder.Parent = ReplicatedStorage
     end
     local posStr = string.format("%.3f,%.3f,%.3f,%.3f", position.X.Scale, position.X.Offset, position.Y.Scale, position.Y.Offset)
@@ -518,7 +538,7 @@ local function SaveShortcutPosition(key, position)
 end
 
 local function LoadShortcutPosition(key)
-    local folder = ReplicatedStorage:FindFirstChild("WasUI_Config")
+    local folder = ReplicatedStorage:FindFirstChild(WasUI_Folder.Name)
     if folder then
         local posStr = folder:GetAttribute(key .. "_Pos")
         if posStr and type(posStr) == "string" then
@@ -546,17 +566,17 @@ function WasUI:ClearAllShortcuts()
 end
 
 local function SaveKeyBinding(key, keyCode)
-    local folder = ReplicatedStorage:FindFirstChild("WasUI_Config")
+    local folder = ReplicatedStorage:FindFirstChild(WasUI_Folder.Name)
     if not folder then
         folder = Instance.new("Folder")
-        folder.Name = "WasUI_Config"
+        folder.Name = WasUI_Folder.Name
         folder.Parent = ReplicatedStorage
     end
     folder:SetAttribute(key .. "_Key", tostring(keyCode))
 end
 
 local function LoadKeyBinding(key)
-    local folder = ReplicatedStorage:FindFirstChild("WasUI_Config")
+    local folder = ReplicatedStorage:FindFirstChild(WasUI_Folder.Name)
     if folder then
         local keyStr = folder:GetAttribute(key .. "_Key")
         if keyStr then
@@ -621,7 +641,7 @@ end
 
 local function CreateCircularProgress(parent, position, radius, thickness, color)
     local container = Instance.new("Frame")
-    container.Name = "LongPressProgress"
+    container.Name = _N()
     container.Size = UDim2.new(0, radius * 2, 0, radius * 2)
     container.Position = UDim2.new(0, position.X - radius, 0, position.Y - radius)
     container.BackgroundTransparency = 1
@@ -638,7 +658,7 @@ local function CreateCircularProgress(parent, position, radius, thickness, color
     bgCorner.Parent = bg
     
     local fill = Instance.new("Frame")
-    fill.Name = "Fill"
+    fill.Name = _N()
     fill.Size = UDim2.new(0, 0, 0, 0)
     fill.BackgroundColor3 = color or Color3.fromRGB(255, 255, 255)
     fill.BackgroundTransparency = 0.5
@@ -658,11 +678,12 @@ local function UpdateCircularProgress(fill, progress)
     local maxSize = fill.Parent.AbsoluteSize.X
     local newSize = maxSize * progress
     fill.Size = UDim2.new(0, newSize, 0, newSize)
-    fill.Position = UDim2.new(0.5, -newSize/2, 0.5, -newSize/2)
+    fill.AnchorPoint = Vector2.new(0.5, 0.5)
+    fill.Position = UDim2.new(0.5, 0, 0.5, 0)
 end
 
 local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
-    longPressTime = longPressTime or 3
+    longPressTime = longPressTime or 0.5
     local timer = nil
     local pressed = false
     local startPos = nil
@@ -688,17 +709,21 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
     end
 
     local function startPress(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            onLongPress()
+            return
+        end
+        if input.UserInputType == Enum.UserInputType.Touch then
             pressed = true
             startPos = input.Position
             progressStartTime = tick()
             
             local screenGui = Instance.new("ScreenGui")
-            screenGui.Name = "LongPressProgressGui"
+            screenGui.Name = _N()
             screenGui.ResetOnSpawn = false
             screenGui.DisplayOrder = 2000
             screenGui.Parent = game:GetService("CoreGui")
-            progressContainer, progressFill = CreateCircularProgress(screenGui, startPos, 30, 4, WasUI.CurrentTheme.Accent)
+            progressContainer, progressFill = CreateCircularProgress(screenGui, startPos, 20, 3, WasUI.CurrentTheme.Accent)
             
             timer = task.delay(longPressTime, function()
                 if pressed then
@@ -721,7 +746,7 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
     end
 
     local function checkMove(input)
-        if pressed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if pressed and input.UserInputType == Enum.UserInputType.Touch then
             if startPos and (input.Position - startPos).Magnitude > 10 then
                 endPress()
             end
@@ -766,7 +791,7 @@ local function AddRipple(instance, scaleFactor)
     scaleFactor = scaleFactor or 1.5
     local function createRipple(input)
         local ripple = Instance.new("Frame")
-        ripple.Name = "Ripple"
+        ripple.Name = _N()
         ripple.Size = UDim2.new(0, 0, 0, 0)
         ripple.BackgroundColor3 = WasUI.CurrentTheme.Accent
         ripple.BackgroundTransparency = 0.6
@@ -809,7 +834,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     end
 
     local btnFrame = CreateInstance("Frame", {
-        Name = "Shortcut_" .. (rainbowKey or displayName),
+        Name = _N() .. (rainbowKey or displayName),
         Size = UDim2.new(0, 0, 0, 32),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.2,
@@ -826,7 +851,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
     })
 
     local textLabel = CreateInstance("TextLabel", {
-        Name = "Text",
+        Name = _N(),
         BackgroundTransparency = 1,
         Text = displayName,
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -843,7 +868,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         textLabel.Size = UDim2.new(1, -24, 1, 0)
         textLabel.Position = UDim2.new(0, 8, 0, 0)
         stateIndicator = CreateInstance("Frame", {
-            Name = "Indicator",
+            Name = _N(),
             Size = UDim2.new(0, 8, 0, 8),
             Position = UDim2.new(1, -16, 0.5, -4),
             BackgroundColor3 = initialState and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Error,
@@ -1041,7 +1066,7 @@ function Button:New(name, parent, text, onClick, size, iconName)
     local self = Control:New(name, parent)
     local buttonSize = size or UDim2.new(1, 0, 0, 28)
     self.Instance = CreateInstance("TextButton", {
-        Name = name,
+        Name = _N(),
         Size = buttonSize,
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.3,
@@ -1194,7 +1219,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     self.FeatureName = featureName or name
     self.RainbowName = rainbowName or self.FeatureName
     self.Container = CreateInstance("Frame", {
-        Name = name .. "_Container",
+        Name = _N() .. "_Container",
         Size = UDim2.new(1, 0, 0, 28),
         BackgroundTransparency = 1,
         Parent = parent,
@@ -1203,7 +1228,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     self.Container:SetAttribute("SearchText", title or "")
     if title then
         self.TitleLabel = CreateInstance("TextLabel", {
-            Name = "Title",
+            Name = _N(),
             Size = UDim2.new(0.7, 0, 1, 0),
             Position = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
@@ -1219,7 +1244,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     end
     local offColor = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
     self.Background = CreateInstance("ImageButton", {
-        Name = name .. "_BG",
+        Name = _N() .. "_BG",
         Size = UDim2.new(0, 36, 0, 18),
         Position = title and UDim2.new(1, -40, 0.5, -9) or UDim2.new(1, -40, 0.5, -9),
         BackgroundColor3 = self.Toggled and WasUI.CurrentTheme.Success or offColor,
@@ -1232,7 +1257,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     self.Background:SetAttribute("Toggled", self.Toggled)
     local bgCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.Background})
     self.Knob = CreateInstance("Frame", {
-        Name = name .. "_Knob",
+        Name = _N() .. "_Knob",
         Size = UDim2.new(0, 16, 0, 16),
         Position = self.Toggled and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -1383,7 +1408,7 @@ Label.__index = Label
 function Label:New(name, parent, text, textColor)
     local self = Control:New(name, parent)
     self.Instance = CreateInstance("TextLabel", {
-        Name = name,
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 20),
         BackgroundTransparency = 1,
         Text = text or "标签",
@@ -1421,14 +1446,14 @@ Category.__index = Category
 function Category:New(name, parent, title)
     local self = Control:New(name, parent)
     self.Instance = CreateInstance("Frame", {
-        Name = name,
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 28),
         BackgroundTransparency = 1,
         Parent = parent,
         ZIndex = 2
     })
     local titleLabel = CreateInstance("TextLabel", {
-        Name = "Title",
+        Name = _N(),
         Size = UDim2.new(0.9, 0, 1, 0),
         Position = UDim2.new(0, 2, 0, 0),
         BackgroundTransparency = 1,
@@ -1444,7 +1469,7 @@ function Category:New(name, parent, title)
     })
     titleLabel:SetAttribute("IsLabel", true)
     local line = CreateInstance("Frame", {
-        Name = "Line",
+        Name = _N(),
         Size = UDim2.new(1, -4, 0, 1),
         Position = UDim2.new(0, 2, 1, -2),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
@@ -1489,14 +1514,14 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     self.Callback = callback
     self.IsOpen = false
     self.Container = CreateInstance("Frame", {
-        Name = name,
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
         ZIndex = 10,
         Parent = parent
     })
     self.TitleLabel = CreateInstance("TextLabel", {
-        Name = "Title",
+        Name = _N(),
         Size = UDim2.new(0.7, 0, 0, 20),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
@@ -1510,7 +1535,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         Parent = self.Container
     })
     self.DropdownButton = CreateInstance("TextButton", {
-        Name = "DropdownButton",
+        Name = _N(),
         Size = UDim2.new(0.3, 0, 0, 24),
         Position = UDim2.new(0.7, -3, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
@@ -1529,7 +1554,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.DropdownButton})
     local arrowIcon = CreateInstance("ImageLabel", {
-        Name = "ArrowIcon",
+        Name = _N(),
         Size = UDim2.new(0, 12, 0, 12),
         Position = UDim2.new(1, -10, 0.5, -6),
         BackgroundTransparency = 1,
@@ -1542,7 +1567,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         Parent = self.DropdownButton
     })
     self.OptionsContainer = CreateInstance("ScrollingFrame", {
-        Name = "OptionsContainer",
+        Name = _N(),
         Size = UDim2.new(0.3, 0, 0, 0),
         Position = UDim2.new(0.7, -3, 0, 24),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
@@ -1583,7 +1608,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         self.OptionButtons = {}
         for i, option in ipairs(self.Options) do
             local optionButton = CreateInstance("TextButton", {
-                Name = "Option_" .. option,
+                Name = _N() .. option,
                 Size = UDim2.new(1, 0, 0, 28),
                 BackgroundColor3 = WasUI.CurrentTheme.Input,
                 BackgroundTransparency = 0.3,
@@ -1642,6 +1667,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
             end)
             AddRipple(optionButton)
             self.OptionButtons[option] = optionButton
+            table.insert(WasUI.Objects, {Object = optionButton, Type = "DropdownOption"})
         end
         local function updateContainerSize()
             local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 16
@@ -1849,7 +1875,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     self.Callback = callback
     self.AnimationTween = nil
     self.Container = CreateInstance("Frame", {
-        Name = name,
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 38),
         BackgroundTransparency = 1,
         ZIndex = 3,
@@ -1857,7 +1883,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     })
     self.Container:SetAttribute("SearchText", title or "")
     self.TitleLabel = CreateInstance("TextLabel", {
-        Name = "Title",
+        Name = _N(),
         Size = UDim2.new(0.4, 0, 0, 18),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
@@ -1870,7 +1896,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         Parent = self.Container
     })
     self.ValueLabel = CreateInstance("TextLabel", {
-        Name = "Value",
+        Name = _N(),
         Size = UDim2.new(0.2, 0, 0, 18),
         Position = UDim2.new(0.8, 0, 0, 0),
         BackgroundTransparency = 1,
@@ -1883,7 +1909,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         Parent = self.Container
     })
     self.SliderTrack = CreateInstance("Frame", {
-        Name = "Track",
+        Name = _N(),
         Size = UDim2.new(1, -2, 0, 8),
         Position = UDim2.new(0, 2, 0, 20),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
@@ -1894,7 +1920,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.SliderTrack})
     self.SliderFill = CreateInstance("Frame", {
-        Name = "Fill",
+        Name = _N(),
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Accent,
         BorderSizePixel = 0,
@@ -1903,7 +1929,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.SliderFill})
     self.Knob = CreateInstance("Frame", {
-        Name = "Knob",
+        Name = _N(),
         Size = UDim2.new(0, 16, 0, 16),
         Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -8, 0.5, -8),
         BackgroundTransparency = 1,
@@ -1927,7 +1953,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     local knobScale = Instance.new("UIScale", knobCircle)
 
     local tooltip = Instance.new("TextLabel")
-    tooltip.Name = "Tooltip"
+    tooltip.Name = _N()
     tooltip.Size = UDim2.new(0, 40, 0, 20)
     tooltip.BackgroundColor3 = WasUI.CurrentTheme.Section
     tooltip.BackgroundTransparency = 0.1
@@ -2096,14 +2122,14 @@ function TextInput:New(name, parent, placeholder, defaultValue, callback, config
     local self = Control:New(name, parent)
     self.Callback = callback
     self.Container = CreateInstance("Frame", {
-        Name = name,
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 32),
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = parent
     })
     self.TextBox = CreateInstance("TextBox", {
-        Name = "TextBox",
+        Name = _N(),
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
@@ -2168,7 +2194,7 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
     self.AnimationTween = nil
     
     self.Container = CreateInstance("Frame", {
-        Name = name,
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 32),
         BackgroundTransparency = 1,
         ZIndex = 3,
@@ -2178,7 +2204,7 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
     
     if title then
         self.TitleLabel = CreateInstance("TextLabel", {
-            Name = "Title",
+            Name = _N(),
             Size = UDim2.new(0.4, 0, 0, 18),
             Position = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
@@ -2193,7 +2219,7 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
     end
     
     self.ValueLabel = CreateInstance("TextLabel", {
-        Name = "Value",
+        Name = _N(),
         Size = UDim2.new(0.2, 0, 0, 18),
         Position = UDim2.new(0.8, 0, 0, 0),
         BackgroundTransparency = 1,
@@ -2207,7 +2233,7 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
     })
     
     self.Track = CreateInstance("Frame", {
-        Name = "Track",
+        Name = _N(),
         Size = UDim2.new(1, -2, 0, 12),
         Position = UDim2.new(0, 2, 0, 18),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
@@ -2219,7 +2245,7 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.Track})
     
     self.Fill = CreateInstance("Frame", {
-        Name = "Fill",
+        Name = _N(),
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Accent,
         BorderSizePixel = 0,
@@ -2229,7 +2255,7 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.Fill})
     
     local stripe = CreateInstance("ImageLabel", {
-        Name = "Stripe",
+        Name = _N(),
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
         Image = "rbxassetid://1288891801",
@@ -2321,13 +2347,13 @@ function WasUI:CreateTooltip(target, text, options)
     local function showTooltipAtPoint(point)
         if tooltipGui then return end
         tooltipGui = Instance.new("ScreenGui")
-        tooltipGui.Name = "WasUI_Tooltip"
+        tooltipGui.Name = _N()
         tooltipGui.ResetOnSpawn = false
         tooltipGui.DisplayOrder = 2000
         tooltipGui.Parent = game:GetService("CoreGui")
         
         tooltipFrame = CreateInstance("Frame", {
-            Name = "Tooltip",
+            Name = _N(),
             Size = UDim2.new(0, 0, 0, 0),
             BackgroundColor3 = backgroundColor,
             BackgroundTransparency = 0.1,
@@ -2345,7 +2371,7 @@ function WasUI:CreateTooltip(target, text, options)
         })
         
         local label = CreateInstance("TextLabel", {
-            Name = "Label",
+            Name = _N(),
             Size = UDim2.new(1, -8, 1, -4),
             Position = UDim2.new(0, 4, 0, 2),
             BackgroundTransparency = 1,
@@ -2448,16 +2474,15 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
     self.OnToggle = onToggle
     
     self.Header = CreateInstance("Frame", {
-        Name = "Header",
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 28),
         BackgroundTransparency = 1,
         Parent = parent,
         ZIndex = 2
     })
     
-    -- 使用手动定位来避免 UIListLayout 的偏移问题，确保图标与文字垂直居中
     self.TitleLabel = CreateInstance("TextLabel", {
-        Name = "Title",
+        Name = _N(),
         Size = UDim2.new(0, 0, 1, 0),
         Position = UDim2.new(0, 24, 0, 0),
         BackgroundTransparency = 1,
@@ -2482,7 +2507,7 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
     end
     
     local line = CreateInstance("Frame", {
-        Name = "Line",
+        Name = _N(),
         Size = UDim2.new(1, -4, 0, 1),
         Position = UDim2.new(0, 2, 1, -2),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
@@ -2493,45 +2518,118 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
     })
     
     self.Content = CreateInstance("Frame", {
-        Name = "Content",
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 0),
         BackgroundTransparency = 1,
-        AutomaticSize = Enum.AutomaticSize.Y,
         ClipsDescendants = true,
         Parent = parent,
         ZIndex = 2
     })
     
-    local function updateLayout()
+    local contentListLayout = CreateInstance("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 4),
+        Parent = self.Content
+    })
+    
+    local function getContentHeight()
+        return contentListLayout.AbsoluteContentSize.Y
+    end
+    
+    local heightTween = nil
+    
+    local function updateParentScroller()
+        local parentScroller = self.Content.Parent
+        while parentScroller and not parentScroller:IsA("ScrollingFrame") do
+            parentScroller = parentScroller.Parent
+        end
+        if parentScroller and parentScroller:IsA("ScrollingFrame") then
+            local layout = parentScroller:FindFirstChildOfClass("UIListLayout")
+            if layout then
+                parentScroller.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8)
+            end
+        end
+    end
+    
+    local function updateLayout(animate)
+        if heightTween then
+            heightTween:Cancel()
+            heightTween = nil
+        end
+        
+        local targetHeight = self.Collapsed and 0 or getContentHeight()
+        
+        if animate then
+            heightTween = TweenService:Create(self.Content, 
+                TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                {Size = UDim2.new(1, 0, 0, targetHeight)}
+            )
+            heightTween:Play()
+            heightTween.Completed:Connect(function()
+                heightTween = nil
+                updateParentScroller()
+            end)
+        else
+            self.Content.Size = UDim2.new(1, 0, 0, targetHeight)
+            updateParentScroller()
+        end
+        
         if self.Collapsed then
-            self.Content.Visible = false
             if self.Icon then
                 Tween(self.Icon, {Rotation = -90}, 0.2)
             end
         else
-            self.Content.Visible = true
             if self.Icon then
                 Tween(self.Icon, {Rotation = 0}, 0.2)
             end
         end
+        
         if self.OnToggle then self.OnToggle(self.Collapsed) end
     end
     
+    local function toggleState()
+        self.Collapsed = not self.Collapsed
+        updateLayout(true)
+    end
+    
     local button = CreateInstance("TextButton", {
-        Name = "ToggleButton",
+        Name = _N(),
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
         Text = "",
         Parent = self.Header,
         ZIndex = 1,
-        AutoButtonColor = false
+        AutoButtonColor = false,
+        Active = true,
     })
-    button.MouseButton1Click:Connect(function()
-        self.Collapsed = not self.Collapsed
-        updateLayout()
+    
+    button.MouseButton1Click:Connect(toggleState)
+    
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            toggleState()
+        end
     end)
     
-    updateLayout()
+    contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        if not self.Collapsed then
+            local newHeight = getContentHeight()
+            if self.Content.Size.Y.Offset ~= newHeight then
+                if heightTween then heightTween:Cancel() end
+                heightTween = TweenService:Create(self.Content,
+                    TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                    {Size = UDim2.new(1, 0, 0, newHeight)}
+                )
+                heightTween:Play()
+                heightTween.Completed:Connect(function()
+                    heightTween = nil
+                    updateParentScroller()
+                end)
+            end
+        end
+    end)
+    
+    updateLayout(false)
     
     table.insert(WasUI.Objects, {Object = self.Header, Type = "CollapsibleSectionHeader"})
     table.insert(WasUI.Objects, {Object = self.Content, Type = "CollapsibleSectionContent"})
@@ -2556,13 +2654,13 @@ function WasUI:ShowConfirmDialog(options, callback)
     local onCancel = options.onCancel
     
     local dialogGui = Instance.new("ScreenGui")
-    dialogGui.Name = "WasUI_ConfirmDialog"
+    dialogGui.Name = _N()
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
     dialogGui.Parent = game:GetService("CoreGui")
     
     local overlay = CreateInstance("Frame", {
-        Name = "Overlay",
+        Name = _N(),
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(0, 0, 0),
         BackgroundTransparency = 1,
@@ -2574,10 +2672,10 @@ function WasUI:ShowConfirmDialog(options, callback)
     })
     
     local dialogFrame = CreateInstance("Frame", {
-        Name = "Dialog",
+        Name = _N(),
         Size = UDim2.new(0, 400, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.2,
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Parent = overlay,
@@ -2586,7 +2684,7 @@ function WasUI:ShowConfirmDialog(options, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
     
     local titleLabel = CreateInstance("TextLabel", {
-        Name = "Title",
+        Name = _N(),
         Size = UDim2.new(1, -20, 0, 40),
         Position = UDim2.new(0, 10, 0, 10),
         BackgroundTransparency = 1,
@@ -2604,7 +2702,7 @@ function WasUI:ShowConfirmDialog(options, callback)
     local descriptionLabel = nil
     if description and description ~= "" then
         descriptionLabel = CreateInstance("TextLabel", {
-            Name = "Description",
+            Name = _N(),
             Size = UDim2.new(1, -20, 0, 0),
             Position = UDim2.new(0, 10, 0, currentY),
             BackgroundTransparency = 1,
@@ -2625,7 +2723,7 @@ function WasUI:ShowConfirmDialog(options, callback)
     local inputBox = nil
     if showInput then
         inputBox = CreateInstance("TextBox", {
-            Name = "InputBox",
+            Name = _N(),
             Size = UDim2.new(1, -20, 0, 32),
             Position = UDim2.new(0, 10, 0, currentY),
             BackgroundColor3 = WasUI.CurrentTheme.Input,
@@ -2652,7 +2750,7 @@ function WasUI:ShowConfirmDialog(options, callback)
     end
     
     local buttonContainer = CreateInstance("Frame", {
-        Name = "ButtonContainer",
+        Name = _N(),
         Size = UDim2.new(1, -20, 0, 40),
         Position = UDim2.new(0, 10, 0, currentY + 10),
         BackgroundTransparency = 1,
@@ -2661,7 +2759,7 @@ function WasUI:ShowConfirmDialog(options, callback)
     })
     
     local cancelButton = CreateInstance("TextButton", {
-        Name = "CancelButton",
+        Name = _N(),
         Size = UDim2.new(0.5, -5, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
@@ -2677,7 +2775,7 @@ function WasUI:ShowConfirmDialog(options, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = cancelButton})
     
     local confirmButton = CreateInstance("TextButton", {
-        Name = "ConfirmButton",
+        Name = _N(),
         Size = UDim2.new(0.5, -5, 1, 0),
         Position = UDim2.new(0.5, 5, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Accent,
@@ -2706,22 +2804,21 @@ function WasUI:ShowConfirmDialog(options, callback)
     dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
     updatePosition()
     
-local function animateClose()
-    Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
-    task.wait(0.2)
-    dialogGui:Destroy()
-    if wasWindowVisible and mainWindow then
-        mainWindow.Visible = true
-        if mainWindow.BorderFlow then mainWindow.BorderFlow.Visible = true end
-        if mainWindow.SnowContainer then mainWindow.SnowContainer.Visible = true end
-    end
-    for i, d in ipairs(WasUI.ActiveDialogs) do
-        if d == dialogGui then
-            table.remove(WasUI.ActiveDialogs, i)
-            break
+    Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
+    Tween(overlay, {BackgroundTransparency = 0.5}, 0.2)
+    
+    local function animateClose()
+        Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+        Tween(overlay, {BackgroundTransparency = 1}, 0.2)
+        task.wait(0.2)
+        dialogGui:Destroy()
+        for i, d in ipairs(WasUI.ActiveDialogs) do
+            if d == dialogGui then
+                table.remove(WasUI.ActiveDialogs, i)
+                break
+            end
         end
     end
-end
     
     cancelButton.MouseButton1Click:Connect(function()
         if onCancel then onCancel() end
@@ -2751,8 +2848,6 @@ end
         end
     end
     overlay.InputBegan:Connect(onOverlayClick)
-    
-    Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
     
     table.insert(WasUI.ActiveDialogs, dialogGui)
     return dialogGui
@@ -2798,16 +2893,16 @@ function WasUI:ShowPopup(options, callback)
     local titleTag = options.titleTag
 
     local dialogGui = Instance.new("ScreenGui")
-    dialogGui.Name = "WasUI_Popup"
+    dialogGui.Name = _N()
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
     dialogGui.Parent = game:GetService("CoreGui")
 
     local dialogFrame = CreateInstance("Frame", {
-        Name = "Dialog",
+        Name = _N(),
         Size = UDim2.new(0, 480, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0,
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Parent = dialogGui,
@@ -2815,22 +2910,8 @@ function WasUI:ShowPopup(options, callback)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
 
-        local mainWindow = nil
-        for _, obj in ipairs(WasUI.Objects) do
-            if obj.Type == "Panel" and obj.Object and obj.Object.Visible then
-                mainWindow = obj.Object
-                break
-            end
-        end
-        local wasWindowVisible = false
-        if mainWindow and mainWindow.Visible then
-            wasWindowVisible = true
-            mainWindow.Visible = false
-            if mainWindow.BorderFlow then mainWindow.BorderFlow.Visible = false end
-            if mainWindow.SnowContainer then mainWindow.SnowContainer.Visible = false end
-        end
     local titleContainer = CreateInstance("Frame", {
-        Name = "TitleContainer",
+        Name = _N(),
         Size = UDim2.new(1, -20, 0, 36),
         Position = UDim2.new(0, 10, 0, 10),
         BackgroundTransparency = 1,
@@ -2849,7 +2930,7 @@ function WasUI:ShowPopup(options, callback)
     end
 
     local titleLabel = CreateInstance("TextLabel", {
-        Name = "Title",
+        Name = _N(),
         Size = UDim2.new(1, (titleIconImage and -24 or 0), 0, 24),
         Position = UDim2.new(titleIconImage and 0.06 or 0, 0, 0.5, -12),
         BackgroundTransparency = 1,
@@ -2865,7 +2946,7 @@ function WasUI:ShowPopup(options, callback)
 
     if titleTag then
         local tagContainer = CreateInstance("Frame", {
-            Name = "TagContainer",
+            Name = _N(),
             Size = UDim2.new(0, 0, 0, 20),
             Position = UDim2.new(1, 4, 0.5, -10),
             BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
@@ -2876,7 +2957,7 @@ function WasUI:ShowPopup(options, callback)
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tagContainer})
         local tagLabel = CreateInstance("TextLabel", {
-            Name = "TagLabel",
+            Name = _N(),
             Size = UDim2.new(1, -8, 1, 0),
             Position = UDim2.new(0, 4, 0, 0),
             BackgroundTransparency = 1,
@@ -2894,7 +2975,7 @@ function WasUI:ShowPopup(options, callback)
     end
 
     local contentLabel = CreateInstance("TextLabel", {
-        Name = "Content",
+        Name = _N(),
         Size = UDim2.new(1, -20, 0, 0),
         Position = UDim2.new(0, 10, 0, 56),
         BackgroundTransparency = 1,
@@ -2911,7 +2992,7 @@ function WasUI:ShowPopup(options, callback)
     })
 
     local buttonContainer = CreateInstance("Frame", {
-        Name = "ButtonContainer",
+        Name = _N(),
         Size = UDim2.new(1, -20, 0, 40),
         Position = UDim2.new(0, 10, 0, 70),
         BackgroundTransparency = 1,
@@ -2920,7 +3001,7 @@ function WasUI:ShowPopup(options, callback)
     })
 
     local cancelButton = CreateInstance("TextButton", {
-        Name = "CancelButton",
+        Name = _N(),
         Size = UDim2.new(0.5, -5, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
@@ -2936,7 +3017,7 @@ function WasUI:ShowPopup(options, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = cancelButton})
 
     local confirmButton = CreateInstance("TextButton", {
-        Name = "ConfirmButton",
+        Name = _N(),
         Size = UDim2.new(0.5, -5, 1, 0),
         Position = UDim2.new(0.5, 5, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Accent,
@@ -3015,13 +3096,13 @@ function WasUI:ShowColorPicker(options, callback)
     local cancelText = options.cancelText or "取消"
 
     local dialogGui = Instance.new("ScreenGui")
-    dialogGui.Name = "WasUI_ColorPicker"
+    dialogGui.Name = _N()
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
     dialogGui.Parent = game:GetService("CoreGui")
 
     local transparentOverlay = CreateInstance("Frame", {
-        Name = "TransparentOverlay",
+        Name = _N(),
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
@@ -3033,7 +3114,7 @@ function WasUI:ShowColorPicker(options, callback)
 
     local dialogHeight = showAlpha and 380 or 340
     local dialogFrame = CreateInstance("Frame", {
-        Name = "Dialog",
+        Name = _N(),
         Size = UDim2.new(0, 280, 0, dialogHeight),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 1,
@@ -3045,7 +3126,7 @@ function WasUI:ShowColorPicker(options, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = dialogFrame})
 
     local titleLabel = CreateInstance("TextLabel", {
-        Name = "Title",
+        Name = _N(),
         Size = UDim2.new(1, -16, 0, 24),
         Position = UDim2.new(0, 8, 0, 8),
         BackgroundTransparency = 1,
@@ -3059,7 +3140,7 @@ function WasUI:ShowColorPicker(options, callback)
     })
 
     local previewFrame = CreateInstance("Frame", {
-        Name = "Preview",
+        Name = _N(),
         Size = UDim2.new(1, -16, 0, 32),
         Position = UDim2.new(0, 8, 0, 38),
         BackgroundColor3 = defaultColor,
@@ -3071,7 +3152,7 @@ function WasUI:ShowColorPicker(options, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = previewFrame})
 
     local svMap = CreateInstance("ImageLabel", {
-        Name = "SVMap",
+        Name = _N(),
         Size = UDim2.new(1, -16, 0, 140),
         Position = UDim2.new(0, 8, 0, 78),
         BackgroundColor3 = Color3.fromHSV(0, 1, 1),
@@ -3083,7 +3164,7 @@ function WasUI:ShowColorPicker(options, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = svMap})
 
     local svCursor = CreateInstance("Frame", {
-        Name = "SVCursor",
+        Name = _N(),
         Size = UDim2.new(0, 10, 0, 10),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Color3.new(1, 1, 1),
@@ -3095,7 +3176,7 @@ function WasUI:ShowColorPicker(options, callback)
     CreateInstance("UIStroke", {Thickness = 2, Color = Color3.new(0, 0, 0), Transparency = 0.3, Parent = svCursor})
 
     local hueBar = CreateInstance("Frame", {
-        Name = "HueBar",
+        Name = _N(),
         Size = UDim2.new(1, -16, 0, 16),
         Position = UDim2.new(0, 8, 0, 226),
         BackgroundColor3 = Color3.new(1, 1, 1),
@@ -3117,7 +3198,7 @@ function WasUI:ShowColorPicker(options, callback)
         Parent = hueBar
     })
     local hueCursor = CreateInstance("Frame", {
-        Name = "HueCursor",
+        Name = _N(),
         Size = UDim2.new(0, 6, 1, 4),
         AnchorPoint = Vector2.new(0.5, 0),
         BackgroundColor3 = Color3.new(1, 1, 1),
@@ -3131,7 +3212,7 @@ function WasUI:ShowColorPicker(options, callback)
     local alphaBar, alphaCursor, alphaGradient
     if showAlpha then
         alphaBar = CreateInstance("Frame", {
-            Name = "AlphaBar",
+            Name = _N(),
             Size = UDim2.new(1, -16, 0, 16),
             Position = UDim2.new(0, 8, 0, 250),
             BackgroundColor3 = Color3.new(1, 1, 1),
@@ -3148,7 +3229,7 @@ function WasUI:ShowColorPicker(options, callback)
             Parent = alphaBar
         })
         alphaCursor = CreateInstance("Frame", {
-            Name = "AlphaCursor",
+            Name = _N(),
             Size = UDim2.new(0, 6, 1, 4),
             AnchorPoint = Vector2.new(0.5, 0),
             BackgroundColor3 = Color3.new(1, 1, 1),
@@ -3161,7 +3242,7 @@ function WasUI:ShowColorPicker(options, callback)
     end
 
     local hexInput = CreateInstance("TextBox", {
-        Name = "HexInput",
+        Name = _N(),
         Size = UDim2.new(1, -16, 0, 28),
         Position = UDim2.new(0, 8, 0, showAlpha and 274 or 250),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
@@ -3182,7 +3263,7 @@ function WasUI:ShowColorPicker(options, callback)
 
     local buttonY = showAlpha and 310 or 286
     local buttonContainer = CreateInstance("Frame", {
-        Name = "ButtonContainer",
+        Name = _N(),
         Size = UDim2.new(1, -16, 0, 34),
         Position = UDim2.new(0, 8, 0, buttonY),
         BackgroundTransparency = 1,
@@ -3191,7 +3272,7 @@ function WasUI:ShowColorPicker(options, callback)
     })
 
     local cancelButton = CreateInstance("TextButton", {
-        Name = "CancelButton",
+        Name = _N(),
         Size = UDim2.new(0.5, -4, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
         BackgroundTransparency = 0.3,
@@ -3206,7 +3287,7 @@ function WasUI:ShowColorPicker(options, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = cancelButton})
 
     local confirmButton = CreateInstance("TextButton", {
-        Name = "ConfirmButton",
+        Name = _N(),
         Size = UDim2.new(0.5, -4, 1, 0),
         Position = UDim2.new(0.5, 4, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Accent,
@@ -3315,12 +3396,13 @@ function WasUI:ShowColorPicker(options, callback)
 
     local function animateOpen()
         dialogFrame.Position = UDim2.new(0.5, -140, 0.5, -dialogHeight/2)
-        dialogFrame.BackgroundTransparency = 1
         Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
+        Tween(transparentOverlay, {BackgroundTransparency = 0.5}, 0.2)
     end
 
     local function animateClose()
         Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+        Tween(transparentOverlay, {BackgroundTransparency = 1}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
         for i, d in ipairs(WasUI.ActiveDialogs) do
@@ -3364,14 +3446,14 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
     local buttonSize = UDim2.new(1, 0, 0, 28)
 
     local container = CreateInstance("Frame", {
-        Name = "ColorPickerButton",
+        Name = _N(),
         Size = buttonSize,
         BackgroundTransparency = 1,
         Parent = parent
     })
 
     local colorPreview = CreateInstance("Frame", {
-        Name = "ColorPreview",
+        Name = _N(),
         Size = UDim2.new(0, 24, 0, 24),
         Position = UDim2.new(1, -24, 0.5, -12),
         BackgroundColor3 = defaultColor,
@@ -3384,7 +3466,7 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
     local titleLabel
     if title then
         titleLabel = CreateInstance("TextLabel", {
-            Name = "Title",
+            Name = _N(),
             Size = UDim2.new(1, -32, 1, 0),
             Position = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
@@ -3400,7 +3482,7 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
     end
 
     local button = CreateInstance("TextButton", {
-        Name = "Button",
+        Name = _N(),
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
         Text = "",
@@ -3544,6 +3626,8 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     Tween(arrow, {ImageColor3 = newTheme.Text}, duration)
                 end
             end
+        elseif obj.Type == "DropdownOption" then
+            Tween(instance, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
         elseif obj.Type == "Category" then
             local titleLabel = instance:FindFirstChild("Title")
             local line = instance:FindFirstChild("Line")
@@ -3791,7 +3875,6 @@ end
 local Panel = {}
 Panel.__index = Panel
 
--- 修复外部访问 orderFlow 的错误，映射到 BorderFlow
 function Panel.__index(self, key)
     if key == "orderFlow" then
         return rawget(self, "BorderFlow")
@@ -3817,7 +3900,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
         if url and url ~= "" then
             self.BackgroundImage = CreateInstance("ImageLabel", {
-                Name = "Background",
+                Name = _N(),
                 Size = UDim2.new(1, 0, 1, 0),
                 Position = UDim2.new(0, 0, 0, 0),
                 BackgroundTransparency = 1,
@@ -3852,7 +3935,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     AddRipple(self.Instance)
 
     self.BorderFlow = CreateInstance("Frame", {
-        Name = "BorderFlow",
+        Name = _N(),
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
         Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
         BackgroundTransparency = 1,
@@ -3964,7 +4047,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     self:SetRainbowMode(self.RainbowMode)
 
     self.TitleBar = CreateInstance("Frame", {
-        Name = "TitleBar",
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 26),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
@@ -3979,7 +4062,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     })
 
     self.DraggableArea = CreateInstance("TextButton", {
-        Name = "DraggableArea",
+        Name = _N(),
         Size = UDim2.new(1, 0, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
@@ -3989,7 +4072,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.TitleBar
     })
     self.Title = CreateInstance("TextLabel", {
-        Name = "Title",
+        Name = _N(),
         Size = UDim2.new(1, -140, 1, 0),
         Position = UDim2.new(0, 54, 0, 0),
         BackgroundTransparency = 1,
@@ -4019,7 +4102,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
 
     if #titleTagsList > 0 then
         local titleContainer = CreateInstance("Frame", {
-            Name = "TitleContainer",
+            Name = _N(),
             Size = UDim2.new(1, -120, 1, 0),
             Position = UDim2.new(0, 60, 0, 0),
             BackgroundTransparency = 1,
@@ -4048,7 +4131,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         local tagContainers = {}
         for _, tag in ipairs(titleTagsList) do
             local tagContainer = CreateInstance("Frame", {
-                Name = "TitleTagContainer",
+                Name = _N(),
                 Size = UDim2.new(0, 0, 0, 18),
                 BackgroundColor3 = tag.backgroundColor or WasUI.CurrentTheme.Accent,
                 BackgroundTransparency = 0.2,
@@ -4058,7 +4141,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             })
             CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
             local tagLabel = CreateInstance("TextLabel", {
-                Name = "TagLabel",
+                Name = _N(),
                 Size = UDim2.new(1, -6, 1, 0),
                 Position = UDim2.new(0, 3, 0, 0),
                 BackgroundTransparency = 1,
@@ -4084,7 +4167,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     end
 
     self.DotContainer = CreateInstance("Frame", {
-        Name = "DotContainer",
+        Name = _N(),
         Size = UDim2.new(0, 28, 1, 0),
         Position = UDim2.new(0, 10, 0, 0.8),
         BackgroundTransparency = 1,
@@ -4092,7 +4175,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.TitleBar
     })
     self.DotAreaButton = CreateInstance("ImageButton", {
-        Name = "DotAreaButton",
+        Name = _N(),
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
         Image = "",
@@ -4101,7 +4184,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.DotContainer
     })
     self.CloseDot = CreateInstance("Frame", {
-        Name = "Close",
+        Name = _N(),
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 1.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
@@ -4111,7 +4194,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.DotContainer
     })
     self.MinimizeDot = CreateInstance("Frame", {
-        Name = "Minimize",
+        Name = _N(),
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 16.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
@@ -4121,7 +4204,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.DotContainer
     })
     self.MaximizeDot = CreateInstance("Frame", {
-        Name = "Maximize",
+        Name = _N(),
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 31.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
@@ -4134,7 +4217,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
     self.MinimizedTextLabel = CreateInstance("TextLabel", {
-        Name = "MinimizedText",
+        Name = _N(),
         Size = UDim2.new(1, 0, 1, 0),
         Position = UDim2.new(0.5, 5, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
@@ -4158,7 +4241,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         self.MinimizedTextLabel.TextColor3 = color or WasUI.CurrentTheme.Text
     end
     local searchContainer = CreateInstance("Frame", {
-        Name = "SearchContainer",
+        Name = _N(),
         Size = UDim2.new(0, 0, 0, 20),
         Position = UDim2.new(1, -156, 0, 3),
         BackgroundTransparency = 1,
@@ -4167,7 +4250,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.TitleBar
     })
     local searchBox = CreateInstance("TextBox", {
-        Name = "SearchBox",
+        Name = _N(),
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0,
@@ -4189,7 +4272,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = searchBox
     })
     local closeButton = CreateInstance("ImageButton", {
-        Name = "CloseButton",
+        Name = _N(),
         Size = UDim2.new(0, 22, 0, 22),
         Position = UDim2.new(1, -28, 0, 2),
         BackgroundTransparency = 1,
@@ -4205,7 +4288,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         closeIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     end
     local searchButton = CreateInstance("ImageButton", {
-        Name = "SearchButton",
+        Name = _N(),
         Size = UDim2.new(0, 22, 0, 22),
         Position = UDim2.new(1, -56, 0, 2),
         BackgroundTransparency = 1,
@@ -4337,7 +4420,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
         self.Tabs = {}
         local resultButton = CreateInstance("TextButton", {
-            Name = "Tab_搜索结果",
+            Name = _N(),
             Size = UDim2.new(0, 90, 0, 24),
             BackgroundColor3 = WasUI.CurrentTheme.TabButton,
             BackgroundTransparency = 0.5,
@@ -4351,7 +4434,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = self.TabContainer
         })
         local resultUnderline = CreateInstance("Frame", {
-            Name = "Underline",
+            Name = _N(),
             Size = UDim2.new(0, 0, 0, 2),
             Position = UDim2.new(0.5, 0, 1, -2),
             AnchorPoint = Vector2.new(0.5, 0),
@@ -4361,7 +4444,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = resultButton
         })
         local resultFrame = CreateInstance("Frame", {
-            Name = "TabFrame_搜索结果",
+            Name = _N(),
             Size = UDim2.new(1, 0, 0, 0),
             BackgroundTransparency = 1,
             Visible = true,
@@ -4415,7 +4498,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             })
         end
         local spacing = Instance.new("Frame")
-        spacing.Name = "Spacing"
+        spacing.Name = _N()
         spacing.Size = UDim2.new(1, 0, 0, 4)
         spacing.BackgroundTransparency = 1
         spacing.Parent = searchResultTab.Frame
@@ -4621,7 +4704,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     end)
     closeButton.MouseButton1Click:Connect(function()
         local overlay = CreateInstance("Frame", {
-            Name = "Overlay",
+            Name = _N(),
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundColor3 = Color3.fromRGB(0, 0, 0),
             BackgroundTransparency = 1,
@@ -4632,18 +4715,18 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = self.Instance
         })
         local dialogFrame = CreateInstance("Frame", {
-            Name = "Dialog",
+            Name = _N(),
             Size = UDim2.new(0, 400, 0, 260),
             Position = UDim2.new(0.5, -200, 0.5, -130),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
-            BackgroundTransparency = 0.3,
+            BackgroundTransparency = 1,
             BorderSizePixel = 0,
             Parent = overlay,
             ZIndex = 10001
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
         local titleText = CreateInstance("TextLabel", {
-            Name = "Title",
+            Name = _N(),
             Size = UDim2.new(1, -20, 0, 50),
             Position = UDim2.new(0, 10, 0, 10),
             BackgroundTransparency = 1,
@@ -4658,7 +4741,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             ZIndex = 10002
         })
         local versionLabel = CreateInstance("TextLabel", {
-            Name = "VersionLabel",
+            Name = _N(),
             Size = UDim2.new(1, -20, 0, 20),
             Position = UDim2.new(0, 10, 0, 60),
             BackgroundTransparency = 1,
@@ -4673,7 +4756,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             ZIndex = 10002
         })
         local buttonContainer = CreateInstance("Frame", {
-            Name = "ButtonContainer",
+            Name = _N(),
             Size = UDim2.new(1, -20, 0, 50),
             Position = UDim2.new(0, 10, 1, -60),
             BackgroundTransparency = 1,
@@ -4688,7 +4771,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = buttonContainer
         })
         local confirmButton = CreateInstance("TextButton", {
-            Name = "Confirm",
+            Name = _N(),
             Size = UDim2.new(0, 110, 0, 36),
             BackgroundColor3 = WasUI.CurrentTheme.Section,
             BackgroundTransparency = 0.3,
@@ -4702,7 +4785,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             ZIndex = 10003
         })
         local cancelButton = CreateInstance("TextButton", {
-            Name = "Cancel",
+            Name = _N(),
             Size = UDim2.new(0, 110, 0, 36),
             BackgroundColor3 = WasUI.CurrentTheme.Section,
             BackgroundTransparency = 0.3,
@@ -4724,7 +4807,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Section}, 0.2)
             end)
         end
-        dialogFrame.BackgroundTransparency = 1
         Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
         Tween(overlay, {BackgroundTransparency = 0.5}, 0.3)
         confirmButton.MouseButton1Click:Connect(function()
@@ -4887,7 +4969,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
-        Name = "AnnouncementBar",
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, announcementHeight),
         Position = UDim2.new(0, 0, 0, 26),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
@@ -4908,7 +4990,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
     end
     self.Avatar = CreateInstance("ImageButton", {
-        Name = "Avatar",
+        Name = _N(),
         Size = UDim2.new(0, 48, 0, 48),
         Position = UDim2.new(0, 10, 0.15, 0),
         BackgroundColor3 = Color3.fromRGB(240, 240, 245),
@@ -4940,12 +5022,12 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             return
         end
         local settingsGui = Instance.new("ScreenGui")
-        settingsGui.Name = "WasUI_Settings"
+        settingsGui.Name = _N()
         settingsGui.ResetOnSpawn = false
         settingsGui.DisplayOrder = 1001
         settingsGui.Parent = game:GetService("CoreGui")
         local clickCatcher = CreateInstance("Frame", {
-            Name = "ClickCatcher",
+            Name = _N(),
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
@@ -4954,7 +5036,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = settingsGui
         })
         local settingsFrame = CreateInstance("Frame", {
-            Name = "SettingsPanel",
+            Name = _N(),
             Size = UDim2.new(0, 300, 0, 320),
             Position = UDim2.new(0.5, -150, 0.5, -160),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
@@ -4968,7 +5050,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         WasUI.SettingsGui = settingsGui
         WasUI.SettingsPanel = settingsFrame
         local titleBar = CreateInstance("Frame", {
-            Name = "TitleBar",
+            Name = _N(),
             Size = UDim2.new(1, 0, 0, 30),
             BackgroundColor3 = WasUI.CurrentTheme.Background:lerp(Color3.fromRGB(0, 0, 0), 0.2),
             BackgroundTransparency = 0.3,
@@ -4978,7 +5060,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = titleBar})
         local titleLabel = CreateInstance("TextLabel", {
-            Name = "Title",
+            Name = _N(),
             Size = UDim2.new(1, -30, 1, 0),
             Position = UDim2.new(0, 10, 0, 0),
             BackgroundTransparency = 1,
@@ -4991,7 +5073,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = titleBar
         })
         local closeBtn = CreateInstance("TextButton", {
-            Name = "Close",
+            Name = _N(),
             Size = UDim2.new(0, 24, 0, 24),
             Position = UDim2.new(1, -28, 0, 3),
             BackgroundTransparency = 1,
@@ -5012,7 +5094,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             WasUI.SettingsPanel = nil
         end)
         local contentFrame = CreateInstance("ScrollingFrame", {
-            Name = "Content",
+            Name = _N(),
             Size = UDim2.new(1, -20, 1, -40),
             Position = UDim2.new(0, 10, 0, 40),
             BackgroundTransparency = 1,
@@ -5039,7 +5121,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
         contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshCanvas)
         local themeLabel = CreateInstance("TextLabel", {
-            Name = "ThemeLabel",
+            Name = _N(),
             Size = UDim2.new(1, 0, 0, 24),
             BackgroundTransparency = 1,
             Text = "窗口风格",
@@ -5051,7 +5133,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = contentFrame
         })
         local themeDropdown = CreateInstance("TextButton", {
-            Name = "ThemeDropdown",
+            Name = _N(),
             Size = UDim2.new(0, 120, 0, 28),
             Position = UDim2.new(1, -130, 0, -2),
             BackgroundColor3 = WasUI.CurrentTheme.Input,
@@ -5090,7 +5172,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end)
 
         local rainbowModeLabel = CreateInstance("TextLabel", {
-            Name = "RainbowModeLabel",
+            Name = _N(),
             Size = UDim2.new(1, 0, 0, 24),
             BackgroundTransparency = 1,
             Text = "彩虹边框模式",
@@ -5102,7 +5184,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = contentFrame
         })
         local rainbowModeButton = CreateInstance("TextButton", {
-            Name = "RainbowModeButton",
+            Name = _N(),
             Size = UDim2.new(0, 120, 0, 28),
             Position = UDim2.new(1, -130, 0, -2),
             BackgroundColor3 = WasUI.CurrentTheme.Input,
@@ -5124,14 +5206,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end)
 
         local snowContainer = CreateInstance("Frame", {
-            Name = "SnowToggleContainer",
+            Name = _N(),
             Size = UDim2.new(1, 0, 0, 28),
             BackgroundTransparency = 1,
             ZIndex = 1003,
             Parent = contentFrame
         })
         local snowTitle = CreateInstance("TextLabel", {
-            Name = "Title",
+            Name = _N(),
             Size = UDim2.new(0.7, 0, 1, 0),
             Position = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
@@ -5145,7 +5227,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = snowContainer
         })
         local snowBg = CreateInstance("ImageButton", {
-            Name = "SnowBG",
+            Name = _N(),
             Size = UDim2.new(0, 36, 0, 18),
             Position = UDim2.new(1, -40, 0.5, -9),
             BackgroundColor3 = self.SnowEnabled and WasUI.CurrentTheme.Success or ((WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)),
@@ -5157,7 +5239,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowBg})
         local snowKnob = CreateInstance("Frame", {
-            Name = "SnowKnob",
+            Name = _N(),
             Size = UDim2.new(0, 16, 0, 16),
             Position = self.SnowEnabled and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
             BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -5185,7 +5267,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end)
 
         local groupButton = CreateInstance("TextButton", {
-            Name = "GroupButton",
+            Name = _N(),
             Size = UDim2.new(1, 0, 0, 32),
             Position = UDim2.new(0, 0, 1, -40),
             BackgroundColor3 = WasUI.CurrentTheme.Primary,
@@ -5235,7 +5317,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         clickCatcher.InputBegan:Connect(onScreenClick)
     end)
     self.Username = CreateInstance("TextLabel", {
-        Name = "Username",
+        Name = _N(),
         Size = UDim2.new(0.6, 0, 0, 18),
         Position = UDim2.new(0, 62, 0.12, 0),
         BackgroundTransparency = 1,
@@ -5254,7 +5336,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         executorName = getExecutor()
     end
     self.ExecutorLabel = CreateInstance("TextLabel", {
-        Name = "ExecutorLabel",
+        Name = _N(),
         Size = UDim2.new(0.6, 0, 0, 16),
         Position = UDim2.new(0, 62, 0.35, 0),
         BackgroundTransparency = 1,
@@ -5267,7 +5349,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.AnnouncementBar
     })
     self.WelcomeLabel = CreateInstance("TextLabel", {
-        Name = "WelcomeLabel",
+        Name = _N(),
         Size = UDim2.new(0.6, 0, 0, 14),
         Position = UDim2.new(0, 62, 0.55, 0),
         BackgroundTransparency = 1,
@@ -5280,7 +5362,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.AnnouncementBar
     })
     self.TabBar = CreateInstance("Frame", {
-        Name = "TabBar",
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 0),
         Position = UDim2.new(0, 0, 0, 26 + 80),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
@@ -5290,7 +5372,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.Instance
     })
     local tabLine = CreateInstance("Frame", {
-        Name = "TabLine",
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 1),
         Position = UDim2.new(0, 0, 1, -1),
         BackgroundColor3 = WasUI.CurrentTheme.TabBorder,
@@ -5298,7 +5380,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.TabBar
     })
     self.TabContainer = CreateInstance("ScrollingFrame", {
-        Name = "TabContainer",
+        Name = _N(),
         Size = UDim2.new(1, 0, 0, 0),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
@@ -5342,7 +5424,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     task.wait()
     updateTabBarHeight()
     self.ContentArea = CreateInstance("ScrollingFrame", {
-        Name = "ContentArea",
+        Name = _N(),
         Size = UDim2.new(1, 0, 1, -(26 + 80 + self.TabBar.AbsoluteSize.Y)),
         Position = UDim2.new(0, 0, 0, 26 + 80 + self.TabBar.AbsoluteSize.Y),
         BackgroundTransparency = 1,
@@ -5379,7 +5461,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     function self:AddTab(tabName, icon)
         self.TabOrderCounter = self.TabOrderCounter + 1
         local tabButton = CreateInstance("TextButton", {
-            Name = "Tab_" .. tabName,
+            Name = _N() .. tabName,
             Size = UDim2.new(0, 90, 0, 24),
             BackgroundColor3 = WasUI.CurrentTheme.TabButton,
             BackgroundTransparency = 0.5,
@@ -5393,7 +5475,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = self.TabContainer
         })
         local tabUnderline = CreateInstance("Frame", {
-            Name = "Underline",
+            Name = _N(),
             Size = UDim2.new(0, 0, 0, 2),
             Position = UDim2.new(0.5, 0, 1, -2),
             AnchorPoint = Vector2.new(0.5, 0),
@@ -5403,7 +5485,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = tabButton
         })
         local tabFrame = CreateInstance("Frame", {
-            Name = "TabFrame_" .. tabName,
+            Name = _N() .. tabName,
             Size = UDim2.new(1, 0, 0, 0),
             BackgroundTransparency = 1,
             Visible = false,
@@ -5502,7 +5584,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
 
     if self.SnowEnabled then
         self.SnowContainer = CreateInstance("Frame", {
-            Name = "SnowContainer",
+            Name = _N(),
             Size = self.Instance.Size,
             Position = self.Instance.Position,
             BackgroundTransparency = 1,
@@ -5634,7 +5716,7 @@ function WasUI:Notify(options)
     local borderColor = options.BorderColor or WasUI.CurrentTheme.Text
     local notificationId = HttpService:GenerateGUID(false)
     local frame = CreateInstance("Frame", {
-        Name = "Notification_" .. notificationId,
+        Name = _N() .. notificationId,
         Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
         Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, WasUI.NotificationTop),
         BackgroundColor3 = bgColor,
@@ -5652,7 +5734,7 @@ function WasUI:Notify(options)
         Parent = frame
     })
     local titleLabel = CreateInstance("TextLabel", {
-        Name = "Title",
+        Name = _N(),
         Size = UDim2.new(1, -10, 0, 14),
         Position = UDim2.new(0, 5, 0, 2),
         BackgroundTransparency = 1,
@@ -5665,7 +5747,7 @@ function WasUI:Notify(options)
         Parent = frame
     })
     local contentLabel = CreateInstance("TextLabel", {
-        Name = "Content",
+        Name = _N(),
         Size = UDim2.new(1, -10, 0, 12),
         Position = UDim2.new(0, 5, 0, 16),
         BackgroundTransparency = 1,
@@ -5702,7 +5784,7 @@ end
 
 function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, titleTag)
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "WasUI_Main"
+    screenGui.Name = _N()
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = game:GetService("CoreGui")
@@ -5784,7 +5866,7 @@ end
 
 function WasUI:AddSpacing(parent, height)
     local spacing = Instance.new("Frame")
-    spacing.Name = "Spacing"
+    spacing.Name = _N()
     spacing.Size = UDim2.new(1, 0, 0, height or 4)
     spacing.BackgroundTransparency = 1
     spacing.Parent = parent
