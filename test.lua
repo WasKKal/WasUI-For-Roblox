@@ -2467,10 +2467,27 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         ZIndex = 2
     })
     
+    local titleContainer = CreateInstance("Frame", {
+        Name = "TitleContainer",
+        Size = UDim2.new(1, -4, 1, 0),
+        Position = UDim2.new(0, 4, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = self.Header,
+        ZIndex = 2
+    })
+    
+    local titleLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 6),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = titleContainer
+    })
+    
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(0, 0, 1, 0),
-        Position = UDim2.new(0, 4, 0, 0),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -2480,23 +2497,14 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         TextYAlignment = Enum.TextYAlignment.Center,
         AutomaticSize = Enum.AutomaticSize.X,
         ZIndex = 2,
-        Parent = self.Header
+        Parent = titleContainer
     })
     
     self.Icon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
     if self.Icon then
-        self.Icon.Parent = self.Header
+        self.Icon.Parent = titleContainer
         self.Icon.ZIndex = 3
-        self.Icon.AnchorPoint = Vector2.new(0, 0.5)
         self.Icon.Rotation = self.Collapsed and -90 or 0
-        local function updateIconPosition()
-            if self.TitleLabel and self.Icon then
-                self.Icon.Position = UDim2.new(0, self.TitleLabel.AbsolutePosition.X - self.Header.AbsolutePosition.X + self.TitleLabel.AbsoluteSize.X + 4, 0.5, 0)
-            end
-        end
-        self.TitleLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateIconPosition)
-        self.TitleLabel:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateIconPosition)
-        updateIconPosition()
     end
     
     local line = CreateInstance("Frame", {
@@ -2574,11 +2582,6 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         else
             if self.Icon then
                 Tween(self.Icon, {Rotation = 0}, 0.2)
-                task.defer(function()
-                    if self.TitleLabel and self.Icon then
-                        self.Icon.Position = UDim2.new(0, self.TitleLabel.AbsolutePosition.X - self.Header.AbsolutePosition.X + self.TitleLabel.AbsoluteSize.X + 4, 0.5, 0)
-                    end
-                end)
             end
         end
         
@@ -3063,7 +3066,6 @@ function WasUI:ShowPopup(options, callback)
     dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
     updatePosition()
 
-    -- ========== 全屏彩虹边框（围绕弹窗） ==========
     local rainbowContainer = CreateInstance("Frame", {
         Name = "PopupRainbow",
         Size = UDim2.new(1, 0, 1, 0),
@@ -3081,7 +3083,7 @@ function WasUI:ShowPopup(options, callback)
         if not dialogFrame or not dialogFrame.Parent then return end
         local framePos = dialogFrame.AbsolutePosition
         local frameSize = dialogFrame.AbsoluteSize
-        if frameSize.X <= 0 or frameSize.Y <= 0 then return end
+        if frameSize.X <= 10 or frameSize.Y <= 10 then return end
 
         for _, data in ipairs(bars) do
             data.Bar:Destroy()
@@ -3170,9 +3172,8 @@ function WasUI:ShowPopup(options, callback)
         end)
     end
 
-    -- 等待 dialogFrame 渲染后更新彩虹条
     task.spawn(function()
-        while not dialogFrame or not dialogFrame.Parent or dialogFrame.AbsoluteSize.X <= 0 do
+        while not dialogFrame or not dialogFrame.Parent or dialogFrame.AbsoluteSize.X <= 10 do
             task.wait()
         end
         updateRainbowBars()
