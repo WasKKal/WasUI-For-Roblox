@@ -1,4 +1,3 @@
-```lua
 --Version 1.1.0
 local WasUI = {}
 WasUI.__index = WasUI
