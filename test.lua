@@ -101,19 +101,19 @@ WasUI.Themes = {
         SnowColor = Color3.fromRGB(0, 0, 0)
     },
     Blue = {
-        Primary = Color3.fromRGB(70, 130, 180),      -- 降低了饱和度，原为 94,215,255
-        Secondary = Color3.fromRGB(100, 165, 200),   -- 原 0,255,195
-        Background = Color3.fromRGB(30, 100, 140),   -- 原 0,152,211
-        Text = Color3.fromRGB(240, 245, 250),        -- 稍柔和的白
-        Accent = Color3.fromRGB(220, 140, 60),       -- 降低橙色饱和度
+        Primary = Color3.fromRGB(70, 130, 180),
+        Secondary = Color3.fromRGB(100, 165, 200),
+        Background = Color3.fromRGB(30, 100, 140),
+        Text = Color3.fromRGB(240, 245, 250),
+        Accent = Color3.fromRGB(220, 140, 60),
         Success = Color3.fromRGB(83, 227, 136),
         Warning = Color3.fromRGB(255, 213, 91),
         Error = Color3.fromRGB(255, 123, 123),
-        Section = Color3.fromRGB(50, 130, 170),      -- 原 0,237,255
-        Input = Color3.fromRGB(40, 120, 160),        -- 原 0,191,255
+        Section = Color3.fromRGB(50, 130, 170),
+        Input = Color3.fromRGB(40, 120, 160),
         TabBorder = Color3.fromRGB(0, 145, 210),
-        TabButton = Color3.fromRGB(40, 120, 180),    -- 原 0,255,206
-        SnowColor = Color3.fromRGB(255, 180, 100)    -- 柔和橙色雪
+        TabButton = Color3.fromRGB(40, 120, 180),
+        SnowColor = Color3.fromRGB(255, 180, 100)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes[WasUI.DefaultTheme]
@@ -4042,7 +4042,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     startFlowAnimation()
     self:SetRainbowMode(self.RainbowMode)
 
-    -- 首次加载发散彩虹边框
+    -- 首次加载发散彩虹边框（向内发散）
     local function createRainbowBurst()
         local effectContainer = CreateInstance("Frame", {
             Name = "RainbowBurst",
@@ -4053,7 +4053,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = self.Instance
         })
         local barsPerEdge = 60
-        local barLength = 40
+        local barLength = 80
         local burstBars = {}
         for edgeIdx = 1, 4 do
             for i = 1, barsPerEdge do
@@ -4094,9 +4094,12 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                     T = t_global,
                     IsHorizontal = isHorizontal
                 })
-                local targetSize = isHorizontal
-                    and UDim2.new(1 / barsPerEdge, 0, 0, barLength)
-                    or UDim2.new(0, barLength, 1 / barsPerEdge, 0)
+                local targetSize
+                if isHorizontal then
+                    targetSize = UDim2.new(1 / barsPerEdge, 0, 0, barLength)
+                else
+                    targetSize = UDim2.new(0, barLength, 1 / barsPerEdge, 0)
+                end
                 TweenService:Create(bar, 
                     TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
                     { Size = targetSize, BackgroundTransparency = 0 }
