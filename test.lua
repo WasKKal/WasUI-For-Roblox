@@ -101,19 +101,19 @@ WasUI.Themes = {
         SnowColor = Color3.fromRGB(0, 0, 0)
     },
     Blue = {
-        Primary = Color3.fromRGB(94, 215, 255),
-        Secondary = Color3.fromRGB(0, 255, 195),
-        Background = Color3.fromRGB(0, 152, 211),
-        Text = Color3.fromRGB(255, 255, 255),
-        Accent = Color3.fromRGB(255, 133, 0),
+        Primary = Color3.fromRGB(70, 130, 180),      -- 降低了饱和度，原为 94,215,255
+        Secondary = Color3.fromRGB(100, 165, 200),   -- 原 0,255,195
+        Background = Color3.fromRGB(30, 100, 140),   -- 原 0,152,211
+        Text = Color3.fromRGB(240, 245, 250),        -- 稍柔和的白
+        Accent = Color3.fromRGB(220, 140, 60),       -- 降低橙色饱和度
         Success = Color3.fromRGB(83, 227, 136),
         Warning = Color3.fromRGB(255, 213, 91),
         Error = Color3.fromRGB(255, 123, 123),
-        Section = Color3.fromRGB(0, 237, 255),
-        Input = Color3.fromRGB(0, 191, 255),
+        Section = Color3.fromRGB(50, 130, 170),      -- 原 0,237,255
+        Input = Color3.fromRGB(40, 120, 160),        -- 原 0,191,255
         TabBorder = Color3.fromRGB(0, 145, 210),
-        TabButton = Color3.fromRGB(0, 255, 206),
-        SnowColor = Color3.fromRGB(255, 146, 0)
+        TabButton = Color3.fromRGB(40, 120, 180),    -- 原 0,255,206
+        SnowColor = Color3.fromRGB(255, 180, 100)    -- 柔和橙色雪
     }
 }
 WasUI.CurrentTheme = WasUI.Themes[WasUI.DefaultTheme]
@@ -3710,7 +3710,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     end
                 end
             end
-local panelData = obj.PanelData
+            local panelData = obj.PanelData
             if panelData then
                 local dotContainer = panelData.DotContainer
                 if dotContainer then
@@ -4041,6 +4041,106 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
 
     startFlowAnimation()
     self:SetRainbowMode(self.RainbowMode)
+
+    -- 首次加载发散彩虹边框
+    local function createRainbowBurst()
+        local effectContainer = CreateInstance("Frame", {
+            Name = "RainbowBurst",
+            Size = UDim2.new(1, 0, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            ZIndex = -1,
+            Parent = self.Instance
+        })
+        local barsPerEdge = 60
+        local barLength = 40
+        local burstBars = {}
+        for edgeIdx = 1, 4 do
+            for i = 1, barsPerEdge do
+                local isHorizontal = (edgeIdx == 1 or edgeIdx == 3)
+                local bar = CreateInstance("Frame", {
+                    Name = "BurstBar",
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = Color3.new(1,0,0),
+                    BackgroundTransparency = 1,
+                    ZIndex = -1,
+                    Parent = effectContainer
+                })
+                if isHorizontal then
+                    bar.Size = UDim2.new(1 / barsPerEdge, 0, 0, 0)
+                    bar.AnchorPoint = (edgeIdx == 1) and Vector2.new(0.5, 1) or Vector2.new(0.5, 0)
+                    bar.Position = (edgeIdx == 1) 
+                        and UDim2.new((i - 0.5) / barsPerEdge, 0, 1, 0) 
+                        or UDim2.new((i - 0.5) / barsPerEdge, 0, 0, 0)
+                else
+                    bar.Size = UDim2.new(0, 0, 1 / barsPerEdge, 0)
+                    bar.AnchorPoint = (edgeIdx == 2) and Vector2.new(1, 0.5) or Vector2.new(0, 0.5)
+                    bar.Position = (edgeIdx == 2) 
+                        and UDim2.new(1, 0, (i - 0.5) / barsPerEdge, 0) 
+                        or UDim2.new(0, 0, (i - 0.5) / barsPerEdge, 0)
+                end
+                local t_global
+                if edgeIdx == 1 then
+                    t_global = (i - 0.5) / (barsPerEdge * 4)
+                elseif edgeIdx == 2 then
+                    t_global = (barsPerEdge + i - 0.5) / (barsPerEdge * 4)
+                elseif edgeIdx == 3 then
+                    t_global = (2 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
+                else
+                    t_global = (3 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
+                end
+                table.insert(burstBars, {
+                    Bar = bar,
+                    T = t_global,
+                    IsHorizontal = isHorizontal
+                })
+                local targetSize = isHorizontal
+                    and UDim2.new(1 / barsPerEdge, 0, 0, barLength)
+                    or UDim2.new(0, barLength, 1 / barsPerEdge, 0)
+                TweenService:Create(bar, 
+                    TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                    { Size = targetSize, BackgroundTransparency = 0 }
+                ):Play()
+            end
+        end
+        local burstStartTime = tick()
+        local burstRainbowConn
+        burstRainbowConn = RunService.Heartbeat:Connect(function()
+            if not effectContainer or not effectContainer.Parent then
+                burstRainbowConn:Disconnect()
+                return
+            end
+            local elapsed = (tick() - burstStartTime) * 1.5
+            local offset = elapsed % 1
+            for _, data in ipairs(burstBars) do
+                local currentT = data.T - offset
+                if currentT < 0 then currentT = currentT + 1 end
+                data.Bar.BackgroundColor3 = Color3.fromHSV(currentT, 1, 1)
+            end
+        end)
+        task.delay(0.8, function()
+            if burstRainbowConn then burstRainbowConn:Disconnect() end
+            for _, data in ipairs(burstBars) do
+                local bar = data.Bar
+                if bar and bar.Parent then
+                    local targetSize = data.IsHorizontal
+                        and UDim2.new(bar.Size.X.Scale, 0, 0, 0)
+                        or UDim2.new(0, 0, bar.Size.Y.Scale, 0)
+                    TweenService:Create(bar,
+                        TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+                        { Size = targetSize, BackgroundTransparency = 1 }
+                    ):Play()
+                end
+            end
+            task.delay(0.5, function()
+                effectContainer:Destroy()
+                self.BorderFlow.Visible = true
+                self:SetRainbowMode(self.RainbowMode)
+            end)
+        end)
+        self.BorderFlow.Visible = false
+    end
+    createRainbowBurst()
 
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
@@ -5759,7 +5859,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self.SnowContainer.Visible = true
         end
     end)
-table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel", PanelData = self})
+    table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel", PanelData = self})
     return self
 end
 
