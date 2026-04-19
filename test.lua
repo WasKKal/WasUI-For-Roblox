@@ -1,4 +1,4 @@
---Version 1.0.9.6
+--Version 1.1.0
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -30,7 +30,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.0.9.6"
+WasUI.Version = "1.1.0"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -48,10 +48,9 @@ WasUI_Folder.Name = "WasUI_Config"
 WasUI_Folder.Parent = ReplicatedStorage
 
 WasUI.DefaultTheme = "Dark"
-WasUI.DefaultRainbowMode = "整体"
+WasUI.DefaultRainbowMode = "流动"
 WasUI.CurrentThemeName = WasUI.DefaultTheme
 
--- ===== 多语言支持 =====
 WasUI.CurrentLanguage = "中文"
 WasUI.LanguageTable = nil
 
@@ -119,7 +118,6 @@ function WasUI:RefreshAllTexts()
 end
 
 function WasUI:RefreshSettingsPanelTexts()
-    -- 面板文本已通过 SetLocalizedText 处理，无需额外操作
 end
 
 function WasUI:SetDefaultTheme(themeName)
@@ -734,7 +732,6 @@ local function UpdateCircularProgress(fill, progress)
     fill.Position = UDim2.new(0.5, 0, 0.5, 0)
 end
 
--- ===== 修复长按逻辑：支持单指触摸，清理残留 =====
 local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
     longPressTime = longPressTime or 0.5
     local timer = nil
@@ -913,7 +910,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         ZIndex = 10001,
         Parent = btnFrame
     })
-    WasUI:SetLocalizedText(textLabel, displayName) -- 支持翻译
+    WasUI:SetLocalizedText(textLabel, displayName)
 
     local stateIndicator = nil
     if isToggle then
@@ -1255,18 +1252,24 @@ function Button:New(name, parent, text, onClick, size, iconName)
         WasUI.KeyBindings[controlKey] = { keyCode = savedKey, callback = onClick, controlType = "button" }
     end
 
-    -- 长按创建快捷按钮，改为3秒
     AddLongPressToControl(self.Instance, function()
         CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
         WasUI:Notify({Title = "快捷键", Content = "已创建快捷按钮: " .. (text or name), Duration = 1.5})
     end, 3)
 
-    -- 标记所属Category
     local panel = parent
-    while panel and type(panel) ~= "table" or not panel.GetActiveTab do
-        panel = panel.Parent
+    while panel do
+        if type(panel) == "table" and panel.GetActiveTab then
+            break
+        end
+        if panel.Parent then
+            panel = panel.Parent
+        else
+            panel = nil
+            break
+        end
     end
-    if panel and type(panel) == "table" and panel.GetCurrentCategory then
+    if panel and panel.GetCurrentCategory then
         local cat = panel:GetCurrentCategory()
         if cat then
             self.Instance:SetAttribute("Category", cat)
@@ -1452,7 +1455,6 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         WasUI.KeyBindings[controlKey] = { keyCode = savedKey, callback = function() performToggle(not self.Toggled) end, controlType = "toggle" }
     end
 
-    -- 长按创建快捷开关，改为3秒
     AddLongPressToControl(self.Background, function()
         local shortcut = CreateShortcutButton(self.RainbowName, true, self.Toggled, 
             function(newState)
@@ -1472,12 +1474,19 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         end
     end
 
-    -- 标记所属Category
     local panel = parent
-    while panel and type(panel) ~= "table" or not panel.GetActiveTab do
-        panel = panel.Parent
+    while panel do
+        if type(panel) == "table" and panel.GetActiveTab then
+            break
+        end
+        if panel.Parent then
+            panel = panel.Parent
+        else
+            panel = nil
+            break
+        end
     end
-    if panel and type(panel) == "table" and panel.GetCurrentCategory then
+    if panel and panel.GetCurrentCategory then
         local cat = panel:GetCurrentCategory()
         if cat then
             self.Container:SetAttribute("Category", cat)
@@ -1524,12 +1533,19 @@ function Label:New(name, parent, text, textColor)
         end
     end
     
-    -- 标记所属Category
     local panel = parent
-    while panel and type(panel) ~= "table" or not panel.GetActiveTab do
-        panel = panel.Parent
+    while panel do
+        if type(panel) == "table" and panel.GetActiveTab then
+            break
+        end
+        if panel.Parent then
+            panel = panel.Parent
+        else
+            panel = nil
+            break
+        end
     end
-    if panel and type(panel) == "table" and panel.GetCurrentCategory then
+    if panel and panel.GetCurrentCategory then
         local cat = panel:GetCurrentCategory()
         if cat then
             self.Instance:SetAttribute("Category", cat)
@@ -1540,7 +1556,6 @@ function Label:New(name, parent, text, textColor)
     return self
 end
 
--- ===== Category 支持图标，默认图标 chevron-down =====
 local Category = setmetatable({}, {__index = Control})
 Category.__index = Category
 function Category:New(name, parent, title, iconName)
@@ -1606,12 +1621,19 @@ function Category:New(name, parent, title, iconName)
         Parent = self.Instance
     })
 
-    -- 设置当前Category上下文
     local panel = parent
-    while panel and type(panel) ~= "table" or not panel.GetActiveTab do
-        panel = panel.Parent
+    while panel do
+        if type(panel) == "table" and panel.GetActiveTab then
+            break
+        end
+        if panel.Parent then
+            panel = panel.Parent
+        else
+            panel = nil
+            break
+        end
     end
-    if panel and type(panel) == "table" and panel.SetCurrentCategory then
+    if panel and panel.SetCurrentCategory then
         panel:SetCurrentCategory(title)
     end
 
@@ -1974,12 +1996,19 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
             end)
         end
     end
-    -- 标记所属Category
     local panel = parent
-    while panel and type(panel) ~= "table" or not panel.GetActiveTab do
-        panel = panel.Parent
+    while panel do
+        if type(panel) == "table" and panel.GetActiveTab then
+            break
+        end
+        if panel.Parent then
+            panel = panel.Parent
+        else
+            panel = nil
+            break
+        end
     end
-    if panel and type(panel) == "table" and panel.GetCurrentCategory then
+    if panel and panel.GetCurrentCategory then
         local cat = panel:GetCurrentCategory()
         if cat then
             self.Container:SetAttribute("Category", cat)
@@ -2260,12 +2289,19 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             config:Bind(configKey, self, function(value) setValueImmediately(value) end)
         end
     end
-    -- 标记所属Category
     local panel = parent
-    while panel and type(panel) ~= "table" or not panel.GetActiveTab do
-        panel = panel.Parent
+    while panel do
+        if type(panel) == "table" and panel.GetActiveTab then
+            break
+        end
+        if panel.Parent then
+            panel = panel.Parent
+        else
+            panel = nil
+            break
+        end
     end
-    if panel and type(panel) == "table" and panel.GetCurrentCategory then
+    if panel and panel.GetCurrentCategory then
         local cat = panel:GetCurrentCategory()
         if cat then
             self.Container:SetAttribute("Category", cat)
@@ -2334,12 +2370,19 @@ function TextInput:New(name, parent, placeholder, defaultValue, callback, config
             config:Bind(configKey, self, function(value) self.TextBox.Text = value end)
         end
     end
-    -- 标记所属Category
     local panel = parent
-    while panel and type(panel) ~= "table" or not panel.GetActiveTab do
-        panel = panel.Parent
+    while panel do
+        if type(panel) == "table" and panel.GetActiveTab then
+            break
+        end
+        if panel.Parent then
+            panel = panel.Parent
+        else
+            panel = nil
+            break
+        end
     end
-    if panel and type(panel) == "table" and panel.GetCurrentCategory then
+    if panel and panel.GetCurrentCategory then
         local cat = panel:GetCurrentCategory()
         if cat then
             self.Container:SetAttribute("Category", cat)
@@ -2353,7 +2396,6 @@ function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback, conf
     return TextInput:New("TextInput", parent, placeholder, defaultValue, callback, configKey)
 end
 
--- ===== ProgressBar 不再支持配置存储 =====
 local ProgressBar = setmetatable({}, {__index = Control})
 ProgressBar.__index = ProgressBar
 
@@ -2456,12 +2498,19 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback)
         return self.Value
     end
     
-    -- 标记所属Category
     local panel = parent
-    while panel and type(panel) ~= "table" or not panel.GetActiveTab do
-        panel = panel.Parent
+    while panel do
+        if type(panel) == "table" and panel.GetActiveTab then
+            break
+        end
+        if panel.Parent then
+            panel = panel.Parent
+        else
+            panel = nil
+            break
+        end
     end
-    if panel and type(panel) == "table" and panel.GetCurrentCategory then
+    if panel and panel.GetCurrentCategory then
         local cat = panel:GetCurrentCategory()
         if cat then
             self.Container:SetAttribute("Category", cat)
@@ -2634,16 +2683,1256 @@ function WasUI:CreateTooltip(target, text, options)
     }
 end
 
--- ===== 停用 CollapsibleSection API，此处保留内部实现但不暴露 =====
-local CollapsibleSection = setmetatable({}, {__index = Control})
-CollapsibleSection.__index = CollapsibleSection
-
-function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
-    -- 内部保留，但不再公开
-    error("CollapsibleSection 已弃用，请使用 Category")
+function WasUI:ShowConfirmDialog(options, callback)
+    local title = options.title or "确认"
+    local titleColor = options.titleColor or WasUI.CurrentTheme.Text
+    local description = options.description
+    local descriptionColor = options.descriptionColor or WasUI.CurrentTheme.Text
+    local showInput = options.showInput or false
+    local inputPlaceholder = options.inputPlaceholder or "请输入..."
+    local inputDefault = options.inputDefault or ""
+    local confirmText = options.confirmText or "确认"
+    local cancelText = options.cancelText or "取消"
+    local onConfirm = options.onConfirm
+    local onCancel = options.onCancel
+    
+    local dialogGui = Instance.new("ScreenGui")
+    dialogGui.Name = "WasUI_ConfirmDialog"
+    dialogGui.ResetOnSpawn = false
+    dialogGui.DisplayOrder = 2000
+    dialogGui.Parent = game:GetService("CoreGui")
+    
+    local overlay = CreateInstance("Frame", {
+        Name = "Overlay",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Active = true,
+        Selectable = true,
+        Parent = dialogGui,
+        ZIndex = 999
+    })
+    
+    local dialogFrame = CreateInstance("Frame", {
+        Name = "Dialog",
+        Size = UDim2.new(0, 400, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Parent = overlay,
+        ZIndex = 1000
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
+    
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(1, -20, 0, 40),
+        Position = UDim2.new(0, 10, 0, 10),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = titleColor,
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+    
+    local currentY = 60
+    local descriptionLabel = nil
+    if description and description ~= "" then
+        descriptionLabel = CreateInstance("TextLabel", {
+            Name = "Description",
+            Size = UDim2.new(1, -20, 0, 0),
+            Position = UDim2.new(0, 10, 0, currentY),
+            BackgroundTransparency = 1,
+            Text = description,
+            TextColor3 = descriptionColor,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Top,
+            TextWrapped = true,
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Parent = dialogFrame,
+            ZIndex = 1001
+        })
+        currentY = currentY + descriptionLabel.AbsoluteSize.Y + 10
+    end
+    
+    local inputBox = nil
+    if showInput then
+        inputBox = CreateInstance("TextBox", {
+            Name = "InputBox",
+            Size = UDim2.new(1, -20, 0, 32),
+            Position = UDim2.new(0, 10, 0, currentY),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            Text = inputDefault,
+            PlaceholderText = inputPlaceholder,
+            TextColor3 = WasUI.CurrentTheme.Text,
+            PlaceholderColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ClearTextOnFocus = false,
+            Parent = dialogFrame,
+            ZIndex = 1001
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = inputBox})
+        local padding = CreateInstance("UIPadding", {
+            PaddingLeft = UDim.new(0, 8),
+            PaddingRight = UDim.new(0, 8),
+            Parent = inputBox
+        })
+        currentY = currentY + 42
+    end
+    
+    local buttonContainer = CreateInstance("Frame", {
+        Name = "ButtonContainer",
+        Size = UDim2.new(1, -20, 0, 40),
+        Position = UDim2.new(0, 10, 0, currentY + 10),
+        BackgroundTransparency = 1,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+    
+    local cancelButton = CreateInstance("TextButton", {
+        Name = "CancelButton",
+        Size = UDim2.new(0.5, -5, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Section,
+        BackgroundTransparency = 0.3,
+        Text = cancelText,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        AutoButtonColor = false,
+        Parent = buttonContainer,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = cancelButton})
+    
+    local confirmButton = CreateInstance("TextButton", {
+        Name = "ConfirmButton",
+        Size = UDim2.new(0.5, -5, 1, 0),
+        Position = UDim2.new(0.5, 5, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Accent,
+        BackgroundTransparency = 0.3,
+        Text = confirmText,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        AutoButtonColor = false,
+        Parent = buttonContainer,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = confirmButton})
+    
+    local totalHeight = currentY + 60
+    dialogFrame.Size = UDim2.new(0, 400, 0, totalHeight)
+    
+    local function updatePosition()
+        if dialogFrame and dialogFrame.Parent then
+            local parentSize = overlay.AbsoluteSize
+            local frameSize = dialogFrame.AbsoluteSize
+            dialogFrame.Position = UDim2.new(0.5, -frameSize.X/2, 0.5, -frameSize.Y/2)
+        end
+    end
+    
+    dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
+    updatePosition()
+    
+    Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
+    Tween(overlay, {BackgroundTransparency = 0.5}, 0.2)
+    
+    local function animateClose()
+        Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+        Tween(overlay, {BackgroundTransparency = 1}, 0.2)
+        task.wait(0.2)
+        dialogGui:Destroy()
+        for i, d in ipairs(WasUI.ActiveDialogs) do
+            if d == dialogGui then
+                table.remove(WasUI.ActiveDialogs, i)
+                break
+            end
+        end
+    end
+    
+    cancelButton.MouseButton1Click:Connect(function()
+        if onCancel then onCancel() end
+        animateClose()
+    end)
+    
+    confirmButton.MouseButton1Click:Connect(function()
+        local inputValue = nil
+        if showInput and inputBox then
+            inputValue = inputBox.Text
+        end
+        if onConfirm then onConfirm(inputValue) end
+        animateClose()
+    end)
+    
+    local function onOverlayClick(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local mousePos = input.Position
+            local framePos = dialogFrame.AbsolutePosition
+            local frameSize = dialogFrame.AbsoluteSize
+            local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
+                            mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
+            if not inPanel then
+                if onCancel then onCancel() end
+                animateClose()
+            end
+        end
+    end
+    overlay.InputBegan:Connect(onOverlayClick)
+    
+    table.insert(WasUI.ActiveDialogs, dialogGui)
+    return dialogGui
 end
 
--- ===== 以下为 Panel 定义及彩虹边框（从边缘向内扩展） =====
+function WasUI:CreateConfirmButton(parent, text, confirmOptions, onClick, size, iconName)
+    local button = self:CreateButton(parent, text, function()
+        self:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
+            if confirmed and onClick then
+                onClick(inputValue)
+            end
+        end)
+    end, size, iconName)
+    return button
+end
+
+function WasUI:CreateConfirmToggle(parent, title, initialState, confirmOptions, onToggle, featureName, rainbowName, iconName, configKey)
+    local toggle = self:CreateToggleWithTitle(parent, title, initialState, function(state)
+        if state then
+            self:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
+                if confirmed then
+                    if onToggle then onToggle(state) end
+                else
+                    toggle._setStateSilently(false)
+                end
+            end)
+        else
+            if onToggle then onToggle(state) end
+        end
+    end, featureName, rainbowName, iconName, configKey)
+    
+    return toggle
+end
+
+function WasUI:ShowPopup(options, callback)
+    local title = options.title or "提示"
+    local titleIcon = options.titleIcon
+    local content = options.content or ""
+    local confirmText = options.confirmText or "确认"
+    local cancelText = options.cancelText or "取消"
+    local onConfirm = options.onConfirm
+    local onCancel = options.onCancel
+    local titleTag = options.titleTag
+
+    local dialogGui = Instance.new("ScreenGui")
+    dialogGui.Name = "WasUI_Popup"
+    dialogGui.ResetOnSpawn = false
+    dialogGui.DisplayOrder = 2000
+    dialogGui.Parent = game:GetService("CoreGui")
+
+    local overlay = CreateInstance("Frame", {
+        Name = "Overlay",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Active = true,
+        Selectable = true,
+        Parent = dialogGui,
+        ZIndex = 999
+    })
+
+    local dialogFrame = CreateInstance("Frame", {
+        Name = "Dialog",
+        Size = UDim2.new(0, 480, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Parent = overlay,
+        ZIndex = 1000
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
+
+    local titleContainer = CreateInstance("Frame", {
+        Name = "TitleContainer",
+        Size = UDim2.new(1, -20, 0, 36),
+        Position = UDim2.new(0, 10, 0, 10),
+        BackgroundTransparency = 1,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+
+    local titleIconImage = nil
+    if titleIcon then
+        titleIconImage = WasUI:CreateIcon(titleIcon, UDim2.new(0, 20, 0, 20), WasUI.CurrentTheme.Text)
+        if titleIconImage then
+            titleIconImage.Parent = titleContainer
+            titleIconImage.Position = UDim2.new(0, 0, 0.5, -10)
+            titleIconImage.ZIndex = 1002
+        end
+    end
+
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(1, (titleIconImage and -24 or 0), 0, 24),
+        Position = UDim2.new(titleIconImage and 0.06 or 0, 0, 0.5, -12),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Parent = titleContainer,
+        ZIndex = 1002
+    })
+
+    if titleTag then
+        local tagContainer = CreateInstance("Frame", {
+            Name = "TagContainer",
+            Size = UDim2.new(0, 0, 0, 20),
+            Position = UDim2.new(1, 4, 0.5, -10),
+            BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
+            BackgroundTransparency = 0.2,
+            BorderSizePixel = 0,
+            Parent = titleContainer,
+            ZIndex = 1003
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tagContainer})
+        local tagLabel = CreateInstance("TextLabel", {
+            Name = "TagLabel",
+            Size = UDim2.new(1, -8, 1, 0),
+            Position = UDim2.new(0, 4, 0, 0),
+            BackgroundTransparency = 1,
+            Text = titleTag.text,
+            TextColor3 = titleTag.textColor or WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            Parent = tagContainer,
+            ZIndex = 1004
+        })
+        tagContainer.Size = UDim2.new(0, tagLabel.TextBounds.X + 8, 0, 20)
+        tagLabel.Size = UDim2.new(0, tagLabel.TextBounds.X, 1, 0)
+    end
+
+    local contentLabel = CreateInstance("TextLabel", {
+        Name = "Content",
+        Size = UDim2.new(1, -20, 0, 0),
+        Position = UDim2.new(0, 10, 0, 56),
+        BackgroundTransparency = 1,
+        Text = content,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
+        TextWrapped = true,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+
+    local buttonContainer = CreateInstance("Frame", {
+        Name = "ButtonContainer",
+        Size = UDim2.new(1, -20, 0, 40),
+        Position = UDim2.new(0, 10, 0, 70),
+        BackgroundTransparency = 1,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+
+    local cancelButton = CreateInstance("TextButton", {
+        Name = "CancelButton",
+        Size = UDim2.new(0.5, -5, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Section,
+        BackgroundTransparency = 0.3,
+        Text = cancelText,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        AutoButtonColor = false,
+        Parent = buttonContainer,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = cancelButton})
+
+    local confirmButton = CreateInstance("TextButton", {
+        Name = "ConfirmButton",
+        Size = UDim2.new(0.5, -5, 1, 0),
+        Position = UDim2.new(0.5, 5, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Accent,
+        BackgroundTransparency = 0.3,
+        Text = confirmText,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        AutoButtonColor = false,
+        Parent = buttonContainer,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = confirmButton})
+
+    local arrowIcon = WasUI:CreateIcon("arrow-right", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text, true)
+    if arrowIcon then
+        arrowIcon.Parent = confirmButton
+        arrowIcon.Position = UDim2.new(1, -24, 0.5, -8)
+        arrowIcon.ZIndex = 1003
+        confirmButton.Text = confirmText .. "  "
+        confirmButton.TextXAlignment = Enum.TextXAlignment.Left
+        local padding = Instance.new("UIPadding")
+        padding.PaddingLeft = UDim.new(0, 12)
+        padding.Parent = confirmButton
+    end
+
+    local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 65
+    dialogFrame.Size = UDim2.new(0, 480, 0, totalHeight)
+    buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 18)
+
+    local function updatePosition()
+        if dialogFrame and dialogFrame.Parent then
+            local parentSize = dialogGui.AbsoluteSize
+            local frameSize = dialogFrame.AbsoluteSize
+            dialogFrame.Position = UDim2.new(0.5, -frameSize.X/2, 0.5, -frameSize.Y/2)
+        end
+    end
+
+    dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
+    updatePosition()
+
+    local function animateClose()
+        Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+        Tween(overlay, {BackgroundTransparency = 1}, 0.2)
+        task.wait(0.2)
+        dialogGui:Destroy()
+        for i, d in ipairs(WasUI.ActiveDialogs) do
+            if d == dialogGui then
+                table.remove(WasUI.ActiveDialogs, i)
+                break
+            end
+        end
+    end
+
+    cancelButton.MouseButton1Click:Connect(function()
+        if onCancel then onCancel() end
+        animateClose()
+    end)
+
+    confirmButton.MouseButton1Click:Connect(function()
+        if onConfirm then onConfirm() end
+        animateClose()
+    end)
+
+    Tween(dialogFrame, {BackgroundTransparency = 0}, 0.2)
+    table.insert(WasUI.ActiveDialogs, dialogGui)
+
+    return dialogGui
+end
+
+function WasUI:ShowColorPicker(options, callback)
+    local title = options.title or "选择颜色"
+    local defaultColor = options.defaultColor or Color3.fromRGB(255, 255, 255)
+    local showAlpha = options.showAlpha or false
+    local defaultAlpha = options.defaultAlpha or 1
+    local confirmText = options.confirmText or "确认"
+    local cancelText = options.cancelText or "取消"
+
+    local dialogGui = Instance.new("ScreenGui")
+    dialogGui.Name = "WasUI_ColorPicker"
+    dialogGui.ResetOnSpawn = false
+    dialogGui.DisplayOrder = 2000
+    dialogGui.Parent = game:GetService("CoreGui")
+
+    local transparentOverlay = CreateInstance("Frame", {
+        Name = "TransparentOverlay",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Active = true,
+        Selectable = true,
+        Parent = dialogGui,
+        ZIndex = 999
+    })
+
+    local dialogHeight = showAlpha and 380 or 340
+    local dialogFrame = CreateInstance("Frame", {
+        Name = "Dialog",
+        Size = UDim2.new(0, 280, 0, dialogHeight),
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Parent = transparentOverlay,
+        ZIndex = 1000
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = dialogFrame})
+
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(1, -16, 0, 24),
+        Position = UDim2.new(0, 8, 0, 8),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+
+    local previewFrame = CreateInstance("Frame", {
+        Name = "Preview",
+        Size = UDim2.new(1, -16, 0, 32),
+        Position = UDim2.new(0, 8, 0, 38),
+        BackgroundColor3 = defaultColor,
+        BackgroundTransparency = 1 - defaultAlpha,
+        BorderSizePixel = 0,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = previewFrame})
+
+    local svMap = CreateInstance("ImageLabel", {
+        Name = "SVMap",
+        Size = UDim2.new(1, -16, 0, 140),
+        Position = UDim2.new(0, 8, 0, 78),
+        BackgroundColor3 = Color3.fromHSV(0, 1, 1),
+        Image = "rbxassetid://4155801252",
+        BorderSizePixel = 0,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = svMap})
+
+    local svCursor = CreateInstance("Frame", {
+        Name = "SVCursor",
+        Size = UDim2.new(0, 10, 0, 10),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BorderSizePixel = 0,
+        Parent = svMap,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = svCursor})
+    CreateInstance("UIStroke", {Thickness = 2, Color = Color3.new(0, 0, 0), Transparency = 0.3, Parent = svCursor})
+
+    local hueBar = CreateInstance("Frame", {
+        Name = "HueBar",
+        Size = UDim2.new(1, -16, 0, 16),
+        Position = UDim2.new(0, 8, 0, 226),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BorderSizePixel = 0,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = hueBar})
+    local hueGradient = CreateInstance("UIGradient", {
+        Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+            ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
+            ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+            ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+            ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+        },
+        Parent = hueBar
+    })
+    local hueCursor = CreateInstance("Frame", {
+        Name = "HueCursor",
+        Size = UDim2.new(0, 6, 1, 4),
+        AnchorPoint = Vector2.new(0.5, 0),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BorderSizePixel = 0,
+        Parent = hueBar,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 3), Parent = hueCursor})
+    CreateInstance("UIStroke", {Thickness = 2, Color = Color3.new(0, 0, 0), Transparency = 0.3, Parent = hueCursor})
+
+    local alphaBar, alphaCursor, alphaGradient
+    if showAlpha then
+        alphaBar = CreateInstance("Frame", {
+            Name = "AlphaBar",
+            Size = UDim2.new(1, -16, 0, 16),
+            Position = UDim2.new(0, 8, 0, 250),
+            BackgroundColor3 = Color3.new(1, 1, 1),
+            BorderSizePixel = 0,
+            Parent = dialogFrame,
+            ZIndex = 1001
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = alphaBar})
+        alphaGradient = CreateInstance("UIGradient", {
+            Transparency = NumberSequence.new{
+                NumberSequenceKeypoint.new(0, 0),
+                NumberSequenceKeypoint.new(1, 1)
+            },
+            Parent = alphaBar
+        })
+        alphaCursor = CreateInstance("Frame", {
+            Name = "AlphaCursor",
+            Size = UDim2.new(0, 6, 1, 4),
+            AnchorPoint = Vector2.new(0.5, 0),
+            BackgroundColor3 = Color3.new(1, 1, 1),
+            BorderSizePixel = 0,
+            Parent = alphaBar,
+            ZIndex = 1002
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 3), Parent = alphaCursor})
+        CreateInstance("UIStroke", {Thickness = 2, Color = Color3.new(0, 0, 0), Transparency = 0.3, Parent = alphaCursor})
+    end
+
+    local hexInput = CreateInstance("TextBox", {
+        Name = "HexInput",
+        Size = UDim2.new(1, -16, 0, 28),
+        Position = UDim2.new(0, 8, 0, showAlpha and 274 or 250),
+        BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        Text = "#" .. defaultColor:ToHex(),
+        PlaceholderText = "#FFFFFF",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        PlaceholderColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 13,
+        ClearTextOnFocus = false,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = hexInput})
+    CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = hexInput})
+
+    local buttonY = showAlpha and 310 or 286
+    local buttonContainer = CreateInstance("Frame", {
+        Name = "ButtonContainer",
+        Size = UDim2.new(1, -16, 0, 34),
+        Position = UDim2.new(0, 8, 0, buttonY),
+        BackgroundTransparency = 1,
+        Parent = dialogFrame,
+        ZIndex = 1001
+    })
+
+    local cancelButton = CreateInstance("TextButton", {
+        Name = "CancelButton",
+        Size = UDim2.new(0.5, -4, 1, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Section,
+        BackgroundTransparency = 0.3,
+        Text = cancelText,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 13,
+        AutoButtonColor = false,
+        Parent = buttonContainer,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = cancelButton})
+
+    local confirmButton = CreateInstance("TextButton", {
+        Name = "ConfirmButton",
+        Size = UDim2.new(0.5, -4, 1, 0),
+        Position = UDim2.new(0.5, 4, 0, 0),
+        BackgroundColor3 = WasUI.CurrentTheme.Accent,
+        BackgroundTransparency = 0.3,
+        Text = confirmText,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 13,
+        AutoButtonColor = false,
+        Parent = buttonContainer,
+        ZIndex = 1002
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = confirmButton})
+
+    local currentH, currentS, currentV = Color3.toHSV(defaultColor)
+    local currentA = defaultAlpha
+
+    local function updatePreview()
+        local color = Color3.fromHSV(currentH, currentS, currentV)
+        previewFrame.BackgroundColor3 = color
+        previewFrame.BackgroundTransparency = 1 - currentA
+        svMap.BackgroundColor3 = Color3.fromHSV(currentH, 1, 1)
+        if alphaBar then
+            alphaBar.BackgroundColor3 = color
+        end
+        hexInput.Text = "#" .. color:ToHex()
+    end
+
+    local function setHSV(h, s, v)
+        currentH = math.clamp(h, 0, 1)
+        currentS = math.clamp(s, 0, 1)
+        currentV = math.clamp(v, 0, 1)
+        svCursor.Position = UDim2.new(currentS, 0, 1 - currentV, 0)
+        hueCursor.Position = UDim2.new(currentH, 0, 0, 0)
+        updatePreview()
+    end
+
+    local function setAlpha(a)
+        currentA = math.clamp(a, 0, 1)
+        if alphaCursor then
+            alphaCursor.Position = UDim2.new(1 - currentA, 0, 0, 0)
+        end
+        updatePreview()
+    end
+
+    setHSV(currentH, currentS, currentV)
+    setAlpha(currentA)
+
+    local draggingSV = false
+    local draggingHue = false
+    local draggingAlpha = false
+
+    svMap.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingSV = true
+        end
+    end)
+    hueBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingHue = true
+        end
+    end)
+    if alphaBar then
+        alphaBar.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                draggingAlpha = true
+            end
+        end)
+    end
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            local pos = input.Position
+            if draggingSV then
+                local relX = (pos.X - svMap.AbsolutePosition.X) / svMap.AbsoluteSize.X
+                local relY = (pos.Y - svMap.AbsolutePosition.Y) / svMap.AbsoluteSize.Y
+                setHSV(currentH, math.clamp(relX, 0, 1), 1 - math.clamp(relY, 0, 1))
+            elseif draggingHue then
+                local relX = (pos.X - hueBar.AbsolutePosition.X) / hueBar.AbsoluteSize.X
+                setHSV(math.clamp(relX, 0, 1), currentS, currentV)
+            elseif draggingAlpha and alphaBar then
+                local relX = (pos.X - alphaBar.AbsolutePosition.X) / alphaBar.AbsoluteSize.X
+                setAlpha(1 - math.clamp(relX, 0, 1))
+            end
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingSV = false
+            draggingHue = false
+            draggingAlpha = false
+        end
+    end)
+
+    hexInput.FocusLost:Connect(function(enterPressed)
+        local hex = hexInput.Text:gsub("#", "")
+        local success, color = pcall(Color3.fromHex, hex)
+        if success then
+            local h, s, v = Color3.toHSV(color)
+            setHSV(h, s, v)
+        else
+            hexInput.Text = "#" .. Color3.fromHSV(currentH, currentS, currentV):ToHex()
+        end
+    end)
+
+    local function animateOpen()
+        dialogFrame.Position = UDim2.new(0.5, -140, 0.5, -dialogHeight/2)
+        Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
+        Tween(transparentOverlay, {BackgroundTransparency = 0.5}, 0.2)
+    end
+
+    local function animateClose()
+        Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+        Tween(transparentOverlay, {BackgroundTransparency = 1}, 0.2)
+        task.wait(0.2)
+        dialogGui:Destroy()
+        for i, d in ipairs(WasUI.ActiveDialogs) do
+            if d == dialogGui then
+                table.remove(WasUI.ActiveDialogs, i)
+                break
+            end
+        end
+    end
+
+    cancelButton.MouseButton1Click:Connect(animateClose)
+    confirmButton.MouseButton1Click:Connect(function()
+        local finalColor = Color3.fromHSV(currentH, currentS, currentV)
+        if callback then
+            callback(finalColor, currentA)
+        end
+        animateClose()
+    end)
+
+    transparentOverlay.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local mousePos = input.Position
+            local framePos = dialogFrame.AbsolutePosition
+            local frameSize = dialogFrame.AbsoluteSize
+            local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
+                            mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
+            if not inPanel then
+                animateClose()
+            end
+        end
+    end)
+
+    animateOpen()
+    table.insert(WasUI.ActiveDialogs, dialogGui)
+
+    return dialogGui
+end
+
+function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, configKey)
+    defaultColor = defaultColor or Color3.fromRGB(255, 255, 255)
+    local buttonSize = UDim2.new(1, 0, 0, 28)
+
+    local container = CreateInstance("Frame", {
+        Name = "ColorPickerButton",
+        Size = buttonSize,
+        BackgroundTransparency = 1,
+        Parent = parent
+    })
+
+    local colorPreview = CreateInstance("Frame", {
+        Name = "ColorPreview",
+        Size = UDim2.new(0, 24, 0, 24),
+        Position = UDim2.new(1, -24, 0.5, -12),
+        BackgroundColor3 = defaultColor,
+        BorderSizePixel = 0,
+        Parent = container,
+        ZIndex = 2
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = colorPreview})
+
+    local titleLabel
+    if title then
+        titleLabel = CreateInstance("TextLabel", {
+            Name = "Title",
+            Size = UDim2.new(1, -32, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Text = title,
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            ZIndex = 2,
+            Parent = container
+        })
+    end
+
+    local button = CreateInstance("TextButton", {
+        Name = "Button",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        Parent = container,
+        ZIndex = 1,
+        AutoButtonColor = false
+    })
+
+    local currentColor = defaultColor
+    local currentAlpha = 1
+
+    local function updatePreview(color, alpha)
+        currentColor = color
+        currentAlpha = alpha or 1
+        colorPreview.BackgroundColor3 = color
+        colorPreview.BackgroundTransparency = 1 - currentAlpha
+    end
+
+    button.Activated:Connect(function()
+        WasUI:ShowColorPicker({
+            title = title or "选择颜色",
+            defaultColor = currentColor,
+            defaultAlpha = currentAlpha,
+            showAlpha = true
+        }, function(color, alpha)
+            updatePreview(color, alpha)
+            if callback then
+                callback(color, alpha)
+            end
+            if configKey and WasUI.ConfigManager then
+                local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+                if config then
+                    config:Set(configKey, {color = color, alpha = alpha})
+                    config:Save()
+                end
+            end
+        end)
+    end)
+
+    if configKey and WasUI.ConfigManager then
+        local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+        if config then
+            local saved = config:Get(configKey)
+            if saved and saved.color then
+                updatePreview(saved.color, saved.alpha)
+            end
+            config:Bind(configKey, container, function(value)
+                if value and value.color then
+                    updatePreview(value.color, value.alpha)
+                end
+            end)
+        end
+    end
+
+    table.insert(WasUI.Objects, {Object = container, Type = "ColorPickerButton"})
+    return container
+end
+
+local function AnimateThemeChange(oldTheme, newTheme)
+    local duration = 0.35
+    for i = #WasUI.Objects, 1, -1 do
+        local obj = WasUI.Objects[i]
+        if not obj.Object or not obj.Object:IsDescendantOf(game) then
+            table.remove(WasUI.Objects, i)
+        end
+    end
+    for _, obj in ipairs(WasUI.Objects) do
+        local instance = obj.Object
+        if not instance then continue end
+        if obj.Type == "Button" then
+            Tween(instance, {BackgroundColor3 = newTheme.Primary, TextColor3 = newTheme.Text}, duration)
+            local icon = instance:FindFirstChildOfClass("ImageLabel")
+            if icon and not icon:GetAttribute("IgnoreThemeChange") then
+                Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+            end
+        elseif obj.Type == "Toggle" then
+            local toggled = instance:GetAttribute("Toggled")
+            if toggled then
+                Tween(instance, {BackgroundColor3 = newTheme.Success}, duration)
+            else
+                local offCol = (newTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+                Tween(instance, {BackgroundColor3 = offCol}, duration)
+            end
+            local container = instance.Parent
+            if container and container:IsA("Frame") then
+                local titleLabel = container:FindFirstChild("Title")
+                if titleLabel and titleLabel:IsA("TextLabel") then
+                    Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
+                end
+            end
+        elseif obj.Type == "ToggleKnob" then
+            local knobIcon = instance:FindFirstChildOfClass("ImageLabel")
+            if knobIcon and not knobIcon:GetAttribute("IgnoreThemeChange") then
+                Tween(knobIcon, {ImageColor3 = newTheme.Text}, duration)
+            end
+        elseif obj.Type == "Label" then
+            Tween(instance, {TextColor3 = newTheme.Text}, duration)
+        elseif obj.Type == "Line" then
+            Tween(instance, {BackgroundColor3 = newTheme.Primary}, duration)
+        elseif obj.Type == "Slider" then
+            local titleLabel = instance:FindFirstChild("Title")
+            local valueLabel = instance:FindFirstChild("Value")
+            local track = instance:FindFirstChild("Track")
+            if titleLabel and titleLabel:IsA("TextLabel") then
+                Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
+            end
+            if valueLabel and valueLabel:IsA("TextLabel") then
+                Tween(valueLabel, {TextColor3 = newTheme.Text}, duration)
+            end
+            if track and track:IsA("Frame") then
+                Tween(track, {BackgroundColor3 = newTheme.Input}, duration)
+                local fill = track:FindFirstChild("Fill")
+                if fill and fill:IsA("Frame") then
+                    Tween(fill, {BackgroundColor3 = newTheme.Accent}, duration)
+                end
+                local knob = track:FindFirstChild("Knob")
+                if knob and knob:IsA("Frame") then
+                    local knobCircle = knob:FindFirstChildOfClass("Frame")
+                    if knobCircle then
+                        Tween(knobCircle, {BackgroundColor3 = newTheme.Accent}, duration)
+                    end
+                end
+            end
+        elseif obj.Type == "ProgressBar" then
+            local titleLabel = instance:FindFirstChild("Title")
+            local valueLabel = instance:FindFirstChild("Value")
+            local track = instance:FindFirstChild("Track")
+            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+            if valueLabel then Tween(valueLabel, {TextColor3 = newTheme.Text}, duration) end
+            if track then
+                Tween(track, {BackgroundColor3 = newTheme.Input}, duration)
+                local fill = track:FindFirstChild("Fill")
+                if fill then Tween(fill, {BackgroundColor3 = newTheme.Accent}, duration) end
+            end
+        elseif obj.Type == "Dropdown" then
+            local titleLabel = instance:FindFirstChild("Title")
+            local dropdownButton = instance:FindFirstChild("DropdownButton")
+            if titleLabel and titleLabel:IsA("TextLabel") then
+                Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
+            end
+            if dropdownButton and dropdownButton:IsA("TextButton") then
+                Tween(dropdownButton, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+                local arrow = dropdownButton:FindFirstChild("ArrowIcon")
+                if arrow and arrow:IsA("ImageLabel") and not arrow:GetAttribute("IgnoreThemeChange") then
+                    Tween(arrow, {ImageColor3 = newTheme.Text}, duration)
+                end
+            end
+        elseif obj.Type == "DropdownOption" then
+            Tween(instance, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+        elseif obj.Type == "Category" then
+            local titleLabel = instance:FindFirstChild("TitleContainer"):FindFirstChild("Title")
+            local line = instance:FindFirstChild("Line")
+            local icon = instance:FindFirstChild("TitleContainer"):FindFirstChild("CategoryIcon")
+            if titleLabel and titleLabel:IsA("TextLabel") then
+                Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
+            end
+            if line and line:IsA("Frame") then
+                Tween(line, {BackgroundColor3 = newTheme.Primary}, duration)
+            end
+            if icon and icon:IsA("ImageLabel") and not icon:GetAttribute("IgnoreThemeChange") then
+                Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+            end
+        elseif obj.Type == "TextInput" then
+            local textBox = instance:FindFirstChild("TextBox")
+            if textBox and textBox:IsA("TextBox") then
+                Tween(textBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+                textBox.PlaceholderColor3 = newTheme.Text
+            end
+        elseif obj.Type == "Panel" then
+            Tween(instance, {BackgroundColor3 = newTheme.Background}, duration)
+            local titleBar = instance:FindFirstChild("TitleBar")
+            if titleBar then
+                Tween(titleBar, {BackgroundColor3 = newTheme.Primary}, duration)
+                local title = titleBar:FindFirstChild("Title")
+                if not title then
+                    local titleContainer = titleBar:FindFirstChild("TitleContainer")
+                    if titleContainer then
+                        title = titleContainer:FindFirstChild("Title")
+                    end
+                end
+                if title and title:IsA("TextLabel") then
+                    Tween(title, {TextColor3 = newTheme.Text}, duration)
+                end
+                local closeBtn = titleBar:FindFirstChild("CloseButton")
+                if closeBtn and closeBtn:IsA("ImageButton") then
+                    local icon = closeBtn:FindFirstChildOfClass("ImageLabel")
+                    if icon and not icon:GetAttribute("IgnoreThemeChange") then
+                        Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+                    end
+                end
+                local searchBtn = titleBar:FindFirstChild("SearchButton")
+                if searchBtn and searchBtn:IsA("ImageButton") then
+                    local icon = searchBtn:FindFirstChildOfClass("ImageLabel")
+                    if icon and not icon:GetAttribute("IgnoreThemeChange") then
+                        Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+                    end
+                end
+                local searchContainer = titleBar:FindFirstChild("SearchContainer")
+                if searchContainer then
+                    local searchBox = searchContainer:FindFirstChild("SearchBox")
+                    if searchBox and searchBox:IsA("TextBox") then
+                        Tween(searchBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+                        searchBox.PlaceholderColor3 = newTheme.Text
+                    end
+                end
+            end
+            local announcementBar = instance:FindFirstChild("AnnouncementBar")
+            if announcementBar then
+                Tween(announcementBar, {BackgroundColor3 = newTheme.Section}, duration)
+                local username = announcementBar:FindFirstChild("Username")
+                local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
+                local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
+                if username and username:IsA("TextLabel") then
+                    Tween(username, {TextColor3 = newTheme.Text}, duration)
+                end
+                if executorLabel and executorLabel:IsA("TextLabel") then
+                    Tween(executorLabel, {TextColor3 = newTheme.Text}, duration)
+                end
+                if welcomeLabel and welcomeLabel:IsA("TextLabel") then
+                    Tween(welcomeLabel, {TextColor3 = newTheme.Text}, duration)
+                end
+                local avatar = announcementBar:FindFirstChild("Avatar")
+                if avatar and avatar:IsA("ImageButton") then
+                    local stroke = avatar:FindFirstChildOfClass("UIStroke")
+                    if stroke then
+                        Tween(stroke, {Color = newTheme.Text}, duration)
+                    end
+                end
+            end
+            local tabBar = instance:FindFirstChild("TabBar")
+            if tabBar then
+                Tween(tabBar, {BackgroundColor3 = newTheme.Primary}, duration)
+                local tabContainer = tabBar:FindFirstChild("TabContainer")
+                if tabContainer then
+                    for _, btn in ipairs(tabContainer:GetChildren()) do
+                        if btn:IsA("TextButton") then
+                            Tween(btn, {BackgroundColor3 = newTheme.TabButton, TextColor3 = newTheme.Text}, duration)
+                            local underline = btn:FindFirstChild("Underline")
+                            if underline and underline:IsA("Frame") then
+                                Tween(underline, {BackgroundColor3 = newTheme.Accent}, duration)
+                            end
+                        end
+                    end
+                end
+            end
+            local panelData = obj.PanelData
+            if panelData then
+                local dotContainer = panelData.DotContainer
+                if dotContainer then
+                    local minimizedTextLabel = dotContainer:FindFirstChild("MinimizedText")
+                    if minimizedTextLabel and minimizedTextLabel:IsA("TextLabel") then
+                        if newTheme == WasUI.Themes.Light then
+                            Tween(minimizedTextLabel, {TextColor3 = Color3.fromRGB(0, 0, 0)}, duration)
+                        else
+                            Tween(minimizedTextLabel, {TextColor3 = newTheme.Text}, duration)
+                        end
+                    end
+                end
+                
+                local titleTagContainers = panelData.TitleTagContainers
+                if titleTagContainers then
+                    for _, tagContainer in ipairs(titleTagContainers) do
+                        if tagContainer and tagContainer:IsDescendantOf(game) then
+                            local tagLabel = tagContainer:FindFirstChild("TagLabel")
+                            if tagLabel and tagLabel:IsA("TextLabel") then
+                                Tween(tagLabel, {TextColor3 = newTheme.Text}, duration)
+                            end
+                        end
+                    end
+                end
+            end
+        elseif obj.Type == "ColorPickerButton" then
+            local titleLabel = instance:FindFirstChild("Title")
+            if titleLabel and titleLabel:IsA("TextLabel") then
+                Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
+            end
+        elseif obj.Type == "TabArrow" then
+            Tween(instance, {ImageColor3 = newTheme.Text}, duration)
+        end
+    end
+    if WasUI.DropdownGui then
+        for _, container in ipairs(WasUI.DropdownGui:GetChildren()) do
+            if container:IsA("ScrollingFrame") then
+                Tween(container, {BackgroundColor3 = newTheme.Background}, duration)
+                for _, btn in ipairs(container:GetChildren()) do
+                    if btn:IsA("TextButton") then
+                        Tween(btn, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+                    end
+                end
+            end
+        end
+    end
+    for _, data in pairs(WasUI.ActiveNotifications) do
+        local frame = data.Frame
+        if frame then
+            local titleLabel = frame:FindFirstChild("Title")
+            local contentLabel = frame:FindFirstChild("Content")
+            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+            if contentLabel then Tween(contentLabel, {TextColor3 = newTheme.Text}, duration) end
+            Tween(frame, {BackgroundColor3 = newTheme.Section}, duration)
+            local stroke = frame:FindFirstChildOfClass("UIStroke")
+            if stroke then Tween(stroke, {Color = newTheme.Text}, duration) end
+        end
+    end
+    if WasUI.SnowContainer then
+        for _, flake in ipairs(WasUI.Snowflakes or {}) do
+            if flake.Instance then
+                Tween(flake.Instance, {BackgroundColor3 = newTheme.SnowColor}, duration)
+            end
+        end
+    end
+    for _, shortcut in pairs(WasUI.ShortcutButtons) do
+        if shortcut.button then
+            Tween(shortcut.button, {BackgroundColor3 = newTheme.Primary}, duration)
+            local text = shortcut.button:FindFirstChild("Text")
+            if text then Tween(text, {TextColor3 = newTheme.Text}, duration) end
+            local indicator = shortcut.button:FindFirstChild("Indicator")
+            if indicator then
+                local toggled = indicator:GetAttribute("State")
+                if toggled then
+                    Tween(indicator, {BackgroundColor3 = newTheme.Success}, duration)
+                else
+                    Tween(indicator, {BackgroundColor3 = newTheme.Error}, duration)
+                end
+            end
+            local stroke = shortcut.button:FindFirstChildOfClass("UIStroke")
+            if stroke then Tween(stroke, {Color = newTheme.Accent}, duration) end
+        end
+    end
+    for _, dialogGui in ipairs(WasUI.ActiveDialogs) do
+        if dialogGui and dialogGui.Parent then
+            local overlay = dialogGui:FindFirstChild("Overlay")
+            local dialogFrame = overlay and overlay:FindFirstChild("Dialog")
+            if dialogFrame then
+                Tween(dialogFrame, {BackgroundColor3 = newTheme.Background}, duration)
+                local titleLabel = dialogFrame:FindFirstChild("Title")
+                if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+                local descriptionLabel = dialogFrame:FindFirstChild("Description")
+                if descriptionLabel then Tween(descriptionLabel, {TextColor3 = newTheme.Text}, duration) end
+                local inputBox = dialogFrame:FindFirstChild("InputBox")
+                if inputBox then
+                    Tween(inputBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+                    inputBox.PlaceholderColor3 = newTheme.Text
+                end
+                local cancelBtn = dialogFrame:FindFirstChild("ButtonContainer") and dialogFrame.ButtonContainer:FindFirstChild("CancelButton")
+                local confirmBtn = dialogFrame:FindFirstChild("ButtonContainer") and dialogFrame.ButtonContainer:FindFirstChild("ConfirmButton")
+                if cancelBtn then Tween(cancelBtn, {BackgroundColor3 = newTheme.Section, TextColor3 = newTheme.Text}, duration) end
+                if confirmBtn then Tween(confirmBtn, {BackgroundColor3 = newTheme.Accent, TextColor3 = newTheme.Text}, duration) end
+                local stroke = dialogFrame:FindFirstChildOfClass("UIStroke")
+                if stroke then Tween(stroke, {Color = newTheme.Text}, duration) end
+            end
+        end
+    end
+end
+
+function WasUI:SetTheme(themeName)
+    if self.Themes[themeName] then
+        local oldTheme = self.CurrentTheme
+        local newTheme = self.Themes[themeName]
+        self.CurrentTheme = newTheme
+        self.CurrentThemeName = themeName
+        AnimateThemeChange(oldTheme, newTheme)
+        
+        for _, obj in ipairs(WasUI.Objects) do
+            if obj.Type == "Panel" and obj.Object then
+                local announcementBar = obj.Object:FindFirstChild("AnnouncementBar")
+                if announcementBar then
+                    announcementBar.BackgroundColor3 = newTheme.Section
+                    local username = announcementBar:FindFirstChild("Username")
+                    local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
+                    local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
+                    if username then username.TextColor3 = newTheme.Text end
+                    if executorLabel then executorLabel.TextColor3 = newTheme.Text end
+                    if welcomeLabel then welcomeLabel.TextColor3 = newTheme.Text end
+                    local avatar = announcementBar:FindFirstChild("Avatar")
+                    if avatar then
+                        local stroke = avatar:FindFirstChildOfClass("UIStroke")
+                        if stroke then stroke.Color = newTheme.Text end
+                    end
+                end
+            end
+        end
+        
+        if self.SettingsPanel then
+            local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
+            if themeDropdown and themeDropdown:IsA("TextButton") then
+                themeDropdown.Text = themeName
+            end
+        end
+        return true
+    end
+    return false
+end
+
 local Panel = {}
 Panel.__index = Panel
 
@@ -2706,147 +3995,127 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
 
     AddRipple(self.Instance)
 
-    -- ===== 新的彩虹边框：从边缘向内扩展的条形 =====
-    self.RainbowContainer = CreateInstance("Frame", {
-        Name = "RainbowBorder",
-        Size = UDim2.new(1, 0, 1, 0),
+    self.BorderFlow = CreateInstance("Frame", {
+        Name = "BorderFlow",
+        Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
+        Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
         BackgroundTransparency = 1,
+        BorderSizePixel = 0,
         ZIndex = -1,
-        Parent = self.Instance
+        Parent = self.Instance.Parent
     })
-    self.RainbowBars = {}
-    self.RainbowConnection = nil
-    self.RainbowEnabled = false
+    local borderFlowCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.BorderFlow})
+    local flowGradient = Instance.new("UIGradient")
+    flowGradient.Rotation = 0
+    flowGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
+    }
+    flowGradient.Parent = self.BorderFlow
+    local highlightStroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 255, 255),
+        Thickness = 1,
+        Transparency = 0.7,
+        Parent = self.BorderFlow
+    })
+    local highlightGradient = Instance.new("UIGradient")
+    highlightGradient.Rotation = 45
+    highlightGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+    }
+    highlightGradient.Transparency = NumberSequence.new{
+        NumberSequenceKeypoint.new(0, 0.9),
+        NumberSequenceKeypoint.new(0.5, 0.2),
+        NumberSequenceKeypoint.new(1, 0.9)
+    }
+    highlightGradient.Parent = highlightStroke
 
-    local function lerpColor(c1, c2, t)
-        return Color3.new(c1.R + (c2.R - c1.R) * t, c1.G + (c2.G - c1.G) * t, c1.B + (c2.B - c1.B) * t)
+    self.BorderStroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 0, 0),
+        Thickness = 2,
+        Transparency = 0,
+        Parent = self.BorderFlow
+    })
+    self.BorderFlow.Visible = false
+
+    local function updateBorder()
+        if not self.Instance or not self.BorderFlow then return end
+        self.BorderFlow.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
+        self.BorderFlow.Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4)
     end
+    self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
+    self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
+    updateBorder()
 
-    function self:SetupRainbowBorder()
-        local barLength = 30
-        local barsPerEdge = 40
-        local colors = {
-            Color3.fromRGB(255,0,0),
-            Color3.fromRGB(255,165,0),
-            Color3.fromRGB(255,255,0),
-            Color3.fromRGB(0,255,0),
-            Color3.fromRGB(0,255,255),
-            Color3.fromRGB(0,0,255),
-            Color3.fromRGB(128,0,128)
-        }
-        local bars = {}
-        local speed = 0.8
-        local startTime = tick()
+    local borderTime = 0
+    self.RainbowMode = WasUI.DefaultRainbowMode
+    self.FlowRotation = 0
+    self.BorderConnection = nil
 
-        for edgeIdx = 1, 4 do
-            for i = 1, barsPerEdge do
-                local isHorizontal = (edgeIdx == 1 or edgeIdx == 3)
-                local isBottom = (edgeIdx == 1)
-                local isTop = (edgeIdx == 3)
-                local isRight = (edgeIdx == 2)
-                local isLeft = (edgeIdx == 4)
-
-                local bar = Instance.new("Frame")
-                bar.Name = string.format("Bar_%d_%d", edgeIdx, i)
-                bar.BorderSizePixel = 0
-                bar.ZIndex = 0
-                bar.BackgroundTransparency = 1
-                bar.Parent = self.RainbowContainer
-
-                if isHorizontal then
-                    bar.Size = UDim2.new(1 / barsPerEdge, 0, 0, 0)
-                    bar.AnchorPoint = isBottom and Vector2.new(0.5, 1) or Vector2.new(0.5, 0)
-                    bar.Position = isBottom and UDim2.new((i - 0.5) / barsPerEdge, 0, 1, 0) or UDim2.new((i - 0.5) / barsPerEdge, 0, 0, 0)
-                else
-                    bar.Size = UDim2.new(0, 0, 1 / barsPerEdge, 0)
-                    bar.AnchorPoint = isRight and Vector2.new(1, 0.5) or Vector2.new(0, 0.5)
-                    bar.Position = isRight and UDim2.new(1, 0, (i - 0.5) / barsPerEdge, 0) or UDim2.new(0, 0, (i - 0.5) / barsPerEdge, 0)
-                end
-
-                local gradient = Instance.new("UIGradient")
-                if edgeIdx == 1 then
-                    gradient.Rotation = 270
-                elseif edgeIdx == 2 then
-                    gradient.Rotation = 180
-                elseif edgeIdx == 3 then
-                    gradient.Rotation = 90
-                else
-                    gradient.Rotation = 0
-                end
-                gradient.Transparency = NumberSequence.new({
-                    NumberSequenceKeypoint.new(0,0),
-                    NumberSequenceKeypoint.new(1,1)
-                })
-                gradient.Parent = bar
-
-                local t_global
-                if edgeIdx == 1 then
-                    t_global = (i - 0.5) / (barsPerEdge * 4)
-                elseif edgeIdx == 2 then
-                    t_global = (barsPerEdge + i - 0.5) / (barsPerEdge * 4)
-                elseif edgeIdx == 3 then
-                    t_global = (2 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
-                else
-                    t_global = (3 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
-                end
-
-                table.insert(bars, {
-                    bar = bar,
-                    t_global = t_global,
-                    isHorizontal = isHorizontal
-                })
-
-                local targetSize = isHorizontal
-                    and UDim2.new(1 / barsPerEdge, 0, 0, barLength)
-                    or UDim2.new(0, barLength, 1 / barsPerEdge, 0)
-
-                pcall(function()
-                    local ts = game:GetService("TweenService")
-                    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-                    ts:Create(bar, tweenInfo, {Size = targetSize, BackgroundTransparency = 0}):Play()
-                end)
-            end
-        end
-
-        self.RainbowBars = bars
-        self.RainbowConnection = RunService.Heartbeat:Connect(function()
-            local elapsed = (tick() - startTime) * speed
-            local offset = elapsed % 1
-            for _, data in ipairs(bars) do
-                local currentT = data.t_global - offset
-                if currentT < 0 then currentT = currentT + 1 end
-                local seg = math.floor(currentT * #colors) + 1
-                local pos = (currentT * #colors) % 1
-                local c1 = colors[seg]
-                local c2 = colors[seg % #colors + 1]
-                data.bar.BackgroundColor3 = lerpColor(c1, c2, pos)
+    local function startFlowAnimation()
+        if self.BorderConnection then self.BorderConnection:Disconnect() end
+        self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
+            if self.RainbowMode == "整体" then
+                borderTime = borderTime + deltaTime * 4
+                local r = (math.sin(borderTime) + 1) / 2
+                local g = (math.sin(borderTime + math.pi/3) + 1) / 2
+                local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
+                self.BorderStroke.Color = Color3.new(r, g, b)
+                self.BorderStroke.Transparency = 0
+                flowGradient.Enabled = false
+                highlightStroke.Transparency = 0.7
+                local pulse = (math.sin(tick() * 0.5) + 1) / 2
+                highlightStroke.Transparency = 0.5 + pulse * 0.3
+            else
+                self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
+                flowGradient.Rotation = self.FlowRotation
+                flowGradient.Enabled = true
+                self.BorderStroke.Transparency = 1
+                highlightStroke.Transparency = 0.7
+                local pulse = (math.sin(tick() * 0.5) + 1) / 2
+                highlightStroke.Transparency = 0.5 + pulse * 0.3
             end
         end)
-        self.RainbowEnabled = true
     end
 
-    function self:DestroyRainbowBorder()
-        if self.RainbowConnection then
-            self.RainbowConnection:Disconnect()
-            self.RainbowConnection = nil
+    function self:SetRainbowMode(mode)
+        if mode == "整体" or mode == "流动" then
+            self.RainbowMode = mode
+            if mode == "整体" then
+                self.BorderFlow.BackgroundTransparency = 1
+                self.BorderStroke.Enabled = true
+                flowGradient.Enabled = false
+                highlightStroke.Enabled = true
+            else
+                self.BorderFlow.BackgroundTransparency = 0
+                self.BorderStroke.Enabled = false
+                flowGradient.Enabled = true
+                highlightStroke.Enabled = true
+            end
+            self.BorderFlow.Visible = true
+            startFlowAnimation()
         end
-        for _, data in ipairs(self.RainbowBars) do
-            data.bar:Destroy()
-        end
-        self.RainbowBars = {}
-        self.RainbowEnabled = false
     end
 
     function self:SetRainbowEnabled(enabled)
-        if enabled and not self.RainbowEnabled then
-            self:SetupRainbowBorder()
-        elseif not enabled and self.RainbowEnabled then
-            self:DestroyRainbowBorder()
+        self.BorderFlow.Visible = enabled
+        if enabled then
+            startFlowAnimation()
+        elseif self.BorderConnection then
+            self.BorderConnection:Disconnect()
+            self.BorderConnection = nil
         end
     end
 
-    -- 默认开启彩虹边框
-    self:SetRainbowEnabled(true)
+    startFlowAnimation()
+    self:SetRainbowMode(self.RainbowMode)
 
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
@@ -3617,12 +4886,12 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
         Tween(overlay, {BackgroundTransparency = 0.5}, 0.3)
         confirmButton.MouseButton1Click:Connect(function()
-            if self.RainbowConnection then
-                self.RainbowConnection:Disconnect()
-                self.RainbowConnection = nil
+            if self.BorderConnection then
+                self.BorderConnection:Disconnect()
+                self.BorderConnection = nil
             end
-            if self.RainbowContainer then
-                self:DestroyRainbowBorder()
+            if self.BorderFlow then
+                self.BorderFlow:Destroy()
             end
             for _, data in pairs(WasUI.ActiveRainbowTexts) do
                 if data.ScreenGui then data.ScreenGui:Destroy() end
@@ -3999,7 +5268,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Position = UDim2.new(1, -130, 0, -2),
             BackgroundColor3 = WasUI.CurrentTheme.Input,
             BackgroundTransparency = 0.3,
-            Text = WasUI.DefaultRainbowMode,
+            Text = self.RainbowMode,
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
             TextSize = 12,
@@ -4009,8 +5278,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = rainbowModeButton})
         rainbowModeButton.MouseButton1Click:Connect(function()
-            local newMode = (rainbowModeButton.Text == "整体") and "流动" or "整体"
-            self:SetRainbowEnabled(newMode == "流动") -- 控制彩虹边框开关
+            local newMode = (self.RainbowMode == "整体") and "流动" or "整体"
+            self:SetRainbowMode(newMode)
             rainbowModeButton.Text = newMode
             WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
         end)
@@ -4077,7 +5346,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             updateSnowToggle(not self.SnowEnabled)
         end)
 
-        -- ===== English 语言切换开关 =====
         local langContainer = CreateInstance("Frame", {
             Name = "LanguageToggleContainer",
             Size = UDim2.new(1, 0, 0, 28),
@@ -4494,8 +5762,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     end
     function self:SetVisible(visible)
         self.Instance.Visible = visible
-        if self.RainbowContainer then
-            self.RainbowContainer.Visible = visible
+        if self.BorderFlow then
+            self.BorderFlow.Visible = visible
         end
         if self.SnowContainer then
             self.SnowContainer.Visible = visible
@@ -4532,7 +5800,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
     end
 
-    -- ===== Category 上下文管理 =====
     self.CurrentCategory = nil
     function self:SetCurrentCategory(categoryName)
         self.CurrentCategory = categoryName
@@ -4627,8 +5894,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     self.Instance.BackgroundTransparency = 1
     self.Instance.Size = UDim2.new(0, 0, 0, 0)
     self.Instance.Position = UDim2.new(0.5, 0, 0.5, 0)
-    if self.RainbowContainer then
-        self.RainbowContainer.Visible = false
+    if self.BorderFlow then
+        self.BorderFlow.Visible = false
     end
     if self.SnowContainer then
         self.SnowContainer.Visible = false
@@ -4639,8 +5906,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Position = originalPos
     }, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     windowTween.Completed:Connect(function()
-        if self.RainbowContainer then
-            self.RainbowContainer.Visible = true
+        if self.BorderFlow then
+            self.BorderFlow.Visible = true
         end
         if self.SnowContainer then
             self.SnowContainer.Visible = true
@@ -4845,346 +6112,8 @@ function WasUI:SetGroupCopyContent(content)
     WasUI.GroupCopyContent = content
 end
 
--- ===== 停用 CreateCollapsibleSection API =====
 function WasUI:CreateCollapsibleSection(...)
     error("CreateCollapsibleSection 已弃用，请使用 CreateCategory")
-end
-
--- ===== 主题切换时更新彩虹边框等 =====
-local function AnimateThemeChange(oldTheme, newTheme)
-    local duration = 0.35
-    for i = #WasUI.Objects, 1, -1 do
-        local obj = WasUI.Objects[i]
-        if not obj.Object or not obj.Object:IsDescendantOf(game) then
-            table.remove(WasUI.Objects, i)
-        end
-    end
-    for _, obj in ipairs(WasUI.Objects) do
-        local instance = obj.Object
-        if not instance then continue end
-        if obj.Type == "Button" then
-            Tween(instance, {BackgroundColor3 = newTheme.Primary, TextColor3 = newTheme.Text}, duration)
-            local icon = instance:FindFirstChildOfClass("ImageLabel")
-            if icon and not icon:GetAttribute("IgnoreThemeChange") then
-                Tween(icon, {ImageColor3 = newTheme.Text}, duration)
-            end
-        elseif obj.Type == "Toggle" then
-            local toggled = instance:GetAttribute("Toggled")
-            if toggled then
-                Tween(instance, {BackgroundColor3 = newTheme.Success}, duration)
-            else
-                local offCol = (newTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
-                Tween(instance, {BackgroundColor3 = offCol}, duration)
-            end
-            local container = instance.Parent
-            if container and container:IsA("Frame") then
-                local titleLabel = container:FindFirstChild("Title")
-                if titleLabel and titleLabel:IsA("TextLabel") then
-                    Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
-                end
-            end
-        elseif obj.Type == "ToggleKnob" then
-            local knobIcon = instance:FindFirstChildOfClass("ImageLabel")
-            if knobIcon and not knobIcon:GetAttribute("IgnoreThemeChange") then
-                Tween(knobIcon, {ImageColor3 = newTheme.Text}, duration)
-            end
-        elseif obj.Type == "Label" then
-            Tween(instance, {TextColor3 = newTheme.Text}, duration)
-        elseif obj.Type == "Line" then
-            Tween(instance, {BackgroundColor3 = newTheme.Primary}, duration)
-        elseif obj.Type == "Slider" then
-            local titleLabel = instance:FindFirstChild("Title")
-            local valueLabel = instance:FindFirstChild("Value")
-            local track = instance:FindFirstChild("Track")
-            if titleLabel and titleLabel:IsA("TextLabel") then
-                Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
-            end
-            if valueLabel and valueLabel:IsA("TextLabel") then
-                Tween(valueLabel, {TextColor3 = newTheme.Text}, duration)
-            end
-            if track and track:IsA("Frame") then
-                Tween(track, {BackgroundColor3 = newTheme.Input}, duration)
-                local fill = track:FindFirstChild("Fill")
-                if fill and fill:IsA("Frame") then
-                    Tween(fill, {BackgroundColor3 = newTheme.Accent}, duration)
-                end
-                local knob = track:FindFirstChild("Knob")
-                if knob and knob:IsA("Frame") then
-                    local knobCircle = knob:FindFirstChildOfClass("Frame")
-                    if knobCircle then
-                        Tween(knobCircle, {BackgroundColor3 = newTheme.Accent}, duration)
-                    end
-                end
-            end
-        elseif obj.Type == "ProgressBar" then
-            local titleLabel = instance:FindFirstChild("Title")
-            local valueLabel = instance:FindFirstChild("Value")
-            local track = instance:FindFirstChild("Track")
-            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
-            if valueLabel then Tween(valueLabel, {TextColor3 = newTheme.Text}, duration) end
-            if track then
-                Tween(track, {BackgroundColor3 = newTheme.Input}, duration)
-                local fill = track:FindFirstChild("Fill")
-                if fill then Tween(fill, {BackgroundColor3 = newTheme.Accent}, duration) end
-            end
-        elseif obj.Type == "Dropdown" then
-            local titleLabel = instance:FindFirstChild("Title")
-            local dropdownButton = instance:FindFirstChild("DropdownButton")
-            if titleLabel and titleLabel:IsA("TextLabel") then
-                Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
-            end
-            if dropdownButton and dropdownButton:IsA("TextButton") then
-                Tween(dropdownButton, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
-                local arrow = dropdownButton:FindFirstChild("ArrowIcon")
-                if arrow and arrow:IsA("ImageLabel") and not arrow:GetAttribute("IgnoreThemeChange") then
-                    Tween(arrow, {ImageColor3 = newTheme.Text}, duration)
-                end
-            end
-        elseif obj.Type == "DropdownOption" then
-            Tween(instance, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
-        elseif obj.Type == "Category" then
-            local titleLabel = instance:FindFirstChild("TitleContainer"):FindFirstChild("Title")
-            local line = instance:FindFirstChild("Line")
-            local icon = instance:FindFirstChild("TitleContainer"):FindFirstChild("CategoryIcon")
-            if titleLabel and titleLabel:IsA("TextLabel") then
-                Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
-            end
-            if line and line:IsA("Frame") then
-                Tween(line, {BackgroundColor3 = newTheme.Primary}, duration)
-            end
-            if icon and icon:IsA("ImageLabel") and not icon:GetAttribute("IgnoreThemeChange") then
-                Tween(icon, {ImageColor3 = newTheme.Text}, duration)
-            end
-        elseif obj.Type == "TextInput" then
-            local textBox = instance:FindFirstChild("TextBox")
-            if textBox and textBox:IsA("TextBox") then
-                Tween(textBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
-                textBox.PlaceholderColor3 = newTheme.Text
-            end
-        elseif obj.Type == "Panel" then
-            Tween(instance, {BackgroundColor3 = newTheme.Background}, duration)
-            local titleBar = instance:FindFirstChild("TitleBar")
-            if titleBar then
-                Tween(titleBar, {BackgroundColor3 = newTheme.Primary}, duration)
-                local title = titleBar:FindFirstChild("Title")
-                if not title then
-                    local titleContainer = titleBar:FindFirstChild("TitleContainer")
-                    if titleContainer then
-                        title = titleContainer:FindFirstChild("Title")
-                    end
-                end
-                if title and title:IsA("TextLabel") then
-                    Tween(title, {TextColor3 = newTheme.Text}, duration)
-                end
-                local closeBtn = titleBar:FindFirstChild("CloseButton")
-                if closeBtn and closeBtn:IsA("ImageButton") then
-                    local icon = closeBtn:FindFirstChildOfClass("ImageLabel")
-                    if icon and not icon:GetAttribute("IgnoreThemeChange") then
-                        Tween(icon, {ImageColor3 = newTheme.Text}, duration)
-                    end
-                end
-                local searchBtn = titleBar:FindFirstChild("SearchButton")
-                if searchBtn and searchBtn:IsA("ImageButton") then
-                    local icon = searchBtn:FindFirstChildOfClass("ImageLabel")
-                    if icon and not icon:GetAttribute("IgnoreThemeChange") then
-                        Tween(icon, {ImageColor3 = newTheme.Text}, duration)
-                    end
-                end
-                local searchContainer = titleBar:FindFirstChild("SearchContainer")
-                if searchContainer then
-                    local searchBox = searchContainer:FindFirstChild("SearchBox")
-                    if searchBox and searchBox:IsA("TextBox") then
-                        Tween(searchBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
-                        searchBox.PlaceholderColor3 = newTheme.Text
-                    end
-                end
-            end
-            local announcementBar = instance:FindFirstChild("AnnouncementBar")
-            if announcementBar then
-                Tween(announcementBar, {BackgroundColor3 = newTheme.Section}, duration)
-                local username = announcementBar:FindFirstChild("Username")
-                local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
-                local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
-                if username and username:IsA("TextLabel") then
-                    Tween(username, {TextColor3 = newTheme.Text}, duration)
-                end
-                if executorLabel and executorLabel:IsA("TextLabel") then
-                    Tween(executorLabel, {TextColor3 = newTheme.Text}, duration)
-                end
-                if welcomeLabel and welcomeLabel:IsA("TextLabel") then
-                    Tween(welcomeLabel, {TextColor3 = newTheme.Text}, duration)
-                end
-                local avatar = announcementBar:FindFirstChild("Avatar")
-                if avatar and avatar:IsA("ImageButton") then
-                    local stroke = avatar:FindFirstChildOfClass("UIStroke")
-                    if stroke then
-                        Tween(stroke, {Color = newTheme.Text}, duration)
-                    end
-                end
-            end
-            local tabBar = instance:FindFirstChild("TabBar")
-            if tabBar then
-                Tween(tabBar, {BackgroundColor3 = newTheme.Primary}, duration)
-                local tabContainer = tabBar:FindFirstChild("TabContainer")
-                if tabContainer then
-                    for _, btn in ipairs(tabContainer:GetChildren()) do
-                        if btn:IsA("TextButton") then
-                            Tween(btn, {BackgroundColor3 = newTheme.TabButton, TextColor3 = newTheme.Text}, duration)
-                            local underline = btn:FindFirstChild("Underline")
-                            if underline and underline:IsA("Frame") then
-                                Tween(underline, {BackgroundColor3 = newTheme.Accent}, duration)
-                            end
-                        end
-                    end
-                end
-            end
-            local panelData = obj.PanelData
-            if panelData then
-                local dotContainer = panelData.DotContainer
-                if dotContainer then
-                    local minimizedTextLabel = dotContainer:FindFirstChild("MinimizedText")
-                    if minimizedTextLabel and minimizedTextLabel:IsA("TextLabel") then
-                        if newTheme == WasUI.Themes.Light then
-                            Tween(minimizedTextLabel, {TextColor3 = Color3.fromRGB(0, 0, 0)}, duration)
-                        else
-                            Tween(minimizedTextLabel, {TextColor3 = newTheme.Text}, duration)
-                        end
-                    end
-                end
-                
-                local titleTagContainers = panelData.TitleTagContainers
-                if titleTagContainers then
-                    for _, tagContainer in ipairs(titleTagContainers) do
-                        if tagContainer and tagContainer:IsDescendantOf(game) then
-                            local tagLabel = tagContainer:FindFirstChild("TagLabel")
-                            if tagLabel and tagLabel:IsA("TextLabel") then
-                                Tween(tagLabel, {TextColor3 = newTheme.Text}, duration)
-                            end
-                        end
-                    end
-                end
-            end
-        elseif obj.Type == "ColorPickerButton" then
-            local titleLabel = instance:FindFirstChild("Title")
-            if titleLabel and titleLabel:IsA("TextLabel") then
-                Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
-            end
-        elseif obj.Type == "TabArrow" then
-            Tween(instance, {ImageColor3 = newTheme.Text}, duration)
-        end
-    end
-    if WasUI.DropdownGui then
-        for _, container in ipairs(WasUI.DropdownGui:GetChildren()) do
-            if container:IsA("ScrollingFrame") then
-                Tween(container, {BackgroundColor3 = newTheme.Background}, duration)
-                for _, btn in ipairs(container:GetChildren()) do
-                    if btn:IsA("TextButton") then
-                        Tween(btn, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
-                    end
-                end
-            end
-        end
-    end
-    for _, data in pairs(WasUI.ActiveNotifications) do
-        local frame = data.Frame
-        if frame then
-            local titleLabel = frame:FindFirstChild("Title")
-            local contentLabel = frame:FindFirstChild("Content")
-            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
-            if contentLabel then Tween(contentLabel, {TextColor3 = newTheme.Text}, duration) end
-            Tween(frame, {BackgroundColor3 = newTheme.Section}, duration)
-            local stroke = frame:FindFirstChildOfClass("UIStroke")
-            if stroke then Tween(stroke, {Color = newTheme.Text}, duration) end
-        end
-    end
-    if WasUI.SnowContainer then
-        for _, flake in ipairs(WasUI.Snowflakes or {}) do
-            if flake.Instance then
-                Tween(flake.Instance, {BackgroundColor3 = newTheme.SnowColor}, duration)
-            end
-        end
-    end
-    for _, shortcut in pairs(WasUI.ShortcutButtons) do
-        if shortcut.button then
-            Tween(shortcut.button, {BackgroundColor3 = newTheme.Primary}, duration)
-            local text = shortcut.button:FindFirstChild("Text")
-            if text then Tween(text, {TextColor3 = newTheme.Text}, duration) end
-            local indicator = shortcut.button:FindFirstChild("Indicator")
-            if indicator then
-                local toggled = indicator:GetAttribute("State")
-                if toggled then
-                    Tween(indicator, {BackgroundColor3 = newTheme.Success}, duration)
-                else
-                    Tween(indicator, {BackgroundColor3 = newTheme.Error}, duration)
-                end
-            end
-            local stroke = shortcut.button:FindFirstChildOfClass("UIStroke")
-            if stroke then Tween(stroke, {Color = newTheme.Accent}, duration) end
-        end
-    end
-    for _, dialogGui in ipairs(WasUI.ActiveDialogs) do
-        if dialogGui and dialogGui.Parent then
-            local overlay = dialogGui:FindFirstChild("Overlay")
-            local dialogFrame = overlay and overlay:FindFirstChild("Dialog")
-            if dialogFrame then
-                Tween(dialogFrame, {BackgroundColor3 = newTheme.Background}, duration)
-                local titleLabel = dialogFrame:FindFirstChild("Title")
-                if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
-                local descriptionLabel = dialogFrame:FindFirstChild("Description")
-                if descriptionLabel then Tween(descriptionLabel, {TextColor3 = newTheme.Text}, duration) end
-                local inputBox = dialogFrame:FindFirstChild("InputBox")
-                if inputBox then
-                    Tween(inputBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
-                    inputBox.PlaceholderColor3 = newTheme.Text
-                end
-                local cancelBtn = dialogFrame:FindFirstChild("ButtonContainer") and dialogFrame.ButtonContainer:FindFirstChild("CancelButton")
-                local confirmBtn = dialogFrame:FindFirstChild("ButtonContainer") and dialogFrame.ButtonContainer:FindFirstChild("ConfirmButton")
-                if cancelBtn then Tween(cancelBtn, {BackgroundColor3 = newTheme.Section, TextColor3 = newTheme.Text}, duration) end
-                if confirmBtn then Tween(confirmBtn, {BackgroundColor3 = newTheme.Accent, TextColor3 = newTheme.Text}, duration) end
-                local stroke = dialogFrame:FindFirstChildOfClass("UIStroke")
-                if stroke then Tween(stroke, {Color = newTheme.Text}, duration) end
-            end
-        end
-    end
-end
-
-function WasUI:SetTheme(themeName)
-    if self.Themes[themeName] then
-        local oldTheme = self.CurrentTheme
-        local newTheme = self.Themes[themeName]
-        self.CurrentTheme = newTheme
-        self.CurrentThemeName = themeName
-        AnimateThemeChange(oldTheme, newTheme)
-        
-        for _, obj in ipairs(WasUI.Objects) do
-            if obj.Type == "Panel" and obj.Object then
-                local announcementBar = obj.Object:FindFirstChild("AnnouncementBar")
-                if announcementBar then
-                    announcementBar.BackgroundColor3 = newTheme.Section
-                    local username = announcementBar:FindFirstChild("Username")
-                    local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
-                    local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
-                    if username then username.TextColor3 = newTheme.Text end
-                    if executorLabel then executorLabel.TextColor3 = newTheme.Text end
-                    if welcomeLabel then welcomeLabel.TextColor3 = newTheme.Text end
-                    local avatar = announcementBar:FindFirstChild("Avatar")
-                    if avatar then
-                        local stroke = avatar:FindFirstChildOfClass("UIStroke")
-                        if stroke then stroke.Color = newTheme.Text end
-                    end
-                end
-            end
-        end
-        
-        if self.SettingsPanel then
-            local themeDropdown = self.SettingsPanel:FindFirstChild("Content") and self.SettingsPanel.Content:FindFirstChild("ThemeDropdown")
-            if themeDropdown and themeDropdown:IsA("TextButton") then
-                themeDropdown.Text = themeName
-            end
-        end
-        return true
-    end
-    return false
 end
 
 _G.WasUIModule = WasUI
