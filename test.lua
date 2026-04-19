@@ -100,6 +100,7 @@ function WasUI:RefreshAllTexts()
             end
         end
     end
+
     for _, shortcut in pairs(WasUI.ShortcutButtons) do
         local btn = shortcut.button
         if btn then
@@ -112,12 +113,58 @@ function WasUI:RefreshAllTexts()
             end
         end
     end
-    if WasUI.SettingsPanel then
-        self:RefreshSettingsPanelTexts()
-    end
-end
 
-function WasUI:RefreshSettingsPanelTexts()
+    if WasUI.SettingsPanel then
+        local content = WasUI.SettingsPanel:FindFirstChild("Content")
+        if content then
+            for _, child in ipairs(content:GetChildren()) do
+                if child:IsA("TextLabel") or child:IsA("TextButton") then
+                    local original = child:GetAttribute("OriginalText")
+                    if original then
+                        child.Text = self:Translate(original)
+                    end
+                elseif child.Name == "SnowToggleContainer" or child.Name == "LanguageToggleContainer" then
+                    local title = child:FindFirstChild("Title")
+                    if title then
+                        local original = title:GetAttribute("OriginalText")
+                        if original then
+                            title.Text = self:Translate(original)
+                        end
+                    end
+                end
+            end
+        end
+        local titleBar = WasUI.SettingsPanel:FindFirstChild("TitleBar")
+        if titleBar then
+            local title = titleBar:FindFirstChild("Title")
+            if title then
+                local original = title:GetAttribute("OriginalText")
+                if original then
+                    title.Text = self:Translate(original)
+                end
+            end
+        end
+    end
+
+    for _, notif in pairs(WasUI.ActiveNotifications) do
+        local frame = notif.Frame
+        if frame then
+            local title = frame:FindFirstChild("Title")
+            local content = frame:FindFirstChild("Content")
+            if title then
+                local original = title:GetAttribute("OriginalText")
+                if original then
+                    title.Text = self:Translate(original)
+                end
+            end
+            if content then
+                local original = content:GetAttribute("OriginalText")
+                if original then
+                    content.Text = self:Translate(original)
+                end
+            end
+        end
+    end
 end
 
 function WasUI:SetDefaultTheme(themeName)
