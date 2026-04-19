@@ -2893,110 +2893,6 @@ function WasUI:ShowPopup(options, callback)
         ZIndex = 999
     })
 
-    -- ========== 全屏彩虹边框 ==========
-    local rainbowContainer = CreateInstance("Frame", {
-        Name = "PopupRainbow",
-        Size = UDim2.new(1, 0, 1, 0),
-        Position = UDim2.new(0, 0, 0, 0),
-        BackgroundTransparency = 1,
-        ZIndex = 500,
-        Parent = overlay
-    })
-
-    local barsPerEdge = 50
-    local barLength = 25
-    local bars = {}
-
-    local function updateRainbowBars()
-        local framePos = dialogFrame.AbsolutePosition
-        local frameSize = dialogFrame.AbsoluteSize
-        for _, data in ipairs(bars) do
-            data.Bar:Destroy()
-        end
-        bars = {}
-        for edgeIdx = 1, 4 do
-            for i = 1, barsPerEdge do
-                local isHorizontal = (edgeIdx == 1 or edgeIdx == 3)
-                local bar = CreateInstance("Frame", {
-                    BorderSizePixel = 0,
-                    BackgroundColor3 = Color3.new(1,0,0),
-                    BackgroundTransparency = 0,
-                    ZIndex = 501,
-                    Parent = rainbowContainer
-                })
-
-                if isHorizontal then
-                    bar.Size = UDim2.new(0, frameSize.X / barsPerEdge, 0, barLength)
-                    if edgeIdx == 1 then
-                        bar.AnchorPoint = Vector2.new(0.5, 0)
-                        bar.Position = UDim2.new(0, framePos.X + (i - 0.5) * frameSize.X / barsPerEdge, 0, framePos.Y + frameSize.Y)
-                    else
-                        bar.AnchorPoint = Vector2.new(0.5, 1)
-                        bar.Position = UDim2.new(0, framePos.X + (i - 0.5) * frameSize.X / barsPerEdge, 0, framePos.Y)
-                    end
-                else
-                    bar.Size = UDim2.new(0, barLength, 0, frameSize.Y / barsPerEdge)
-                    if edgeIdx == 2 then
-                        bar.AnchorPoint = Vector2.new(0, 0.5)
-                        bar.Position = UDim2.new(0, framePos.X + frameSize.X, 0, framePos.Y + (i - 0.5) * frameSize.Y / barsPerEdge)
-                    else
-                        bar.AnchorPoint = Vector2.new(1, 0.5)
-                        bar.Position = UDim2.new(0, framePos.X, 0, framePos.Y + (i - 0.5) * frameSize.Y / barsPerEdge)
-                    end
-                end
-
-                local t_global
-                if edgeIdx == 1 then
-                    t_global = (i - 0.5) / (barsPerEdge * 4)
-                elseif edgeIdx == 2 then
-                    t_global = (barsPerEdge + i - 0.5) / (barsPerEdge * 4)
-                elseif edgeIdx == 3 then
-                    t_global = (2 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
-                else
-                    t_global = (3 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
-                end
-
-                table.insert(bars, {Bar = bar, T = t_global})
-            end
-        end
-    end
-
-    local startTime = tick()
-    local rainbowConn
-    rainbowConn = RunService.Heartbeat:Connect(function()
-        if not rainbowContainer or not rainbowContainer.Parent then
-            rainbowConn:Disconnect()
-            return
-        end
-        local elapsed = (tick() - startTime) * 1.5
-        local offset = elapsed % 1
-        for _, data in ipairs(bars) do
-            local currentT = (data.T - offset) % 1
-            data.Bar.BackgroundColor3 = Color3.fromHSV(currentT, 1, 1)
-        end
-    end)
-
-    local function dismissRainbow()
-        if rainbowConn then
-            rainbowConn:Disconnect()
-            rainbowConn = nil
-        end
-        for _, data in ipairs(bars) do
-            local bar = data.Bar
-            if bar and bar.Parent then
-                TweenService:Create(bar, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(0, 0, 0, 0)
-                }):Play()
-            end
-        end
-        task.delay(0.25, function()
-            if rainbowContainer then
-                rainbowContainer:Destroy()
-            end
-        end)
-    end
-
     local dialogFrame = CreateInstance("Frame", {
         Name = "Dialog",
         Size = UDim2.new(0, 480, 0, 0),
@@ -3152,13 +3048,128 @@ function WasUI:ShowPopup(options, callback)
             local parentSize = dialogGui.AbsoluteSize
             local frameSize = dialogFrame.AbsoluteSize
             dialogFrame.Position = UDim2.new(0.5, -frameSize.X/2, 0.5, -frameSize.Y/2)
-            updateRainbowBars()
         end
     end
 
     dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
-    dialogFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateRainbowBars)
     updatePosition()
+
+    -- ========== 全屏彩虹边框（围绕弹窗） ==========
+    local rainbowContainer = CreateInstance("Frame", {
+        Name = "PopupRainbow",
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        ZIndex = 950,
+        Parent = overlay
+    })
+
+    local barsPerEdge = 40
+    local barLength = 20
+    local bars = {}
+
+    local function updateRainbowBars()
+        if not dialogFrame or not dialogFrame.Parent then return end
+        local framePos = dialogFrame.AbsolutePosition
+        local frameSize = dialogFrame.AbsoluteSize
+        if frameSize.X <= 0 or frameSize.Y <= 0 then return end
+
+        for _, data in ipairs(bars) do
+            data.Bar:Destroy()
+        end
+        bars = {}
+        for edgeIdx = 1, 4 do
+            for i = 1, barsPerEdge do
+                local isHorizontal = (edgeIdx == 1 or edgeIdx == 3)
+                local bar = CreateInstance("Frame", {
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = Color3.new(1,0,0),
+                    BackgroundTransparency = 0,
+                    ZIndex = 951,
+                    Parent = rainbowContainer
+                })
+
+                if isHorizontal then
+                    bar.Size = UDim2.new(0, frameSize.X / barsPerEdge, 0, barLength)
+                    if edgeIdx == 1 then
+                        bar.AnchorPoint = Vector2.new(0.5, 0)
+                        bar.Position = UDim2.new(0, framePos.X + (i - 0.5) * frameSize.X / barsPerEdge, 0, framePos.Y + frameSize.Y)
+                    else
+                        bar.AnchorPoint = Vector2.new(0.5, 1)
+                        bar.Position = UDim2.new(0, framePos.X + (i - 0.5) * frameSize.X / barsPerEdge, 0, framePos.Y)
+                    end
+                else
+                    bar.Size = UDim2.new(0, barLength, 0, frameSize.Y / barsPerEdge)
+                    if edgeIdx == 2 then
+                        bar.AnchorPoint = Vector2.new(0, 0.5)
+                        bar.Position = UDim2.new(0, framePos.X + frameSize.X, 0, framePos.Y + (i - 0.5) * frameSize.Y / barsPerEdge)
+                    else
+                        bar.AnchorPoint = Vector2.new(1, 0.5)
+                        bar.Position = UDim2.new(0, framePos.X, 0, framePos.Y + (i - 0.5) * frameSize.Y / barsPerEdge)
+                    end
+                end
+
+                local t_global
+                if edgeIdx == 1 then
+                    t_global = (i - 0.5) / (barsPerEdge * 4)
+                elseif edgeIdx == 2 then
+                    t_global = (barsPerEdge + i - 0.5) / (barsPerEdge * 4)
+                elseif edgeIdx == 3 then
+                    t_global = (2 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
+                else
+                    t_global = (3 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
+                end
+
+                table.insert(bars, {Bar = bar, T = t_global})
+            end
+        end
+    end
+
+    local startTime = tick()
+    local rainbowConn
+    rainbowConn = RunService.Heartbeat:Connect(function()
+        if not rainbowContainer or not rainbowContainer.Parent then
+            rainbowConn:Disconnect()
+            return
+        end
+        local elapsed = (tick() - startTime) * 1.5
+        local offset = elapsed % 1
+        for _, data in ipairs(bars) do
+            local currentT = (data.T - offset) % 1
+            data.Bar.BackgroundColor3 = Color3.fromHSV(currentT, 1, 1)
+        end
+    end)
+
+    local function dismissRainbow()
+        if rainbowConn then
+            rainbowConn:Disconnect()
+            rainbowConn = nil
+        end
+        for _, data in ipairs(bars) do
+            local bar = data.Bar
+            if bar and bar.Parent then
+                TweenService:Create(bar, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(0, 0, 0, 0)
+                }):Play()
+            end
+        end
+        task.delay(0.25, function()
+            if rainbowContainer then
+                rainbowContainer:Destroy()
+            end
+        end)
+    end
+
+    -- 等待 dialogFrame 渲染后更新彩虹条
+    task.spawn(function()
+        while not dialogFrame or not dialogFrame.Parent or dialogFrame.AbsoluteSize.X <= 0 do
+            task.wait()
+        end
+        updateRainbowBars()
+        dialogFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateRainbowBars)
+        dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateRainbowBars)
+    end)
 
     local function animateClose()
         dismissRainbow()
