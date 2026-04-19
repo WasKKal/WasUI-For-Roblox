@@ -2467,7 +2467,6 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         ZIndex = 2
     })
     
-    -- 标题文字（自动尺寸，靠左）
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(0, 0, 1, 0),
@@ -2484,7 +2483,6 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         Parent = self.Header
     })
     
-    -- 图标（放置在文字右侧）
     self.Icon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
     if self.Icon then
         self.Icon.Parent = self.Header
@@ -2492,7 +2490,6 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         self.Icon.AnchorPoint = Vector2.new(0, 0.5)
         self.Icon.Position = UDim2.new(0, self.TitleLabel.AbsolutePosition.X + self.TitleLabel.AbsoluteSize.X + 4, 0.5, 0)
         self.Icon.Rotation = self.Collapsed and -90 or 0
-        -- 监听文字尺寸变化，动态更新图标位置
         self.TitleLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
             self.Icon.Position = UDim2.new(0, self.TitleLabel.AbsolutePosition.X + self.TitleLabel.AbsoluteSize.X + 4, 0.5, 0)
         end)
@@ -2595,7 +2592,6 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         Active = true,
     })
     
-    -- 统一使用 MouseButton1Click 处理点击（包括触摸）
     button.MouseButton1Click:Connect(toggleState)
     
     contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -2885,14 +2881,122 @@ function WasUI:ShowPopup(options, callback)
     dialogGui.DisplayOrder = 2000
     dialogGui.Parent = game:GetService("CoreGui")
 
+    local overlay = CreateInstance("Frame", {
+        Name = "Overlay",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Active = true,
+        Selectable = true,
+        Parent = dialogGui,
+        ZIndex = 999
+    })
+
+    -- ========== 全屏彩虹边框 ==========
+    local rainbowContainer = CreateInstance("Frame", {
+        Name = "PopupRainbow",
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        ZIndex = 500,
+        Parent = overlay
+    })
+
+    local barsPerEdge = 60
+    local barLength = 25
+    local bars = {}
+
+    for edgeIdx = 1, 4 do
+        for i = 1, barsPerEdge do
+            local isHorizontal = (edgeIdx == 1 or edgeIdx == 3)
+            local bar = CreateInstance("Frame", {
+                BorderSizePixel = 0,
+                BackgroundColor3 = Color3.new(1,0,0),
+                BackgroundTransparency = 0,
+                ZIndex = 501,
+                Parent = rainbowContainer
+            })
+
+            if isHorizontal then
+                bar.Size = UDim2.new(1 / barsPerEdge, 0, 0, barLength)
+                if edgeIdx == 1 then
+                    bar.AnchorPoint = Vector2.new(0.5, 0)
+                    bar.Position = UDim2.new((i - 0.5) / barsPerEdge, 0, 1, 0)
+                else
+                    bar.AnchorPoint = Vector2.new(0.5, 1)
+                    bar.Position = UDim2.new((i - 0.5) / barsPerEdge, 0, 0, 0)
+                end
+            else
+                bar.Size = UDim2.new(0, barLength, 1 / barsPerEdge, 0)
+                if edgeIdx == 2 then
+                    bar.AnchorPoint = Vector2.new(0, 0.5)
+                    bar.Position = UDim2.new(1, 0, (i - 0.5) / barsPerEdge, 0)
+                else
+                    bar.AnchorPoint = Vector2.new(1, 0.5)
+                    bar.Position = UDim2.new(0, 0, (i - 0.5) / barsPerEdge, 0)
+                end
+            end
+
+            local t_global
+            if edgeIdx == 1 then
+                t_global = (i - 0.5) / (barsPerEdge * 4)
+            elseif edgeIdx == 2 then
+                t_global = (barsPerEdge + i - 0.5) / (barsPerEdge * 4)
+            elseif edgeIdx == 3 then
+                t_global = (2 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
+            else
+                t_global = (3 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
+            end
+
+            table.insert(bars, {Bar = bar, T = t_global})
+        end
+    end
+
+    local startTime = tick()
+    local rainbowConn
+    rainbowConn = RunService.Heartbeat:Connect(function()
+        if not rainbowContainer or not rainbowContainer.Parent then
+            rainbowConn:Disconnect()
+            return
+        end
+        local elapsed = (tick() - startTime) * 1.5
+        local offset = elapsed % 1
+        for _, data in ipairs(bars) do
+            local currentT = (data.T - offset) % 1
+            data.Bar.BackgroundColor3 = Color3.fromHSV(currentT, 1, 1)
+        end
+    end)
+
+    local function dismissRainbow()
+        if rainbowConn then
+            rainbowConn:Disconnect()
+            rainbowConn = nil
+        end
+        for _, data in ipairs(bars) do
+            local bar = data.Bar
+            if bar and bar.Parent then
+                TweenService:Create(bar, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(0, 0, 0, 0)
+                }):Play()
+            end
+        end
+        task.delay(0.25, function()
+            if rainbowContainer then
+                rainbowContainer:Destroy()
+            end
+        end)
+    end
+
     local dialogFrame = CreateInstance("Frame", {
         Name = "Dialog",
         Size = UDim2.new(0, 480, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        ClipsDescendants = true,
-        Parent = dialogGui,
+        ClipsDescendants = false,
+        Parent = overlay,
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
@@ -3046,106 +3150,11 @@ function WasUI:ShowPopup(options, callback)
     dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
     updatePosition()
 
-    -- ================= 彩虹边框动画（参考 TH 加载器） =================
-    local rainbowContainer = CreateInstance("Frame", {
-        Name = "PopupRainbow",
-        Size = UDim2.new(1, 0, 1, 0),
-        Position = UDim2.new(0, 0, 0, 0),
-        BackgroundTransparency = 1,
-        ZIndex = 900,
-        Parent = dialogFrame
-    })
-
-    local barsPerEdge = 50
-    local barLength = 18
-    local bars = {}
-
-    for edgeIdx = 1, 4 do
-        for i = 1, barsPerEdge do
-            local isHorizontal = (edgeIdx == 1 or edgeIdx == 3)
-            local bar = CreateInstance("Frame", {
-                BorderSizePixel = 0,
-                BackgroundColor3 = Color3.new(1,0,0),
-                BackgroundTransparency = 0,
-                ZIndex = 901,
-                Parent = rainbowContainer
-            })
-
-            if isHorizontal then
-                bar.Size = UDim2.new(1 / barsPerEdge, 0, 0, barLength)
-                if edgeIdx == 1 then
-                    bar.AnchorPoint = Vector2.new(0.5, 0)
-                    bar.Position = UDim2.new((i - 0.5) / barsPerEdge, 0, 1, 0)
-                else
-                    bar.AnchorPoint = Vector2.new(0.5, 1)
-                    bar.Position = UDim2.new((i - 0.5) / barsPerEdge, 0, 0, 0)
-                end
-            else
-                bar.Size = UDim2.new(0, barLength, 1 / barsPerEdge, 0)
-                if edgeIdx == 2 then
-                    bar.AnchorPoint = Vector2.new(0, 0.5)
-                    bar.Position = UDim2.new(1, 0, (i - 0.5) / barsPerEdge, 0)
-                else
-                    bar.AnchorPoint = Vector2.new(1, 0.5)
-                    bar.Position = UDim2.new(0, 0, (i - 0.5) / barsPerEdge, 0)
-                end
-            end
-
-            local t_global
-            if edgeIdx == 1 then
-                t_global = (i - 0.5) / (barsPerEdge * 4)
-            elseif edgeIdx == 2 then
-                t_global = (barsPerEdge + i - 0.5) / (barsPerEdge * 4)
-            elseif edgeIdx == 3 then
-                t_global = (2 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
-            else
-                t_global = (3 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
-            end
-
-            table.insert(bars, {Bar = bar, T = t_global})
-        end
-    end
-
-    local startTime = tick()
-    local rainbowConn
-    rainbowConn = RunService.Heartbeat:Connect(function()
-        if not rainbowContainer or not rainbowContainer.Parent then
-            rainbowConn:Disconnect()
-            return
-        end
-        local elapsed = (tick() - startTime) * 1.2
-        local offset = elapsed % 1
-        for _, data in ipairs(bars) do
-            local currentT = (data.T - offset) % 1
-            data.Bar.BackgroundColor3 = Color3.fromHSV(currentT, 1, 1)
-        end
-    end)
-
-    local function dismissRainbow()
-        if rainbowConn then
-            rainbowConn:Disconnect()
-            rainbowConn = nil
-        end
-        for _, data in ipairs(bars) do
-            local bar = data.Bar
-            if bar and bar.Parent then
-                TweenService:Create(bar, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(0, 0, 0, 0)
-                }):Play()
-            end
-        end
-        task.delay(0.25, function()
-            if rainbowContainer then
-                rainbowContainer:Destroy()
-            end
-        end)
-    end
-
     local function animateClose()
         dismissRainbow()
         task.delay(0.3, function()
             Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
+            Tween(overlay, {BackgroundTransparency = 1}, 0.2)
             task.wait(0.2)
             dialogGui:Destroy()
             for i, d in ipairs(WasUI.ActiveDialogs) do
@@ -3158,19 +3167,13 @@ function WasUI:ShowPopup(options, callback)
     end
 
     cancelButton.MouseButton1Click:Connect(function()
-        dismissRainbow()
-        task.delay(0.1, function()
-            if onCancel then onCancel() end
-            animateClose()
-        end)
+        if onCancel then onCancel() end
+        animateClose()
     end)
 
     confirmButton.MouseButton1Click:Connect(function()
-        dismissRainbow()
-        task.delay(0.1, function()
-            if onConfirm then onConfirm() end
-            animateClose()
-        end)
+        if onConfirm then onConfirm() end
+        animateClose()
     end)
 
     Tween(dialogFrame, {BackgroundTransparency = 0}, 0.2)
@@ -5502,6 +5505,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Size = UDim2.new(1, 0, 0, 1),
         Position = UDim2.new(0, 0, 1, -1),
         BackgroundColor3 = WasUI.CurrentTheme.TabBorder,
+        BackgroundTransparency = 0.7,
         ZIndex = 2,
         Parent = self.TabBar
     })
