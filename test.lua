@@ -2903,53 +2903,61 @@ function WasUI:ShowPopup(options, callback)
         Parent = overlay
     })
 
-    local barsPerEdge = 60
+    local barsPerEdge = 50
     local barLength = 25
     local bars = {}
 
-    for edgeIdx = 1, 4 do
-        for i = 1, barsPerEdge do
-            local isHorizontal = (edgeIdx == 1 or edgeIdx == 3)
-            local bar = CreateInstance("Frame", {
-                BorderSizePixel = 0,
-                BackgroundColor3 = Color3.new(1,0,0),
-                BackgroundTransparency = 0,
-                ZIndex = 501,
-                Parent = rainbowContainer
-            })
+    local function updateRainbowBars()
+        local framePos = dialogFrame.AbsolutePosition
+        local frameSize = dialogFrame.AbsoluteSize
+        for _, data in ipairs(bars) do
+            data.Bar:Destroy()
+        end
+        bars = {}
+        for edgeIdx = 1, 4 do
+            for i = 1, barsPerEdge do
+                local isHorizontal = (edgeIdx == 1 or edgeIdx == 3)
+                local bar = CreateInstance("Frame", {
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = Color3.new(1,0,0),
+                    BackgroundTransparency = 0,
+                    ZIndex = 501,
+                    Parent = rainbowContainer
+                })
 
-            if isHorizontal then
-                bar.Size = UDim2.new(1 / barsPerEdge, 0, 0, barLength)
+                if isHorizontal then
+                    bar.Size = UDim2.new(0, frameSize.X / barsPerEdge, 0, barLength)
+                    if edgeIdx == 1 then
+                        bar.AnchorPoint = Vector2.new(0.5, 0)
+                        bar.Position = UDim2.new(0, framePos.X + (i - 0.5) * frameSize.X / barsPerEdge, 0, framePos.Y + frameSize.Y)
+                    else
+                        bar.AnchorPoint = Vector2.new(0.5, 1)
+                        bar.Position = UDim2.new(0, framePos.X + (i - 0.5) * frameSize.X / barsPerEdge, 0, framePos.Y)
+                    end
+                else
+                    bar.Size = UDim2.new(0, barLength, 0, frameSize.Y / barsPerEdge)
+                    if edgeIdx == 2 then
+                        bar.AnchorPoint = Vector2.new(0, 0.5)
+                        bar.Position = UDim2.new(0, framePos.X + frameSize.X, 0, framePos.Y + (i - 0.5) * frameSize.Y / barsPerEdge)
+                    else
+                        bar.AnchorPoint = Vector2.new(1, 0.5)
+                        bar.Position = UDim2.new(0, framePos.X, 0, framePos.Y + (i - 0.5) * frameSize.Y / barsPerEdge)
+                    end
+                end
+
+                local t_global
                 if edgeIdx == 1 then
-                    bar.AnchorPoint = Vector2.new(0.5, 0)
-                    bar.Position = UDim2.new((i - 0.5) / barsPerEdge, 0, 1, 0)
+                    t_global = (i - 0.5) / (barsPerEdge * 4)
+                elseif edgeIdx == 2 then
+                    t_global = (barsPerEdge + i - 0.5) / (barsPerEdge * 4)
+                elseif edgeIdx == 3 then
+                    t_global = (2 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
                 else
-                    bar.AnchorPoint = Vector2.new(0.5, 1)
-                    bar.Position = UDim2.new((i - 0.5) / barsPerEdge, 0, 0, 0)
+                    t_global = (3 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
                 end
-            else
-                bar.Size = UDim2.new(0, barLength, 1 / barsPerEdge, 0)
-                if edgeIdx == 2 then
-                    bar.AnchorPoint = Vector2.new(0, 0.5)
-                    bar.Position = UDim2.new(1, 0, (i - 0.5) / barsPerEdge, 0)
-                else
-                    bar.AnchorPoint = Vector2.new(1, 0.5)
-                    bar.Position = UDim2.new(0, 0, (i - 0.5) / barsPerEdge, 0)
-                end
-            end
 
-            local t_global
-            if edgeIdx == 1 then
-                t_global = (i - 0.5) / (barsPerEdge * 4)
-            elseif edgeIdx == 2 then
-                t_global = (barsPerEdge + i - 0.5) / (barsPerEdge * 4)
-            elseif edgeIdx == 3 then
-                t_global = (2 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
-            else
-                t_global = (3 * barsPerEdge + i - 0.5) / (barsPerEdge * 4)
+                table.insert(bars, {Bar = bar, T = t_global})
             end
-
-            table.insert(bars, {Bar = bar, T = t_global})
         end
     end
 
@@ -2995,7 +3003,7 @@ function WasUI:ShowPopup(options, callback)
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        ClipsDescendants = false,
+        ClipsDescendants = true,
         Parent = overlay,
         ZIndex = 1000
     })
@@ -3144,10 +3152,12 @@ function WasUI:ShowPopup(options, callback)
             local parentSize = dialogGui.AbsoluteSize
             local frameSize = dialogFrame.AbsoluteSize
             dialogFrame.Position = UDim2.new(0.5, -frameSize.X/2, 0.5, -frameSize.Y/2)
+            updateRainbowBars()
         end
     end
 
     dialogFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
+    dialogFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateRainbowBars)
     updatePosition()
 
     local function animateClose()
