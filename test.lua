@@ -2488,11 +2488,15 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         self.Icon.Parent = self.Header
         self.Icon.ZIndex = 3
         self.Icon.AnchorPoint = Vector2.new(0, 0.5)
-        self.Icon.Position = UDim2.new(0, self.TitleLabel.AbsolutePosition.X + self.TitleLabel.AbsoluteSize.X + 4, 0.5, 0)
         self.Icon.Rotation = self.Collapsed and -90 or 0
-        self.TitleLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-            self.Icon.Position = UDim2.new(0, self.TitleLabel.AbsolutePosition.X + self.TitleLabel.AbsoluteSize.X + 4, 0.5, 0)
-        end)
+        local function updateIconPosition()
+            if self.TitleLabel and self.Icon then
+                self.Icon.Position = UDim2.new(0, self.TitleLabel.AbsolutePosition.X - self.Header.AbsolutePosition.X + self.TitleLabel.AbsoluteSize.X + 4, 0.5, 0)
+            end
+        end
+        self.TitleLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateIconPosition)
+        self.TitleLabel:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateIconPosition)
+        updateIconPosition()
     end
     
     local line = CreateInstance("Frame", {
@@ -2570,6 +2574,11 @@ function CollapsibleSection:New(name, parent, title, defaultCollapsed, onToggle)
         else
             if self.Icon then
                 Tween(self.Icon, {Rotation = 0}, 0.2)
+                task.defer(function()
+                    if self.TitleLabel and self.Icon then
+                        self.Icon.Position = UDim2.new(0, self.TitleLabel.AbsolutePosition.X - self.Header.AbsolutePosition.X + self.TitleLabel.AbsoluteSize.X + 4, 0.5, 0)
+                    end
+                end)
             end
         end
         
