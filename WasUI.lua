@@ -1531,11 +1531,10 @@ local Category = setmetatable({}, {__index = Control})
 Category.__index = Category
 function Category:New(name, parent, title, iconName)
     local actualIcon = iconName or "chevron-down"
-    
     local self = Control:New(name, parent)
     self.Collapsed = false
     self.ContentHeight = 0
-    
+
     self.Header = CreateInstance("Frame", {
         Name = "CategoryHeader",
         Size = UDim2.new(1, 0, 0, 30),
@@ -1543,7 +1542,7 @@ function Category:New(name, parent, title, iconName)
         Parent = parent,
         ZIndex = 2
     })
-    
+
     local titleContainer = CreateInstance("Frame", {
         Name = "TitleContainer",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1558,7 +1557,7 @@ function Category:New(name, parent, title, iconName)
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = titleContainer
     })
-    
+
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(0, 0, 1, 0),
@@ -1575,7 +1574,7 @@ function Category:New(name, parent, title, iconName)
         Parent = titleContainer
     })
     WasUI:SetLocalizedText(titleLabel, title)
-    
+
     local icon = WasUI:CreateIcon(actualIcon, UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
     if icon then
         icon.Name = "CategoryIcon"
@@ -1585,7 +1584,7 @@ function Category:New(name, parent, title, iconName)
         icon.Rotation = 0
         self.Icon = icon
     end
-    
+
     local line = CreateInstance("Frame", {
         Name = "Line",
         Size = UDim2.new(1, 0, 0, 1),
@@ -1596,7 +1595,7 @@ function Category:New(name, parent, title, iconName)
         ZIndex = 2,
         Parent = self.Header
     })
-    
+
     self.Content = CreateInstance("Frame", {
         Name = "CategoryContent",
         Size = UDim2.new(1, 0, 0, 0),
@@ -1605,23 +1604,24 @@ function Category:New(name, parent, title, iconName)
         Parent = parent,
         ZIndex = 2
     })
-    
+
     local contentLayout = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 4),
         Parent = self.Content
     })
-    
+
     local contentPadding = CreateInstance("UIPadding", {
         PaddingLeft = UDim.new(0, 4),
         PaddingRight = UDim.new(0, 4),
         Parent = self.Content
     })
-    
+
     local function getContentHeight()
-        return contentLayout.AbsoluteContentSize.Y
+        local h = contentLayout.AbsoluteContentSize.Y
+        return h > 0 and h or 0
     end
-    
+
     local function updateParentScroller()
         local parentScroller = self.Content.Parent
         while parentScroller and not parentScroller:IsA("ScrollingFrame") do
@@ -1634,10 +1634,9 @@ function Category:New(name, parent, title, iconName)
             end
         end
     end
-    
+
     local function updateLayout(animate)
         local targetHeight = self.Collapsed and 0 or getContentHeight()
-        
         if animate then
             Tween(self.Content, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.25)
             if self.Icon then
@@ -1649,15 +1648,15 @@ function Category:New(name, parent, title, iconName)
                 self.Icon.Rotation = self.Collapsed and -90 or 0
             end
         end
-        
+        task.wait()
         updateParentScroller()
     end
-    
+
     local function toggleCollapsed()
         self.Collapsed = not self.Collapsed
         updateLayout(true)
     end
-    
+
     local toggleButton = CreateInstance("TextButton", {
         Name = "ToggleButton",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1668,7 +1667,7 @@ function Category:New(name, parent, title, iconName)
         AutoButtonColor = false
     })
     toggleButton.MouseButton1Click:Connect(toggleCollapsed)
-    
+
     contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         if not self.Collapsed then
             local newHeight = getContentHeight()
@@ -1678,9 +1677,9 @@ function Category:New(name, parent, title, iconName)
             end
         end
     end)
-    
+
     updateLayout(false)
-    
+
     local panel = parent
     while panel do
         if type(panel) == "table" and panel.GetActiveTab then
@@ -1696,9 +1695,8 @@ function Category:New(name, parent, title, iconName)
     if panel and panel.SetCurrentCategory then
         panel:SetCurrentCategory(title)
     end
-    
+
     self.Instance = self.Content
-    
     table.insert(WasUI.Objects, {Object = self.Header, Type = "Category"})
     table.insert(WasUI.Objects, {Object = self.Content, Type = "CategoryContent"})
     return self
