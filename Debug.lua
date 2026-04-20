@@ -40,7 +40,7 @@ WasUI.OpenDropdowns = {}
 WasUI.SettingsPanel = nil
 
 WasUI.DefaultTheme = "Dark"
-WasUI.DefaultRainbowMode = "流动"
+WasUI.DefaultRainbowMode = "整体"
 WasUI.CurrentThemeName = WasUI.DefaultTheme
 
 WasUI.CurrentLanguage = "中文"
@@ -470,7 +470,7 @@ function WasUI:Notify(options)
             local targetY = WasUI.NotificationTop + (i-1)*(WasUI.NotificationHeight + WasUI.NotificationSpacing)
             Tween(v.Frame, {Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, targetY)}, 0.3)
         end
-        Tween(frame, {BackgroundTransparency = 1, Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, frame.Position.Y.Offset)}, 0.3):Wait()
+        Tween(frame, {BackgroundTransparency = 1, Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, frame.Position.Y.Offset)}, 0.3).Completed:Wait()
         frame:Destroy()
     end)
 end
@@ -963,7 +963,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         if instant then
             self.OptionsContainer.Visible = false
         else
-            Tween(self.OptionsContainer, {BackgroundTransparency = 1}, 0.2):Wait()
+            Tween(self.OptionsContainer, {BackgroundTransparency = 1}, 0.2).Completed:Wait()
             self.OptionsContainer.Visible = false
         end
     end
@@ -1284,7 +1284,7 @@ function WasUI:ShowPopup(options)
     buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 18)
     dialogFrame.Position = UDim2.new(0.5, -240, 0.5, -totalHeight/2)
     local function animateClose()
-        Tween(overlay, {BackgroundTransparency = 1}, 0.2):Wait()
+        Tween(overlay, {BackgroundTransparency = 1}, 0.2).Completed:Wait()
         dialogGui:Destroy()
         for i, d in ipairs(WasUI.ActiveDialogs) do if d == dialogGui then table.remove(WasUI.ActiveDialogs, i) break end end
     end
@@ -1433,7 +1433,7 @@ function WasUI:ShowConfirmDialog(options)
     dialogFrame.Size = UDim2.new(0, 400, 0, totalHeight)
     dialogFrame.Position = UDim2.new(0.5, -200, 0.5, -totalHeight/2)
     local function animateClose()
-        Tween(overlay, {BackgroundTransparency = 1}, 0.2):Wait()
+        Tween(overlay, {BackgroundTransparency = 1}, 0.2).Completed:Wait()
         dialogGui:Destroy()
         for i, d in ipairs(WasUI.ActiveDialogs) do if d == dialogGui then table.remove(WasUI.ActiveDialogs, i) break end end
     end
@@ -1467,6 +1467,108 @@ function Panel:New(name, parent, size, position, titleTag)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
     AddRipple(self.Instance)
+
+    self.BorderFlow = CreateInstance("Frame", {
+        Name = "BorderFlow",
+        Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
+        Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = -1,
+        Parent = self.Instance.Parent
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.BorderFlow})
+    local flowGradient = Instance.new("UIGradient")
+    flowGradient.Rotation = 0
+    flowGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
+    }
+    flowGradient.Parent = self.BorderFlow
+    local highlightStroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 255, 255),
+        Thickness = 1,
+        Transparency = 0.7,
+        Parent = self.BorderFlow
+    })
+    local highlightGradient = Instance.new("UIGradient")
+    highlightGradient.Rotation = 45
+    highlightGradient.Transparency = NumberSequence.new{
+        NumberSequenceKeypoint.new(0, 0.9),
+        NumberSequenceKeypoint.new(0.5, 0.2),
+        NumberSequenceKeypoint.new(1, 0.9)
+    }
+    highlightGradient.Parent = highlightStroke
+    self.BorderStroke = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 0, 0),
+        Thickness = 2,
+        Transparency = 0,
+        Parent = self.BorderFlow
+    })
+    self.BorderFlow.Visible = false
+    local function updateBorder()
+        if not self.Instance or not self.BorderFlow then return end
+        self.BorderFlow.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
+        self.BorderFlow.Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4)
+    end
+    self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
+    self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
+    updateBorder()
+    local borderTime = 0
+    self.RainbowMode = WasUI.DefaultRainbowMode
+    self.FlowRotation = 0
+    self.BorderConnection = nil
+    local function startFlowAnimation()
+        if self.BorderConnection then self.BorderConnection:Disconnect() end
+        self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
+            if self.RainbowMode == "整体" then
+                borderTime = borderTime + deltaTime * 4
+                local r = (math.sin(borderTime) + 1) / 2
+                local g = (math.sin(borderTime + math.pi/3) + 1) / 2
+                local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
+                self.BorderStroke.Color = Color3.new(r, g, b)
+                self.BorderStroke.Transparency = 0
+                flowGradient.Enabled = false
+                highlightStroke.Transparency = 0.7
+                local pulse = (math.sin(tick() * 0.5) + 1) / 2
+                highlightStroke.Transparency = 0.5 + pulse * 0.3
+            else
+                self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
+                flowGradient.Rotation = self.FlowRotation
+                flowGradient.Enabled = true
+                self.BorderStroke.Transparency = 1
+                highlightStroke.Transparency = 0.7
+                local pulse = (math.sin(tick() * 0.5) + 1) / 2
+                highlightStroke.Transparency = 0.5 + pulse * 0.3
+            end
+        end)
+    end
+    function self:SetRainbowMode(mode)
+        if mode == "整体" or mode == "流动" then
+            self.RainbowMode = mode
+            if mode == "整体" then
+                self.BorderFlow.BackgroundTransparency = 1
+                self.BorderStroke.Enabled = true
+                flowGradient.Enabled = false
+                highlightStroke.Enabled = true
+            else
+                self.BorderFlow.BackgroundTransparency = 0
+                self.BorderStroke.Enabled = false
+                flowGradient.Enabled = true
+                highlightStroke.Enabled = true
+            end
+            self.BorderFlow.Visible = true
+            startFlowAnimation()
+        end
+    end
+    startFlowAnimation()
+    self:SetRainbowMode(self.RainbowMode)
+
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
         Size = UDim2.new(1, 0, 0, 26),
@@ -1550,7 +1652,7 @@ function Panel:New(name, parent, size, position, titleTag)
     end
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
-        Size = UDim2.new(0, 28, 1, 0),
+        Size = UDim2.new(0, 52, 1, 0),
         Position = UDim2.new(0, 10, 0, 0.8),
         BackgroundTransparency = 1,
         ZIndex = 3,
@@ -1558,17 +1660,42 @@ function Panel:New(name, parent, size, position, titleTag)
     })
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
-        Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 1.2, 0.5, -5.4),
+        Size = UDim2.new(0, 12, 0, 12),
+        Position = UDim2.new(0, 0, 0.5, -6),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BorderSizePixel = 0,
         ZIndex = 5,
         Parent = self.DotContainer
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.CloseDot})
+    self.MinimizeDot = CreateInstance("Frame", {
+        Name = "Minimize",
+        Size = UDim2.new(0, 12, 0, 12),
+        Position = UDim2.new(0, 18, 0.5, -6),
+        BackgroundColor3 = Color3.fromRGB(255, 189, 46),
+        BorderSizePixel = 0,
+        ZIndex = 5,
+        Parent = self.DotContainer
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.MinimizeDot})
+    self.MaximizeDot = CreateInstance("Frame", {
+        Name = "Maximize",
+        Size = UDim2.new(0, 12, 0, 12),
+        Position = UDim2.new(0, 36, 0.5, -6),
+        BackgroundColor3 = Color3.fromRGB(39, 201, 63),
+        BorderSizePixel = 0,
+        ZIndex = 5,
+        Parent = self.DotContainer
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.MaximizeDot})
     self.CloseDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             self:SetVisible(false)
+        end
+    end)
+    self.MinimizeDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            self.Instance.Visible = false
         end
     end)
     local closeButton = CreateInstance("ImageButton", {
@@ -1707,7 +1834,7 @@ function Panel:New(name, parent, size, position, titleTag)
             Parent = titleBar
         })
         closeBtn.MouseButton1Click:Connect(function()
-            Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2):Wait()
+            Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2).Completed:Wait()
             settingsGui:Destroy()
             WasUI.SettingsGui = nil
             WasUI.SettingsPanel = nil
@@ -1929,8 +2056,50 @@ function Panel:New(name, parent, size, position, titleTag)
         WasUI:SetLocalizedText(copyButton, "复制你的自定义项目")
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = copyButton})
         copyButton.MouseButton1Click:Connect(function()
-            copyToClipboard("loadstring(game:HttpGet('https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/WasUI.lua'))()")
-            WasUI:Notify({Title = "调试", Content = "链接已复制", Duration = 2})
+            local config = {}
+            for _, obj in ipairs(WasUI.Objects) do
+                if obj.Type == "Button" then
+                    table.insert(config, {Type = "Button", Text = obj.Object.Text, Position = obj.Object.Position})
+                elseif obj.Type == "Toggle" then
+                    local toggle = obj.Object.Parent
+                    local titleLabel = toggle and toggle:FindFirstChild("Title")
+                    table.insert(config, {Type = "Toggle", Title = titleLabel and titleLabel.Text or "", State = obj.Object:GetAttribute("Toggled")})
+                elseif obj.Type == "Slider" then
+                    local slider = obj.Object
+                    local titleLabel = slider:FindFirstChild("Title")
+                    local valueLabel = slider:FindFirstChild("Value")
+                    table.insert(config, {Type = "Slider", Title = titleLabel and titleLabel.Text or "", Value = tonumber(valueLabel.Text)})
+                elseif obj.Type == "Dropdown" then
+                    local dropdown = obj.Object
+                    local titleLabel = dropdown:FindFirstChild("Title")
+                    local button = dropdown:FindFirstChild("DropdownButton")
+                    table.insert(config, {Type = "Dropdown", Title = titleLabel and titleLabel.Text or "", Selected = button.Text})
+                elseif obj.Type == "TextInput" then
+                    local input = obj.Object:FindFirstChild("TextBox")
+                    table.insert(config, {Type = "TextInput", Placeholder = input.PlaceholderText, Text = input.Text})
+                elseif obj.Type == "Panel" then
+                    local panel = obj.Object
+                    local title = panel:FindFirstChild("TitleBar"):FindFirstChild("Title")
+                    table.insert(config, {Type = "Window", Title = title and title.Text or "", Theme = WasUI.DefaultTheme, RainbowMode = WasUI.DefaultRainbowMode, Language = WasUI.CurrentLanguage})
+                end
+            end
+            local exportStr = "local WasUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/WasUI.lua'))()\n"
+            exportStr = exportStr .. "local win = WasUI:CreateWindow('" .. (config[1] and config[1].Title or "Window") .. "', UDim2.new(0, 380, 0, 350))\n"
+            for _, c in ipairs(config) do
+                if c.Type == "Button" then
+                    exportStr = exportStr .. "WasUI:CreateButton(win, '" .. c.Text .. "', function() end)\n"
+                elseif c.Type == "Toggle" then
+                    exportStr = exportStr .. "WasUI:CreateToggle(win, '" .. c.Title .. "', " .. tostring(c.State) .. ", function(s) end)\n"
+                elseif c.Type == "Slider" then
+                    exportStr = exportStr .. "WasUI:CreateSlider(win, '" .. c.Title .. "', 0, 100, " .. c.Value .. ", function(v) end)\n"
+                elseif c.Type == "Dropdown" then
+                    exportStr = exportStr .. "WasUI:CreateDropdown(win, '" .. c.Title .. "', {}, '" .. c.Selected .. "', function(s) end)\n"
+                elseif c.Type == "TextInput" then
+                    exportStr = exportStr .. "WasUI:CreateTextInput(win, '" .. c.Placeholder .. "', '" .. c.Text .. "', function(t) end)\n"
+                end
+            end
+            copyToClipboard(exportStr)
+            WasUI:Notify({Title = "调试", Content = "配置源码已复制", Duration = 2})
         end)
         
         refreshCanvas()
@@ -1941,7 +2110,7 @@ function Panel:New(name, parent, size, position, titleTag)
                 local framePos = settingsFrame.AbsolutePosition
                 local frameSize = settingsFrame.AbsoluteSize
                 if not (mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y) then
-                    Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2):Wait()
+                    Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2).Completed:Wait()
                     settingsGui:Destroy()
                     WasUI.SettingsGui = nil
                     WasUI.SettingsPanel = nil
@@ -1978,7 +2147,7 @@ function Panel:New(name, parent, size, position, titleTag)
     WasUI:SetLocalizedText(self.WelcomeLabel, "调试版本")
     self.TabBar = CreateInstance("Frame", {
         Name = "TabBar",
-        Size = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(1, 0, 0, 28),
         Position = UDim2.new(0, 0, 0, 26 + 80),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.8,
@@ -1995,15 +2164,11 @@ function Panel:New(name, parent, size, position, titleTag)
         ZIndex = 2,
         Parent = self.TabBar
     })
-    self.TabContainer = CreateInstance("ScrollingFrame", {
+    self.TabContainer = CreateInstance("Frame", {
         Name = "TabContainer",
-        Size = UDim2.new(1, 0, 0, 0),
-        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, -40, 1, 0),
+        Position = UDim2.new(0, 4, 0, 0),
         BackgroundTransparency = 1,
-        ScrollBarThickness = 0,
-        ScrollingDirection = Enum.ScrollingDirection.X,
-        AutomaticSize = Enum.AutomaticSize.Y,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
         ZIndex = 2,
         Parent = self.TabBar
     })
@@ -2011,23 +2176,38 @@ function Panel:New(name, parent, size, position, titleTag)
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
         VerticalAlignment = Enum.VerticalAlignment.Center,
-        Padding = UDim.new(0, 0),
+        Padding = UDim.new(0, 4),
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = self.TabContainer
     })
-    CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4), Parent = self.TabContainer})
-    local function updateTabBarHeight()
-        local h = self.TabContainer.AbsoluteSize.Y
-        if h > 0 then
-            self.TabBar.Size = UDim2.new(1, 0, 0, h)
-            self.ContentArea.Position = UDim2.new(0, 0, 0, 26 + 80 + h)
-            self.ContentArea.Size = UDim2.new(1, 0, 1, -(26 + 80 + h))
-        end
+    local addTabButton = CreateInstance("ImageButton", {
+        Name = "AddTabButton",
+        Size = UDim2.new(0, 24, 0, 24),
+        Position = UDim2.new(1, -28, 0.5, -12),
+        BackgroundTransparency = 1,
+        Image = "",
+        AutoButtonColor = false,
+        ZIndex = 5,
+        Parent = self.TabBar
+    })
+    local addIcon = WasUI:CreateIcon("plus", UDim2.new(0, 18, 0, 18))
+    if addIcon then
+        addIcon.Parent = addTabButton
+        addIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     end
-    self.TabContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateTabBarHeight)
-    tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        self.TabContainer.CanvasSize = UDim2.new(0, tabListLayout.AbsoluteContentSize.X + 8, 0, 0)
-        updateTabBarHeight()
+    addTabButton.MouseButton1Click:Connect(function()
+        WasUI:ShowConfirmDialog({
+            title = "添加选项卡",
+            showInput = true,
+            inputPlaceholder = "输入选项卡名称",
+            confirmText = "添加",
+            cancelText = "取消",
+            onConfirm = function(inputValue)
+                if inputValue and inputValue ~= "" then
+                    self:AddTab(inputValue)
+                end
+            end
+        })
     end)
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
