@@ -736,79 +736,16 @@ local function AddKeyBindLongPress(controlInstance, controlKey, controlType, cal
     UserInputService.InputChanged:Connect(checkMove)
 end
 
-local function CreateCircularProgress(parent, position, radius, thickness, color)
-    local container = Instance.new("Frame")
-    container.Name = "LongPressProgress"
-    container.Size = UDim2.new(0, radius * 2, 0, radius * 2)
-    container.Position = UDim2.new(0, position.X - radius, 0, position.Y - radius)
-    container.BackgroundTransparency = 1
-    container.Parent = parent
-    
-    local bg = Instance.new("Frame")
-    bg.Size = UDim2.new(1, 0, 1, 0)
-    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    bg.BackgroundTransparency = 0.6
-    bg.BorderSizePixel = 0
-    bg.Parent = container
-    local bgCorner = Instance.new("UICorner")
-    bgCorner.CornerRadius = UDim.new(1, 0)
-    bgCorner.Parent = bg
-    
-    local fill = Instance.new("Frame")
-    fill.Name = "Fill"
-    fill.Size = UDim2.new(0, 0, 0, 0)
-    fill.BackgroundColor3 = color or Color3.fromRGB(255, 255, 255)
-    fill.BackgroundTransparency = 0.5
-    fill.BorderSizePixel = 0
-    fill.Parent = container
-    local fillCorner = Instance.new("UICorner")
-    fillCorner.CornerRadius = UDim.new(1, 0)
-    fillCorner.Parent = fill
-    fill.AnchorPoint = Vector2.new(0.5, 0.5)
-    fill.Position = UDim2.new(0.5, 0, 0.5, 0)
-    
-    return container, fill
-end
-
-local function UpdateCircularProgress(fill, progress)
-    if not fill or not fill.Parent then return end
-    local maxSize = fill.Parent.AbsoluteSize.X
-    local newSize = maxSize * progress
-    fill.Size = UDim2.new(0, newSize, 0, newSize)
-    fill.AnchorPoint = Vector2.new(0.5, 0.5)
-    fill.Position = UDim2.new(0.5, 0, 0.5, 0)
-end
-
 local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
     longPressTime = longPressTime or 0.5
     local timer = nil
     local pressed = false
     local startPos = nil
-    local progressContainer = nil
-    local progressFill = nil
-    local progressStartTime = nil
-    local progressUpdateConn = nil
 
     local function cleanup()
         if timer then task.cancel(timer); timer = nil end
-        if progressUpdateConn then progressUpdateConn:Disconnect(); progressUpdateConn = nil end
-        if progressContainer then progressContainer:Destroy(); progressContainer = nil; progressFill = nil end
         pressed = false
         startPos = nil
-        progressStartTime = nil
-    end
-
-    local function updateProgress()
-        if not pressed then return end
-        local elapsed = tick() - progressStartTime
-        local progress = math.min(1, elapsed / longPressTime)
-        if progressFill then
-            UpdateCircularProgress(progressFill, progress)
-        end
-        if elapsed >= longPressTime then
-            cleanup()
-            onLongPress()
-        end
     end
 
     local function startPress(input)
@@ -816,22 +753,12 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
         if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
             pressed = true
             startPos = input.Position
-            progressStartTime = tick()
-            
-            local screenGui = Instance.new("ScreenGui")
-            screenGui.Name = "LongPressProgressGui"
-            screenGui.ResetOnSpawn = false
-            screenGui.DisplayOrder = 2000
-            screenGui.Parent = game:GetService("CoreGui")
-            progressContainer, progressFill = CreateCircularProgress(screenGui, startPos, 20, 3, WasUI.CurrentTheme.Accent)
-            
             timer = task.delay(longPressTime, function()
                 if pressed then
                     cleanup()
                     onLongPress()
                 end
             end)
-            progressUpdateConn = RunService.Heartbeat:Connect(updateProgress)
         end
     end
 
@@ -1301,7 +1228,6 @@ function Button:New(name, parent, text, onClick, size, iconName)
 
     AddLongPressToControl(self.Instance, function()
         CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
-        WasUI:Notify({Title = "快捷键", Content = "已创建快捷按钮: " .. (text or name), Duration = 1.5})
     end, 3)
 
     local panel = parent
@@ -1507,10 +1433,8 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             function(newState)
                 performToggle(newState)
             end, nil, self.RainbowName)
-        if shortcut then
-            WasUI:Notify({Title = "快捷键", Content = "已创建快捷开关: " .. self.RainbowName, Duration = 1.5})
-        else
-            WasUI:Notify({Title = "快捷键", Content = "已移除快捷开关: " .. self.RainbowName, Duration = 1.5})
+        if not shortcut then
+            -- 已存在则移除，但无提示
         end
     end, 3)
 
@@ -1606,7 +1530,7 @@ end
 local Category = setmetatable({}, {__index = Control})
 Category.__index = Category
 function Category:New(name, parent, title, iconName)
-    local actualIcon = iconName or "chevron-right"
+    local actualIcon = iconName or "chevron-down"
     
     local self = Control:New(name, parent)
     self.Collapsed = false
@@ -1646,7 +1570,7 @@ function Category:New(name, parent, title, iconName)
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
         AutomaticSize = Enum.AutomaticSize.X,
-        LayoutOrder = 1,
+        LayoutOrder = 2,
         ZIndex = 2,
         Parent = titleContainer
     })
@@ -1656,9 +1580,9 @@ function Category:New(name, parent, title, iconName)
     if icon then
         icon.Name = "CategoryIcon"
         icon.Parent = titleContainer
-        icon.LayoutOrder = 2
+        icon.LayoutOrder = 1
         icon.ZIndex = 3
-        icon.Rotation = self.Collapsed and 0 or 90
+        icon.Rotation = 0
         self.Icon = icon
     end
     
@@ -1717,12 +1641,12 @@ function Category:New(name, parent, title, iconName)
         if animate then
             Tween(self.Content, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.25)
             if self.Icon then
-                Tween(self.Icon, {Rotation = self.Collapsed and 0 or 90}, 0.25)
+                Tween(self.Icon, {Rotation = self.Collapsed and -90 or 0}, 0.25)
             end
         else
             self.Content.Size = UDim2.new(1, 0, 0, targetHeight)
             if self.Icon then
-                self.Icon.Rotation = self.Collapsed and 0 or 90
+                self.Icon.Rotation = self.Collapsed and -90 or 0
             end
         end
         
@@ -5252,7 +5176,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 300, 0, 350),
+            Size = UDim2.new(0, 300, 0, 400),
             Position = UDim2.new(0.5, -150, 0.5, -200),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
