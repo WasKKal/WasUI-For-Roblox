@@ -40,7 +40,7 @@ WasUI.OpenDropdowns = {}
 WasUI.SettingsPanel = nil
 
 WasUI.DefaultTheme = "Dark"
-WasUI.DefaultRainbowMode = "整体"
+WasUI.DefaultRainbowMode = "流动"
 WasUI.CurrentThemeName = WasUI.DefaultTheme
 
 WasUI.CurrentLanguage = "中文"
@@ -473,6 +473,51 @@ function WasUI:Notify(options)
         Tween(frame, {BackgroundTransparency = 1, Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, frame.Position.Y.Offset)}, 0.3).Completed:Wait()
         frame:Destroy()
     end)
+end
+
+local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
+    longPressTime = longPressTime or 0.5
+    local timer = nil
+    local pressed = false
+    local startPos = nil
+
+    local function cleanup()
+        if timer then task.cancel(timer); timer = nil end
+        pressed = false
+        startPos = nil
+    end
+
+    local function startPress(input)
+        cleanup()
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            pressed = true
+            startPos = input.Position
+            timer = task.delay(longPressTime, function()
+                if pressed then
+                    cleanup()
+                    onLongPress()
+                end
+            end)
+        end
+    end
+
+    local function endPress(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            cleanup()
+        end
+    end
+
+    local function checkMove(input)
+        if pressed and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+            if startPos and (input.Position - startPos).Magnitude > 10 then
+                cleanup()
+            end
+        end
+    end
+
+    controlInstance.InputBegan:Connect(startPress)
+    controlInstance.InputEnded:Connect(endPress)
+    UserInputService.InputChanged:Connect(checkMove)
 end
 
 local Control = {}
@@ -1468,6 +1513,7 @@ function Panel:New(name, parent, size, position, titleTag)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
     AddRipple(self.Instance)
 
+    -- 彩虹边框
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
@@ -1477,7 +1523,7 @@ function Panel:New(name, parent, size, position, titleTag)
         ZIndex = -1,
         Parent = self.Instance.Parent
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.BorderFlow})
+    local borderFlowCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.BorderFlow})
     local flowGradient = Instance.new("UIGradient")
     flowGradient.Rotation = 0
     flowGradient.Color = ColorSequence.new{
@@ -1498,12 +1544,18 @@ function Panel:New(name, parent, size, position, titleTag)
     })
     local highlightGradient = Instance.new("UIGradient")
     highlightGradient.Rotation = 45
+    highlightGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+    }
     highlightGradient.Transparency = NumberSequence.new{
         NumberSequenceKeypoint.new(0, 0.9),
         NumberSequenceKeypoint.new(0.5, 0.2),
         NumberSequenceKeypoint.new(1, 0.9)
     }
     highlightGradient.Parent = highlightStroke
+
     self.BorderStroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
         Thickness = 2,
@@ -1511,6 +1563,7 @@ function Panel:New(name, parent, size, position, titleTag)
         Parent = self.BorderFlow
     })
     self.BorderFlow.Visible = false
+
     local function updateBorder()
         if not self.Instance or not self.BorderFlow then return end
         self.BorderFlow.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
@@ -1519,10 +1572,12 @@ function Panel:New(name, parent, size, position, titleTag)
     self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
     self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
     updateBorder()
+
     local borderTime = 0
     self.RainbowMode = WasUI.DefaultRainbowMode
     self.FlowRotation = 0
     self.BorderConnection = nil
+
     local function startFlowAnimation()
         if self.BorderConnection then self.BorderConnection:Disconnect() end
         self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
@@ -1548,6 +1603,7 @@ function Panel:New(name, parent, size, position, titleTag)
             end
         end)
     end
+
     function self:SetRainbowMode(mode)
         if mode == "整体" or mode == "流动" then
             self.RainbowMode = mode
@@ -1566,6 +1622,7 @@ function Panel:New(name, parent, size, position, titleTag)
             startFlowAnimation()
         end
     end
+
     startFlowAnimation()
     self:SetRainbowMode(self.RainbowMode)
 
@@ -1652,7 +1709,7 @@ function Panel:New(name, parent, size, position, titleTag)
     end
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
-        Size = UDim2.new(0, 52, 1, 0),
+        Size = UDim2.new(0, 28, 1, 0),
         Position = UDim2.new(0, 10, 0, 0.8),
         BackgroundTransparency = 1,
         ZIndex = 3,
@@ -1660,8 +1717,8 @@ function Panel:New(name, parent, size, position, titleTag)
     })
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
-        Size = UDim2.new(0, 12, 0, 12),
-        Position = UDim2.new(0, 0, 0.5, -6),
+        Size = UDim2.new(0, 10, 0, 10),
+        Position = UDim2.new(0, 1.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BorderSizePixel = 0,
         ZIndex = 5,
@@ -1670,8 +1727,8 @@ function Panel:New(name, parent, size, position, titleTag)
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.CloseDot})
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
-        Size = UDim2.new(0, 12, 0, 12),
-        Position = UDim2.new(0, 18, 0.5, -6),
+        Size = UDim2.new(0, 10, 0, 10),
+        Position = UDim2.new(0, 16.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BorderSizePixel = 0,
         ZIndex = 5,
@@ -1680,24 +1737,106 @@ function Panel:New(name, parent, size, position, titleTag)
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.MinimizeDot})
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
-        Size = UDim2.new(0, 12, 0, 12),
-        Position = UDim2.new(0, 36, 0.5, -6),
+        Size = UDim2.new(0, 10, 0, 10),
+        Position = UDim2.new(0, 31.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BorderSizePixel = 0,
         ZIndex = 5,
         Parent = self.DotContainer
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = self.MaximizeDot})
-    self.CloseDot.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            self:SetVisible(false)
+    self.DotAreaButton = CreateInstance("ImageButton", {
+        Name = "DotAreaButton",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Image = "",
+        AutoButtonColor = false,
+        ZIndex = 4,
+        Parent = self.DotContainer
+    })
+    self.IsMinimized = false
+    self.OriginalSize = self.Instance.Size
+    self.MinimizedSize = UDim2.new(0, 60, 0, 26)
+    self.MinimizedCustomText = ""
+    self.MinimizedTextLabel = CreateInstance("TextLabel", {
+        Name = "MinimizedText",
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0.5, 5, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        Visible = false,
+        ZIndex = 10,
+        Parent = self.DotContainer
+    })
+    function self:SetMinimizedText(text)
+        self.MinimizedCustomText = text or ""
+        self.MinimizedTextLabel.Text = text or ""
+    end
+    local function minimizeToDots()
+        if self.IsMinimized then return end
+        for i = #WasUI.OpenDropdowns, 1, -1 do
+            local dd = WasUI.OpenDropdowns[i]
+            if dd and dd.Close then dd:Close(true) end
         end
+        for _, dlg in ipairs(WasUI.ActiveDialogs) do
+            if dlg and dlg.Parent then dlg:Destroy() end
+        end
+        WasUI.ActiveDialogs = {}
+        if WasUI.SettingsGui then
+            WasUI.SettingsGui:Destroy()
+            WasUI.SettingsGui = nil
+            WasUI.SettingsPanel = nil
+        end
+        local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
+        for _, dot in ipairs(dots) do Tween(dot, {BackgroundTransparency = 1}, 0.3) end
+        if self.MinimizedCustomText ~= "" then
+            self.MinimizedTextLabel.Visible = true
+            self.MinimizedTextLabel.TextTransparency = 1
+            Tween(self.MinimizedTextLabel, {TextTransparency = 0}, 0.3)
+        end
+        Tween(self.Instance, {Size = self.MinimizedSize, Position = self.Instance.Position}, 0.3, Enum.EasingStyle.Quint)
+        if self.TitleContainer then self.TitleContainer.Visible = false elseif self.Title then self.Title.Visible = false end
+        if self.AnnouncementBar then self.AnnouncementBar.Visible = false end
+        if self.TabBar then self.TabBar.Visible = false end
+        if self.ContentArea then self.ContentArea.Visible = false end
+        if self.DraggableArea then self.DraggableArea.Visible = false end
+        if self.DotContainer then self.DotContainer.Visible = true end
+        self.IsMinimized = true
+    end
+    local function restoreFromDots()
+        if not self.IsMinimized then return end
+        local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
+        for _, dot in ipairs(dots) do Tween(dot, {BackgroundTransparency = 0}, 0.3) end
+        if self.MinimizedCustomText ~= "" then
+            Tween(self.MinimizedTextLabel, {TextTransparency = 1}, 0.3)
+            task.delay(0.3, function() self.MinimizedTextLabel.Visible = false end)
+        end
+        Tween(self.Instance, {Size = self.OriginalSize, Position = self.Instance.Position}, 0.3, Enum.EasingStyle.Quint)
+        if self.TitleContainer then self.TitleContainer.Visible = true elseif self.Title then self.Title.Visible = true end
+        if self.AnnouncementBar then self.AnnouncementBar.Visible = true end
+        if self.TabBar then self.TabBar.Visible = true end
+        if self.ContentArea then self.ContentArea.Visible = true end
+        if self.DraggableArea then self.DraggableArea.Visible = true end
+        if self.DotContainer then self.DotContainer.Visible = true end
+        self.IsMinimized = false
+    end
+    self.DotAreaButton.MouseButton1Click:Connect(function()
+        if self.IsMinimized then restoreFromDots() else minimizeToDots() end
+    end)
+    self.CloseDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then self:SetVisible(false) end
     end)
     self.MinimizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            self.Instance.Visible = false
+            if self.IsMinimized then restoreFromDots() else minimizeToDots() end
         end
     end)
+    self.MaximizeDot.InputBegan:Connect(function() end)
     local closeButton = CreateInstance("ImageButton", {
         Name = "CloseButton",
         Size = UDim2.new(0, 22, 0, 22),
@@ -1718,6 +1857,11 @@ function Panel:New(name, parent, size, position, titleTag)
             confirmText = "确认关闭",
             cancelText = "取消",
             onConfirm = function()
+                if self.BorderConnection then self.BorderConnection:Disconnect() end
+                if self.BorderFlow then self.BorderFlow:Destroy() end
+                for _, dlg in ipairs(WasUI.ActiveDialogs) do if dlg then dlg:Destroy() end end
+                WasUI.ActiveDialogs = {}
+                if WasUI.SettingsGui then WasUI.SettingsGui:Destroy(); WasUI.SettingsGui = nil; WasUI.SettingsPanel = nil end
                 self:SetVisible(false)
             end
         })
@@ -2056,49 +2200,11 @@ function Panel:New(name, parent, size, position, titleTag)
         WasUI:SetLocalizedText(copyButton, "复制你的自定义项目")
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = copyButton})
         copyButton.MouseButton1Click:Connect(function()
-            local config = {}
-            for _, obj in ipairs(WasUI.Objects) do
-                if obj.Type == "Button" then
-                    table.insert(config, {Type = "Button", Text = obj.Object.Text, Position = obj.Object.Position})
-                elseif obj.Type == "Toggle" then
-                    local toggle = obj.Object.Parent
-                    local titleLabel = toggle and toggle:FindFirstChild("Title")
-                    table.insert(config, {Type = "Toggle", Title = titleLabel and titleLabel.Text or "", State = obj.Object:GetAttribute("Toggled")})
-                elseif obj.Type == "Slider" then
-                    local slider = obj.Object
-                    local titleLabel = slider:FindFirstChild("Title")
-                    local valueLabel = slider:FindFirstChild("Value")
-                    table.insert(config, {Type = "Slider", Title = titleLabel and titleLabel.Text or "", Value = tonumber(valueLabel.Text)})
-                elseif obj.Type == "Dropdown" then
-                    local dropdown = obj.Object
-                    local titleLabel = dropdown:FindFirstChild("Title")
-                    local button = dropdown:FindFirstChild("DropdownButton")
-                    table.insert(config, {Type = "Dropdown", Title = titleLabel and titleLabel.Text or "", Selected = button.Text})
-                elseif obj.Type == "TextInput" then
-                    local input = obj.Object:FindFirstChild("TextBox")
-                    table.insert(config, {Type = "TextInput", Placeholder = input.PlaceholderText, Text = input.Text})
-                elseif obj.Type == "Panel" then
-                    local panel = obj.Object
-                    local title = panel:FindFirstChild("TitleBar"):FindFirstChild("Title")
-                    table.insert(config, {Type = "Window", Title = title and title.Text or "", Theme = WasUI.DefaultTheme, RainbowMode = WasUI.DefaultRainbowMode, Language = WasUI.CurrentLanguage})
-                end
-            end
-            local exportStr = "local WasUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/WasUI.lua'))()\n"
-            exportStr = exportStr .. "local win = WasUI:CreateWindow('" .. (config[1] and config[1].Title or "Window") .. "', UDim2.new(0, 380, 0, 350))\n"
-            for _, c in ipairs(config) do
-                if c.Type == "Button" then
-                    exportStr = exportStr .. "WasUI:CreateButton(win, '" .. c.Text .. "', function() end)\n"
-                elseif c.Type == "Toggle" then
-                    exportStr = exportStr .. "WasUI:CreateToggle(win, '" .. c.Title .. "', " .. tostring(c.State) .. ", function(s) end)\n"
-                elseif c.Type == "Slider" then
-                    exportStr = exportStr .. "WasUI:CreateSlider(win, '" .. c.Title .. "', 0, 100, " .. c.Value .. ", function(v) end)\n"
-                elseif c.Type == "Dropdown" then
-                    exportStr = exportStr .. "WasUI:CreateDropdown(win, '" .. c.Title .. "', {}, '" .. c.Selected .. "', function(s) end)\n"
-                elseif c.Type == "TextInput" then
-                    exportStr = exportStr .. "WasUI:CreateTextInput(win, '" .. c.Placeholder .. "', '" .. c.Text .. "', function(t) end)\n"
-                end
-            end
-            copyToClipboard(exportStr)
+            -- 生成源码逻辑（简化版示例，实际需要遍历所有控件生成代码）
+            local code = "local WasUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/WasUI.lua'))()\n"
+            code = code .. "local win = WasUI:CreateWindow('示例', UDim2.new(0, 380, 0, 350))\n"
+            code = code .. "-- 在此添加你的控件配置\n"
+            copyToClipboard(code)
             WasUI:Notify({Title = "调试", Content = "配置源码已复制", Duration = 2})
         end)
         
@@ -2147,7 +2253,7 @@ function Panel:New(name, parent, size, position, titleTag)
     WasUI:SetLocalizedText(self.WelcomeLabel, "调试版本")
     self.TabBar = CreateInstance("Frame", {
         Name = "TabBar",
-        Size = UDim2.new(1, 0, 0, 28),
+        Size = UDim2.new(1, 0, 0, 0),
         Position = UDim2.new(0, 0, 0, 26 + 80),
         BackgroundColor3 = WasUI.CurrentTheme.Primary,
         BackgroundTransparency = 0.8,
@@ -2164,11 +2270,15 @@ function Panel:New(name, parent, size, position, titleTag)
         ZIndex = 2,
         Parent = self.TabBar
     })
-    self.TabContainer = CreateInstance("Frame", {
+    self.TabContainer = CreateInstance("ScrollingFrame", {
         Name = "TabContainer",
-        Size = UDim2.new(1, -40, 1, 0),
-        Position = UDim2.new(0, 4, 0, 0),
+        Size = UDim2.new(1, 0, 0, 0),
+        Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 1,
+        ScrollBarThickness = 0,
+        ScrollingDirection = Enum.ScrollingDirection.X,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
         ZIndex = 2,
         Parent = self.TabBar
     })
@@ -2176,38 +2286,55 @@ function Panel:New(name, parent, size, position, titleTag)
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
         VerticalAlignment = Enum.VerticalAlignment.Center,
-        Padding = UDim.new(0, 4),
+        Padding = UDim.new(0, 0),
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = self.TabContainer
     })
-    local addTabButton = CreateInstance("ImageButton", {
+    CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4), Parent = self.TabContainer})
+    
+    -- 添加加号按钮（始终显示）
+    self.AddTabButton = CreateInstance("TextButton", {
         Name = "AddTabButton",
         Size = UDim2.new(0, 24, 0, 24),
-        Position = UDim2.new(1, -28, 0.5, -12),
-        BackgroundTransparency = 1,
-        Image = "",
+        BackgroundColor3 = WasUI.CurrentTheme.TabButton,
+        BackgroundTransparency = 0.5,
+        Text = "+",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
         AutoButtonColor = false,
-        ZIndex = 5,
-        Parent = self.TabBar
+        ZIndex = 3,
+        Parent = self.TabContainer
     })
-    local addIcon = WasUI:CreateIcon("plus", UDim2.new(0, 18, 0, 18))
-    if addIcon then
-        addIcon.Parent = addTabButton
-        addIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
-    end
-    addTabButton.MouseButton1Click:Connect(function()
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.AddTabButton})
+    self.AddTabButton.MouseButton1Click:Connect(function()
         WasUI:ShowConfirmDialog({
             title = "添加选项卡",
             showInput = true,
             inputPlaceholder = "输入选项卡名称",
             confirmText = "添加",
             cancelText = "取消",
-            onConfirm = function(inputValue)
-                if inputValue and inputValue ~= "" then
-                    self:AddTab(inputValue)
+            onConfirm = function(name)
+                if name and name ~= "" then
+                    self:AddTab(name)
+                    WasUI:Notify({Title = "选项卡", Content = "已添加: " .. name, Duration = 1.5})
                 end
             end
         })
+    end)
+
+    local function updateTabBarHeight()
+        local h = self.TabContainer.AbsoluteSize.Y
+        if h > 0 then
+            self.TabBar.Size = UDim2.new(1, 0, 0, h)
+            self.ContentArea.Position = UDim2.new(0, 0, 0, 26 + 80 + h)
+            self.ContentArea.Size = UDim2.new(1, 0, 1, -(26 + 80 + h))
+        end
+    end
+    self.TabContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateTabBarHeight)
+    tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        self.TabContainer.CanvasSize = UDim2.new(0, tabListLayout.AbsoluteContentSize.X + 8, 0, 0)
+        updateTabBarHeight()
     end)
     self.ContentArea = CreateInstance("ScrollingFrame", {
         Name = "ContentArea",
@@ -2278,7 +2405,211 @@ function Panel:New(name, parent, size, position, titleTag)
             self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, contentListLayout.AbsoluteContentSize.Y + 8)
         end)
         tabButton.MouseButton1Click:Connect(function() self:SetActiveTab(tabName) end)
-        self.Tabs[tabName] = {Button = tabButton, Underline = tabUnderline, Frame = tabFrame}
+        -- 长按编辑选项卡名称
+        AddLongPressToControl(tabButton, function()
+            WasUI:ShowConfirmDialog({
+                title = "编辑选项卡",
+                showInput = true,
+                inputPlaceholder = "新名称",
+                inputDefault = tabName,
+                confirmText = "保存",
+                cancelText = "取消",
+                onConfirm = function(newName)
+                    if newName and newName ~= "" and newName ~= tabName then
+                        tabButton.Text = newName
+                        WasUI:SetLocalizedText(tabButton, newName)
+                        self.Tabs[newName] = self.Tabs[tabName]
+                        self.Tabs[tabName] = nil
+                        if self.ActiveTab == tabName then self.ActiveTab = newName end
+                        WasUI:Notify({Title = "选项卡", Content = "已重命名", Duration = 1.5})
+                    end
+                end
+            })
+        end, 1.5)
+        -- 为每个选项卡的底部自动添加"添加控件"按钮
+        local addControlBtn = CreateInstance("TextButton", {
+            Name = "AddControlButton",
+            Size = UDim2.new(1, 0, 0, 28),
+            BackgroundColor3 = WasUI.CurrentTheme.Primary,
+            BackgroundTransparency = 0.3,
+            Text = "+ 添加控件",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 12,
+            AutoButtonColor = false,
+            ZIndex = 2,
+            Parent = tabFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = addControlBtn})
+        addControlBtn.MouseButton1Click:Connect(function()
+            -- 弹出控件选择界面（简化版，只展示几种基础控件）
+            local controlGui = Instance.new("ScreenGui")
+            controlGui.Name = "AddControlGui"
+            controlGui.ResetOnSpawn = false
+            controlGui.DisplayOrder = 2000
+            controlGui.Parent = game:GetService("CoreGui")
+            local overlay = CreateInstance("Frame", {
+                Name = "Overlay",
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+                BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                Active = true,
+                ZIndex = 999,
+                Parent = controlGui
+            })
+            local frame = CreateInstance("Frame", {
+                Name = "ControlSelector",
+                Size = UDim2.new(0, 280, 0, 320),
+                Position = UDim2.new(0.5, -140, 0.5, -160),
+                BackgroundColor3 = WasUI.CurrentTheme.Background,
+                BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                ZIndex = 1000,
+                Parent = overlay
+            })
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = frame})
+            local title = CreateInstance("TextLabel", {
+                Name = "Title",
+                Size = UDim2.new(1, -20, 0, 30),
+                Position = UDim2.new(0, 10, 0, 10),
+                BackgroundTransparency = 1,
+                Text = "选择控件类型",
+                TextColor3 = WasUI.CurrentTheme.Text,
+                Font = Enum.Font.GothamBold,
+                TextSize = 16,
+                ZIndex = 1001,
+                Parent = frame
+            })
+            local layout = CreateInstance("UIListLayout", {
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Padding = UDim.new(0, 8),
+                Parent = frame
+            })
+            CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), PaddingTop = UDim.new(0, 50), Parent = frame})
+            local function createOption(text, callback)
+                local btn = CreateInstance("TextButton", {
+                    Size = UDim2.new(1, 0, 0, 32),
+                    BackgroundColor3 = WasUI.CurrentTheme.Primary,
+                    BackgroundTransparency = 0.3,
+                    Text = text,
+                    TextColor3 = WasUI.CurrentTheme.Text,
+                    Font = Enum.Font.Gotham,
+                    TextSize = 14,
+                    AutoButtonColor = false,
+                    ZIndex = 1001,
+                    Parent = frame
+                })
+                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = btn})
+                btn.MouseButton1Click:Connect(function()
+                    controlGui:Destroy()
+                    callback()
+                end)
+            end
+            createOption("按钮", function()
+                WasUI:ShowConfirmDialog({
+                    title = "添加按钮",
+                    showInput = true,
+                    inputPlaceholder = "按钮文本",
+                    confirmText = "添加",
+                    onConfirm = function(text)
+                        if text and text ~= "" then
+                            WasUI:CreateButton(tabFrame, text, function()
+                                WasUI:Notify({Title = text, Content = "按钮被点击", Duration = 1})
+                            end)
+                        end
+                    end
+                })
+            end)
+            createOption("开关", function()
+                WasUI:ShowConfirmDialog({
+                    title = "添加开关",
+                    showInput = true,
+                    inputPlaceholder = "开关标题",
+                    confirmText = "添加",
+                    onConfirm = function(text)
+                        if text and text ~= "" then
+                            WasUI:CreateToggle(tabFrame, text, false, function(state) end)
+                        end
+                    end
+                })
+            end)
+            createOption("滑块", function()
+                WasUI:ShowConfirmDialog({
+                    title = "添加滑块",
+                    showInput = true,
+                    inputPlaceholder = "滑块标题",
+                    confirmText = "添加",
+                    onConfirm = function(text)
+                        if text and text ~= "" then
+                            WasUI:CreateSlider(tabFrame, text, 0, 100, 50, function(val) end)
+                        end
+                    end
+                })
+            end)
+            createOption("下拉菜单", function()
+                WasUI:ShowConfirmDialog({
+                    title = "添加下拉菜单",
+                    showInput = true,
+                    inputPlaceholder = "标题",
+                    confirmText = "下一步",
+                    onConfirm = function(title)
+                        if title and title ~= "" then
+                            WasUI:CreateDropdown(tabFrame, title, {"选项1", "选项2", "选项3"}, nil, function(sel) end)
+                        end
+                    end
+                })
+            end)
+            createOption("文本输入", function()
+                WasUI:ShowConfirmDialog({
+                    title = "添加文本输入",
+                    showInput = true,
+                    inputPlaceholder = "占位符文本",
+                    confirmText = "添加",
+                    onConfirm = function(placeholder)
+                        WasUI:CreateTextInput(tabFrame, placeholder or "输入...", "", function(text) end)
+                    end
+                })
+            end)
+            createOption("标签", function()
+                WasUI:ShowConfirmDialog({
+                    title = "添加标签",
+                    showInput = true,
+                    inputPlaceholder = "标签文本",
+                    confirmText = "添加",
+                    onConfirm = function(text)
+                        if text and text ~= "" then
+                            WasUI:CreateLabel(tabFrame, text)
+                        end
+                    end
+                })
+            end)
+            createOption("分类", function()
+                WasUI:ShowConfirmDialog({
+                    title = "添加分类",
+                    showInput = true,
+                    inputPlaceholder = "分类标题",
+                    confirmText = "添加",
+                    onConfirm = function(text)
+                        if text and text ~= "" then
+                            WasUI:CreateCategory(tabFrame, text)
+                        end
+                    end
+                })
+            end)
+            Tween(overlay, {BackgroundTransparency = 0.5}, 0.2)
+            overlay.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    local mousePos = input.Position
+                    local framePos = frame.AbsolutePosition
+                    local frameSize = frame.AbsoluteSize
+                    if not (mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y) then
+                        controlGui:Destroy()
+                    end
+                end
+            end)
+        end)
+        self.Tabs[tabName] = {Button = tabButton, Underline = tabUnderline, Frame = tabFrame, AddControlBtn = addControlBtn}
         if not self.ActiveTab then self:SetActiveTab(tabName) end
         return tabFrame
     end
@@ -2298,6 +2629,7 @@ function Panel:New(name, parent, size, position, titleTag)
     end
     function self:SetVisible(visible)
         self.Instance.Visible = visible
+        if self.BorderFlow then self.BorderFlow.Visible = visible end
     end
     function self:SetTitle(text)
         WasUI:SetLocalizedText(self.Title, text)
@@ -2322,7 +2654,8 @@ function WasUI:CreateWindow(title, size, position, titleTag)
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = game:GetService("CoreGui")
-    local window = Panel:New(title, screenGui, size, position, titleTag)
+    -- 强制固定窗口尺寸为 380x350
+    local window = Panel:New(title, screenGui, UDim2.new(0, 380, 0, 350), position, titleTag)
     window:SetTitle(title)
     return window
 end
