@@ -743,7 +743,10 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
     local startPos = nil
 
     local function cleanup()
-        if timer then task.cancel(timer); timer = nil end
+        if timer then
+            task.cancel(timer)
+            timer = nil
+        end
         pressed = false
         startPos = nil
     end
