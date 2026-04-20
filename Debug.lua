@@ -1,4 +1,3 @@
---Version 1.1.0-Debug
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -28,7 +27,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.0-Debug"
+WasUI.Version = "开发者端"
 
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
@@ -38,6 +37,10 @@ WasUI.ActiveNotifications = {}
 WasUI.OpenDropdowns = {}
 
 WasUI.SettingsPanel = nil
+WasUI.GroupButtonText = "加入WasUI主群"
+WasUI.GroupCopyContent = "786284990"
+
+WasUI.ConfigFolderName = "WasUI_Configs"
 
 WasUI.DefaultTheme = "Dark"
 WasUI.DefaultRainbowMode = "流动"
@@ -1573,7 +1576,6 @@ function Panel:New(name, parent, size, position, titleTag)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
     AddRipple(self.Instance)
 
-    -- 彩虹边框
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
@@ -1991,8 +1993,8 @@ function Panel:New(name, parent, size, position, titleTag)
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 300, 0, 380),
-            Position = UDim2.new(0.5, -150, 0.5, -190),
+            Size = UDim2.new(0, 300, 0, 480),
+            Position = UDim2.new(0.5, -150, 0.5, -240),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
             ClipsDescendants = true,
@@ -2245,6 +2247,111 @@ function Panel:New(name, parent, size, position, titleTag)
         end
         langBg.MouseButton1Click:Connect(function() updateLangToggle(WasUI.CurrentLanguage ~= "English") end)
         
+        local folderLabel = CreateInstance("TextLabel", {
+            Name = "FolderLabel",
+            Size = UDim2.new(1, 0, 0, 24),
+            BackgroundTransparency = 1,
+            Text = "配置文件夹名称",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        WasUI:SetLocalizedText(folderLabel, "配置文件夹名称")
+        local folderInput = CreateInstance("TextBox", {
+            Name = "FolderInput",
+            Size = UDim2.new(1, 0, 0, 32),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            Text = WasUI.ConfigFolderName,
+            PlaceholderText = "WasUI_Configs",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            PlaceholderColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            ClearTextOnFocus = false,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = folderInput})
+        CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = folderInput})
+        folderInput:GetPropertyChangedSignal("Text"):Connect(function()
+            WasUI.ConfigFolderName = folderInput.Text
+        end)
+        
+        local groupTextLabel = CreateInstance("TextLabel", {
+            Name = "GroupTextLabel",
+            Size = UDim2.new(1, 0, 0, 24),
+            BackgroundTransparency = 1,
+            Text = "群按钮文字",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        WasUI:SetLocalizedText(groupTextLabel, "群按钮文字")
+        local groupTextInput = CreateInstance("TextBox", {
+            Name = "GroupTextInput",
+            Size = UDim2.new(1, 0, 0, 32),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            Text = WasUI.GroupButtonText,
+            PlaceholderText = "加入WasUI主群",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            PlaceholderColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            ClearTextOnFocus = false,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = groupTextInput})
+        CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = groupTextInput})
+        groupTextInput:GetPropertyChangedSignal("Text"):Connect(function()
+            WasUI.GroupButtonText = groupTextInput.Text
+        end)
+        
+        local groupCopyLabel = CreateInstance("TextLabel", {
+            Name = "GroupCopyLabel",
+            Size = UDim2.new(1, 0, 0, 24),
+            BackgroundTransparency = 1,
+            Text = "群复制内容",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        WasUI:SetLocalizedText(groupCopyLabel, "群复制内容")
+        local groupCopyInput = CreateInstance("TextBox", {
+            Name = "GroupCopyInput",
+            Size = UDim2.new(1, 0, 0, 32),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            Text = WasUI.GroupCopyContent,
+            PlaceholderText = "786284990",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            PlaceholderColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            ClearTextOnFocus = false,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = groupCopyInput})
+        CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = groupCopyInput})
+        groupCopyInput:GetPropertyChangedSignal("Text"):Connect(function()
+            WasUI.GroupCopyContent = groupCopyInput.Text
+        end)
+        
         local copyButton = CreateInstance("TextButton", {
             Name = "CopyButton",
             Size = UDim2.new(1, 0, 0, 32),
@@ -2353,7 +2460,6 @@ function Panel:New(name, parent, size, position, titleTag)
     })
     CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4), Parent = self.TabContainer})
     
-    -- 添加加号按钮
     self.AddTabButton = CreateInstance("TextButton", {
         Name = "AddTabButton",
         Size = UDim2.new(0, 24, 0, 24),
@@ -2467,7 +2573,6 @@ function Panel:New(name, parent, size, position, titleTag)
         end)
         tabButton.MouseButton1Click:Connect(function() self:SetActiveTab(tabName) end)
         
-        -- 长按选项卡：编辑或删除
         AddLongPressToControl(tabButton, function()
             local editGui = Instance.new("ScreenGui")
             editGui.Name = "TabEditGui"
@@ -2624,7 +2729,6 @@ function Panel:New(name, parent, size, position, titleTag)
             Tween(overlay, {BackgroundTransparency = 0.5}, 0.2)
         end, 1.5)
         
-        -- 添加控件按钮
         local addControlBtn = CreateInstance("TextButton", {
             Name = "AddControlButton",
             Size = UDim2.new(1, 0, 0, 28),
@@ -2696,6 +2800,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Active = true,
+        Selectable = true,
         ZIndex = 999,
         Parent = gui
     })
@@ -2713,7 +2818,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = mainFrame})
 
-    -- 标题栏
     local titleBar = CreateInstance("Frame", {
         Name = "TitleBar",
         Size = UDim2.new(1, 0, 0, 36),
@@ -2738,7 +2842,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
     })
     WasUI:SetLocalizedText(titleLabel, existingControl and "编辑控件" or "添加控件")
 
-    -- 右上角保存和关闭按钮
     local saveBtn = CreateInstance("ImageButton", {
         Name = "SaveBtn",
         Size = UDim2.new(0, 24, 0, 24),
@@ -2770,7 +2873,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
         closeIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     end
 
-    -- 内容区域
     local content = CreateInstance("ScrollingFrame", {
         Name = "Content",
         Size = UDim2.new(1, -20, 1, -46),
@@ -2793,7 +2895,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
     end
     contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshCanvas)
 
-    -- 模式切换按钮容器
     local modeContainer = CreateInstance("Frame", {
         Name = "ModeContainer",
         Size = UDim2.new(1, 0, 0, 32),
@@ -2838,7 +2939,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
         table.insert(modeButtons, btn)
     end
 
-    -- 控件类型选择
     local controlTypeContainer = CreateInstance("Frame", {
         Name = "ControlTypeContainer",
         Size = UDim2.new(1, 0, 0, 32),
@@ -2846,10 +2946,17 @@ function ShowControlConfigurator(parentFrame, existingControl)
         ZIndex = 1002,
         Parent = content
     })
+    local controlTypeLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Right,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 8),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = controlTypeContainer
+    })
     local controlTypeLabel = CreateInstance("TextLabel", {
         Name = "Label",
         Size = UDim2.new(0, 80, 1, 0),
-        Position = UDim2.new(1, -130, 0, 0),
         BackgroundTransparency = 1,
         Text = "控件类型",
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -2874,7 +2981,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
     local controlTypeBtn = CreateInstance("TextButton", {
         Name = "ControlTypeBtn",
         Size = UDim2.new(0, 100, 0, 28),
-        Position = UDim2.new(1, -24, 0, 2),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         Text = currentControlType,
@@ -2895,7 +3001,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
         updateModeContent()
     end)
 
-    -- 动态内容容器
     local dynamicContent = CreateInstance("Frame", {
         Name = "DynamicContent",
         Size = UDim2.new(1, 0, 0, 0),
@@ -3190,7 +3295,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
             table.insert(currentElements, customInput)
         end
 
-        -- 根据控件类型添加特定字段
         if currentControlType == "按钮" then
             local btnText = createInputField("按钮文本", 32)
             btnText.Name = "BtnText"
@@ -3230,7 +3334,12 @@ function ShowControlConfigurator(parentFrame, existingControl)
             table.insert(currentElements, catTitle)
         end
 
-        -- 绑定通知开关
+        if currentControlType == "开关" or currentControlType == "滑块" or currentControlType == "下拉菜单" or currentControlType == "文本输入" then
+            local configKeyInput = createInputField("Config Key (留空则不保存)", 32)
+            configKeyInput.Name = "ConfigKey"
+            table.insert(currentElements, configKeyInput)
+        end
+
         local notifyContainer, setNotify = createToggle("绑定通知", function(enabled)
             for i = #currentElements, 1, -1 do
                 local elem = currentElements[i]
@@ -3304,9 +3413,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
                     WasUI:Notify({Title = "错误", Content = "你提供的内容有误", Duration = 2, BackgroundColor = WasUI.CurrentTheme.Error})
                     return
                 end
-                -- 创建或更新控件
                 if existingControl then
-                    -- 更新现有控件逻辑（简化示例）
                     if currentControlType == "按钮" then
                         existingControl.Instance.Text = currentElements[1].Text
                         WasUI:SetLocalizedText(existingControl.Instance, currentElements[1].Text)
@@ -3321,26 +3428,33 @@ function ShowControlConfigurator(parentFrame, existingControl)
                         WasUI:SetLocalizedText(existingControl.Header:FindFirstChild("TitleContainer"):FindFirstChild("Title"), currentElements[1].Text)
                     end
                 else
-                    -- 创建新控件
                     if currentControlType == "按钮" then
                         WasUI:CreateButton(parentFrame, currentElements[1].Text, function()
                             WasUI:Notify({Title = currentElements[1].Text, Content = "按钮被点击", Duration = 1})
                         end)
                     elseif currentControlType == "开关" then
-                        WasUI:CreateToggle(parentFrame, currentElements[1].Text, false, function(state) end)
+                        local cfgKey = nil
+                        for _, e in ipairs(currentElements) do if e.Name == "ConfigKey" and e.Text ~= "" then cfgKey = e.Text break end end
+                        WasUI:CreateToggle(parentFrame, currentElements[1].Text, false, function(state) end, nil, nil, cfgKey)
                     elseif currentControlType == "滑块" then
                         local min = tonumber(currentElements[2].Text) or 0
                         local max = tonumber(currentElements[3].Text) or 100
                         local default = tonumber(currentElements[4].Text) or 50
-                        WasUI:CreateSlider(parentFrame, currentElements[1].Text, min, max, default, function(val) end)
+                        local cfgKey = nil
+                        for _, e in ipairs(currentElements) do if e.Name == "ConfigKey" and e.Text ~= "" then cfgKey = e.Text break end end
+                        WasUI:CreateSlider(parentFrame, currentElements[1].Text, min, max, default, function(val) end, cfgKey)
                     elseif currentControlType == "文本输入" then
-                        WasUI:CreateTextInput(parentFrame, currentElements[1].Text, "", function(text) end)
+                        local cfgKey = nil
+                        for _, e in ipairs(currentElements) do if e.Name == "ConfigKey" and e.Text ~= "" then cfgKey = e.Text break end end
+                        WasUI:CreateTextInput(parentFrame, currentElements[1].Text, "", function(text) end, cfgKey)
                     elseif currentControlType == "标签" then
                         WasUI:CreateLabel(parentFrame, currentElements[1].Text)
                     elseif currentControlType == "小标题" then
                         WasUI:CreateCategory(parentFrame, currentElements[1].Text)
                     elseif currentControlType == "下拉菜单" then
-                        WasUI:CreateDropdown(parentFrame, currentElements[1].Text, {"选项1", "选项2"}, nil, function(sel) end)
+                        local cfgKey = nil
+                        for _, e in ipairs(currentElements) do if e.Name == "ConfigKey" and e.Text ~= "" then cfgKey = e.Text break end end
+                        WasUI:CreateDropdown(parentFrame, currentElements[1].Text, {"选项1", "选项2"}, nil, function(sel) end, false, cfgKey)
                     end
                 end
                 WasUI:Notify({Title = "调试", Content = "你的更改已被保存", Duration = 2})
@@ -3386,20 +3500,28 @@ function ShowControlConfigurator(parentFrame, existingControl)
                     WasUI:Notify({Title = currentElements[1].Text, Content = "按钮被点击", Duration = 1})
                 end)
             elseif currentControlType == "开关" then
-                WasUI:CreateToggle(parentFrame, currentElements[1].Text, false, function(state) end)
+                local cfgKey = nil
+                for _, e in ipairs(currentElements) do if e.Name == "ConfigKey" and e.Text ~= "" then cfgKey = e.Text break end end
+                WasUI:CreateToggle(parentFrame, currentElements[1].Text, false, function(state) end, nil, nil, cfgKey)
             elseif currentControlType == "滑块" then
                 local min = tonumber(currentElements[2].Text) or 0
                 local max = tonumber(currentElements[3].Text) or 100
                 local default = tonumber(currentElements[4].Text) or 50
-                WasUI:CreateSlider(parentFrame, currentElements[1].Text, min, max, default, function(val) end)
+                local cfgKey = nil
+                for _, e in ipairs(currentElements) do if e.Name == "ConfigKey" and e.Text ~= "" then cfgKey = e.Text break end end
+                WasUI:CreateSlider(parentFrame, currentElements[1].Text, min, max, default, function(val) end, cfgKey)
             elseif currentControlType == "文本输入" then
-                WasUI:CreateTextInput(parentFrame, currentElements[1].Text, "", function(text) end)
+                local cfgKey = nil
+                for _, e in ipairs(currentElements) do if e.Name == "ConfigKey" and e.Text ~= "" then cfgKey = e.Text break end end
+                WasUI:CreateTextInput(parentFrame, currentElements[1].Text, "", function(text) end, cfgKey)
             elseif currentControlType == "标签" then
                 WasUI:CreateLabel(parentFrame, currentElements[1].Text)
             elseif currentControlType == "小标题" then
                 WasUI:CreateCategory(parentFrame, currentElements[1].Text)
             elseif currentControlType == "下拉菜单" then
-                WasUI:CreateDropdown(parentFrame, currentElements[1].Text, {"选项1", "选项2"}, nil, function(sel) end)
+                local cfgKey = nil
+                for _, e in ipairs(currentElements) do if e.Name == "ConfigKey" and e.Text ~= "" then cfgKey = e.Text break end end
+                WasUI:CreateDropdown(parentFrame, currentElements[1].Text, {"选项1", "选项2"}, nil, function(sel) end, false, cfgKey)
             end
         end
         WasUI:Notify({Title = "调试", Content = "你的更改已被保存", Duration = 2})
@@ -3435,7 +3557,7 @@ function WasUI:CreateButton(parent, text, onClick, size, iconName)
     return Button:New("Button", parent, text, onClick, size, iconName)
 end
 
-function WasUI:CreateToggle(parent, title, initialState, onToggle)
+function WasUI:CreateToggle(parent, title, initialState, onToggle, featureName, rainbowName, iconName, configKey)
     return ToggleSwitch:New("Toggle", parent, title, initialState, onToggle)
 end
 
@@ -3447,15 +3569,15 @@ function WasUI:CreateCategory(parent, title, iconName)
     return Category:New("Category", parent, title, iconName)
 end
 
-function WasUI:CreateDropdown(parent, title, options, defaultValue, callback, multiSelect)
+function WasUI:CreateDropdown(parent, title, options, defaultValue, callback, multiSelect, configKey)
     return Dropdown:New("Dropdown", parent, title, options, defaultValue, callback, multiSelect)
 end
 
-function WasUI:CreateSlider(parent, title, min, max, defaultValue, callback)
+function WasUI:CreateSlider(parent, title, min, max, defaultValue, callback, configKey)
     return Slider:New("Slider", parent, title, min, max, defaultValue, callback)
 end
 
-function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback)
+function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback, configKey)
     return TextInput:New("TextInput", parent, placeholder, defaultValue, callback)
 end
 
