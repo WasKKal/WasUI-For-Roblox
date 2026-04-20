@@ -5889,10 +5889,10 @@ WasUI:SetLocalizedText(tabButton, tabName)
         end
     end
     function self:SetTitle(text)
-        self.Title.Text = text
+        WasUI:SetLocalizedText(self.Title, text)
     end
     function self:SetWelcome(text)
-        self.WelcomeLabel.Text = text
+        WasUI:SetLocalizedText(self.WelcomeLabel, text)
     end
 
     self.HotkeyConnection = nil
