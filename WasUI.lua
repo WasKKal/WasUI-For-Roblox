@@ -2282,33 +2282,9 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         parentScrollingFrame = parentScrollingFrame.Parent
     end
     local originalScrollingEnabled = parentScrollingFrame and parentScrollingFrame.ScrollingEnabled
+    local inputChangedConn = nil
     
-    self.SliderTrack.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            if parentScrollingFrame then
-                parentScrollingFrame.ScrollingEnabled = false
-            end
-            local pos = input.Position
-            local trackPos = self.SliderTrack.AbsolutePosition
-            local trackSize = self.SliderTrack.AbsoluteSize.X
-            if trackSize <= 0 then return end
-            local t = math.clamp((pos.X - trackPos.X) / trackSize, 0, 1)
-            local targetValue = self.Min + t * (self.Max - self.Min)
-            targetValue = math.round(targetValue)
-            animateToValue(targetValue)
-            dragging = true
-            SpringTween(knobScale, {Scale = 1.2}, 0.15)
-            showTooltip(self.Value)
-        end
-    end)
-    self.SliderTrack.InputEnded:Connect(function()
-        if parentScrollingFrame then
-            parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
-        end
-        hideTooltip()
-        if moveConn then moveConn:Disconnect() end
-    end)
-    self.Knob.InputBegan:Connect(function(input)
+    local function onInputBegan(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             if parentScrollingFrame then
                 parentScrollingFrame.ScrollingEnabled = false
@@ -2317,30 +2293,59 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             stopAnimation()
             SpringTween(knobScale, {Scale = 1.2}, 0.15)
             showTooltip(self.Value)
+            if inputChangedConn then inputChangedConn:Disconnect() end
+            inputChangedConn = UserInputService.InputChanged:Connect(function(inp)
+                if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
+                    local pos = inp.Position
+                    updateFromMousePosition(pos.X)
+                    showTooltip(self.Value)
+                end
+            end)
         end
-    end)
-    self.Knob.InputEnded:Connect(function(input)
-        if parentScrollingFrame then
-            parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
-        end
-        dragging = false
-        SpringTween(knobScale, {Scale = 1}, 0.25)
-        hideTooltip()
-    end)
-    local moveConn = nil
-    self.SliderTrack.InputBegan:Connect(function()
-        moveConn = UserInputService.InputChanged:Connect(function(inp)
-            if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
-                showTooltip(self.Value)
+    end
+    
+    local function onInputEnded(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if parentScrollingFrame then
+                parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
             end
-        end)
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local pos = input.Position
-            updateFromMousePosition(pos.X)
+            dragging = false
+            SpringTween(knobScale, {Scale = 1}, 0.25)
+            hideTooltip()
+            if inputChangedConn then
+                inputChangedConn:Disconnect()
+                inputChangedConn = nil
+            end
+        end
+    end
+    
+    self.SliderTrack.InputBegan:Connect(onInputBegan)
+    self.SliderTrack.InputEnded:Connect(onInputEnded)
+    self.Knob.InputBegan:Connect(onInputBegan)
+    self.Knob.InputEnded:Connect(onInputEnded)
+    
+    self.Container.AncestryChanged:Connect(function()
+        if not self.Container:IsDescendantOf(game) then
+            if inputChangedConn then inputChangedConn:Disconnect() end
+            dragging = false
         end
     end)
+    
+    function self:StopDragging()
+        if dragging then
+            dragging = false
+            if parentScrollingFrame then
+                parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
+            end
+            SpringTween(knobScale, {Scale = 1}, 0.25)
+            hideTooltip()
+            if inputChangedConn then
+                inputChangedConn:Disconnect()
+                inputChangedConn = nil
+            end
+        end
+    end
+    
     AddRipple(self.SliderTrack)
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
