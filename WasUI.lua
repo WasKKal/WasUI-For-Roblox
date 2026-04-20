@@ -4256,23 +4256,24 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         ZIndex = 1,
         Parent = self.TitleBar
     })
-    self.Title = CreateInstance("TextLabel", {
-        Name = "Title",
-        Size = UDim2.new(1, -140, 1, 0),
-        Position = UDim2.new(0, 54, 0, 0),
-        BackgroundTransparency = 1,
-        Text = name,
-        TextColor3 = WasUI.CurrentTheme.Text,
-        TextTransparency = 0,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextTruncate = Enum.TextTruncate.None,
-        AutomaticSize = Enum.AutomaticSize.X,
-        Active = false,
-        ZIndex = 2,
-        Parent = self.TitleBar
-    })
+self.Title = CreateInstance("TextLabel", {
+    Name = "Title",
+    Size = UDim2.new(1, -140, 1, 0),
+    Position = UDim2.new(0, 54, 0, 0),
+    BackgroundTransparency = 1,
+    Text = "",
+    TextColor3 = WasUI.CurrentTheme.Text,
+    TextTransparency = 0,
+    Font = Enum.Font.GothamSemibold,
+    TextSize = 14,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    TextTruncate = Enum.TextTruncate.None,
+    AutomaticSize = Enum.AutomaticSize.X,
+    Active = false,
+    ZIndex = 2,
+    Parent = self.TitleBar
+})
+WasUI:SetLocalizedText(self.Title, name)
     
     local titleTagsList = {}
     if type(titleTag) == "table" then
@@ -5627,19 +5628,22 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         ZIndex = 2,
         Parent = self.AnnouncementBar
     })
-    self.WelcomeLabel = CreateInstance("TextLabel", {
-        Name = "WelcomeLabel",
-        Size = UDim2.new(0.6, 0, 0, 14),
-        Position = UDim2.new(0, 62, 0.55, 0),
-        BackgroundTransparency = 1,
-        Text = "欢迎使用 WasUI",
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 2,
-        Parent = self.AnnouncementBar
-    })
+self.WelcomeLabel = CreateInstance("TextLabel", {
+    Name = "WelcomeLabel",
+    Size = UDim2.new(0.6, 0, 0, 14),
+    Position = UDim2.new(0, 62, 0.55, 0),
+    BackgroundTransparency = 1,
+    Text = "",
+    TextColor3 = WasUI.CurrentTheme.Text,
+    Font = Enum.Font.Gotham,
+    TextSize = 11,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    ZIndex = 2,
+    Parent = self.AnnouncementBar
+})
+WasUI:SetLocalizedText(self.WelcomeLabel, "欢迎使用 WasUI")
+table.insert(WasUI.Objects, {Object = self.WelcomeLabel, Type = "Label"})
+
     self.TabBar = CreateInstance("Frame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 0),
@@ -5792,20 +5796,21 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     self.TabOrderCounter = 0
     function self:AddTab(tabName, icon)
         self.TabOrderCounter = self.TabOrderCounter + 1
-        local tabButton = CreateInstance("TextButton", {
-            Name = "Tab_" .. tabName,
-            Size = UDim2.new(0, 90, 0, 24),
-            BackgroundColor3 = WasUI.CurrentTheme.TabButton,
-            BackgroundTransparency = 0.5,
-            Text = tabName,
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 12,
-            AutoButtonColor = false,
-            LayoutOrder = self.TabOrderCounter,
-            ZIndex = 2,
-            Parent = self.TabContainer
-        })
+local tabButton = CreateInstance("TextButton", {
+    Name = "Tab_" .. tabName,
+    Size = UDim2.new(0, 90, 0, 24),
+    BackgroundColor3 = WasUI.CurrentTheme.TabButton,
+    BackgroundTransparency = 0.5,
+    Text = "",
+    TextColor3 = WasUI.CurrentTheme.Text,
+    Font = Enum.Font.GothamSemibold,
+    TextSize = 12,
+    AutoButtonColor = false,
+    LayoutOrder = self.TabOrderCounter,
+    ZIndex = 2,
+    Parent = self.TabContainer
+})
+WasUI:SetLocalizedText(tabButton, tabName)
         local tabUnderline = CreateInstance("Frame", {
             Name = "Underline",
             Size = UDim2.new(0, 0, 0, 2),
