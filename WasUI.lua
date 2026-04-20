@@ -162,6 +162,51 @@ function WasUI:RefreshAllTexts()
             end
         end
     end
+    for _, panelObj in ipairs(WasUI.Objects) do
+        if panelObj.Type == "Panel" and panelObj.Object then
+            local panelInstance = panelObj.Object
+            local titleBar = panelInstance:FindFirstChild("TitleBar")
+            if titleBar then
+                local titleLabel = titleBar:FindFirstChild("Title")
+                if not titleLabel then
+                    local titleContainer = titleBar:FindFirstChild("TitleContainer")
+                    if titleContainer then
+                        titleLabel = titleContainer:FindFirstChild("Title")
+                    end
+                end
+                if titleLabel then
+                    local original = titleLabel:GetAttribute("OriginalText")
+                    if original then
+                        titleLabel.Text = self:Translate(original)
+                    end
+                end
+            end
+            local announcementBar = panelInstance:FindFirstChild("AnnouncementBar")
+            if announcementBar then
+                local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
+                if welcomeLabel then
+                    local original = welcomeLabel:GetAttribute("OriginalText")
+                    if original then
+                        welcomeLabel.Text = self:Translate(original)
+                    end
+                end
+            end
+            local tabBar = panelInstance:FindFirstChild("TabBar")
+            if tabBar then
+                local tabContainer = tabBar:FindFirstChild("TabContainer")
+                if tabContainer then
+                    for _, tabBtn in ipairs(tabContainer:GetChildren()) do
+                        if tabBtn:IsA("TextButton") then
+                            local original = tabBtn:GetAttribute("OriginalText")
+                            if original then
+                                tabBtn.Text = self:Translate(original)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
 end
 
 function WasUI:RefreshSettingsPanelTexts()
