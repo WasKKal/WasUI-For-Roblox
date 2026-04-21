@@ -2767,7 +2767,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
         Size = UDim2.new(0, 380, 0, 420),
         Position = UDim2.new(0.5, -190, 0.5, -210),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0.1,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         ZIndex = 1000,
@@ -3199,270 +3199,66 @@ function ShowControlConfigurator(parentFrame, existingControl)
     local function updateModeAndContent()
         clearDynamicContent()
         
-        if currentControlType == "滑块" then
+        if currentControlType == "小标题" then
             for _, btn in ipairs(modeButtons) do btn:Destroy() end
             modeButtons = {}
-            local sliderModes = {"属性", "间隔", "大小"}
-            for _, modeName in ipairs(sliderModes) do
-                local btn = CreateInstance("TextButton", {
-                    Name = "SliderMode_" .. modeName,
-                    Size = UDim2.new(0, 60, 0, 24),
-                    BackgroundColor3 = modeName == sliderMode and WasUI.CurrentTheme.Accent or WasUI.CurrentTheme.Primary,
-                    BackgroundTransparency = 0.3,
-                    Text = modeName,
-                    TextColor3 = WasUI.CurrentTheme.Text,
-                    Font = Enum.Font.GothamSemibold,
-                    TextSize = 11,
-                    AutoButtonColor = false,
-                    ZIndex = 1003,
-                    Parent = modeContainer
-                })
-                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = btn})
-                btn.MouseButton1Click:Connect(function()
-                    sliderMode = modeName
-                    for _, b in ipairs(modeButtons) do
-                        Tween(b, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
-                    end
-                    Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.2)
-                    updateModeAndContent()
-                end)
-                table.insert(modeButtons, btn)
-            end
-            
-            local sliderTitle = createInputField("滑块标题", 30)
-            sliderTitle.Name = "SliderTitle"
-            table.insert(currentElements, sliderTitle)
-            local minInput = createInputField("最小值", 30)
-            minInput.Name = "Min"
-            table.insert(currentElements, minInput)
-            local maxInput = createInputField("最大值", 30)
-            maxInput.Name = "Max"
-            table.insert(currentElements, maxInput)
-            local defaultInput = createInputField("默认值", 30)
-            defaultInput.Name = "Default"
-            table.insert(currentElements, defaultInput)
-            
-            if sliderMode == "属性" then
-                local configKeyInput = createInputField("Config Key (留空则不保存)", 30)
-                configKeyInput.Name = "ConfigKey"
-                table.insert(currentElements, configKeyInput)
-                local notifyContainer, setNotify = createToggle("绑定通知", function(enabled)
-                    for i = #currentElements, 1, -1 do
-                        local elem = currentElements[i]
-                        if elem:IsA("TextBox") and (elem.PlaceholderText == "开启标题" or elem.PlaceholderText == "开启内容" or elem.PlaceholderText == "关闭标题" or elem.PlaceholderText == "关闭内容") then
-                            local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
-                            if fade then
-                                fade.Completed:Connect(function()
-                                    if not enabled then elem:Destroy() table.remove(currentElements, i) end
-                                end)
-                            else
-                                if not enabled then elem:Destroy() table.remove(currentElements, i) end
-                            end
-                        end
-                    end
-                    if enabled then
-                        local onTitle = createInputField("开启标题", 30)
-                        onTitle.Size = UDim2.new(1, 0, 0, 0); onTitle.BackgroundTransparency = 1
-                        table.insert(currentElements, onTitle)
-                        Tween(onTitle, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
-                        local onContent = createInputField("开启内容", 30)
-                        onContent.Size = UDim2.new(1, 0, 0, 0); onContent.BackgroundTransparency = 1
-                        table.insert(currentElements, onContent)
-                        Tween(onContent, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
-                        local offTitle = createInputField("关闭标题", 30)
-                        offTitle.Size = UDim2.new(1, 0, 0, 0); offTitle.BackgroundTransparency = 1
-                        table.insert(currentElements, offTitle)
-                        Tween(offTitle, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
-                        local offContent = createInputField("关闭内容", 30)
-                        offContent.Size = UDim2.new(1, 0, 0, 0); offContent.BackgroundTransparency = 1
-                        table.insert(currentElements, offContent)
-                        Tween(offContent, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
-                    end
-                end)
-                table.insert(currentElements, notifyContainer)
-            end
-        elseif currentControlType == "下拉菜单" then
-            for _, btn in ipairs(modeButtons) do btn:Destroy() end
-            modeButtons = {}
-            local ddModes = {"直接子对象", "子对象属性"}
-            for _, modeName in ipairs(ddModes) do
-                local btn = CreateInstance("TextButton", {
-                    Name = "DDMode_" .. modeName,
-                    Size = UDim2.new(0, 90, 0, 24),
-                    BackgroundColor3 = modeName == dropdownDataMode and WasUI.CurrentTheme.Accent or WasUI.CurrentTheme.Primary,
-                    BackgroundTransparency = 0.3,
-                    Text = modeName,
-                    TextColor3 = WasUI.CurrentTheme.Text,
-                    Font = Enum.Font.GothamSemibold,
-                    TextSize = 11,
-                    AutoButtonColor = false,
-                    ZIndex = 1003,
-                    Parent = modeContainer
-                })
-                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = btn})
-                btn.MouseButton1Click:Connect(function()
-                    dropdownDataMode = modeName
-                    for _, b in ipairs(modeButtons) do
-                        Tween(b, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
-                    end
-                    Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.2)
-                    updateModeAndContent()
-                end)
-                table.insert(modeButtons, btn)
-            end
-            
-            local ddTitle = createInputField("标题", 30)
-            ddTitle.Name = "DropdownTitle"
-            table.insert(currentElements, ddTitle)
-            
-            if dropdownDataMode == "直接子对象" then
-                local pathInput = createInputField("文件夹路径", 30)
-                table.insert(currentElements, pathInput)
-                local dynamicToggleContainer, setDynamic = createToggle("动态数据 (实时读取文件夹)", true)
-                table.insert(currentElements, dynamicToggleContainer)
-                
-                local manualArea = CreateInstance("Frame", {
-                    Name = "ManualArea",
-                    Size = UDim2.new(1, 0, 0, 0),
-                    BackgroundTransparency = 1,
-                    AutomaticSize = Enum.AutomaticSize.Y,
-                    ZIndex = 1003,
-                    Parent = dynamicContent
-                })
-                table.insert(currentElements, manualArea)
-                
-                local dynamic = true
-                setDynamic(true)
-                local function rebuildManualArea()
-                    for _, child in ipairs(manualArea:GetChildren()) do child:Destroy() end
-                    if not dynamic then
-                        for i, item in ipairs(manualItems) do
-                            item.Parent = manualArea
-                        end
-                        local addBtn = CreateInstance("TextButton", {
-                            Name = "AddManualItemBtn",
-                            Size = UDim2.new(1, 0, 0, 28),
-                            BackgroundColor3 = WasUI.CurrentTheme.Success,
-                            BackgroundTransparency = 0.3,
-                            Text = "添加新项目",
-                            TextColor3 = WasUI.CurrentTheme.Text,
-                            Font = Enum.Font.GothamSemibold,
-                            TextSize = 11,
-                            AutoButtonColor = false,
-                            ZIndex = 1004,
-                            Parent = manualArea
-                        })
-                        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = addBtn})
-                        addBtn.MouseButton1Click:Connect(function()
-                            local newItem = addManualItem(manualArea, #manualItems + 1)
-                            table.insert(manualItems, newItem)
-                            rebuildManualArea()
-                        end)
-                    end
-                end
-                setDynamic(function(enabled)
-                    dynamic = enabled
-                    manualArea.Visible = not enabled
-                    rebuildManualArea()
-                    refreshCanvas()
-                end)
-                manualArea.Visible = false
-            else
-                local pathInput = createInputField("对象路径 (如 workspace.Model)", 30)
-                table.insert(currentElements, pathInput)
-                local propInput = createInputField("属性名称", 30)
-                table.insert(currentElements, propInput)
-                local dynamicToggleContainer, setDynamic = createToggle("动态数据 (实时读取属性)", true)
-                table.insert(currentElements, dynamicToggleContainer)
-                
-                local manualArea = CreateInstance("Frame", {
-                    Name = "ManualArea",
-                    Size = UDim2.new(1, 0, 0, 0),
-                    BackgroundTransparency = 1,
-                    AutomaticSize = Enum.AutomaticSize.Y,
-                    ZIndex = 1003,
-                    Parent = dynamicContent
-                })
-                table.insert(currentElements, manualArea)
-                
-                local dynamic = true
-                setDynamic(true)
-                local function rebuildManualArea()
-                    for _, child in ipairs(manualArea:GetChildren()) do child:Destroy() end
-                    if not dynamic then
-                        for i, item in ipairs(manualItems) do
-                            item.Parent = manualArea
-                        end
-                        local addBtn = CreateInstance("TextButton", {
-                            Name = "AddManualItemBtn",
-                            Size = UDim2.new(1, 0, 0, 28),
-                            BackgroundColor3 = WasUI.CurrentTheme.Success,
-                            BackgroundTransparency = 0.3,
-                            Text = "添加新项目",
-                            TextColor3 = WasUI.CurrentTheme.Text,
-                            Font = Enum.Font.GothamSemibold,
-                            TextSize = 11,
-                            AutoButtonColor = false,
-                            ZIndex = 1004,
-                            Parent = manualArea
-                        })
-                        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = addBtn})
-                        addBtn.MouseButton1Click:Connect(function()
-                            local newItem = addManualItem(manualArea, #manualItems + 1)
-                            table.insert(manualItems, newItem)
-                            rebuildManualArea()
-                        end)
-                    end
-                end
-                setDynamic(function(enabled)
-                    dynamic = enabled
-                    manualArea.Visible = not enabled
-                    rebuildManualArea()
-                    refreshCanvas()
-                end)
-                manualArea.Visible = false
-            end
-            
-            local configKeyInput = createInputField("Config Key (留空则不保存)", 30)
-            configKeyInput.Name = "ConfigKey"
-            table.insert(currentElements, configKeyInput)
+            modeContainer.Visible = false
+            local catTitle = createInputField("小标题文字", 30)
+            catTitle.Name = "CategoryTitle"
+            table.insert(currentElements, catTitle)
         else
-            for _, btn in ipairs(modeButtons) do btn:Destroy() end
-            modeButtons = {}
-            local modes = {"Remote", "传送", "模拟按键"}
-            for _, modeName in ipairs(modes) do
-                local btn = CreateInstance("TextButton", {
-                    Name = "Mode_" .. modeName,
-                    Size = UDim2.new(0, 75, 0, 24),
-                    BackgroundColor3 = modeName == currentMode and WasUI.CurrentTheme.Accent or WasUI.CurrentTheme.Primary,
-                    BackgroundTransparency = 0.3,
-                    Text = modeName,
-                    TextColor3 = WasUI.CurrentTheme.Text,
-                    Font = Enum.Font.GothamSemibold,
-                    TextSize = 11,
-                    AutoButtonColor = false,
-                    ZIndex = 1003,
-                    Parent = modeContainer
-                })
-                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = btn})
-                btn.MouseButton1Click:Connect(function()
-                    currentMode = modeName
-                    for _, b in ipairs(modeButtons) do
-                        Tween(b, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
-                    end
-                    Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.2)
-                    updateModeAndContent()
-                end)
-                table.insert(modeButtons, btn)
-            end
-            if currentMode == "Remote" then
-                local input = createInputField("输入你的Remote", 70, true)
-                table.insert(currentElements, input)
-                if currentControlType ~= "按钮" then
-                    local loopContainer, setLoop = createToggle("循环发送", function(enabled)
+            modeContainer.Visible = true
+            if currentControlType == "滑块" then
+                for _, btn in ipairs(modeButtons) do btn:Destroy() end
+                modeButtons = {}
+                local sliderModes = {"属性", "间隔", "大小"}
+                for _, modeName in ipairs(sliderModes) do
+                    local btn = CreateInstance("TextButton", {
+                        Name = "SliderMode_" .. modeName,
+                        Size = UDim2.new(0, 60, 0, 24),
+                        BackgroundColor3 = modeName == sliderMode and WasUI.CurrentTheme.Accent or WasUI.CurrentTheme.Primary,
+                        BackgroundTransparency = 0.3,
+                        Text = modeName,
+                        TextColor3 = WasUI.CurrentTheme.Text,
+                        Font = Enum.Font.GothamSemibold,
+                        TextSize = 11,
+                        AutoButtonColor = false,
+                        ZIndex = 1003,
+                        Parent = modeContainer
+                    })
+                    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = btn})
+                    btn.MouseButton1Click:Connect(function()
+                        sliderMode = modeName
+                        for _, b in ipairs(modeButtons) do
+                            Tween(b, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
+                        end
+                        Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.2)
+                        updateModeAndContent()
+                    end)
+                    table.insert(modeButtons, btn)
+                end
+                
+                local sliderTitle = createInputField("滑块标题", 30)
+                sliderTitle.Name = "SliderTitle"
+                table.insert(currentElements, sliderTitle)
+                local minInput = createInputField("最小值", 30)
+                minInput.Name = "Min"
+                table.insert(currentElements, minInput)
+                local maxInput = createInputField("最大值", 30)
+                maxInput.Name = "Max"
+                table.insert(currentElements, maxInput)
+                local defaultInput = createInputField("默认值", 30)
+                defaultInput.Name = "Default"
+                table.insert(currentElements, defaultInput)
+                
+                if sliderMode == "属性" then
+                    local configKeyInput = createInputField("Config Key (留空则不保存)", 30)
+                    configKeyInput.Name = "ConfigKey"
+                    table.insert(currentElements, configKeyInput)
+                    local notifyContainer, setNotify = createToggle("绑定通知", function(enabled)
                         for i = #currentElements, 1, -1 do
                             local elem = currentElements[i]
-                            if elem:IsA("TextBox") and elem.PlaceholderText == "循环间隔(秒)" then
+                            if elem:IsA("TextBox") and (elem.PlaceholderText == "开启标题" or elem.PlaceholderText == "开启内容" or elem.PlaceholderText == "关闭标题" or elem.PlaceholderText == "关闭内容") then
                                 local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
                                 if fade then
                                     fade.Completed:Connect(function()
@@ -3471,63 +3267,277 @@ function ShowControlConfigurator(parentFrame, existingControl)
                                 else
                                     if not enabled then elem:Destroy() table.remove(currentElements, i) end
                                 end
-                                break
                             end
                         end
                         if enabled then
-                            local intervalBox = createInputField("循环间隔(秒)", 30)
-                            intervalBox.Size = UDim2.new(1, 0, 0, 0)
-                            intervalBox.BackgroundTransparency = 1
-                            table.insert(currentElements, intervalBox)
-                            Tween(intervalBox, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                            local onTitle = createInputField("开启标题", 30)
+                            onTitle.Size = UDim2.new(1, 0, 0, 0); onTitle.BackgroundTransparency = 1
+                            table.insert(currentElements, onTitle)
+                            Tween(onTitle, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                            local onContent = createInputField("开启内容", 30)
+                            onContent.Size = UDim2.new(1, 0, 0, 0); onContent.BackgroundTransparency = 1
+                            table.insert(currentElements, onContent)
+                            Tween(onContent, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                            local offTitle = createInputField("关闭标题", 30)
+                            offTitle.Size = UDim2.new(1, 0, 0, 0); offTitle.BackgroundTransparency = 1
+                            table.insert(currentElements, offTitle)
+                            Tween(offTitle, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                            local offContent = createInputField("关闭内容", 30)
+                            offContent.Size = UDim2.new(1, 0, 0, 0); offContent.BackgroundTransparency = 1
+                            table.insert(currentElements, offContent)
+                            Tween(offContent, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
                         end
                     end)
-                    table.insert(currentElements, loopContainer)
+                    table.insert(currentElements, notifyContainer)
                 end
-            elseif currentMode == "传送" then
-                createCategory("输入坐标点")
-                local coordInput = createInputField("x, y, z", 30)
-                table.insert(currentElements, coordInput)
-                local smoothContainer, setSmooth = createToggle("平滑传送", function(enabled)
-                    for i = #currentElements, 1, -1 do
-                        local elem = currentElements[i]
-                        if (elem:IsA("Frame") and elem.Name == "Slider") or (elem:IsA("Frame") and elem.Name == "ToggleContainer") then
-                            local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
-                            if fade then
-                                fade.Completed:Connect(function()
-                                    if not enabled then elem:Destroy() table.remove(currentElements, i) end
-                                end)
-                            else
-                                if not enabled then elem:Destroy() table.remove(currentElements, i) end
+            elseif currentControlType == "下拉菜单" then
+                for _, btn in ipairs(modeButtons) do btn:Destroy() end
+                modeButtons = {}
+                local ddModes = {"直接子对象", "子对象属性"}
+                for _, modeName in ipairs(ddModes) do
+                    local btn = CreateInstance("TextButton", {
+                        Name = "DDMode_" .. modeName,
+                        Size = UDim2.new(0, 90, 0, 24),
+                        BackgroundColor3 = modeName == dropdownDataMode and WasUI.CurrentTheme.Accent or WasUI.CurrentTheme.Primary,
+                        BackgroundTransparency = 0.3,
+                        Text = modeName,
+                        TextColor3 = WasUI.CurrentTheme.Text,
+                        Font = Enum.Font.GothamSemibold,
+                        TextSize = 11,
+                        AutoButtonColor = false,
+                        ZIndex = 1003,
+                        Parent = modeContainer
+                    })
+                    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = btn})
+                    btn.MouseButton1Click:Connect(function()
+                        dropdownDataMode = modeName
+                        for _, b in ipairs(modeButtons) do
+                            Tween(b, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
+                        end
+                        Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.2)
+                        updateModeAndContent()
+                    end)
+                    table.insert(modeButtons, btn)
+                end
+                
+                local ddTitle = createInputField("标题", 30)
+                ddTitle.Name = "DropdownTitle"
+                table.insert(currentElements, ddTitle)
+                
+                if dropdownDataMode == "直接子对象" then
+                    local pathInput = createInputField("文件夹路径", 30)
+                    table.insert(currentElements, pathInput)
+                    local dynamicToggleContainer, setDynamic = createToggle("动态数据 (实时读取文件夹)", true)
+                    table.insert(currentElements, dynamicToggleContainer)
+                    
+                    local manualArea = CreateInstance("Frame", {
+                        Name = "ManualArea",
+                        Size = UDim2.new(1, 0, 0, 0),
+                        BackgroundTransparency = 1,
+                        AutomaticSize = Enum.AutomaticSize.Y,
+                        ZIndex = 1003,
+                        Parent = dynamicContent
+                    })
+                    table.insert(currentElements, manualArea)
+                    
+                    local dynamic = true
+                    setDynamic(true)
+                    local function rebuildManualArea()
+                        for _, child in ipairs(manualArea:GetChildren()) do child:Destroy() end
+                        if not dynamic then
+                            for i, item in ipairs(manualItems) do
+                                item.Parent = manualArea
                             end
+                            local addBtn = CreateInstance("TextButton", {
+                                Name = "AddManualItemBtn",
+                                Size = UDim2.new(1, 0, 0, 28),
+                                BackgroundColor3 = WasUI.CurrentTheme.Success,
+                                BackgroundTransparency = 0.3,
+                                Text = "添加新项目",
+                                TextColor3 = WasUI.CurrentTheme.Text,
+                                Font = Enum.Font.GothamSemibold,
+                                TextSize = 11,
+                                AutoButtonColor = false,
+                                ZIndex = 1004,
+                                Parent = manualArea
+                            })
+                            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = addBtn})
+                            addBtn.MouseButton1Click:Connect(function()
+                                local newItem = addManualItem(manualArea, #manualItems + 1)
+                                table.insert(manualItems, newItem)
+                                rebuildManualArea()
+                            end)
                         end
                     end
-                    if enabled then
-                        local sliderFrame, sliderSet = createSlider("控制TweenTo速度", 1, 200, 50)
-                        sliderFrame.Size = UDim2.new(1, 0, 0, 0)
-                        sliderFrame.BackgroundTransparency = 1
-                        table.insert(currentElements, sliderFrame)
-                        Tween(sliderFrame, {Size = UDim2.new(1, 0, 0, 36), BackgroundTransparency = 0}, 0.2)
-                        local adaptContainer, setAdapt = createToggle("自适应Tween速度", function() end)
-                        adaptContainer.Size = UDim2.new(1, 0, 0, 0)
-                        adaptContainer.BackgroundTransparency = 1
-                        table.insert(currentElements, adaptContainer)
-                        Tween(adaptContainer, {Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 0}, 0.2)
+                    setDynamic(function(enabled)
+                        dynamic = enabled
+                        manualArea.Visible = not enabled
+                        rebuildManualArea()
+                        refreshCanvas()
+                    end)
+                    manualArea.Visible = false
+                else
+                    local pathInput = createInputField("对象路径 (如 workspace.Model)", 30)
+                    table.insert(currentElements, pathInput)
+                    local propInput = createInputField("属性名称", 30)
+                    table.insert(currentElements, propInput)
+                    local dynamicToggleContainer, setDynamic = createToggle("动态数据 (实时读取属性)", true)
+                    table.insert(currentElements, dynamicToggleContainer)
+                    
+                    local manualArea = CreateInstance("Frame", {
+                        Name = "ManualArea",
+                        Size = UDim2.new(1, 0, 0, 0),
+                        BackgroundTransparency = 1,
+                        AutomaticSize = Enum.AutomaticSize.Y,
+                        ZIndex = 1003,
+                        Parent = dynamicContent
+                    })
+                    table.insert(currentElements, manualArea)
+                    
+                    local dynamic = true
+                    setDynamic(true)
+                    local function rebuildManualArea()
+                        for _, child in ipairs(manualArea:GetChildren()) do child:Destroy() end
+                        if not dynamic then
+                            for i, item in ipairs(manualItems) do
+                                item.Parent = manualArea
+                            end
+                            local addBtn = CreateInstance("TextButton", {
+                                Name = "AddManualItemBtn",
+                                Size = UDim2.new(1, 0, 0, 28),
+                                BackgroundColor3 = WasUI.CurrentTheme.Success,
+                                BackgroundTransparency = 0.3,
+                                Text = "添加新项目",
+                                TextColor3 = WasUI.CurrentTheme.Text,
+                                Font = Enum.Font.GothamSemibold,
+                                TextSize = 11,
+                                AutoButtonColor = false,
+                                ZIndex = 1004,
+                                Parent = manualArea
+                            })
+                            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = addBtn})
+                            addBtn.MouseButton1Click:Connect(function()
+                                local newItem = addManualItem(manualArea, #manualItems + 1)
+                                table.insert(manualItems, newItem)
+                                rebuildManualArea()
+                            end)
+                        end
                     end
-                end)
-                table.insert(currentElements, smoothContainer)
-            elseif currentMode == "模拟按键" then
-                createCategory("模拟按键输入")
-                local keyInput = createInputField("按键代码 (如: F)", 30)
-                table.insert(currentElements, keyInput)
-                local pressContainer, setPress = createToggle("按住", function() end)
-                table.insert(currentElements, pressContainer)
-                local durationInput = createInputField("持续时间(秒)", 30)
-                table.insert(currentElements, durationInput)
+                    setDynamic(function(enabled)
+                        dynamic = enabled
+                        manualArea.Visible = not enabled
+                        rebuildManualArea()
+                        refreshCanvas()
+                    end)
+                    manualArea.Visible = false
+                end
+                
+                local configKeyInput = createInputField("Config Key (留空则不保存)", 30)
+                configKeyInput.Name = "ConfigKey"
+                table.insert(currentElements, configKeyInput)
+            else
+                for _, btn in ipairs(modeButtons) do btn:Destroy() end
+                modeButtons = {}
+                local modes = {"Remote", "传送", "模拟按键"}
+                for _, modeName in ipairs(modes) do
+                    local btn = CreateInstance("TextButton", {
+                        Name = "Mode_" .. modeName,
+                        Size = UDim2.new(0, 75, 0, 24),
+                        BackgroundColor3 = modeName == currentMode and WasUI.CurrentTheme.Accent or WasUI.CurrentTheme.Primary,
+                        BackgroundTransparency = 0.3,
+                        Text = modeName,
+                        TextColor3 = WasUI.CurrentTheme.Text,
+                        Font = Enum.Font.GothamSemibold,
+                        TextSize = 11,
+                        AutoButtonColor = false,
+                        ZIndex = 1003,
+                        Parent = modeContainer
+                    })
+                    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = btn})
+                    btn.MouseButton1Click:Connect(function()
+                        currentMode = modeName
+                        for _, b in ipairs(modeButtons) do
+                            Tween(b, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
+                        end
+                        Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.2)
+                        updateModeAndContent()
+                    end)
+                    table.insert(modeButtons, btn)
+                end
+                if currentMode == "Remote" then
+                    local input = createInputField("输入你的Remote", 70, true)
+                    table.insert(currentElements, input)
+                    if currentControlType ~= "按钮" then
+                        local loopContainer, setLoop = createToggle("循环发送", function(enabled)
+                            for i = #currentElements, 1, -1 do
+                                local elem = currentElements[i]
+                                if elem:IsA("TextBox") and elem.PlaceholderText == "循环间隔(秒)" then
+                                    local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
+                                    if fade then
+                                        fade.Completed:Connect(function()
+                                            if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                                        end)
+                                    else
+                                        if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                                    end
+                                    break
+                                end
+                            end
+                            if enabled then
+                                local intervalBox = createInputField("循环间隔(秒)", 30)
+                                intervalBox.Size = UDim2.new(1, 0, 0, 0)
+                                intervalBox.BackgroundTransparency = 1
+                                table.insert(currentElements, intervalBox)
+                                Tween(intervalBox, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                            end
+                        end)
+                        table.insert(currentElements, loopContainer)
+                    end
+                elseif currentMode == "传送" then
+                    createCategory("输入坐标点")
+                    local coordInput = createInputField("x, y, z", 30)
+                    table.insert(currentElements, coordInput)
+                    local smoothContainer, setSmooth = createToggle("平滑传送", function(enabled)
+                        for i = #currentElements, 1, -1 do
+                            local elem = currentElements[i]
+                            if elem:IsA("Frame") and (elem.Name == "Slider" or elem.Name == "ToggleContainer") then
+                                local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
+                                if fade then
+                                    fade.Completed:Connect(function()
+                                        if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                                    end)
+                                else
+                                    if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                                end
+                            end
+                        end
+                        if enabled then
+                            local sliderFrame, sliderSet = createSlider("控制TweenTo速度", 1, 200, 50)
+                            sliderFrame.Size = UDim2.new(1, 0, 0, 0)
+                            sliderFrame.BackgroundTransparency = 1
+                            table.insert(currentElements, sliderFrame)
+                            Tween(sliderFrame, {Size = UDim2.new(1, 0, 0, 36), BackgroundTransparency = 0}, 0.2)
+                            local adaptContainer, setAdapt = createToggle("自适应Tween速度", function() end)
+                            adaptContainer.Size = UDim2.new(1, 0, 0, 0)
+                            adaptContainer.BackgroundTransparency = 1
+                            table.insert(currentElements, adaptContainer)
+                            Tween(adaptContainer, {Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 0}, 0.2)
+                        end
+                    end)
+                    table.insert(currentElements, smoothContainer)
+                elseif currentMode == "模拟按键" then
+                    createCategory("模拟按键输入")
+                    local keyInput = createInputField("按键代码 (如: F)", 30)
+                    table.insert(currentElements, keyInput)
+                    local pressContainer, setPress = createToggle("按住", function() end)
+                    table.insert(currentElements, pressContainer)
+                    local durationInput = createInputField("持续时间(秒)", 30)
+                    table.insert(currentElements, durationInput)
+                end
             end
         end
 
-        if currentControlType == "按钮" and currentControlType ~= "滑块" and currentControlType ~= "下拉菜单" then
+        if currentControlType == "按钮" and currentControlType ~= "滑块" and currentControlType ~= "下拉菜单" and currentControlType ~= "小标题" then
             local btnText = createInputField("按钮文本", 30)
             btnText.Name = "BtnText"
             table.insert(currentElements, btnText)
@@ -3543,13 +3553,9 @@ function ShowControlConfigurator(parentFrame, existingControl)
             local labelText = createInputField("标签文本", 30)
             labelText.Name = "LabelText"
             table.insert(currentElements, labelText)
-        elseif currentControlType == "小标题" then
-            local catTitle = createInputField("小标题", 30)
-            catTitle.Name = "CategoryTitle"
-            table.insert(currentElements, catTitle)
         end
 
-        if currentControlType == "按钮" and currentControlType ~= "滑块" and currentControlType ~= "下拉菜单" then
+        if currentControlType == "按钮" and currentControlType ~= "滑块" and currentControlType ~= "下拉菜单" and currentControlType ~= "小标题" then
             local notifyContainer, setNotify = createToggle("绑定通知", function(enabled)
                 for i = #currentElements, 1, -1 do
                     local elem = currentElements[i]
@@ -3673,7 +3679,9 @@ function ShowControlConfigurator(parentFrame, existingControl)
     end
 
     local function getRequiredText()
-        if currentControlType == "按钮" then
+        if currentControlType == "小标题" then
+            for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then return elem.Text end end
+        elseif currentControlType == "按钮" then
             for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then return elem.Text end end
         elseif currentControlType == "开关" then
             for _, elem in ipairs(currentElements) do if elem.Name == "SwitchTitle" then return elem.Text end end
@@ -3685,8 +3693,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
             for _, elem in ipairs(currentElements) do if elem.Name == "Placeholder" then return elem.Text end end
         elseif currentControlType == "标签" then
             for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then return elem.Text end end
-        elseif currentControlType == "小标题" then
-            for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then return elem.Text end end
         end
         return ""
     end
@@ -3699,7 +3705,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
             cancelText = "关闭",
             onConfirm = function()
                 local requiredText = getRequiredText()
-                if requiredText == "" then
+                if requiredText == "" and currentControlType ~= "小标题" then
                     WasUI:ShowConfirmDialog({
                         title = "输入文本",
                         showInput = true,
@@ -3720,8 +3726,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                                     for _, elem in ipairs(currentElements) do if elem.Name == "Placeholder" then elem.Text = input end end
                                 elseif currentControlType == "标签" then
                                     for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then elem.Text = input end end
-                                elseif currentControlType == "小标题" then
-                                    for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then elem.Text = input end end
                                 end
                                 if existingControl then
                                     if currentControlType == "按钮" then
@@ -3745,8 +3749,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                                         existingControl.Knob.Position = UDim2.new(t, -8, 0.5, -8)
                                     elseif currentControlType == "标签" then
                                         for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
-                                    elseif currentControlType == "小标题" then
-                                        for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then local titleLabel = existingControl.Header:FindFirstChild("TitleContainer"):FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
                                     end
                                 else
                                     if currentControlType == "按钮" then
@@ -3785,10 +3787,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                                         local labelText = ""
                                         for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then labelText = elem.Text end end
                                         WasUI:CreateLabel(parentFrame, labelText)
-                                    elseif currentControlType == "小标题" then
-                                        local catTitle = ""
-                                        for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then catTitle = elem.Text end end
-                                        WasUI:CreateCategory(parentFrame, catTitle)
                                     elseif currentControlType == "下拉菜单" then
                                         local ddTitle = ""
                                         local cfgKey = nil
@@ -3893,7 +3891,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
 
     saveBtn.MouseButton1Click:Connect(function()
         local requiredText = getRequiredText()
-        if requiredText == "" then
+        if requiredText == "" and currentControlType ~= "小标题" then
             WasUI:ShowConfirmDialog({
                 title = "输入文本",
                 showInput = true,
@@ -3914,8 +3912,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                             for _, elem in ipairs(currentElements) do if elem.Name == "Placeholder" then elem.Text = input end end
                         elseif currentControlType == "标签" then
                             for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then elem.Text = input end end
-                        elseif currentControlType == "小标题" then
-                            for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then elem.Text = input end end
                         end
                         if existingControl then
                             if currentControlType == "按钮" then
@@ -3939,8 +3935,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                                 existingControl.Knob.Position = UDim2.new(t, -8, 0.5, -8)
                             elseif currentControlType == "标签" then
                                 for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
-                            elseif currentControlType == "小标题" then
-                                for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then local titleLabel = existingControl.Header:FindFirstChild("TitleContainer"):FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
                             end
                         else
                             if currentControlType == "按钮" then
@@ -3979,10 +3973,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                                 local labelText = ""
                                 for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then labelText = elem.Text end end
                                 WasUI:CreateLabel(parentFrame, labelText)
-                            elseif currentControlType == "小标题" then
-                                local catTitle = ""
-                                for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then catTitle = elem.Text end end
-                                WasUI:CreateCategory(parentFrame, catTitle)
                             elseif currentControlType == "下拉菜单" then
                                 local ddTitle = ""
                                 local cfgKey = nil
