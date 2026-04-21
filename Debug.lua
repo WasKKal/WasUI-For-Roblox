@@ -2837,7 +2837,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
         Size = UDim2.new(0, 380, 0, 420),
         Position = UDim2.new(0.5, -190, 0.5, -210),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.1,
+        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         ZIndex = 1000,
@@ -2961,28 +2961,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
     elseif currentControlType == "Label" then currentControlType = "标签"
     elseif currentControlType == "Category" then currentControlType = "小标题"
     end
-    local controlTypeBtn = CreateInstance("TextButton", {
-        Name = "ControlTypeBtn",
-        Size = UDim2.new(0, 90, 0, 24),
-        BackgroundColor3 = WasUI.CurrentTheme.Input,
-        BackgroundTransparency = 0.3,
-        Text = currentControlType,
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        AutoButtonColor = false,
-        ZIndex = 1003,
-        Parent = controlTypeContainer
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = controlTypeBtn})
-    controlTypeBtn.MouseButton1Click:Connect(function()
-        local idx = 1
-        for i, t in ipairs(controlTypes) do if t == currentControlType then idx = i break end end
-        idx = idx % #controlTypes + 1
-        currentControlType = controlTypes[idx]
-        controlTypeBtn.Text = currentControlType
-        updateModeAndContent()
-    end)
 
     local dynamicContent = CreateInstance("Frame", {
         Name = "DynamicContent",
@@ -3276,6 +3254,78 @@ function ShowControlConfigurator(parentFrame, existingControl)
             local catTitle = createInputField("小标题文字", 30)
             catTitle.Name = "CategoryTitle"
             table.insert(currentElements, catTitle)
+        elseif currentControlType == "文本输入" then
+            for _, btn in ipairs(modeButtons) do btn:Destroy() end
+            modeButtons = {}
+            local inputModes = {"属性", "间隔", "大小"}
+            for _, modeName in ipairs(inputModes) do
+                local btn = CreateInstance("TextButton", {
+                    Name = "InputMode_" .. modeName,
+                    Size = UDim2.new(0, 60, 0, 24),
+                    BackgroundColor3 = modeName == sliderMode and WasUI.CurrentTheme.Accent or WasUI.CurrentTheme.Primary,
+                    BackgroundTransparency = 0.3,
+                    Text = modeName,
+                    TextColor3 = WasUI.CurrentTheme.Text,
+                    Font = Enum.Font.GothamSemibold,
+                    TextSize = 11,
+                    AutoButtonColor = false,
+                    ZIndex = 1003,
+                    Parent = modeContainer
+                })
+                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = btn})
+                btn.MouseButton1Click:Connect(function()
+                    sliderMode = modeName
+                    for _, b in ipairs(modeButtons) do
+                        Tween(b, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
+                    end
+                    Tween(btn, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.2)
+                    updateModeAndContent()
+                end)
+                table.insert(modeButtons, btn)
+            end
+            
+            local placeholder = createInputField("占位符文本", 30)
+            placeholder.Name = "Placeholder"
+            table.insert(currentElements, placeholder)
+            if sliderMode == "属性" then
+                local configKeyInput = createInputField("Config Key (留空则不保存)", 30)
+                configKeyInput.Name = "ConfigKey"
+                table.insert(currentElements, configKeyInput)
+                local notifyContainer, setNotify = createToggle("绑定通知", function(enabled)
+                    for i = #currentElements, 1, -1 do
+                        local elem = currentElements[i]
+                        if elem:IsA("TextBox") and (elem.PlaceholderText == "开启标题" or elem.PlaceholderText == "开启内容" or elem.PlaceholderText == "关闭标题" or elem.PlaceholderText == "关闭内容") then
+                            local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
+                            if fade then
+                                fade.Completed:Connect(function()
+                                    if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                                end)
+                            else
+                                if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                            end
+                        end
+                    end
+                    if enabled then
+                        local onTitle = createInputField("开启标题", 30)
+                        onTitle.Size = UDim2.new(1, 0, 0, 0); onTitle.BackgroundTransparency = 1
+                        table.insert(currentElements, onTitle)
+                        Tween(onTitle, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                        local onContent = createInputField("开启内容", 30)
+                        onContent.Size = UDim2.new(1, 0, 0, 0); onContent.BackgroundTransparency = 1
+                        table.insert(currentElements, onContent)
+                        Tween(onContent, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                        local offTitle = createInputField("关闭标题", 30)
+                        offTitle.Size = UDim2.new(1, 0, 0, 0); offTitle.BackgroundTransparency = 1
+                        table.insert(currentElements, offTitle)
+                        Tween(offTitle, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                        local offContent = createInputField("关闭内容", 30)
+                        offContent.Size = UDim2.new(1, 0, 0, 0); offContent.BackgroundTransparency = 1
+                        table.insert(currentElements, offContent)
+                        Tween(offContent, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                    end
+                end)
+                table.insert(currentElements, notifyContainer)
+            end
         else
             modeContainer.Visible = true
             if currentControlType == "滑块" then
@@ -3607,7 +3657,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
             end
         end
 
-        if currentControlType == "按钮" and currentControlType ~= "滑块" and currentControlType ~= "下拉菜单" and currentControlType ~= "小标题" then
+        if currentControlType == "按钮" and currentControlType ~= "滑块" and currentControlType ~= "下拉菜单" and currentControlType ~= "小标题" and currentControlType ~= "文本输入" then
             local btnText = createInputField("按钮文本", 30)
             btnText.Name = "BtnText"
             table.insert(currentElements, btnText)
@@ -3615,17 +3665,13 @@ function ShowControlConfigurator(parentFrame, existingControl)
             local switchTitle = createInputField("开关标题", 30)
             switchTitle.Name = "SwitchTitle"
             table.insert(currentElements, switchTitle)
-        elseif currentControlType == "文本输入" then
-            local placeholder = createInputField("占位符文本", 30)
-            placeholder.Name = "Placeholder"
-            table.insert(currentElements, placeholder)
         elseif currentControlType == "标签" then
             local labelText = createInputField("标签文本", 30)
             labelText.Name = "LabelText"
             table.insert(currentElements, labelText)
         end
 
-        if currentControlType == "按钮" and currentControlType ~= "滑块" and currentControlType ~= "下拉菜单" and currentControlType ~= "小标题" then
+        if currentControlType == "按钮" and currentControlType ~= "滑块" and currentControlType ~= "下拉菜单" and currentControlType ~= "小标题" and currentControlType ~= "文本输入" then
             local notifyContainer, setNotify = createToggle("绑定通知", function(enabled)
                 for i = #currentElements, 1, -1 do
                     local elem = currentElements[i]
@@ -3687,10 +3733,68 @@ function ShowControlConfigurator(parentFrame, existingControl)
                 end
             end)
             table.insert(currentElements, notifyContainer)
+        elseif currentControlType == "文本输入" and sliderMode == "属性" then
+            local notifyContainer, setNotify = createToggle("绑定通知", function(enabled)
+                for i = #currentElements, 1, -1 do
+                    local elem = currentElements[i]
+                    if elem:IsA("TextBox") and (elem.PlaceholderText == "开启标题" or elem.PlaceholderText == "开启内容" or elem.PlaceholderText == "关闭标题" or elem.PlaceholderText == "关闭内容") then
+                        local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
+                        if fade then
+                            fade.Completed:Connect(function()
+                                if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                            end)
+                        else
+                            if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                        end
+                    end
+                end
+                if enabled then
+                    local onTitle = createInputField("开启标题", 30)
+                    onTitle.Size = UDim2.new(1, 0, 0, 0); onTitle.BackgroundTransparency = 1
+                    table.insert(currentElements, onTitle)
+                    Tween(onTitle, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                    local onContent = createInputField("开启内容", 30)
+                    onContent.Size = UDim2.new(1, 0, 0, 0); onContent.BackgroundTransparency = 1
+                    table.insert(currentElements, onContent)
+                    Tween(onContent, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                    local offTitle = createInputField("关闭标题", 30)
+                    offTitle.Size = UDim2.new(1, 0, 0, 0); offTitle.BackgroundTransparency = 1
+                    table.insert(currentElements, offTitle)
+                    Tween(offTitle, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                    local offContent = createInputField("关闭内容", 30)
+                    offContent.Size = UDim2.new(1, 0, 0, 0); offContent.BackgroundTransparency = 1
+                    table.insert(currentElements, offContent)
+                    Tween(offContent, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                end
+            end)
+            table.insert(currentElements, notifyContainer)
         end
 
         refreshCanvas()
     end
+
+    local controlTypeBtn = CreateInstance("TextButton", {
+        Name = "ControlTypeBtn",
+        Size = UDim2.new(0, 90, 0, 24),
+        BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BackgroundTransparency = 0.3,
+        Text = currentControlType,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        AutoButtonColor = false,
+        ZIndex = 1003,
+        Parent = controlTypeContainer
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = controlTypeBtn})
+    controlTypeBtn.MouseButton1Click:Connect(function()
+        local idx = 1
+        for i, t in ipairs(controlTypes) do if t == currentControlType then idx = i break end end
+        idx = idx % #controlTypes + 1
+        currentControlType = controlTypes[idx]
+        controlTypeBtn.Text = currentControlType
+        updateModeAndContent()
+    end)
 
     if existingControl then
         if existingControl.Name == "Button" then
