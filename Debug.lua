@@ -2767,7 +2767,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
         Size = UDim2.new(0, 380, 0, 420),
         Position = UDim2.new(0.5, -190, 0.5, -210),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.2,
+        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         ZIndex = 1000,
@@ -2785,21 +2785,12 @@ function ShowControlConfigurator(parentFrame, existingControl)
         Name = "SaveBtn",
         Size = UDim2.new(0, 28, 0, 28),
         Position = UDim2.new(1, -36, 0, 6),
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 1,
         Image = "",
         AutoButtonColor = false,
         ZIndex = 1003,
         Parent = mainFrame
     })
-    local saveBg = Instance.new("Frame")
-    saveBg.Size = UDim2.new(1, 0, 1, 0)
-    saveBg.BackgroundColor3 = WasUI.CurrentTheme.Section
-    saveBg.BackgroundTransparency = 0.5
-    saveBg.BorderSizePixel = 0
-    saveBg.Parent = saveBtn
-    local saveCorner = Instance.new("UICorner")
-    saveCorner.CornerRadius = UDim.new(1, 0)
-    saveCorner.Parent = saveBg
     local saveIcon = WasUI:CreateIcon("save", UDim2.new(0, 20, 0, 20))
     if saveIcon then
         saveIcon.Parent = saveBtn
@@ -2810,21 +2801,12 @@ function ShowControlConfigurator(parentFrame, existingControl)
         Name = "CloseBtn",
         Size = UDim2.new(0, 28, 0, 28),
         Position = UDim2.new(1, -68, 0, 6),
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 1,
         Image = "",
         AutoButtonColor = false,
         ZIndex = 1003,
         Parent = mainFrame
     })
-    local closeBg = Instance.new("Frame")
-    closeBg.Size = UDim2.new(1, 0, 1, 0)
-    closeBg.BackgroundColor3 = WasUI.CurrentTheme.Section
-    closeBg.BackgroundTransparency = 0.5
-    closeBg.BorderSizePixel = 0
-    closeBg.Parent = closeBtn
-    local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(1, 0)
-    closeCorner.Parent = closeBg
     local closeIcon = WasUI:CreateIcon("x", UDim2.new(0, 20, 0, 20))
     if closeIcon then
         closeIcon.Parent = closeBtn
@@ -2952,7 +2934,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
     local currentMode = "Remote"
     local sliderMode = "属性"
     local dropdownDataMode = "直接子对象"
-    local fixedDataUnits = {}
     local manualItems = {}
 
     local function clearDynamicContent()
@@ -3060,6 +3041,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
             Parent = cat
         })
         WasUI:SetLocalizedText(label, title)
+        table.insert(currentElements, cat)
         return cat
     end
 
@@ -3210,6 +3192,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
                 end
             })
         end)
+        table.insert(currentElements, container)
         return container
     end
 
@@ -3475,30 +3458,32 @@ function ShowControlConfigurator(parentFrame, existingControl)
             if currentMode == "Remote" then
                 local input = createInputField("输入你的Remote", 70, true)
                 table.insert(currentElements, input)
-                local loopContainer, setLoop = createToggle("循环发送", function(enabled)
-                    for i = #currentElements, 1, -1 do
-                        local elem = currentElements[i]
-                        if elem:IsA("TextBox") and elem.PlaceholderText == "循环间隔(秒)" then
-                            local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
-                            if fade then
-                                fade.Completed:Connect(function()
+                if currentControlType ~= "按钮" then
+                    local loopContainer, setLoop = createToggle("循环发送", function(enabled)
+                        for i = #currentElements, 1, -1 do
+                            local elem = currentElements[i]
+                            if elem:IsA("TextBox") and elem.PlaceholderText == "循环间隔(秒)" then
+                                local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
+                                if fade then
+                                    fade.Completed:Connect(function()
+                                        if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                                    end)
+                                else
                                     if not enabled then elem:Destroy() table.remove(currentElements, i) end
-                                end)
-                            else
-                                if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                                end
+                                break
                             end
-                            break
                         end
-                    end
-                    if enabled then
-                        local intervalBox = createInputField("循环间隔(秒)", 30)
-                        intervalBox.Size = UDim2.new(1, 0, 0, 0)
-                        intervalBox.BackgroundTransparency = 1
-                        table.insert(currentElements, intervalBox)
-                        Tween(intervalBox, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
-                    end
-                end)
-                table.insert(currentElements, loopContainer)
+                        if enabled then
+                            local intervalBox = createInputField("循环间隔(秒)", 30)
+                            intervalBox.Size = UDim2.new(1, 0, 0, 0)
+                            intervalBox.BackgroundTransparency = 1
+                            table.insert(currentElements, intervalBox)
+                            Tween(intervalBox, {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 0.3}, 0.2)
+                        end
+                    end)
+                    table.insert(currentElements, loopContainer)
+                end
             elseif currentMode == "传送" then
                 createCategory("输入坐标点")
                 local coordInput = createInputField("x, y, z", 30)
