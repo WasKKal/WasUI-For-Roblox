@@ -2627,161 +2627,42 @@ function Panel:New(name, parent, size, position, titleTag)
         tabButton.MouseButton1Click:Connect(function() self:SetActiveTab(tabName) end)
         
         AddLongPressToControl(tabButton, function()
-            local editGui = Instance.new("ScreenGui")
-            editGui.Name = "TabEditGui"
-            editGui.ResetOnSpawn = false
-            editGui.DisplayOrder = 2000
-            editGui.IgnoreGuiInset = true
-            editGui.Parent = game:GetService("CoreGui")
-            local overlay = CreateInstance("Frame", {
-                Name = "Overlay",
-                Size = UDim2.new(1, 0, 1, 0),
-                BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-                BackgroundTransparency = 1,
-                BorderSizePixel = 0,
-                Active = true,
-                ZIndex = 999,
-                Parent = editGui
-            })
-            local frame = CreateInstance("Frame", {
-                Name = "EditFrame",
-                Size = UDim2.new(0, 300, 0, 180),
-                Position = UDim2.new(0.5, -150, 0.5, -90),
-                BackgroundColor3 = WasUI.CurrentTheme.Background,
-                BackgroundTransparency = 1,
-                BorderSizePixel = 0,
-                ZIndex = 1000,
-                Parent = overlay
-            })
-            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = frame})
-            local title = CreateInstance("TextLabel", {
-                Name = "Title",
-                Size = UDim2.new(1, -20, 0, 30),
-                Position = UDim2.new(0, 10, 0, 10),
-                BackgroundTransparency = 1,
-                Text = "编辑选项卡",
-                TextColor3 = WasUI.CurrentTheme.Text,
-                Font = Enum.Font.GothamBold,
-                TextSize = 16,
-                ZIndex = 1001,
-                Parent = frame
-            })
-            local nameInput = CreateInstance("TextBox", {
-                Name = "NameInput",
-                Size = UDim2.new(1, -20, 0, 32),
-                Position = UDim2.new(0, 10, 0, 50),
-                BackgroundColor3 = WasUI.CurrentTheme.Input,
-                BackgroundTransparency = 0.3,
-                BorderSizePixel = 0,
-                Text = tabName,
-                PlaceholderText = "选项卡名称",
-                TextColor3 = WasUI.CurrentTheme.Text,
-                PlaceholderColor3 = WasUI.CurrentTheme.Text,
-                Font = Enum.Font.Gotham,
-                TextSize = 14,
-                ClearTextOnFocus = false,
-                ZIndex = 1001,
-                Parent = frame
-            })
-            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = nameInput})
-            CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = nameInput})
-            
-            local saveBtn = CreateInstance("TextButton", {
-                Name = "SaveBtn",
-                Size = UDim2.new(0, 100, 0, 32),
-                Position = UDim2.new(0, 10, 0, 95),
-                BackgroundColor3 = WasUI.CurrentTheme.Accent,
-                BackgroundTransparency = 0.3,
-                Text = "保存",
-                TextColor3 = WasUI.CurrentTheme.Text,
-                Font = Enum.Font.GothamSemibold,
-                TextSize = 14,
-                AutoButtonColor = false,
-                ZIndex = 1001,
-                Parent = frame
-            })
-            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = saveBtn})
-            local deleteBtn = CreateInstance("TextButton", {
-                Name = "DeleteBtn",
-                Size = UDim2.new(0, 100, 0, 32),
-                Position = UDim2.new(0, 120, 0, 95),
-                BackgroundColor3 = WasUI.CurrentTheme.Error,
-                BackgroundTransparency = 0.3,
-                Text = "删除",
-                TextColor3 = WasUI.CurrentTheme.Text,
-                Font = Enum.Font.GothamSemibold,
-                TextSize = 14,
-                AutoButtonColor = false,
-                ZIndex = 1001,
-                Parent = frame
-            })
-            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = deleteBtn})
-            local cancelBtn = CreateInstance("TextButton", {
-                Name = "CancelBtn",
-                Size = UDim2.new(0, 80, 0, 32),
-                Position = UDim2.new(0, 230, 0, 95),
-                BackgroundColor3 = WasUI.CurrentTheme.Section,
-                BackgroundTransparency = 0.3,
-                Text = "取消",
-                TextColor3 = WasUI.CurrentTheme.Text,
-                Font = Enum.Font.GothamSemibold,
-                TextSize = 14,
-                AutoButtonColor = false,
-                ZIndex = 1001,
-                Parent = frame
-            })
-            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = cancelBtn})
-            
-            local function close()
-                local fade = Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-                if fade then
-                    fade.Completed:Wait()
-                end
-                editGui:Destroy()
-            end
-            saveBtn.MouseButton1Click:Connect(function()
-                local newName = nameInput.Text
-                if newName ~= "" and newName ~= tabName then
-                    tabButton.Text = newName
-                    WasUI:SetLocalizedText(tabButton, newName)
-                    self.Tabs[newName] = self.Tabs[tabName]
-                    self.Tabs[tabName] = nil
-                    if self.ActiveTab == tabName then self.ActiveTab = newName end
-                    WasUI:Notify({Title = "选项卡", Content = "已重命名", Duration = 1.5})
-                end
-                close()
-            end)
-            deleteBtn.MouseButton1Click:Connect(function()
-                WasUI:ShowConfirmDialog({
-                    title = "删除选项卡",
-                    description = "确定要删除选项卡 \"" .. tabName .. "\" 吗？",
-                    confirmText = "删除",
-                    cancelText = "取消",
-                    onConfirm = function()
-                        tabButton:Destroy()
-                        tabFrame:Destroy()
+            WasUI:ShowConfirmDialog({
+                title = "重命名选项卡",
+                showInput = true,
+                inputPlaceholder = "新名称",
+                inputDefault = tabName,
+                confirmText = "重命名",
+                cancelText = "删除",
+                onConfirm = function(newName)
+                    if newName and newName ~= "" and newName ~= tabName then
+                        tabButton.Text = newName
+                        WasUI:SetLocalizedText(tabButton, newName)
+                        self.Tabs[newName] = self.Tabs[tabName]
                         self.Tabs[tabName] = nil
-                        if self.ActiveTab == tabName then
-                            local nextTab = next(self.Tabs)
-                            if nextTab then self:SetActiveTab(nextTab) else self.ActiveTab = nil end
+                        if self.ActiveTab == tabName then self.ActiveTab = newName end
+                        WasUI:Notify({Title = "选项卡", Content = "已重命名为: " .. newName, Duration = 1.5})
+                    end
+                end,
+                onCancel = function()
+                    WasUI:ShowConfirmDialog({
+                        title = "删除选项卡",
+                        description = "确定要删除选项卡 \"" .. tabName .. "\" 吗？",
+                        confirmText = "删除",
+                        cancelText = "取消",
+                        onConfirm = function()
+                            tabButton:Destroy()
+                            tabFrame:Destroy()
+                            self.Tabs[tabName] = nil
+                            if self.ActiveTab == tabName then
+                                local nextTab = next(self.Tabs)
+                                if nextTab then self:SetActiveTab(nextTab) else self.ActiveTab = nil end
+                            end
+                            WasUI:Notify({Title = "选项卡", Content = "已删除", Duration = 1.5})
                         end
-                        WasUI:Notify({Title = "选项卡", Content = "已删除", Duration = 1.5})
-                        close()
-                    end
-                })
-            end)
-            cancelBtn.MouseButton1Click:Connect(close)
-            overlay.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    local mousePos = input.Position
-                    local framePos = frame.AbsolutePosition
-                    local frameSize = frame.AbsoluteSize
-                    if not (mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y) then
-                        close()
-                    end
+                    })
                 end
-            end)
-            Tween(overlay, {BackgroundTransparency = 0.5}, 0.2)
+            })
         end, 1.5)
         
         local addControlBtn = CreateInstance("TextButton", {
@@ -2893,31 +2774,51 @@ function ShowControlConfigurator(parentFrame, existingControl)
         Name = "SaveBtn",
         Size = UDim2.new(0, 28, 0, 28),
         Position = UDim2.new(1, -36, 0, 6),
-        BackgroundTransparency = 1,
+        BackgroundTransparency = 0.3,
         Image = "",
         AutoButtonColor = false,
         ZIndex = 1003,
         Parent = mainFrame
     })
+    local saveBg = Instance.new("Frame")
+    saveBg.Size = UDim2.new(1, 0, 1, 0)
+    saveBg.BackgroundColor3 = WasUI.CurrentTheme.Section
+    saveBg.BackgroundTransparency = 0.5
+    saveBg.BorderSizePixel = 0
+    saveBg.Parent = saveBtn
+    local saveCorner = Instance.new("UICorner")
+    saveCorner.CornerRadius = UDim.new(1, 0)
+    saveCorner.Parent = saveBg
     local saveIcon = WasUI:CreateIcon("save", UDim2.new(0, 20, 0, 20))
     if saveIcon then
         saveIcon.Parent = saveBtn
         saveIcon.Position = UDim2.new(0.5, -10, 0.5, -10)
+        saveIcon.ZIndex = 1004
     end
     local closeBtn = CreateInstance("ImageButton", {
         Name = "CloseBtn",
         Size = UDim2.new(0, 28, 0, 28),
         Position = UDim2.new(1, -68, 0, 6),
-        BackgroundTransparency = 1,
+        BackgroundTransparency = 0.3,
         Image = "",
         AutoButtonColor = false,
         ZIndex = 1003,
         Parent = mainFrame
     })
+    local closeBg = Instance.new("Frame")
+    closeBg.Size = UDim2.new(1, 0, 1, 0)
+    closeBg.BackgroundColor3 = WasUI.CurrentTheme.Section
+    closeBg.BackgroundTransparency = 0.5
+    closeBg.BorderSizePixel = 0
+    closeBg.Parent = closeBtn
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(1, 0)
+    closeCorner.Parent = closeBg
     local closeIcon = WasUI:CreateIcon("x", UDim2.new(0, 20, 0, 20))
     if closeIcon then
         closeIcon.Parent = closeBtn
         closeIcon.Position = UDim2.new(0.5, -10, 0.5, -10)
+        closeIcon.ZIndex = 1004
     end
 
     local content = CreateInstance("ScrollingFrame", {
@@ -3368,7 +3269,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
         else
             for _, btn in ipairs(modeButtons) do btn:Destroy() end
             modeButtons = {}
-            local modes = {"Remote", "传送", "模拟按键", "自定义"}
+            local modes = {"Remote", "传送", "模拟按键"}
             for _, modeName in ipairs(modes) do
                 local btn = CreateInstance("TextButton", {
                     Name = "Mode_" .. modeName,
@@ -3385,6 +3286,10 @@ function ShowControlConfigurator(parentFrame, existingControl)
                 })
                 CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = btn})
                 btn.MouseButton1Click:Connect(function()
+                    if modeName == "自定义" then
+                        WasUI:Notify({Title = "敬请期待", Content = "该功能尚未开放", Duration = 2})
+                        return
+                    end
                     currentMode = modeName
                     for _, b in ipairs(modeButtons) do
                         Tween(b, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
@@ -3461,9 +3366,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                 table.insert(currentElements, pressContainer)
                 local durationInput = createInputField("持续时间(秒)", 30)
                 table.insert(currentElements, durationInput)
-            else
-                local customInput = createInputField("自定义代码或参数", 100, true)
-                table.insert(currentElements, customInput)
             end
         end
 
@@ -3624,6 +3526,25 @@ function ShowControlConfigurator(parentFrame, existingControl)
         gui:Destroy()
     end
 
+    local function getRequiredText()
+        if currentControlType == "按钮" then
+            for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then return elem.Text end end
+        elseif currentControlType == "开关" then
+            for _, elem in ipairs(currentElements) do if elem.Name == "SwitchTitle" then return elem.Text end end
+        elseif currentControlType == "滑块" then
+            for _, elem in ipairs(currentElements) do if elem.Name == "SliderTitle" then return elem.Text end end
+        elseif currentControlType == "下拉菜单" then
+            for _, elem in ipairs(currentElements) do if elem.Name == "DropdownTitle" then return elem.Text end end
+        elseif currentControlType == "文本输入" then
+            for _, elem in ipairs(currentElements) do if elem.Name == "Placeholder" then return elem.Text end end
+        elseif currentControlType == "标签" then
+            for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then return elem.Text end end
+        elseif currentControlType == "小标题" then
+            for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then return elem.Text end end
+        end
+        return ""
+    end
+
     closeBtn.MouseButton1Click:Connect(function()
         WasUI:ShowConfirmDialog({
             title = "警告",
@@ -3631,97 +3552,192 @@ function ShowControlConfigurator(parentFrame, existingControl)
             confirmText = "储存",
             cancelText = "关闭",
             onConfirm = function()
-                local valid = true
-                if currentControlType ~= "下拉菜单" and currentMode ~= "自定义" then
-                    for _, elem in ipairs(currentElements) do
-                        if elem:IsA("TextBox") and elem.Text == "" and elem.PlaceholderText ~= "Config Key (留空则不保存)" and elem.PlaceholderText ~= "通知标题" and elem.PlaceholderText ~= "通知内容" and elem.PlaceholderText ~= "开启标题" and elem.PlaceholderText ~= "开启内容" and elem.PlaceholderText ~= "关闭标题" and elem.PlaceholderText ~= "关闭内容" then
-                            valid = false
-                            break
+                local requiredText = getRequiredText()
+                if requiredText == "" then
+                    WasUI:ShowConfirmDialog({
+                        title = "输入文本",
+                        showInput = true,
+                        inputPlaceholder = "请输入控件文本",
+                        confirmText = "保存",
+                        cancelText = "取消",
+                        onConfirm = function(input)
+                            if input and input ~= "" then
+                                if currentControlType == "按钮" then
+                                    for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then elem.Text = input end end
+                                elseif currentControlType == "开关" then
+                                    for _, elem in ipairs(currentElements) do if elem.Name == "SwitchTitle" then elem.Text = input end end
+                                elseif currentControlType == "滑块" then
+                                    for _, elem in ipairs(currentElements) do if elem.Name == "SliderTitle" then elem.Text = input end end
+                                elseif currentControlType == "下拉菜单" then
+                                    for _, elem in ipairs(currentElements) do if elem.Name == "DropdownTitle" then elem.Text = input end end
+                                elseif currentControlType == "文本输入" then
+                                    for _, elem in ipairs(currentElements) do if elem.Name == "Placeholder" then elem.Text = input end end
+                                elseif currentControlType == "标签" then
+                                    for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then elem.Text = input end end
+                                elseif currentControlType == "小标题" then
+                                    for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then elem.Text = input end end
+                                end
+                                if existingControl then
+                                    if currentControlType == "按钮" then
+                                        for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
+                                    elseif currentControlType == "开关" then
+                                        for _, elem in ipairs(currentElements) do if elem.Name == "SwitchTitle" then local titleLabel = existingControl.Container:FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
+                                    elseif currentControlType == "滑块" then
+                                        local newMin, newMax, newDefault = existingControl.Min, existingControl.Max, existingControl.Value
+                                        for _, elem in ipairs(currentElements) do
+                                            if elem.Name == "SliderTitle" then local titleLabel = existingControl.Container:FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end
+                                            elseif elem.Name == "Min" then newMin = tonumber(elem.Text) or existingControl.Min
+                                            elseif elem.Name == "Max" then newMax = tonumber(elem.Text) or existingControl.Max
+                                            elseif elem.Name == "Default" then newDefault = tonumber(elem.Text) or existingControl.Value end
+                                        end
+                                        existingControl.Min = newMin
+                                        existingControl.Max = newMax
+                                        existingControl.Value = math.clamp(newDefault, newMin, newMax)
+                                        existingControl.ValueLabel.Text = tostring(existingControl.Value)
+                                        local t = (existingControl.Value - newMin) / (newMax - newMin)
+                                        existingControl.SliderFill.Size = UDim2.new(t, 0, 1, 0)
+                                        existingControl.Knob.Position = UDim2.new(t, -8, 0.5, -8)
+                                    elseif currentControlType == "标签" then
+                                        for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
+                                    elseif currentControlType == "小标题" then
+                                        for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then local titleLabel = existingControl.Header:FindFirstChild("TitleContainer"):FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
+                                    end
+                                else
+                                    if currentControlType == "按钮" then
+                                        local btnText = ""
+                                        for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then btnText = elem.Text end end
+                                        WasUI:CreateButton(parentFrame, btnText, function() WasUI:Notify({Title = btnText, Content = "按钮被点击", Duration = 1}) end)
+                                    elseif currentControlType == "开关" then
+                                        local switchTitle = ""
+                                        local cfgKey = nil
+                                        for _, elem in ipairs(currentElements) do
+                                            if elem.Name == "SwitchTitle" then switchTitle = elem.Text
+                                            elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                                        end
+                                        WasUI:CreateToggle(parentFrame, switchTitle, false, function(state) end, nil, nil, cfgKey)
+                                    elseif currentControlType == "滑块" then
+                                        local sliderTitle = ""
+                                        local minVal, maxVal, defaultVal = 0, 100, 50
+                                        local cfgKey = nil
+                                        for _, elem in ipairs(currentElements) do
+                                            if elem.Name == "SliderTitle" then sliderTitle = elem.Text
+                                            elseif elem.Name == "Min" then minVal = tonumber(elem.Text) or 0
+                                            elseif elem.Name == "Max" then maxVal = tonumber(elem.Text) or 100
+                                            elseif elem.Name == "Default" then defaultVal = tonumber(elem.Text) or 50
+                                            elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                                        end
+                                        WasUI:CreateSlider(parentFrame, sliderTitle, minVal, maxVal, defaultVal, function(val) end, cfgKey)
+                                    elseif currentControlType == "文本输入" then
+                                        local placeholder = ""
+                                        local cfgKey = nil
+                                        for _, elem in ipairs(currentElements) do
+                                            if elem.Name == "Placeholder" then placeholder = elem.Text
+                                            elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                                        end
+                                        WasUI:CreateTextInput(parentFrame, placeholder, "", function(text) end, cfgKey)
+                                    elseif currentControlType == "标签" then
+                                        local labelText = ""
+                                        for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then labelText = elem.Text end end
+                                        WasUI:CreateLabel(parentFrame, labelText)
+                                    elseif currentControlType == "小标题" then
+                                        local catTitle = ""
+                                        for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then catTitle = elem.Text end end
+                                        WasUI:CreateCategory(parentFrame, catTitle)
+                                    elseif currentControlType == "下拉菜单" then
+                                        local ddTitle = ""
+                                        local cfgKey = nil
+                                        for _, elem in ipairs(currentElements) do
+                                            if elem.Name == "DropdownTitle" then ddTitle = elem.Text
+                                            elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                                        end
+                                        WasUI:CreateDropdown(parentFrame, ddTitle, {"选项1", "选项2"}, nil, function(sel) end, false, cfgKey)
+                                    end
+                                end
+                                WasUI:Notify({Title = "调试", Content = "你的更改已被保存", Duration = 2})
+                                closeConfigurator()
+                            end
                         end
-                    end
-                end
-                if not valid then
-                    WasUI:Notify({Title = "错误", Content = "你提供的内容有误", Duration = 2, BackgroundColor = WasUI.CurrentTheme.Error})
-                    return
-                end
-                if existingControl then
-                    if currentControlType == "按钮" then
-                        for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
-                    elseif currentControlType == "开关" then
-                        for _, elem in ipairs(currentElements) do if elem.Name == "SwitchTitle" then local titleLabel = existingControl.Container:FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
-                    elseif currentControlType == "滑块" then
-                        local newMin, newMax, newDefault = existingControl.Min, existingControl.Max, existingControl.Value
-                        for _, elem in ipairs(currentElements) do
-                            if elem.Name == "SliderTitle" then local titleLabel = existingControl.Container:FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end
-                            elseif elem.Name == "Min" then newMin = tonumber(elem.Text) or existingControl.Min
-                            elseif elem.Name == "Max" then newMax = tonumber(elem.Text) or existingControl.Max
-                            elseif elem.Name == "Default" then newDefault = tonumber(elem.Text) or existingControl.Value end
-                        end
-                        existingControl.Min = newMin
-                        existingControl.Max = newMax
-                        existingControl.Value = math.clamp(newDefault, newMin, newMax)
-                        existingControl.ValueLabel.Text = tostring(existingControl.Value)
-                        local t = (existingControl.Value - newMin) / (newMax - newMin)
-                        existingControl.SliderFill.Size = UDim2.new(t, 0, 1, 0)
-                        existingControl.Knob.Position = UDim2.new(t, -8, 0.5, -8)
-                    elseif currentControlType == "标签" then
-                        for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
-                    elseif currentControlType == "小标题" then
-                        for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then local titleLabel = existingControl.Header:FindFirstChild("TitleContainer"):FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
-                    end
+                    })
                 else
-                    if currentControlType == "按钮" then
-                        local btnText = ""
-                        for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then btnText = elem.Text end end
-                        WasUI:CreateButton(parentFrame, btnText, function() WasUI:Notify({Title = btnText, Content = "按钮被点击", Duration = 1}) end)
-                    elseif currentControlType == "开关" then
-                        local switchTitle = ""
-                        local cfgKey = nil
-                        for _, elem in ipairs(currentElements) do
-                            if elem.Name == "SwitchTitle" then switchTitle = elem.Text
-                            elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                    if existingControl then
+                        if currentControlType == "按钮" then
+                            for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
+                        elseif currentControlType == "开关" then
+                            for _, elem in ipairs(currentElements) do if elem.Name == "SwitchTitle" then local titleLabel = existingControl.Container:FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
+                        elseif currentControlType == "滑块" then
+                            local newMin, newMax, newDefault = existingControl.Min, existingControl.Max, existingControl.Value
+                            for _, elem in ipairs(currentElements) do
+                                if elem.Name == "SliderTitle" then local titleLabel = existingControl.Container:FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end
+                                elseif elem.Name == "Min" then newMin = tonumber(elem.Text) or existingControl.Min
+                                elseif elem.Name == "Max" then newMax = tonumber(elem.Text) or existingControl.Max
+                                elseif elem.Name == "Default" then newDefault = tonumber(elem.Text) or existingControl.Value end
+                            end
+                            existingControl.Min = newMin
+                            existingControl.Max = newMax
+                            existingControl.Value = math.clamp(newDefault, newMin, newMax)
+                            existingControl.ValueLabel.Text = tostring(existingControl.Value)
+                            local t = (existingControl.Value - newMin) / (newMax - newMin)
+                            existingControl.SliderFill.Size = UDim2.new(t, 0, 1, 0)
+                            existingControl.Knob.Position = UDim2.new(t, -8, 0.5, -8)
+                        elseif currentControlType == "标签" then
+                            for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
+                        elseif currentControlType == "小标题" then
+                            for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then local titleLabel = existingControl.Header:FindFirstChild("TitleContainer"):FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
                         end
-                        WasUI:CreateToggle(parentFrame, switchTitle, false, function(state) end, nil, nil, cfgKey)
-                    elseif currentControlType == "滑块" then
-                        local sliderTitle = ""
-                        local minVal, maxVal, defaultVal = 0, 100, 50
-                        local cfgKey = nil
-                        for _, elem in ipairs(currentElements) do
-                            if elem.Name == "SliderTitle" then sliderTitle = elem.Text
-                            elseif elem.Name == "Min" then minVal = tonumber(elem.Text) or 0
-                            elseif elem.Name == "Max" then maxVal = tonumber(elem.Text) or 100
-                            elseif elem.Name == "Default" then defaultVal = tonumber(elem.Text) or 50
-                            elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                    else
+                        if currentControlType == "按钮" then
+                            local btnText = ""
+                            for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then btnText = elem.Text end end
+                            WasUI:CreateButton(parentFrame, btnText, function() WasUI:Notify({Title = btnText, Content = "按钮被点击", Duration = 1}) end)
+                        elseif currentControlType == "开关" then
+                            local switchTitle = ""
+                            local cfgKey = nil
+                            for _, elem in ipairs(currentElements) do
+                                if elem.Name == "SwitchTitle" then switchTitle = elem.Text
+                                elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                            end
+                            WasUI:CreateToggle(parentFrame, switchTitle, false, function(state) end, nil, nil, cfgKey)
+                        elseif currentControlType == "滑块" then
+                            local sliderTitle = ""
+                            local minVal, maxVal, defaultVal = 0, 100, 50
+                            local cfgKey = nil
+                            for _, elem in ipairs(currentElements) do
+                                if elem.Name == "SliderTitle" then sliderTitle = elem.Text
+                                elseif elem.Name == "Min" then minVal = tonumber(elem.Text) or 0
+                                elseif elem.Name == "Max" then maxVal = tonumber(elem.Text) or 100
+                                elseif elem.Name == "Default" then defaultVal = tonumber(elem.Text) or 50
+                                elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                            end
+                            WasUI:CreateSlider(parentFrame, sliderTitle, minVal, maxVal, defaultVal, function(val) end, cfgKey)
+                        elseif currentControlType == "文本输入" then
+                            local placeholder = ""
+                            local cfgKey = nil
+                            for _, elem in ipairs(currentElements) do
+                                if elem.Name == "Placeholder" then placeholder = elem.Text
+                                elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                            end
+                            WasUI:CreateTextInput(parentFrame, placeholder, "", function(text) end, cfgKey)
+                        elseif currentControlType == "标签" then
+                            local labelText = ""
+                            for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then labelText = elem.Text end end
+                            WasUI:CreateLabel(parentFrame, labelText)
+                        elseif currentControlType == "小标题" then
+                            local catTitle = ""
+                            for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then catTitle = elem.Text end end
+                            WasUI:CreateCategory(parentFrame, catTitle)
+                        elseif currentControlType == "下拉菜单" then
+                            local ddTitle = ""
+                            local cfgKey = nil
+                            for _, elem in ipairs(currentElements) do
+                                if elem.Name == "DropdownTitle" then ddTitle = elem.Text
+                                elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                            end
+                            WasUI:CreateDropdown(parentFrame, ddTitle, {"选项1", "选项2"}, nil, function(sel) end, false, cfgKey)
                         end
-                        WasUI:CreateSlider(parentFrame, sliderTitle, minVal, maxVal, defaultVal, function(val) end, cfgKey)
-                    elseif currentControlType == "文本输入" then
-                        local placeholder = ""
-                        local cfgKey = nil
-                        for _, elem in ipairs(currentElements) do
-                            if elem.Name == "Placeholder" then placeholder = elem.Text
-                            elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
-                        end
-                        WasUI:CreateTextInput(parentFrame, placeholder, "", function(text) end, cfgKey)
-                    elseif currentControlType == "标签" then
-                        local labelText = ""
-                        for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then labelText = elem.Text end end
-                        WasUI:CreateLabel(parentFrame, labelText)
-                    elseif currentControlType == "小标题" then
-                        local catTitle = ""
-                        for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then catTitle = elem.Text end end
-                        WasUI:CreateCategory(parentFrame, catTitle)
-                    elseif currentControlType == "下拉菜单" then
-                        local ddTitle = ""
-                        local cfgKey = nil
-                        for _, elem in ipairs(currentElements) do
-                            if elem.Name == "DropdownTitle" then ddTitle = elem.Text
-                            elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
-                        end
-                        WasUI:CreateDropdown(parentFrame, ddTitle, {"选项1", "选项2"}, nil, function(sel) end, false, cfgKey)
                     end
+                    WasUI:Notify({Title = "调试", Content = "你的更改已被保存", Duration = 2})
+                    closeConfigurator()
                 end
-                WasUI:Notify({Title = "调试", Content = "你的更改已被保存", Duration = 2})
-                closeConfigurator()
             end,
             onCancel = function()
                 closeConfigurator()
@@ -3730,97 +3746,192 @@ function ShowControlConfigurator(parentFrame, existingControl)
     end)
 
     saveBtn.MouseButton1Click:Connect(function()
-        local valid = true
-        if currentControlType ~= "下拉菜单" and currentMode ~= "自定义" then
-            for _, elem in ipairs(currentElements) do
-                if elem:IsA("TextBox") and elem.Text == "" and elem.PlaceholderText ~= "Config Key (留空则不保存)" and elem.PlaceholderText ~= "通知标题" and elem.PlaceholderText ~= "通知内容" and elem.PlaceholderText ~= "开启标题" and elem.PlaceholderText ~= "开启内容" and elem.PlaceholderText ~= "关闭标题" and elem.PlaceholderText ~= "关闭内容" then
-                    valid = false
-                    break
+        local requiredText = getRequiredText()
+        if requiredText == "" then
+            WasUI:ShowConfirmDialog({
+                title = "输入文本",
+                showInput = true,
+                inputPlaceholder = "请输入控件文本",
+                confirmText = "保存",
+                cancelText = "取消",
+                onConfirm = function(input)
+                    if input and input ~= "" then
+                        if currentControlType == "按钮" then
+                            for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then elem.Text = input end end
+                        elseif currentControlType == "开关" then
+                            for _, elem in ipairs(currentElements) do if elem.Name == "SwitchTitle" then elem.Text = input end end
+                        elseif currentControlType == "滑块" then
+                            for _, elem in ipairs(currentElements) do if elem.Name == "SliderTitle" then elem.Text = input end end
+                        elseif currentControlType == "下拉菜单" then
+                            for _, elem in ipairs(currentElements) do if elem.Name == "DropdownTitle" then elem.Text = input end end
+                        elseif currentControlType == "文本输入" then
+                            for _, elem in ipairs(currentElements) do if elem.Name == "Placeholder" then elem.Text = input end end
+                        elseif currentControlType == "标签" then
+                            for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then elem.Text = input end end
+                        elseif currentControlType == "小标题" then
+                            for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then elem.Text = input end end
+                        end
+                        if existingControl then
+                            if currentControlType == "按钮" then
+                                for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
+                            elseif currentControlType == "开关" then
+                                for _, elem in ipairs(currentElements) do if elem.Name == "SwitchTitle" then local titleLabel = existingControl.Container:FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
+                            elseif currentControlType == "滑块" then
+                                local newMin, newMax, newDefault = existingControl.Min, existingControl.Max, existingControl.Value
+                                for _, elem in ipairs(currentElements) do
+                                    if elem.Name == "SliderTitle" then local titleLabel = existingControl.Container:FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end
+                                    elseif elem.Name == "Min" then newMin = tonumber(elem.Text) or existingControl.Min
+                                    elseif elem.Name == "Max" then newMax = tonumber(elem.Text) or existingControl.Max
+                                    elseif elem.Name == "Default" then newDefault = tonumber(elem.Text) or existingControl.Value end
+                                end
+                                existingControl.Min = newMin
+                                existingControl.Max = newMax
+                                existingControl.Value = math.clamp(newDefault, newMin, newMax)
+                                existingControl.ValueLabel.Text = tostring(existingControl.Value)
+                                local t = (existingControl.Value - newMin) / (newMax - newMin)
+                                existingControl.SliderFill.Size = UDim2.new(t, 0, 1, 0)
+                                existingControl.Knob.Position = UDim2.new(t, -8, 0.5, -8)
+                            elseif currentControlType == "标签" then
+                                for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
+                            elseif currentControlType == "小标题" then
+                                for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then local titleLabel = existingControl.Header:FindFirstChild("TitleContainer"):FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
+                            end
+                        else
+                            if currentControlType == "按钮" then
+                                local btnText = ""
+                                for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then btnText = elem.Text end end
+                                WasUI:CreateButton(parentFrame, btnText, function() WasUI:Notify({Title = btnText, Content = "按钮被点击", Duration = 1}) end)
+                            elseif currentControlType == "开关" then
+                                local switchTitle = ""
+                                local cfgKey = nil
+                                for _, elem in ipairs(currentElements) do
+                                    if elem.Name == "SwitchTitle" then switchTitle = elem.Text
+                                    elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                                end
+                                WasUI:CreateToggle(parentFrame, switchTitle, false, function(state) end, nil, nil, cfgKey)
+                            elseif currentControlType == "滑块" then
+                                local sliderTitle = ""
+                                local minVal, maxVal, defaultVal = 0, 100, 50
+                                local cfgKey = nil
+                                for _, elem in ipairs(currentElements) do
+                                    if elem.Name == "SliderTitle" then sliderTitle = elem.Text
+                                    elseif elem.Name == "Min" then minVal = tonumber(elem.Text) or 0
+                                    elseif elem.Name == "Max" then maxVal = tonumber(elem.Text) or 100
+                                    elseif elem.Name == "Default" then defaultVal = tonumber(elem.Text) or 50
+                                    elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                                end
+                                WasUI:CreateSlider(parentFrame, sliderTitle, minVal, maxVal, defaultVal, function(val) end, cfgKey)
+                            elseif currentControlType == "文本输入" then
+                                local placeholder = ""
+                                local cfgKey = nil
+                                for _, elem in ipairs(currentElements) do
+                                    if elem.Name == "Placeholder" then placeholder = elem.Text
+                                    elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                                end
+                                WasUI:CreateTextInput(parentFrame, placeholder, "", function(text) end, cfgKey)
+                            elseif currentControlType == "标签" then
+                                local labelText = ""
+                                for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then labelText = elem.Text end end
+                                WasUI:CreateLabel(parentFrame, labelText)
+                            elseif currentControlType == "小标题" then
+                                local catTitle = ""
+                                for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then catTitle = elem.Text end end
+                                WasUI:CreateCategory(parentFrame, catTitle)
+                            elseif currentControlType == "下拉菜单" then
+                                local ddTitle = ""
+                                local cfgKey = nil
+                                for _, elem in ipairs(currentElements) do
+                                    if elem.Name == "DropdownTitle" then ddTitle = elem.Text
+                                    elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                                end
+                                WasUI:CreateDropdown(parentFrame, ddTitle, {"选项1", "选项2"}, nil, function(sel) end, false, cfgKey)
+                            end
+                        end
+                        WasUI:Notify({Title = "调试", Content = "你的更改已被保存", Duration = 2})
+                        closeConfigurator()
+                    end
                 end
-            end
-        end
-        if not valid then
-            WasUI:Notify({Title = "错误", Content = "你提供的内容有误", Duration = 2, BackgroundColor = WasUI.CurrentTheme.Error})
-            return
-        end
-        if existingControl then
-            if currentControlType == "按钮" then
-                for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
-            elseif currentControlType == "开关" then
-                for _, elem in ipairs(currentElements) do if elem.Name == "SwitchTitle" then local titleLabel = existingControl.Container:FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
-            elseif currentControlType == "滑块" then
-                local newMin, newMax, newDefault = existingControl.Min, existingControl.Max, existingControl.Value
-                for _, elem in ipairs(currentElements) do
-                    if elem.Name == "SliderTitle" then local titleLabel = existingControl.Container:FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end
-                    elseif elem.Name == "Min" then newMin = tonumber(elem.Text) or existingControl.Min
-                    elseif elem.Name == "Max" then newMax = tonumber(elem.Text) or existingControl.Max
-                    elseif elem.Name == "Default" then newDefault = tonumber(elem.Text) or existingControl.Value end
-                end
-                existingControl.Min = newMin
-                existingControl.Max = newMax
-                existingControl.Value = math.clamp(newDefault, newMin, newMax)
-                existingControl.ValueLabel.Text = tostring(existingControl.Value)
-                local t = (existingControl.Value - newMin) / (newMax - newMin)
-                existingControl.SliderFill.Size = UDim2.new(t, 0, 1, 0)
-                existingControl.Knob.Position = UDim2.new(t, -8, 0.5, -8)
-            elseif currentControlType == "标签" then
-                for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
-            elseif currentControlType == "小标题" then
-                for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then local titleLabel = existingControl.Header:FindFirstChild("TitleContainer"):FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
-            end
+            })
         else
-            if currentControlType == "按钮" then
-                local btnText = ""
-                for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then btnText = elem.Text end end
-                WasUI:CreateButton(parentFrame, btnText, function() WasUI:Notify({Title = btnText, Content = "按钮被点击", Duration = 1}) end)
-            elseif currentControlType == "开关" then
-                local switchTitle = ""
-                local cfgKey = nil
-                for _, elem in ipairs(currentElements) do
-                    if elem.Name == "SwitchTitle" then switchTitle = elem.Text
-                    elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+            if existingControl then
+                if currentControlType == "按钮" then
+                    for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
+                elseif currentControlType == "开关" then
+                    for _, elem in ipairs(currentElements) do if elem.Name == "SwitchTitle" then local titleLabel = existingControl.Container:FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
+                elseif currentControlType == "滑块" then
+                    local newMin, newMax, newDefault = existingControl.Min, existingControl.Max, existingControl.Value
+                    for _, elem in ipairs(currentElements) do
+                        if elem.Name == "SliderTitle" then local titleLabel = existingControl.Container:FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end
+                        elseif elem.Name == "Min" then newMin = tonumber(elem.Text) or existingControl.Min
+                        elseif elem.Name == "Max" then newMax = tonumber(elem.Text) or existingControl.Max
+                        elseif elem.Name == "Default" then newDefault = tonumber(elem.Text) or existingControl.Value end
+                    end
+                    existingControl.Min = newMin
+                    existingControl.Max = newMax
+                    existingControl.Value = math.clamp(newDefault, newMin, newMax)
+                    existingControl.ValueLabel.Text = tostring(existingControl.Value)
+                    local t = (existingControl.Value - newMin) / (newMax - newMin)
+                    existingControl.SliderFill.Size = UDim2.new(t, 0, 1, 0)
+                    existingControl.Knob.Position = UDim2.new(t, -8, 0.5, -8)
+                elseif currentControlType == "标签" then
+                    for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then existingControl.Instance.Text = elem.Text; WasUI:SetLocalizedText(existingControl.Instance, elem.Text) end end
+                elseif currentControlType == "小标题" then
+                    for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then local titleLabel = existingControl.Header:FindFirstChild("TitleContainer"):FindFirstChild("Title"); if titleLabel then titleLabel.Text = elem.Text; WasUI:SetLocalizedText(titleLabel, elem.Text) end end end
                 end
-                WasUI:CreateToggle(parentFrame, switchTitle, false, function(state) end, nil, nil, cfgKey)
-            elseif currentControlType == "滑块" then
-                local sliderTitle = ""
-                local minVal, maxVal, defaultVal = 0, 100, 50
-                local cfgKey = nil
-                for _, elem in ipairs(currentElements) do
-                    if elem.Name == "SliderTitle" then sliderTitle = elem.Text
-                    elseif elem.Name == "Min" then minVal = tonumber(elem.Text) or 0
-                    elseif elem.Name == "Max" then maxVal = tonumber(elem.Text) or 100
-                    elseif elem.Name == "Default" then defaultVal = tonumber(elem.Text) or 50
-                    elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+            else
+                if currentControlType == "按钮" then
+                    local btnText = ""
+                    for _, elem in ipairs(currentElements) do if elem.Name == "BtnText" then btnText = elem.Text end end
+                    WasUI:CreateButton(parentFrame, btnText, function() WasUI:Notify({Title = btnText, Content = "按钮被点击", Duration = 1}) end)
+                elseif currentControlType == "开关" then
+                    local switchTitle = ""
+                    local cfgKey = nil
+                    for _, elem in ipairs(currentElements) do
+                        if elem.Name == "SwitchTitle" then switchTitle = elem.Text
+                        elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                    end
+                    WasUI:CreateToggle(parentFrame, switchTitle, false, function(state) end, nil, nil, cfgKey)
+                elseif currentControlType == "滑块" then
+                    local sliderTitle = ""
+                    local minVal, maxVal, defaultVal = 0, 100, 50
+                    local cfgKey = nil
+                    for _, elem in ipairs(currentElements) do
+                        if elem.Name == "SliderTitle" then sliderTitle = elem.Text
+                        elseif elem.Name == "Min" then minVal = tonumber(elem.Text) or 0
+                        elseif elem.Name == "Max" then maxVal = tonumber(elem.Text) or 100
+                        elseif elem.Name == "Default" then defaultVal = tonumber(elem.Text) or 50
+                        elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                    end
+                    WasUI:CreateSlider(parentFrame, sliderTitle, minVal, maxVal, defaultVal, function(val) end, cfgKey)
+                elseif currentControlType == "文本输入" then
+                    local placeholder = ""
+                    local cfgKey = nil
+                    for _, elem in ipairs(currentElements) do
+                        if elem.Name == "Placeholder" then placeholder = elem.Text
+                        elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                    end
+                    WasUI:CreateTextInput(parentFrame, placeholder, "", function(text) end, cfgKey)
+                elseif currentControlType == "标签" then
+                    local labelText = ""
+                    for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then labelText = elem.Text end end
+                    WasUI:CreateLabel(parentFrame, labelText)
+                elseif currentControlType == "小标题" then
+                    local catTitle = ""
+                    for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then catTitle = elem.Text end end
+                    WasUI:CreateCategory(parentFrame, catTitle)
+                elseif currentControlType == "下拉菜单" then
+                    local ddTitle = ""
+                    local cfgKey = nil
+                    for _, elem in ipairs(currentElements) do
+                        if elem.Name == "DropdownTitle" then ddTitle = elem.Text
+                        elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
+                    end
+                    WasUI:CreateDropdown(parentFrame, ddTitle, {"选项1", "选项2"}, nil, function(sel) end, false, cfgKey)
                 end
-                WasUI:CreateSlider(parentFrame, sliderTitle, minVal, maxVal, defaultVal, function(val) end, cfgKey)
-            elseif currentControlType == "文本输入" then
-                local placeholder = ""
-                local cfgKey = nil
-                for _, elem in ipairs(currentElements) do
-                    if elem.Name == "Placeholder" then placeholder = elem.Text
-                    elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
-                end
-                WasUI:CreateTextInput(parentFrame, placeholder, "", function(text) end, cfgKey)
-            elseif currentControlType == "标签" then
-                local labelText = ""
-                for _, elem in ipairs(currentElements) do if elem.Name == "LabelText" then labelText = elem.Text end end
-                WasUI:CreateLabel(parentFrame, labelText)
-            elseif currentControlType == "小标题" then
-                local catTitle = ""
-                for _, elem in ipairs(currentElements) do if elem.Name == "CategoryTitle" then catTitle = elem.Text end end
-                WasUI:CreateCategory(parentFrame, catTitle)
-            elseif currentControlType == "下拉菜单" then
-                local ddTitle = ""
-                local cfgKey = nil
-                for _, elem in ipairs(currentElements) do
-                    if elem.Name == "DropdownTitle" then ddTitle = elem.Text
-                    elseif elem.Name == "ConfigKey" and elem.Text ~= "" then cfgKey = elem.Text end
-                end
-                WasUI:CreateDropdown(parentFrame, ddTitle, {"选项1", "选项2"}, nil, function(sel) end, false, cfgKey)
             end
+            WasUI:Notify({Title = "调试", Content = "你的更改已被保存", Duration = 2})
+            closeConfigurator()
         end
-        WasUI:Notify({Title = "调试", Content = "你的更改已被保存", Duration = 2})
-        closeConfigurator()
     end)
 
     overlay.InputBegan:Connect(function(input)
