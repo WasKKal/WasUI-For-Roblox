@@ -2029,8 +2029,8 @@ function Panel:New(name, parent, size, position, titleTag)
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 300, 0, 400),
-            Position = UDim2.new(0.5, -150, 0.5, -200),
+            Size = UDim2.new(0, 300, 0, 480),
+            Position = UDim2.new(0.5, -150, 0.5, -240),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
             ClipsDescendants = true,
@@ -2320,6 +2320,76 @@ function Panel:New(name, parent, size, position, titleTag)
             WasUI.ConfigFolderName = folderInput.Text
         end)
         
+        local minTextLabel = CreateInstance("TextLabel", {
+            Name = "MinTextLabel",
+            Size = UDim2.new(1, 0, 0, 24),
+            BackgroundTransparency = 1,
+            Text = "最小化文本",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        WasUI:SetLocalizedText(minTextLabel, "最小化文本")
+        local minTextInput = CreateInstance("TextBox", {
+            Name = "MinTextInput",
+            Size = UDim2.new(1, 0, 0, 32),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            Text = self.MinimizedCustomText,
+            PlaceholderText = "输入最小化时显示的文字",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            PlaceholderColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            ClearTextOnFocus = false,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = minTextInput})
+        CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = minTextInput})
+        minTextInput:GetPropertyChangedSignal("Text"):Connect(function()
+            self:SetMinimizedText(minTextInput.Text)
+        end)
+        
+        local welcomeLabel = CreateInstance("TextLabel", {
+            Name = "WelcomeSettingLabel",
+            Size = UDim2.new(1, 0, 0, 24),
+            BackgroundTransparency = 1,
+            Text = "欢迎语文本",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        WasUI:SetLocalizedText(welcomeLabel, "欢迎语文本")
+        local welcomeTextInput = CreateInstance("TextBox", {
+            Name = "WelcomeTextInput",
+            Size = UDim2.new(1, 0, 0, 32),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            Text = self.WelcomeLabel.Text,
+            PlaceholderText = "输入欢迎语",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            PlaceholderColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            ClearTextOnFocus = false,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = welcomeTextInput})
+        CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = welcomeTextInput})
+        welcomeTextInput:GetPropertyChangedSignal("Text"):Connect(function()
+            self:SetWelcome(welcomeTextInput.Text)
+        end)
+        
         local groupTextLabel = CreateInstance("TextLabel", {
             Name = "GroupTextLabel",
             Size = UDim2.new(1, 0, 0, 24),
@@ -2406,7 +2476,7 @@ function Panel:New(name, parent, size, position, titleTag)
         WasUI:SetLocalizedText(copyButton, "复制你的自定义项目")
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = copyButton})
         copyButton.MouseButton1Click:Connect(function()
-            local code = GenerateExportCode(self)
+            local code = GenerateExportCode(self, WasUI.ConfigFolderName, self.WelcomeLabel.Text, self.MinimizedCustomText)
             copyToClipboard(code)
             WasUI:Notify({Title = "调试", Content = "配置源码已复制", Duration = 2})
         end)
@@ -4084,21 +4154,43 @@ function ShowControlConfigurator(parentFrame, existingControl)
     Tween(overlay, {BackgroundTransparency = 0.5}, 0.2)
 end
 
-function GenerateExportCode(panel)
+function GenerateExportCode(panel, folderName, welcomeText, minimizedText)
     local code = "local WasUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/WasUI.lua'))()\n"
+    code = code .. "local cfg = WasUI:CreateFolder('" .. folderName .. "')\n"
     code = code .. "local win = WasUI:CreateWindow('" .. panel.Title.Text .. "', UDim2.new(0, 380, 0, 350))\n"
-    code = code .. "win:SetWelcome('" .. panel.WelcomeLabel.Text .. "')\n"
+    code = code .. "win:SetWelcome('" .. welcomeText .. "')\n"
+    if minimizedText ~= "" then
+        code = code .. "win:SetMinimizedText('" .. minimizedText .. "')\n"
+    end
+    code = code .. "WasUI:Popup({\n"
+    code = code .. "    title = '欢迎使用 WasUI',\n"
+    code = code .. "    titleIcon = 'sparkles',\n"
+    code = code .. "    content = '感谢使用 WasUI！',\n"
+    code = code .. "    confirmText = '知道了',\n"
+    code = code .. "    cancelText = '取消',\n"
+    code = code .. "    onConfirm = function() print('弹窗关闭') end\n"
+    code = code .. "})\n"
     for tabName, tabData in pairs(panel.Tabs) do
         local safeTabName = tabName:gsub("%s", "_"):gsub("[^%w_]", "")
         code = code .. "local " .. safeTabName .. " = win:AddTab('" .. tabName .. "')\n"
         local frame = tabData.Frame
         for _, child in ipairs(frame:GetChildren()) do
             if child:IsA("TextButton") and child.Name == "Button" then
-                code = code .. "WasUI:CreateButton(" .. safeTabName .. ", '" .. child.Text:gsub("'", "\\'") .. "', function() end)\n"
+                local configKey = child:GetAttribute("ConfigKey")
+                if configKey then
+                    code = code .. "WasUI:CreateButton(" .. safeTabName .. ", '" .. child.Text:gsub("'", "\\'") .. "', function() end, nil, nil, '" .. configKey .. "')\n"
+                else
+                    code = code .. "WasUI:CreateButton(" .. safeTabName .. ", '" .. child.Text:gsub("'", "\\'") .. "', function() end)\n"
+                end
             elseif child:IsA("Frame") and child.Name == "ToggleContainer" then
                 local titleLabel = child:FindFirstChild("Title")
+                local configKey = child:GetAttribute("ConfigKey")
                 if titleLabel then
-                    code = code .. "WasUI:CreateToggle(" .. safeTabName .. ", '" .. titleLabel.Text:gsub("'", "\\'") .. "', false, function(state) end)\n"
+                    if configKey then
+                        code = code .. "WasUI:CreateToggle(" .. safeTabName .. ", '" .. titleLabel.Text:gsub("'", "\\'") .. "', false, function(state) end, nil, nil, nil, '" .. configKey .. "')\n"
+                    else
+                        code = code .. "WasUI:CreateToggle(" .. safeTabName .. ", '" .. titleLabel.Text:gsub("'", "\\'") .. "', false, function(state) end)\n"
+                    end
                 end
             elseif child:IsA("Frame") and child.Name == "Slider" then
                 local titleLabel = child:FindFirstChild("Title")
@@ -4110,18 +4202,33 @@ function GenerateExportCode(panel)
                     maxVal = sliderObj.Slider.Max
                     defaultVal = sliderObj.Slider.Value
                 end
+                local configKey = child:GetAttribute("ConfigKey")
                 if titleLabel then
-                    code = code .. "WasUI:CreateSlider(" .. safeTabName .. ", '" .. titleLabel.Text:gsub("'", "\\'") .. "', " .. minVal .. ", " .. maxVal .. ", " .. defaultVal .. ", function(val) end)\n"
+                    if configKey then
+                        code = code .. "WasUI:CreateSlider(" .. safeTabName .. ", '" .. titleLabel.Text:gsub("'", "\\'") .. "', " .. minVal .. ", " .. maxVal .. ", " .. defaultVal .. ", function(val) end, '" .. configKey .. "')\n"
+                    else
+                        code = code .. "WasUI:CreateSlider(" .. safeTabName .. ", '" .. titleLabel.Text:gsub("'", "\\'") .. "', " .. minVal .. ", " .. maxVal .. ", " .. defaultVal .. ", function(val) end)\n"
+                    end
                 end
             elseif child:IsA("Frame") and child.Name == "Dropdown" then
                 local titleLabel = child:FindFirstChild("Title")
+                local configKey = child:GetAttribute("ConfigKey")
                 if titleLabel then
-                    code = code .. "WasUI:CreateDropdown(" .. safeTabName .. ", '" .. titleLabel.Text:gsub("'", "\\'") .. "', {'选项1', '选项2'}, nil, function(sel) end)\n"
+                    if configKey then
+                        code = code .. "WasUI:CreateDropdown(" .. safeTabName .. ", '" .. titleLabel.Text:gsub("'", "\\'") .. "', {'选项1', '选项2'}, nil, function(sel) end, false, '" .. configKey .. "')\n"
+                    else
+                        code = code .. "WasUI:CreateDropdown(" .. safeTabName .. ", '" .. titleLabel.Text:gsub("'", "\\'") .. "', {'选项1', '选项2'}, nil, function(sel) end)\n"
+                    end
                 end
             elseif child:IsA("Frame") and child.Name == "TextInput" then
                 local textBox = child:FindFirstChild("TextBox")
+                local configKey = child:GetAttribute("ConfigKey")
                 if textBox then
-                    code = code .. "WasUI:CreateTextInput(" .. safeTabName .. ", '" .. textBox.PlaceholderText:gsub("'", "\\'") .. "', '', function(text) end)\n"
+                    if configKey then
+                        code = code .. "WasUI:CreateTextInput(" .. safeTabName .. ", '" .. textBox.PlaceholderText:gsub("'", "\\'") .. "', '', function(text) end, '" .. configKey .. "')\n"
+                    else
+                        code = code .. "WasUI:CreateTextInput(" .. safeTabName .. ", '" .. textBox.PlaceholderText:gsub("'", "\\'") .. "', '', function(text) end)\n"
+                    end
                 end
             elseif child:IsA("TextLabel") and child.Name == "Label" then
                 code = code .. "WasUI:CreateLabel(" .. safeTabName .. ", '" .. child.Text:gsub("'", "\\'") .. "')\n"
