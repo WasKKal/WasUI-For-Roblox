@@ -3072,7 +3072,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
                 Tween(bg, {BackgroundColor3 = WasUI.CurrentTheme.Error}, 0.2)
                 SpringTween(knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
             end
-            if callback then callback(s) end
+            if callback and type(callback) == "function" then callback(s) end
         end
         bg.MouseButton1Click:Connect(function() setState(not state) end)
         return container, setState
@@ -3704,6 +3704,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
                         specifyContainer.Parent = extraArea
                         table.insert(currentElements, specifyContainer)
                         setSpecify(function(enabled)
+                            objectOpSpecifyName = enabled
                             if enabled then
                                 local nameInput = createInputField("需要删除的对象名称", 28)
                                 nameInput.Parent = extraArea
@@ -3749,6 +3750,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
                             dynamicCoordContainer.Parent = extraArea
                             table.insert(currentElements, dynamicCoordContainer)
                             setDynamicCoord(function(enabled)
+                                objectOpDynamicCoord = enabled
                                 if enabled then
                                     local objPathInput = createInputField("对象路径 (需包含CFrame属性)", 28)
                                     objPathInput.Parent = extraArea
