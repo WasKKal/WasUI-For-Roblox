@@ -3637,15 +3637,20 @@ function ShowControlConfigurator(parentFrame, existingControl)
                         end
                     end
                     for _, del in ipairs(toDelete) do
-                        local fade = Tween(del.elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
-                        if fade then
-                            fade.Completed:Connect(function()
-                                if not enabled then del.elem:Destroy() end
-                            end)
-                        else
-                            if not enabled then del.elem:Destroy() end
-                        end
                         if enabled then
+                            if del.elem then
+                                local fade = Tween(del.elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
+                                if fade then
+                                    fade.Completed:Connect(function()
+                                        del.elem:Destroy()
+                                    end)
+                                else
+                                    del.elem:Destroy()
+                                end
+                            end
+                            table.remove(currentElements, del.index)
+                        else
+                            del.elem:Destroy()
                             table.remove(currentElements, del.index)
                         end
                     end
@@ -3678,8 +3683,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                 table.insert(currentElements, dynamicOpContainer)
                 local dynamic = false
                 local pathInput = nil
-                local specifyNameContainer = nil
-                local operationDropdown = nil
                 local extraArea = CreateInstance("Frame", {
                     Name = "ExtraArea",
                     Size = UDim2.new(1, 0, 0, 0),
@@ -3702,19 +3705,16 @@ function ShowControlConfigurator(parentFrame, existingControl)
                         table.insert(currentElements, folderInput)
                         pathInput = folderInput
                     end
-                    local opDropdown = WasUI:CreateDropdown(extraArea, "切换操作", {"删除", "修改", "移动"}, "删除", function(sel)
+                    local opDropdown = WasUI:CreateDropdown(extraArea, "切换操作", {"删除", "修改", "移动"}, objectOpMode, function(sel)
                         objectOpMode = sel
                         rebuildExtraArea()
                     end, false)
                     opDropdown.Container.Size = UDim2.new(1, 0, 0, 30)
                     table.insert(currentElements, opDropdown.Container)
-                    operationDropdown = opDropdown
                     if objectOpMode == "删除" then
                         local specifyContainer, setSpecify = createToggle("指定名称", false)
                         specifyContainer.Parent = extraArea
                         table.insert(currentElements, specifyContainer)
-                        specifyNameContainer = specifyContainer
-                        local specifyNameInput = nil
                         setSpecify(function(enabled)
                             objectOpSpecifyName = enabled
                             if enabled then
@@ -3745,7 +3745,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
                         propValueInput.Parent = extraArea
                         table.insert(currentElements, propValueInput)
                     elseif objectOpMode == "移动" then
-                        local moveTargetDropdown = WasUI:CreateDropdown(extraArea, "移动目标", {"玩家自身", "指定坐标"}, "玩家自身", function(sel)
+                        local moveTargetDropdown = WasUI:CreateDropdown(extraArea, "移动目标", {"玩家自身", "指定坐标"}, objectOpMoveTarget, function(sel)
                             objectOpMoveTarget = sel
                             rebuildExtraArea()
                         end, false)
