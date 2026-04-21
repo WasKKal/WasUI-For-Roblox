@@ -1872,6 +1872,7 @@ function Panel:New(name, parent, size, position, titleTag)
         self.MinimizedCustomText = text or ""
         self.MinimizedTextLabel.Text = text or ""
     end
+    local closeButton = nil
     local function minimizeToDots()
         if self.IsMinimized then return end
         for i = #WasUI.OpenDropdowns, 1, -1 do
@@ -1901,6 +1902,7 @@ function Panel:New(name, parent, size, position, titleTag)
         if self.ContentArea then self.ContentArea.Visible = false end
         if self.DraggableArea then self.DraggableArea.Visible = false end
         if self.DotContainer then self.DotContainer.Visible = true end
+        if closeButton then closeButton.Visible = false end
         self.IsMinimized = true
     end
     local function restoreFromDots()
@@ -1918,6 +1920,7 @@ function Panel:New(name, parent, size, position, titleTag)
         if self.ContentArea then self.ContentArea.Visible = true end
         if self.DraggableArea then self.DraggableArea.Visible = true end
         if self.DotContainer then self.DotContainer.Visible = true end
+        if closeButton then closeButton.Visible = true end
         self.IsMinimized = false
     end
     self.DotAreaButton.MouseButton1Click:Connect(function()
@@ -1932,7 +1935,7 @@ function Panel:New(name, parent, size, position, titleTag)
         end
     end)
     self.MaximizeDot.InputBegan:Connect(function() end)
-    local closeButton = CreateInstance("ImageButton", {
+    closeButton = CreateInstance("ImageButton", {
         Name = "CloseButton",
         Size = UDim2.new(0, 22, 0, 22),
         Position = UDim2.new(1, -28, 0, 2),
@@ -2683,6 +2686,13 @@ function Panel:New(name, parent, size, position, titleTag)
         addControlBtn.MouseButton1Click:Connect(function()
             ShowControlConfigurator(tabFrame)
         end)
+        
+        local function moveAddButtonToBottom()
+            addControlBtn.LayoutOrder = 9999
+        end
+        moveAddButtonToBottom()
+        tabInnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(moveAddButtonToBottom)
+        
         self.Tabs[tabName] = {Button = tabButton, Underline = tabUnderline, Frame = tabFrame, AddControlBtn = addControlBtn}
         if not self.ActiveTab then self:SetActiveTab(tabName) end
         
