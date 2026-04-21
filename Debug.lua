@@ -865,7 +865,6 @@ function Category:New(name, parent, title, iconName)
     table.insert(WasUI.Objects, {Object = self.Header, Type = "Category"})
     return self
 end
-
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback, multiSelect)
