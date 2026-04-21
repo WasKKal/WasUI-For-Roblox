@@ -1556,6 +1556,7 @@ function WasUI:ShowConfirmDialog(options)
     table.insert(WasUI.ActiveDialogs, dialogGui)
     return dialogGui
 end
+
 local Panel = {}
 Panel.__index = Panel
 
@@ -2558,6 +2559,7 @@ function Panel:New(name, parent, size, position, titleTag)
     self.Tabs = {}
     self.ActiveTab = nil
     self.TabOrderCounter = 0
+    
     function self:AddTab(tabName)
         self.TabOrderCounter = self.TabOrderCounter + 1
         local tabButton = CreateInstance("TextButton", {
@@ -2780,8 +2782,11 @@ function Panel:New(name, parent, size, position, titleTag)
         end)
         self.Tabs[tabName] = {Button = tabButton, Underline = tabUnderline, Frame = tabFrame, AddControlBtn = addControlBtn}
         if not self.ActiveTab then self:SetActiveTab(tabName) end
+        
+        task.defer(updateTabBarHeight)
         return tabFrame
     end
+    
     function self:SetActiveTab(tabName)
         if self.ActiveTab and self.Tabs[self.ActiveTab] then
             local old = self.Tabs[self.ActiveTab]
@@ -2796,24 +2801,31 @@ function Panel:New(name, parent, size, position, titleTag)
         new.Frame.Visible = true
         self.ActiveTab = tabName
     end
+    
     function self:SetVisible(visible)
         self.Instance.Visible = visible
         if self.BorderFlow then self.BorderFlow.Visible = visible end
     end
+    
     function self:SetTitle(text)
         WasUI:SetLocalizedText(self.Title, text)
     end
+    
     function self:SetWelcome(text)
         WasUI:SetLocalizedText(self.WelcomeLabel, text)
     end
+    
     self.CurrentCategory = nil
     function self:SetCurrentCategory(cat) self.CurrentCategory = cat end
     function self:GetCurrentCategory() return self.CurrentCategory end
+    
     self.Instance.BackgroundTransparency = 1
     self.Instance.Size = UDim2.new(0, 0, 0, 0)
     self.Instance.Position = UDim2.new(0.5, 0, 0.5, 0)
     Tween(self.Instance, {BackgroundTransparency = 0.3, Size = size or UDim2.new(0, 380, 0, 350), Position = position or UDim2.new(0.5, -190, 0.5, -175)}, 0.25)
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel"})
+    
+    task.defer(updateTabBarHeight)
     return self
 end
 
