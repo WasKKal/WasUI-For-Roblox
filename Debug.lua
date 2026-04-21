@@ -474,9 +474,13 @@ function WasUI:Notify(options)
             Tween(v.Frame, {Position = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, targetY)}, 0.3)
         end
         local fadeOut = Tween(frame, {BackgroundTransparency = 1, Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, frame.Position.Y.Offset)}, 0.3)
-        fadeOut.Completed:Connect(function()
+        if fadeOut then
+            fadeOut.Completed:Connect(function()
+                frame:Destroy()
+            end)
+        else
             frame:Destroy()
-        end)
+        end
     end)
 end
 
@@ -487,7 +491,10 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
     local startPos = nil
 
     local function cleanup()
-        if timer then task.cancel(timer); timer = nil end
+        if timer then
+            task.cancel(timer)
+            timer = nil
+        end
         pressed = false
         startPos = nil
     end
@@ -1052,9 +1059,13 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
             self.OptionsContainer.Visible = false
         else
             local fade = Tween(self.OptionsContainer, {BackgroundTransparency = 1}, 0.2)
-            fade.Completed:Connect(function()
+            if fade then
+                fade.Completed:Connect(function()
+                    self.OptionsContainer.Visible = false
+                end)
+            else
                 self.OptionsContainer.Visible = false
-            end)
+            end
         end
     end
     self.DropdownButton.MouseButton1Click:Connect(function()
@@ -1390,7 +1401,9 @@ function WasUI:ShowPopup(options)
     dialogFrame.Position = UDim2.new(0.5, -240, 0.5, -totalHeight/2)
     local function animateClose()
         local fade = Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-        fade.Completed:Wait()
+        if fade then
+            fade.Completed:Wait()
+        end
         dialogGui:Destroy()
         for i, d in ipairs(WasUI.ActiveDialogs) do if d == dialogGui then table.remove(WasUI.ActiveDialogs, i) break end end
     end
@@ -1540,7 +1553,9 @@ function WasUI:ShowConfirmDialog(options)
     dialogFrame.Position = UDim2.new(0.5, -200, 0.5, -totalHeight/2)
     local function animateClose()
         local fade = Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-        fade.Completed:Wait()
+        if fade then
+            fade.Completed:Wait()
+        end
         dialogGui:Destroy()
         for i, d in ipairs(WasUI.ActiveDialogs) do if d == dialogGui then table.remove(WasUI.ActiveDialogs, i) break end end
     end
@@ -2058,7 +2073,9 @@ function Panel:New(name, parent, size, position, titleTag)
         })
         closeBtn.MouseButton1Click:Connect(function()
             local fade = Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-            fade.Completed:Wait()
+            if fade then
+                fade.Completed:Wait()
+            end
             settingsGui:Destroy()
             WasUI.SettingsGui = nil
             WasUI.SettingsPanel = nil
@@ -2399,7 +2416,9 @@ function Panel:New(name, parent, size, position, titleTag)
                 local frameSize = settingsFrame.AbsoluteSize
                 if not (mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y) then
                     local fade = Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-                    fade.Completed:Wait()
+                    if fade then
+                        fade.Completed:Wait()
+                    end
                     settingsGui:Destroy()
                     WasUI.SettingsGui = nil
                     WasUI.SettingsPanel = nil
@@ -2715,7 +2734,9 @@ function Panel:New(name, parent, size, position, titleTag)
             
             local function close()
                 local fade = Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-                fade.Completed:Wait()
+                if fade then
+                    fade.Completed:Wait()
+                end
                 editGui:Destroy()
             end
             saveBtn.MouseButton1Click:Connect(function()
@@ -3381,9 +3402,13 @@ function ShowControlConfigurator(parentFrame, existingControl)
                         local elem = currentElements[i]
                         if elem:IsA("TextBox") and elem.PlaceholderText == "循环间隔(秒)" then
                             local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
-                            fade.Completed:Connect(function()
+                            if fade then
+                                fade.Completed:Connect(function()
+                                    if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                                end)
+                            else
                                 if not enabled then elem:Destroy() table.remove(currentElements, i) end
-                            end)
+                            end
                             break
                         end
                     end
@@ -3405,9 +3430,13 @@ function ShowControlConfigurator(parentFrame, existingControl)
                         local elem = currentElements[i]
                         if (elem:IsA("Frame") and elem.Name == "Slider") or (elem:IsA("Frame") and elem.Name == "ToggleContainer") then
                             local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
-                            fade.Completed:Connect(function()
+                            if fade then
+                                fade.Completed:Connect(function()
+                                    if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                                end)
+                            else
                                 if not enabled then elem:Destroy() table.remove(currentElements, i) end
-                            end)
+                            end
                         end
                     end
                     if enabled then
@@ -3489,9 +3518,13 @@ function ShowControlConfigurator(parentFrame, existingControl)
                     local elem = currentElements[i]
                     if elem:IsA("TextBox") and (elem.PlaceholderText == "通知标题" or elem.PlaceholderText == "通知内容") then
                         local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
-                        fade.Completed:Connect(function()
+                        if fade then
+                            fade.Completed:Connect(function()
+                                if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                            end)
+                        else
                             if not enabled then elem:Destroy() table.remove(currentElements, i) end
-                        end)
+                        end
                     end
                 end
                 if enabled then
@@ -3512,9 +3545,13 @@ function ShowControlConfigurator(parentFrame, existingControl)
                     local elem = currentElements[i]
                     if elem:IsA("TextBox") and (elem.PlaceholderText == "开启标题" or elem.PlaceholderText == "开启内容" or elem.PlaceholderText == "关闭标题" or elem.PlaceholderText == "关闭内容") then
                         local fade = Tween(elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
-                        fade.Completed:Connect(function()
+                        if fade then
+                            fade.Completed:Connect(function()
+                                if not enabled then elem:Destroy() table.remove(currentElements, i) end
+                            end)
+                        else
                             if not enabled then elem:Destroy() table.remove(currentElements, i) end
-                        end)
+                        end
                     end
                 end
                 if enabled then
@@ -3581,7 +3618,9 @@ function ShowControlConfigurator(parentFrame, existingControl)
 
     local function closeConfigurator()
         local fade = Tween(overlay, {BackgroundTransparency = 1}, 0.2)
-        fade.Completed:Wait()
+        if fade then
+            fade.Completed:Wait()
+        end
         gui:Destroy()
     end
 
