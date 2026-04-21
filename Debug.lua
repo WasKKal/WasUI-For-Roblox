@@ -3638,16 +3638,7 @@ function ShowControlConfigurator(parentFrame, existingControl)
                     end
                     for _, del in ipairs(toDelete) do
                         if enabled then
-                            if del.elem then
-                                local fade = Tween(del.elem, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.2)
-                                if fade then
-                                    fade.Completed:Connect(function()
-                                        del.elem:Destroy()
-                                    end)
-                                else
-                                    del.elem:Destroy()
-                                end
-                            end
+                            del.elem:Destroy()
                             table.remove(currentElements, del.index)
                         else
                             del.elem:Destroy()
@@ -3659,12 +3650,12 @@ function ShowControlConfigurator(parentFrame, existingControl)
                         sliderFrame.Size = UDim2.new(1, 0, 0, 0)
                         sliderFrame.BackgroundTransparency = 1
                         table.insert(currentElements, sliderFrame)
-                        Tween(sliderFrame, {Size = UDim2.new(1, 0, 0, 36), BackgroundTransparency = 0.3}, 0.2)
+                        Tween(sliderFrame, {Size = UDim2.new(1, 0, 0, 36), BackgroundTransparency = 0.2}, 0.2)
                         local adaptContainer, setAdapt = createToggle("自适应Tween速度", function() end)
                         adaptContainer.Size = UDim2.new(1, 0, 0, 0)
                         adaptContainer.BackgroundTransparency = 1
                         table.insert(currentElements, adaptContainer)
-                        Tween(adaptContainer, {Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 0.3}, 0.2)
+                        Tween(adaptContainer, {Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 0.2}, 0.2)
                     end
                     refreshCanvas()
                 end)
@@ -3682,7 +3673,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                 local dynamicOpContainer, setDynamicOp = createToggle("动态操作 (仅限文件夹子项目)", false)
                 table.insert(currentElements, dynamicOpContainer)
                 local dynamic = false
-                local pathInput = nil
                 local extraArea = CreateInstance("Frame", {
                     Name = "ExtraArea",
                     Size = UDim2.new(1, 0, 0, 0),
@@ -3698,12 +3688,10 @@ function ShowControlConfigurator(parentFrame, existingControl)
                         local fixedInput = createInputField("请输入项目路径", 28)
                         fixedInput.Parent = extraArea
                         table.insert(currentElements, fixedInput)
-                        pathInput = fixedInput
                     else
                         local folderInput = createInputField("文件夹路径", 28)
                         folderInput.Parent = extraArea
                         table.insert(currentElements, folderInput)
-                        pathInput = folderInput
                     end
                     local opDropdown = WasUI:CreateDropdown(extraArea, "切换操作", {"删除", "修改", "移动"}, objectOpMode, function(sel)
                         objectOpMode = sel
@@ -3716,7 +3704,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                         specifyContainer.Parent = extraArea
                         table.insert(currentElements, specifyContainer)
                         setSpecify(function(enabled)
-                            objectOpSpecifyName = enabled
                             if enabled then
                                 local nameInput = createInputField("需要删除的对象名称", 28)
                                 nameInput.Parent = extraArea
@@ -3733,7 +3720,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                             end
                             refreshCanvas()
                         end)
-                        setSpecify(false)
                     elseif objectOpMode == "修改" then
                         local objPathInput = createInputField("对象路径", 28)
                         objPathInput.Parent = extraArea
@@ -3763,7 +3749,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                             dynamicCoordContainer.Parent = extraArea
                             table.insert(currentElements, dynamicCoordContainer)
                             setDynamicCoord(function(enabled)
-                                objectOpDynamicCoord = enabled
                                 if enabled then
                                     local objPathInput = createInputField("对象路径 (需包含CFrame属性)", 28)
                                     objPathInput.Parent = extraArea
@@ -3775,7 +3760,6 @@ function ShowControlConfigurator(parentFrame, existingControl)
                                 end
                                 refreshCanvas()
                             end)
-                            setDynamicCoord(false)
                         end
                     end
                     if currentControlType == "开关" then
