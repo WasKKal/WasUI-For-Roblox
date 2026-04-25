@@ -5900,7 +5900,7 @@ WasUI:SetLocalizedText(tabButton, tabName)
         if self.HotkeyConnection then
             self.HotkeyConnection:Disconnect()
         end
-        keyCode = keyCode or Enum.KeyCode.F1
+        keyCode = keyCode or Enum.KeyCode.u
         self.HotkeyConnection = UserInputService.InputBegan:Connect(function(input, processed)
             if processed then return end
             if input.KeyCode == keyCode then
