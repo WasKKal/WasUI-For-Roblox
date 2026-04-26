@@ -139,6 +139,14 @@ function WasUI:RefreshAllTexts()
                 end
             end
         end
+        for _, child in ipairs(WasUI.SettingsPanel:GetChildren()) do
+            if child:IsA("TextLabel") or child:IsA("TextButton") then
+                local original = child:GetAttribute("OriginalText")
+                if original then
+                    child.Text = self:Translate(original)
+                end
+            end
+        end
     end
     for _, notif in pairs(WasUI.ActiveNotifications) do
         local frame = notif.Frame
@@ -2178,7 +2186,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         Size = UDim2.new(0.2, 0, 0, 18),
         Position = UDim2.new(0.8, 0, 0, 0),
         BackgroundTransparency = 1,
-        Text = tostring(self.Value),
+        Text = string.format("%.1f", self.Value),
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
         TextSize = 12,
@@ -2188,15 +2196,15 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     })
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
-        Size = UDim2.new(1, -2, 0, 8),
-        Position = UDim2.new(0, 2, 0, 20),
+        Size = UDim2.new(1, -2, 0, 12),
+        Position = UDim2.new(0, 2, 0, 16),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         ZIndex = 3,
         Parent = self.Container
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.SliderTrack})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.SliderTrack})
     self.SliderFill = CreateInstance("Frame", {
         Name = "Fill",
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
@@ -2205,11 +2213,11 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         ZIndex = 3,
         Parent = self.SliderTrack
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = self.SliderFill})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.SliderFill})
     self.Knob = CreateInstance("Frame", {
         Name = "Knob",
-        Size = UDim2.new(0, 16, 0, 16),
-        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -8, 0.5, -8),
+        Size = UDim2.new(0, 20, 0, 20),
+        Position = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), -10, 0.5, -10),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ZIndex = 4,
@@ -2248,7 +2256,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     tooltipCorner.Parent = tooltip
 
     local function showTooltip(val)
-        tooltip.Text = tostring(val)
+        tooltip.Text = string.format("%.1f", val)
         tooltip.Visible = true
         local knobPos = self.Knob.AbsolutePosition
         tooltip.Position = UDim2.new(0, knobPos.X + self.Knob.AbsoluteSize.X/2 - tooltip.AbsoluteSize.X/2 - self.SliderTrack.AbsolutePosition.X, 0, -25)
@@ -2267,10 +2275,10 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         newValue = math.clamp(newValue, self.Min, self.Max)
         if newValue == self.Value then return end
         self.Value = newValue
-        self.ValueLabel.Text = tostring(self.Value)
+        self.ValueLabel.Text = string.format("%.1f", self.Value)
         local t = (self.Value - self.Min) / (self.Max - self.Min)
         self.SliderFill.Size = UDim2.new(t, 0, 1, 0)
-        self.Knob.Position = UDim2.new(t, -8, 0.5, -8)
+        self.Knob.Position = UDim2.new(t, -10, 0.5, -10)
         if self.Callback then self.Callback(self.Value) end
         if configKey and WasUI.ConfigManager then
             local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
@@ -2287,7 +2295,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         stopAnimation()
         local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         local fillTween = TweenService:Create(self.SliderFill, tweenInfo, {Size = UDim2.new(targetT, 0, 1, 0)})
-        local knobTween = TweenService:Create(self.Knob, tweenInfo, {Position = UDim2.new(targetT, -8, 0.5, -8)})
+        local knobTween = TweenService:Create(self.Knob, tweenInfo, {Position = UDim2.new(targetT, -10, 0.5, -10)})
         local completed = false
         local function onFinish()
             if completed then return end
@@ -2308,7 +2316,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         if trackSize <= 0 then return end
         local t = math.clamp((inputX - trackPos.X) / trackSize, 0, 1)
         local newValue = self.Min + t * (self.Max - self.Min)
-        newValue = math.round(newValue)
+        newValue = math.round(newValue * 10) / 10
         if newValue ~= self.Value then
             stopAnimation()
             setValueImmediately(newValue)
@@ -2324,6 +2332,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     
     local function onInputBegan(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            updateFromMousePosition(input.Position.X)
             if parentScrollingFrame then
                 parentScrollingFrame.ScrollingEnabled = false
             end
@@ -5571,7 +5580,8 @@ WasUI:SetLocalizedText(self.Title, name)
         
         local shortcutHint = CreateInstance("TextLabel", {
             Name = "ShortcutHint",
-            Size = UDim2.new(1, 0, 0, 20),
+            Size = UDim2.new(1, -20, 0, 20),
+            Position = UDim2.new(0, 10, 1, -20.4),
             BackgroundTransparency = 1,
             Text = "",
             TextColor3 = WasUI.CurrentTheme.Text,
@@ -5579,7 +5589,7 @@ WasUI:SetLocalizedText(self.Title, name)
             TextSize = 11,
             TextXAlignment = Enum.TextXAlignment.Center,
             ZIndex = 1002,
-            Parent = contentFrame
+            Parent = settingsFrame
         })
         WasUI:SetLocalizedText(shortcutHint, "长按控件可创建快捷键")
         
@@ -5655,10 +5665,11 @@ table.insert(WasUI.Objects, {Object = self.WelcomeLabel, Type = "Label"})
     self.SettingsHint = CreateInstance("TextLabel", {
         Name = "SettingsHint",
         Size = UDim2.new(0.6, 0, 0, 14),
-        Position = UDim2.new(0, 62, 0.7, 0),
+        Position = UDim2.new(0, 10, 0.75, 0),
         BackgroundTransparency = 1,
         Text = "",
         TextColor3 = WasUI.CurrentTheme.Text,
+        TextTransparency = 0.3,
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextXAlignment = Enum.TextXAlignment.Left,
