@@ -1275,16 +1275,9 @@ function Button:New(name, parent, text, onClick, size, iconName)
 
     AddRipple(self.Instance)
 
-    local controlKey = "button_" .. (text or name)
-    AddKeyBindLongPress(self.Instance, controlKey, "button", onClick, text or name)
-    local savedKey = LoadKeyBinding(controlKey)
-    if savedKey then
-        WasUI.KeyBindings[controlKey] = { keyCode = savedKey, callback = onClick, controlType = "button" }
-    end
-
-    AddLongPressToControl(self.Instance, function()
-        CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
-    end, 3)
+AddLongPressToControl(self.Instance, function()
+    CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
+end, 3)
 
     local panel = parent
     while panel do
@@ -1475,21 +1468,12 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         performToggle(not self.Toggled)
     end)
 
-    local controlKey = GetShortcutKey("toggle", name, self.RainbowName)
-    AddKeyBindLongPress(self.Background, controlKey, "toggle", function()
-        performToggle(not self.Toggled)
-    end, self.RainbowName)
-    local savedKey = LoadKeyBinding(controlKey)
-    if savedKey then
-        WasUI.KeyBindings[controlKey] = { keyCode = savedKey, callback = function() performToggle(not self.Toggled) end, controlType = "toggle" }
-    end
-
-    AddLongPressToControl(self.Background, function()
-        local shortcut = CreateShortcutButton(self.RainbowName, true, self.Toggled, 
-            function(newState)
-                performToggle(newState)
-            end, nil, self.RainbowName)
-    end, 3)
+AddLongPressToControl(self.Background, function()
+    local shortcut = CreateShortcutButton(self.RainbowName, true, self.Toggled, 
+        function(newState)
+            performToggle(newState)
+        end, nil, self.RainbowName)
+end, 3)
 
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
