@@ -4875,16 +4875,18 @@ WasUI:SetLocalizedText(self.Title, name)
             minimizeDebounce = false
         end)
     end
-    self.MinimizeDot.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            toggleMinimize()
-        end
-    end)
-    self.CloseDot.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            self:SetVisible(false)
-        end
-    end)
+
+self.MinimizeDot.Activated:Connect(function()
+    if self.IsMinimized then
+        self:RestoreFromDots()
+    else
+        self:MinimizeToDots()
+    end
+end)
+
+self.CloseDot.Activated:Connect(function()
+    self:SetVisible(false)
+end)
     closeButton.MouseButton1Click:Connect(function()
         local overlay = CreateInstance("Frame", {
             Name = "Overlay",
