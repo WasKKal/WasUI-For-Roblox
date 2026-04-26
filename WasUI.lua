@@ -4349,10 +4349,10 @@ WasUI:SetLocalizedText(self.Title, name)
         self.Title.Position = UDim2.new(0, 54, 0, 0)
     end
 
-    self.DotContainer = CreateInstance("Frame", {
+self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
-        Size = UDim2.new(0, 28, 1, 0),
-        Position = UDim2.new(0, 10, 0, 0.8),
+        Size = UDim2.new(0, 60, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0.8),
         BackgroundTransparency = 1,
         ZIndex = 3,
         Parent = self.TitleBar
@@ -4363,71 +4363,57 @@ WasUI:SetLocalizedText(self.Title, name)
         BackgroundTransparency = 1,
         Image = "",
         AutoButtonColor = false,
-        ZIndex = 4,
+        ZIndex = 6,
         Parent = self.DotContainer
     })
-    self.CloseDot = CreateInstance("ImageButton", {
+    self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 1.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
-        Image = "",
-        AutoButtonColor = false,
-        ZIndex = 5,
-        Active = true,
+        ZIndex = 4,
         Parent = self.DotContainer
     })
-    self.MinimizeDot = CreateInstance("ImageButton", {
+    self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 16.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
-        Image = "",
-        AutoButtonColor = false,
-        ZIndex = 5,
-        Active = true,
+        ZIndex = 4,
         Parent = self.DotContainer
     })
-    self.MaximizeDot = CreateInstance("ImageButton", {
+    self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 31.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
-        Image = "",
-        AutoButtonColor = false,
-        ZIndex = 5,
-        Active = true,
+        ZIndex = 4,
         Parent = self.DotContainer
     })
     for _, dot in ipairs({self.CloseDot, self.MinimizeDot, self.MaximizeDot}) do
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
-    self.MinimizedTextLabel = CreateInstance("TextLabel", {
-        Name = "MinimizedText",
-        Size = UDim2.new(1, 0, 1, 0),
-        Position = UDim2.new(0.5, 5, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 1,
-        Text = "",
-        TextColor3 = (WasUI.CurrentTheme == WasUI.Themes.Light) and Color3.fromRGB(0, 0, 0) or WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamBold,
-        TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Center,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        Visible = false,
-        ZIndex = 10,
-        Parent = self.DotContainer
-    })
-    self.MinimizedCustomText = ""
+
+    self.MinimizeDot.Visible = false
+    self.MaximizeDot.Visible = false
+
+    self.DotAreaButton.Activated:Connect(function()
+        if self.IsMinimized then
+            self:RestoreFromDots()
+        else
+            self:MinimizeToDots()
+        end
+    end)
+    self.MinimizedCustomText = "WasUI"
     function self:SetMinimizedText(text)
-        self.MinimizedCustomText = text or ""
-        self.MinimizedTextLabel.Text = text or ""
+        self.MinimizedCustomText = text or "WasUI"
+        self.MinimizedTextLabel.Text = text or "WasUI"
     end
     function self:SetMinimizedTextColor(color)
         self.MinimizedTextLabel.TextColor3 = color or WasUI.CurrentTheme.Text
@@ -4875,17 +4861,16 @@ WasUI:SetLocalizedText(self.Title, name)
             minimizeDebounce = false
         end)
     end
+self.CloseDot.Activated:Connect(function()
+        self:SetVisible(false)
+    end)
 
-self.MinimizeDot.Activated:Connect(function()
+    self.MinimizeDot.Activated:Connect(function()
         if self.IsMinimized then
             self:RestoreFromDots()
         else
             self:MinimizeToDots()
         end
-    end)
-
-    self.CloseDot.Activated:Connect(function()
-        self:SetVisible(false)
     end)
     closeButton.MouseButton1Click:Connect(function()
         local overlay = CreateInstance("Frame", {
