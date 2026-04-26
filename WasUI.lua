@@ -4367,34 +4367,43 @@ WasUI:SetLocalizedText(self.Title, name)
         ZIndex = 4,
         Parent = self.DotContainer
     })
-    self.CloseDot = CreateInstance("Frame", {
+    self.CloseDot = CreateInstance("ImageButton", {
         Name = "Close",
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 1.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
+        Image = "",
+        AutoButtonColor = false,
         ZIndex = 5,
+        Active = true,
         Parent = self.DotContainer
     })
-    self.MinimizeDot = CreateInstance("Frame", {
+    self.MinimizeDot = CreateInstance("ImageButton", {
         Name = "Minimize",
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 16.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
+        Image = "",
+        AutoButtonColor = false,
         ZIndex = 5,
+        Active = true,
         Parent = self.DotContainer
     })
-    self.MaximizeDot = CreateInstance("Frame", {
+    self.MaximizeDot = CreateInstance("ImageButton", {
         Name = "Maximize",
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 31.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
+        Image = "",
+        AutoButtonColor = false,
         ZIndex = 5,
+        Active = true,
         Parent = self.DotContainer
     })
     for _, dot in ipairs({self.CloseDot, self.MinimizeDot, self.MaximizeDot}) do
@@ -4863,7 +4872,7 @@ WasUI:SetLocalizedText(self.Title, name)
         
         self.IsMinimized = false
     end
-    self.DotAreaButton.MouseButton1Click:Connect(function()
+    self.MinimizeDot.MouseButton1Click:Connect(function()
         if self.IsMinimized then
             self:RestoreFromDots()
         else
@@ -4873,19 +4882,6 @@ WasUI:SetLocalizedText(self.Title, name)
     self.CloseDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             self:SetVisible(false)
-        end
-    end)
-    self.MinimizeDot.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            if self.IsMinimized then
-                self:RestoreFromDots()
-            else
-                self:MinimizeToDots()
-            end
-        end
-    end)
-    self.MaximizeDot.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
         end
     end)
     closeButton.MouseButton1Click:Connect(function()
@@ -5154,7 +5150,6 @@ WasUI:SetLocalizedText(self.Title, name)
     end
     
     self.DraggableArea.InputBegan:Connect(startDrag)
-    self.DotAreaButton.InputBegan:Connect(startDrag)
     dragEndConn = UserInputService.InputEnded:Connect(endDrag)
     
     local announcementHeight = 80
@@ -5673,7 +5668,7 @@ table.insert(WasUI.Objects, {Object = self.WelcomeLabel, Type = "Label"})
         ZIndex = 2,
         Parent = self.AnnouncementBar
     })
-    WasUI:SetLocalizedText(self.SettingsHint, "点我打开设置")
+    WasUI:SetLocalizedText(self.SettingsHint, "点我打开设置页面")
     table.insert(WasUI.Objects, {Object = self.SettingsHint, Type = "Label"})
 
     self.TabBar = CreateInstance("Frame", {
@@ -5933,7 +5928,7 @@ WasUI:SetLocalizedText(tabButton, tabName)
         if self.HotkeyConnection then
             self.HotkeyConnection:Disconnect()
         end
-        keyCode = keyCode or Enum.KeyCode.U
+        keyCode = keyCode or Enum.KeyCode.u
         self.HotkeyConnection = UserInputService.InputBegan:Connect(function(input, processed)
             if processed then return end
             if input.KeyCode == keyCode then
