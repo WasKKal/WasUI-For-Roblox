@@ -1,4 +1,4 @@
--- WasUI_1.1.1
+
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -2197,7 +2197,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
         Size = UDim2.new(1, -2, 0, 12),
-        Position = UDim2.new(0, 2, 0, 20),
+        Position = UDim2.new(0, 2, 0, 16),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -2317,7 +2317,10 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         local t = math.clamp((inputX - trackPos.X) / trackSize, 0, 1)
         local newValue = self.Min + t * (self.Max - self.Min)
         newValue = math.round(newValue * 10) / 10
-        return newValue
+        if newValue ~= self.Value then
+            stopAnimation()
+            setValueImmediately(newValue)
+        end
     end
     
     local parentScrollingFrame = self.Container.Parent
@@ -2329,21 +2332,19 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     
     local function onInputBegan(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            local target = updateFromMousePosition(input.Position.X)
-            animateToValue(target)
+            updateFromMousePosition(input.Position.X)
             if parentScrollingFrame then
                 parentScrollingFrame.ScrollingEnabled = false
             end
             dragging = true
+            stopAnimation()
+            SpringTween(knobScale, {Scale = 1.2}, 0.15)
             showTooltip(self.Value)
             if inputChangedConn then inputChangedConn:Disconnect() end
             inputChangedConn = UserInputService.InputChanged:Connect(function(inp)
                 if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
-                    local newVal = updateFromMousePosition(inp.Position.X)
-                    if newVal ~= self.Value then
-                        stopAnimation()
-                        setValueImmediately(newVal)
-                    end
+                    local pos = inp.Position
+                    updateFromMousePosition(pos.X)
                     showTooltip(self.Value)
                 end
             end)
@@ -2356,6 +2357,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
                 parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
             end
             dragging = false
+            SpringTween(knobScale, {Scale = 1}, 0.25)
             hideTooltip()
             if inputChangedConn then
                 inputChangedConn:Disconnect()
@@ -2382,6 +2384,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             if parentScrollingFrame then
                 parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
             end
+            SpringTween(knobScale, {Scale = 1}, 0.25)
             hideTooltip()
             if inputChangedConn then
                 inputChangedConn:Disconnect()
@@ -4350,109 +4353,80 @@ WasUI:SetLocalizedText(self.Title, name)
         self.Title.Position = UDim2.new(0, 54, 0, 0)
     end
 
-self.DotContainer = CreateInstance("Frame", {
-    Name = "DotContainer",
-    Size = UDim2.new(0, 28, 1, 0),
-    Position = UDim2.new(0, 10, 0, 0.8),
-    BackgroundTransparency = 1,
-    ZIndex = 3,
-    Parent = self.TitleBar
-})
-self.DotAreaButton = CreateInstance("ImageButton", {
-    Name = "DotAreaButton",
-    Size = UDim2.new(1, 0, 1, 0),
-    BackgroundTransparency = 1,
-    Image = "",
-    AutoButtonColor = false,
-    ZIndex = 4,
-    Parent = self.DotContainer
-})
-self.CloseDot = CreateInstance("ImageButton", {
-    Name = "Close",
-    Size = UDim2.new(0, 10, 0, 10),
-    Position = UDim2.new(0, 1.2, 0.5, -5.4),
-    BackgroundColor3 = Color3.fromRGB(255, 95, 87),
-    BackgroundTransparency = 0,
-    BorderSizePixel = 0,
-    Image = "",
-    AutoButtonColor = false,
-    ZIndex = 5,
-    Active = true,
-    Parent = self.DotContainer
-})
-self.MinimizeDot = CreateInstance("ImageButton", {
-    Name = "Minimize",
-    Size = UDim2.new(0, 10, 0, 10),
-    Position = UDim2.new(0, 16.2, 0.5, -5.4),
-    BackgroundColor3 = Color3.fromRGB(255, 189, 46),
-    BackgroundTransparency = 0,
-    BorderSizePixel = 0,
-    Image = "",
-    AutoButtonColor = false,
-    ZIndex = 5,
-    Active = true,
-    Parent = self.DotContainer
-})
-self.MaximizeDot = CreateInstance("ImageButton", {
-    Name = "Maximize",
-    Size = UDim2.new(0, 10, 0, 10),
-    Position = UDim2.new(0, 31.2, 0.5, -5.4),
-    BackgroundColor3 = Color3.fromRGB(39, 201, 63),
-    BackgroundTransparency = 0,
-    BorderSizePixel = 0,
-    Image = "",
-    AutoButtonColor = false,
-    ZIndex = 5,
-    Active = true,
-    Parent = self.DotContainer
-})
-for _, dot in ipairs({self.CloseDot, self.MinimizeDot, self.MaximizeDot}) do
-    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
-end
-
-self.MinimizedTextLabel = CreateInstance("TextLabel", {
-    Name = "MinimizedText",
-    Size = UDim2.new(1, 0, 1, 0),
-    Position = UDim2.new(0.5, 5, 0.5, 0),
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundTransparency = 1,
-    Text = "",
-    TextColor3 = (WasUI.CurrentTheme == WasUI.Themes.Light) and Color3.fromRGB(0, 0, 0) or WasUI.CurrentTheme.Text,
-    Font = Enum.Font.GothamBold,
-    TextSize = 12,
-    TextXAlignment = Enum.TextXAlignment.Center,
-    TextYAlignment = Enum.TextYAlignment.Center,
-    Visible = false,
-    ZIndex = 10,
-    Parent = self.DotContainer
-})
-self.MinimizedCustomText = ""
-
-local minimizeDebounce = false
-local function toggleMinimize()
-    if minimizeDebounce then return end
-    minimizeDebounce = true
-    if self.IsMinimized then
-        self:RestoreFromDots()
-    else
-        self:MinimizeToDots()
+    self.DotContainer = CreateInstance("Frame", {
+        Name = "DotContainer",
+        Size = UDim2.new(0, 28, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0.8),
+        BackgroundTransparency = 1,
+        ZIndex = 3,
+        Parent = self.TitleBar
+    })
+    self.DotAreaButton = CreateInstance("ImageButton", {
+        Name = "DotAreaButton",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Image = "",
+        AutoButtonColor = false,
+        ZIndex = 4,
+        Parent = self.DotContainer
+    })
+    self.CloseDot = CreateInstance("Frame", {
+        Name = "Close",
+        Size = UDim2.new(0, 10, 0, 10),
+        Position = UDim2.new(0, 1.2, 0.5, -5.4),
+        BackgroundColor3 = Color3.fromRGB(255, 95, 87),
+        BackgroundTransparency = 0,
+        BorderSizePixel = 0,
+        ZIndex = 5,
+        Parent = self.DotContainer
+    })
+    self.MinimizeDot = CreateInstance("Frame", {
+        Name = "Minimize",
+        Size = UDim2.new(0, 10, 0, 10),
+        Position = UDim2.new(0, 16.2, 0.5, -5.4),
+        BackgroundColor3 = Color3.fromRGB(255, 189, 46),
+        BackgroundTransparency = 0,
+        BorderSizePixel = 0,
+        ZIndex = 5,
+        Parent = self.DotContainer
+    })
+    self.MaximizeDot = CreateInstance("Frame", {
+        Name = "Maximize",
+        Size = UDim2.new(0, 10, 0, 10),
+        Position = UDim2.new(0, 31.2, 0.5, -5.4),
+        BackgroundColor3 = Color3.fromRGB(39, 201, 63),
+        BackgroundTransparency = 0,
+        BorderSizePixel = 0,
+        ZIndex = 5,
+        Parent = self.DotContainer
+    })
+    for _, dot in ipairs({self.CloseDot, self.MinimizeDot, self.MaximizeDot}) do
+        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
-    task.delay(0.3, function()
-        minimizeDebounce = false
-    end)
-end
-
-self.MinimizeDot.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        toggleMinimize()
+    self.MinimizedTextLabel = CreateInstance("TextLabel", {
+        Name = "MinimizedText",
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0.5, 5, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = (WasUI.CurrentTheme == WasUI.Themes.Light) and Color3.fromRGB(0, 0, 0) or WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Visible = false,
+        ZIndex = 10,
+        Parent = self.DotContainer
+    })
+    self.MinimizedCustomText = ""
+    function self:SetMinimizedText(text)
+        self.MinimizedCustomText = text or ""
+        self.MinimizedTextLabel.Text = text or ""
     end
-end)
-
-self.CloseDot.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        self:SetVisible(false)
+    function self:SetMinimizedTextColor(color)
+        self.MinimizedTextLabel.TextColor3 = color or WasUI.CurrentTheme.Text
     end
-end)
     local searchContainer = CreateInstance("Frame", {
         Name = "SearchContainer",
         Size = UDim2.new(0, 0, 0, 20),
@@ -4892,7 +4866,7 @@ end)
         
         self.IsMinimized = false
     end
-    self.MinimizeDot.MouseButton1Click:Connect(function()
+    self.DotAreaButton.MouseButton1Click:Connect(function()
         if self.IsMinimized then
             self:RestoreFromDots()
         else
@@ -4902,6 +4876,19 @@ end)
     self.CloseDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             self:SetVisible(false)
+        end
+    end)
+    self.MinimizeDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            if self.IsMinimized then
+                self:RestoreFromDots()
+            else
+                self:MinimizeToDots()
+            end
+        end
+    end)
+    self.MaximizeDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
         end
     end)
     closeButton.MouseButton1Click:Connect(function()
@@ -5170,6 +5157,7 @@ end)
     end
     
     self.DraggableArea.InputBegan:Connect(startDrag)
+    self.DotAreaButton.InputBegan:Connect(startDrag)
     dragEndConn = UserInputService.InputEnded:Connect(endDrag)
     
     local announcementHeight = 80
@@ -5688,7 +5676,7 @@ table.insert(WasUI.Objects, {Object = self.WelcomeLabel, Type = "Label"})
         ZIndex = 2,
         Parent = self.AnnouncementBar
     })
-    WasUI:SetLocalizedText(self.SettingsHint, "点我打开设置")
+    WasUI:SetLocalizedText(self.SettingsHint, "点我打开设置页面")
     table.insert(WasUI.Objects, {Object = self.SettingsHint, Type = "Label"})
 
     self.TabBar = CreateInstance("Frame", {
