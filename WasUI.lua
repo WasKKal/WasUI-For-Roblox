@@ -1,4 +1,3 @@
-
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -30,7 +29,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.0"
+WasUI.Version = "1.1.1"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -2197,7 +2196,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
         Size = UDim2.new(1, -2, 0, 12),
-        Position = UDim2.new(0, 2, 0, 16),
+        Position = UDim2.new(0, 2, 0, 20),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -2317,10 +2316,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         local t = math.clamp((inputX - trackPos.X) / trackSize, 0, 1)
         local newValue = self.Min + t * (self.Max - self.Min)
         newValue = math.round(newValue * 10) / 10
-        if newValue ~= self.Value then
-            stopAnimation()
-            setValueImmediately(newValue)
-        end
+        return newValue
     end
     
     local parentScrollingFrame = self.Container.Parent
@@ -2332,19 +2328,21 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     
     local function onInputBegan(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            updateFromMousePosition(input.Position.X)
+            local target = updateFromMousePosition(input.Position.X)
+            animateToValue(target)
             if parentScrollingFrame then
                 parentScrollingFrame.ScrollingEnabled = false
             end
             dragging = true
-            stopAnimation()
-            SpringTween(knobScale, {Scale = 1.2}, 0.15)
             showTooltip(self.Value)
             if inputChangedConn then inputChangedConn:Disconnect() end
             inputChangedConn = UserInputService.InputChanged:Connect(function(inp)
                 if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
-                    local pos = inp.Position
-                    updateFromMousePosition(pos.X)
+                    local newVal = updateFromMousePosition(inp.Position.X)
+                    if newVal ~= self.Value then
+                        stopAnimation()
+                        setValueImmediately(newVal)
+                    end
                     showTooltip(self.Value)
                 end
             end)
@@ -2357,7 +2355,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
                 parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
             end
             dragging = false
-            SpringTween(knobScale, {Scale = 1}, 0.25)
             hideTooltip()
             if inputChangedConn then
                 inputChangedConn:Disconnect()
@@ -2384,7 +2381,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             if parentScrollingFrame then
                 parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
             end
-            SpringTween(knobScale, {Scale = 1}, 0.25)
             hideTooltip()
             if inputChangedConn then
                 inputChangedConn:Disconnect()
@@ -4370,34 +4366,43 @@ WasUI:SetLocalizedText(self.Title, name)
         ZIndex = 4,
         Parent = self.DotContainer
     })
-    self.CloseDot = CreateInstance("Frame", {
+    self.CloseDot = CreateInstance("ImageButton", {
         Name = "Close",
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 1.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
+        Image = "",
+        AutoButtonColor = false,
         ZIndex = 5,
+        Active = true,
         Parent = self.DotContainer
     })
-    self.MinimizeDot = CreateInstance("Frame", {
+    self.MinimizeDot = CreateInstance("ImageButton", {
         Name = "Minimize",
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 16.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
+        Image = "",
+        AutoButtonColor = false,
         ZIndex = 5,
+        Active = true,
         Parent = self.DotContainer
     })
-    self.MaximizeDot = CreateInstance("Frame", {
+    self.MaximizeDot = CreateInstance("ImageButton", {
         Name = "Maximize",
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 31.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
+        Image = "",
+        AutoButtonColor = false,
         ZIndex = 5,
+        Active = true,
         Parent = self.DotContainer
     })
     for _, dot in ipairs({self.CloseDot, self.MinimizeDot, self.MaximizeDot}) do
@@ -4866,29 +4871,29 @@ WasUI:SetLocalizedText(self.Title, name)
         
         self.IsMinimized = false
     end
-    self.DotAreaButton.MouseButton1Click:Connect(function()
+    local minimizeDebounce = false
+    local function toggleMinimize()
+        if minimizeDebounce then return end
+        minimizeDebounce = true
         if self.IsMinimized then
             self:RestoreFromDots()
         else
             self:MinimizeToDots()
         end
-    end)
-    self.CloseDot.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            self:SetVisible(false)
-        end
-    end)
+        task.delay(0.3, function()
+            minimizeDebounce = false
+        end)
+    end
+
     self.MinimizeDot.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            if self.IsMinimized then
-                self:RestoreFromDots()
-            else
-                self:MinimizeToDots()
-            end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            toggleMinimize()
         end
     end)
-    self.MaximizeDot.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+    self.CloseDot.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            self:SetVisible(false)
         end
     end)
     closeButton.MouseButton1Click:Connect(function()
@@ -5157,7 +5162,6 @@ WasUI:SetLocalizedText(self.Title, name)
     end
     
     self.DraggableArea.InputBegan:Connect(startDrag)
-    self.DotAreaButton.InputBegan:Connect(startDrag)
     dragEndConn = UserInputService.InputEnded:Connect(endDrag)
     
     local announcementHeight = 80
@@ -5593,6 +5597,21 @@ WasUI:SetLocalizedText(self.Title, name)
         })
         WasUI:SetLocalizedText(shortcutHint, "长按控件可创建快捷键")
         
+        local f1Hint = CreateInstance("TextLabel", {
+            Name = "F1Hint",
+            Size = UDim2.new(1, -20, 0, 20),
+            Position = UDim2.new(0, 10, 1, -4.4),
+            BackgroundTransparency = 1,
+            Text = "",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 11,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            ZIndex = 1002,
+            Parent = settingsFrame
+        })
+        WasUI:SetLocalizedText(f1Hint, "按F1开关UI")
+        
         refreshCanvas()
         Tween(settingsFrame, {BackgroundTransparency = 0.2}, 0.25)
         local function onScreenClick(input)
@@ -5676,7 +5695,7 @@ table.insert(WasUI.Objects, {Object = self.WelcomeLabel, Type = "Label"})
         ZIndex = 2,
         Parent = self.AnnouncementBar
     })
-    WasUI:SetLocalizedText(self.SettingsHint, "点我打开设置页面")
+    WasUI:SetLocalizedText(self.SettingsHint, "点我打开设置")
     table.insert(WasUI.Objects, {Object = self.SettingsHint, Type = "Label"})
 
     self.TabBar = CreateInstance("Frame", {
