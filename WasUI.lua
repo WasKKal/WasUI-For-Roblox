@@ -5668,7 +5668,7 @@ table.insert(WasUI.Objects, {Object = self.WelcomeLabel, Type = "Label"})
         ZIndex = 2,
         Parent = self.AnnouncementBar
     })
-    WasUI:SetLocalizedText(self.SettingsHint, "点我打开设置页面")
+    WasUI:SetLocalizedText(self.SettingsHint, "点我打开设置")
     table.insert(WasUI.Objects, {Object = self.SettingsHint, Type = "Label"})
 
     self.TabBar = CreateInstance("Frame", {
