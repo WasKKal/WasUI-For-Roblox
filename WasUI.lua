@@ -4400,25 +4400,22 @@ WasUI:SetLocalizedText(self.Title, name)
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
 
-    self.MinimizeDot.Visible = false
-    self.MaximizeDot.Visible = false
-
-    self.MinimizedTextLabel = CreateInstance("TextLabel", {
-        Name = "MinimizedText",
-        Size = UDim2.new(1, 0, 1, 0),
-        Position = UDim2.new(0.5, 5, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 1,
-        Text = "WasUI",
-        TextColor3 = (WasUI.CurrentTheme == WasUI.Themes.Light) and Color3.fromRGB(0, 0, 0) or WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamBold,
-        TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Center,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        Visible = false,
-        ZIndex = 10,
-        Parent = self.DotContainer
-    })
+   self.MinimizedTextLabel = CreateInstance("TextLabel", {
+    Name = "MinimizedText",
+    Size = UDim2.new(1, 0, 1, 0),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    BackgroundTransparency = 1,
+    Text = "WasUI",
+    TextColor3 = (WasUI.CurrentTheme == WasUI.Themes.Light) and Color3.fromRGB(0, 0, 0) or WasUI.CurrentTheme.Text,
+    Font = Enum.Font.GothamBold,
+    TextSize = 12,
+    TextXAlignment = Enum.TextXAlignment.Center,
+    TextYAlignment = Enum.TextYAlignment.Center,
+    Visible = false,
+    ZIndex = 10,
+    Parent = self.DotContainer
+})
     self.MinimizedCustomText = "WasUI"
     function self:SetMinimizedText(text)
         self.MinimizedCustomText = text or ""
