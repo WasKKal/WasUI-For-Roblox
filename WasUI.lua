@@ -2197,7 +2197,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     self.SliderTrack = CreateInstance("Frame", {
         Name = "Track",
         Size = UDim2.new(1, -2, 0, 12),
-        Position = UDim2.new(0, 2, 0, 16),
+        Position = UDim2.new(0, 2, 0, 20),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
@@ -2317,10 +2317,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         local t = math.clamp((inputX - trackPos.X) / trackSize, 0, 1)
         local newValue = self.Min + t * (self.Max - self.Min)
         newValue = math.round(newValue * 10) / 10
-        if newValue ~= self.Value then
-            stopAnimation()
-            setValueImmediately(newValue)
-        end
+        return newValue
     end
     
     local parentScrollingFrame = self.Container.Parent
@@ -2332,19 +2329,21 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     
     local function onInputBegan(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            updateFromMousePosition(input.Position.X)
+            local target = updateFromMousePosition(input.Position.X)
+            animateToValue(target)
             if parentScrollingFrame then
                 parentScrollingFrame.ScrollingEnabled = false
             end
             dragging = true
-            stopAnimation()
-            SpringTween(knobScale, {Scale = 1.2}, 0.15)
             showTooltip(self.Value)
             if inputChangedConn then inputChangedConn:Disconnect() end
             inputChangedConn = UserInputService.InputChanged:Connect(function(inp)
                 if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
-                    local pos = inp.Position
-                    updateFromMousePosition(pos.X)
+                    local newVal = updateFromMousePosition(inp.Position.X)
+                    if newVal ~= self.Value then
+                        stopAnimation()
+                        setValueImmediately(newVal)
+                    end
                     showTooltip(self.Value)
                 end
             end)
@@ -2357,7 +2356,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
                 parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
             end
             dragging = false
-            SpringTween(knobScale, {Scale = 1}, 0.25)
             hideTooltip()
             if inputChangedConn then
                 inputChangedConn:Disconnect()
@@ -2384,7 +2382,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             if parentScrollingFrame then
                 parentScrollingFrame.ScrollingEnabled = originalScrollingEnabled
             end
-            SpringTween(knobScale, {Scale = 1}, 0.25)
             hideTooltip()
             if inputChangedConn then
                 inputChangedConn:Disconnect()
