@@ -1,4 +1,4 @@
---Version 1.1.0
+-- WasUI_1.1.1
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -31,14 +31,12 @@ end
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
 WasUI.Version = "1.1.0"
-
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
 WasUI.NotificationWidth = 250
 WasUI.ActiveNotifications = {}
 WasUI.OpenDropdowns = {}
-
 WasUI.SettingsPanel = nil
 WasUI.GroupButtonText = "加入WasUI主群"
 WasUI.GroupCopyContent = "786284990"
@@ -50,7 +48,6 @@ WasUI_Folder.Parent = ReplicatedStorage
 WasUI.DefaultTheme = "Dark"
 WasUI.DefaultRainbowMode = "流动"
 WasUI.CurrentThemeName = WasUI.DefaultTheme
-
 WasUI.CurrentLanguage = "中文"
 WasUI.LanguageTable = nil
 
@@ -190,6 +187,13 @@ function WasUI:RefreshAllTexts()
                         welcomeLabel.Text = self:Translate(original)
                     end
                 end
+                local settingsHint = announcementBar:FindFirstChild("SettingsHint")
+                if settingsHint then
+                    local original = settingsHint:GetAttribute("OriginalText")
+                    if original then
+                        settingsHint.Text = self:Translate(original)
+                    end
+                end
             end
             local tabBar = panelInstance:FindFirstChild("TabBar")
             if tabBar then
@@ -262,35 +266,32 @@ WasUI.Themes = {
         SnowColor = Color3.fromRGB(0, 0, 0)
     },
     Blue = {
-        Primary = Color3.fromRGB(70, 130, 180),
-        Secondary = Color3.fromRGB(100, 165, 200),
-        Background = Color3.fromRGB(30, 100, 140),
-        Text = Color3.fromRGB(240, 245, 250),
-        Accent = Color3.fromRGB(220, 140, 60),
-        Success = Color3.fromRGB(83, 227, 136),
-        Warning = Color3.fromRGB(255, 213, 91),
-        Error = Color3.fromRGB(255, 123, 123),
-        Section = Color3.fromRGB(50, 130, 170),
-        Input = Color3.fromRGB(40, 120, 160),
-        TabBorder = Color3.fromRGB(0, 145, 210),
-        TabButton = Color3.fromRGB(40, 120, 180),
-        SnowColor = Color3.fromRGB(255, 180, 100)
+        Primary = Color3.fromRGB(30, 42, 56),
+        Secondary = Color3.fromRGB(44, 62, 80),
+        Background = Color3.fromRGB(52, 73, 94),
+        Text = Color3.fromRGB(236, 240, 241),
+        Accent = Color3.fromRGB(230, 126, 34),
+        Success = Color3.fromRGB(46, 204, 113),
+        Warning = Color3.fromRGB(241, 196, 15),
+        Error = Color3.fromRGB(231, 76, 60),
+        Section = Color3.fromRGB(61, 86, 110),
+        Input = Color3.fromRGB(44, 62, 80),
+        TabBorder = Color3.fromRGB(93, 109, 126),
+        TabButton = Color3.fromRGB(40, 55, 71),
+        SnowColor = Color3.fromRGB(255, 255, 255)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes[WasUI.DefaultTheme]
 WasUI.Objects = {}
 WasUI.ActiveRainbowTexts = {}
 WasUI.RainbowOrder = {}
-
 WasUI.ShortcutGui = nil
 WasUI.ShortcutButtons = {}
 WasUI.KeyBindings = {}
 WasUI.AwaitingKeyBind = nil
-
 WasUI.ConfigManager = nil
 WasUI.ConfigFolderCreated = false
 WasUI.ConfigFolderName = nil
-
 WasUI.ActiveDialogs = {}
 WasUI.ExternalPopupCalled = false
 
@@ -1481,9 +1482,6 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             function(newState)
                 performToggle(newState)
             end, nil, self.RainbowName)
-        if not shortcut then
-            -- 已存在则移除，但无提示
-        end
     end, 3)
 
     if configKey and WasUI.ConfigManager then
@@ -1622,6 +1620,7 @@ function Category:New(name, parent, title, iconName)
         Parent = titleContainer
     })
     WasUI:SetLocalizedText(titleLabel, title)
+    table.insert(WasUI.Objects, {Object = titleLabel, Type = "CategoryTitle"})
 
     local icon = WasUI:CreateIcon(actualIcon, UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
     if icon then
@@ -1686,18 +1685,20 @@ function Category:New(name, parent, title, iconName)
     local function updateLayout(animate)
         local targetHeight = self.Collapsed and 0 or getContentHeight()
         if animate then
-            Tween(self.Content, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.25)
+            local tween = Tween(self.Content, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.25)
             if self.Icon then
                 Tween(self.Icon, {Rotation = self.Collapsed and -90 or 0}, 0.25)
             end
+            tween.Completed:Connect(function()
+                updateParentScroller()
+            end)
         else
             self.Content.Size = UDim2.new(1, 0, 0, targetHeight)
             if self.Icon then
                 self.Icon.Rotation = self.Collapsed and -90 or 0
             end
+            updateParentScroller()
         end
-        task.wait()
-        updateParentScroller()
     end
 
     local function toggleCollapsed()
@@ -1711,7 +1712,7 @@ function Category:New(name, parent, title, iconName)
         BackgroundTransparency = 1,
         Text = "",
         Parent = self.Header,
-        ZIndex = 1,
+        ZIndex = 3,
         AutoButtonColor = false
     })
     toggleButton.MouseButton1Click:Connect(toggleCollapsed)
@@ -1973,14 +1974,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         rebuildOptions()
         self:UpdateDisplayText()
     end
-    local function updateContainerSize()
-        local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 16
-        local maxHeight = math.floor(Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize.Y or GuiService:GetScreenSize().Y) * 0.5
-        local finalHeight = math.min(totalHeight, maxHeight)
-        self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
-        task.wait()
-        self.OptionsContainer.CanvasSize = UDim2.new(0, 0, 0, optionsList.AbsoluteContentSize.Y + 8)
-    end
     local function updatePosition()
         if not self.IsOpen then return end
         local btnPos = self.DropdownButton.AbsolutePosition
@@ -2021,7 +2014,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         if self.IsOpen then return end
         self.IsOpen = true
         table.insert(WasUI.OpenDropdowns, self)
-        updateContainerSize()
         updatePosition()
         self.OptionsContainer.Visible = true
         Tween(self.OptionsContainer, {BackgroundTransparency = 0.3}, 0.2)
@@ -3865,6 +3857,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 local username = announcementBar:FindFirstChild("Username")
                 local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
                 local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
+                local settingsHint = announcementBar:FindFirstChild("SettingsHint")
                 if username and username:IsA("TextLabel") then
                     Tween(username, {TextColor3 = newTheme.Text}, duration)
                 end
@@ -3873,6 +3866,9 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 end
                 if welcomeLabel and welcomeLabel:IsA("TextLabel") then
                     Tween(welcomeLabel, {TextColor3 = newTheme.Text}, duration)
+                end
+                if settingsHint and settingsHint:IsA("TextLabel") then
+                    Tween(settingsHint, {TextColor3 = newTheme.Text}, duration)
                 end
                 local avatar = announcementBar:FindFirstChild("Avatar")
                 if avatar and avatar:IsA("ImageButton") then
@@ -4024,9 +4020,11 @@ function WasUI:SetTheme(themeName)
                     local username = announcementBar:FindFirstChild("Username")
                     local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
                     local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
+                    local settingsHint = announcementBar:FindFirstChild("SettingsHint")
                     if username then username.TextColor3 = newTheme.Text end
                     if executorLabel then executorLabel.TextColor3 = newTheme.Text end
                     if welcomeLabel then welcomeLabel.TextColor3 = newTheme.Text end
+                    if settingsHint then settingsHint.TextColor3 = newTheme.Text end
                     local avatar = announcementBar:FindFirstChild("Avatar")
                     if avatar then
                         local stroke = avatar:FindFirstChildOfClass("UIStroke")
@@ -4184,17 +4182,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 self.BorderStroke.Color = Color3.new(r, g, b)
                 self.BorderStroke.Transparency = 0
                 flowGradient.Enabled = false
-                highlightStroke.Transparency = 0.7
-                local pulse = (math.sin(tick() * 0.5) + 1) / 2
-                highlightStroke.Transparency = 0.5 + pulse * 0.3
             else
                 self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
                 flowGradient.Rotation = self.FlowRotation
                 flowGradient.Enabled = true
                 self.BorderStroke.Transparency = 1
-                highlightStroke.Transparency = 0.7
-                local pulse = (math.sin(tick() * 0.5) + 1) / 2
-                highlightStroke.Transparency = 0.5 + pulse * 0.3
             end
         end)
     end
@@ -4620,6 +4612,7 @@ WasUI:SetLocalizedText(self.Title, name)
             ZIndex = 2,
             Parent = self.TabContainer
         })
+        table.insert(WasUI.Objects, {Object = resultButton, Type = "TabButton"})
         local resultUnderline = CreateInstance("Frame", {
             Name = "Underline",
             Size = UDim2.new(0, 0, 0, 2),
@@ -5575,6 +5568,21 @@ WasUI:SetLocalizedText(self.Title, name)
                 WasUI:Notify({Title = "复制失败", Content = "当前环境不支持复制到剪贴板", Duration = 2})
             end
         end)
+        
+        local shortcutHint = CreateInstance("TextLabel", {
+            Name = "ShortcutHint",
+            Size = UDim2.new(1, 0, 0, 20),
+            BackgroundTransparency = 1,
+            Text = "",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 11,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        WasUI:SetLocalizedText(shortcutHint, "长按控件可创建快捷键")
+        
         refreshCanvas()
         Tween(settingsFrame, {BackgroundTransparency = 0.2}, 0.25)
         local function onScreenClick(input)
@@ -5643,6 +5651,22 @@ self.WelcomeLabel = CreateInstance("TextLabel", {
 })
 WasUI:SetLocalizedText(self.WelcomeLabel, "欢迎使用 WasUI")
 table.insert(WasUI.Objects, {Object = self.WelcomeLabel, Type = "Label"})
+
+    self.SettingsHint = CreateInstance("TextLabel", {
+        Name = "SettingsHint",
+        Size = UDim2.new(0.6, 0, 0, 14),
+        Position = UDim2.new(0, 62, 0.7, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 2,
+        Parent = self.AnnouncementBar
+    })
+    WasUI:SetLocalizedText(self.SettingsHint, "点我打开设置页面")
+    table.insert(WasUI.Objects, {Object = self.SettingsHint, Type = "Label"})
 
     self.TabBar = CreateInstance("Frame", {
         Name = "TabBar",
@@ -5811,6 +5835,7 @@ local tabButton = CreateInstance("TextButton", {
     Parent = self.TabContainer
 })
 WasUI:SetLocalizedText(tabButton, tabName)
+        table.insert(WasUI.Objects, {Object = tabButton, Type = "TabButton"})
         local tabUnderline = CreateInstance("Frame", {
             Name = "Underline",
             Size = UDim2.new(0, 0, 0, 2),
