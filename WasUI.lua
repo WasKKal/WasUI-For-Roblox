@@ -4764,18 +4764,16 @@ WasUI:SetLocalizedText(self.Title, name)
     self.MinimizedSize = UDim2.new(0, 60, 0, 26)
     self.MinimizeToDots = function()
         if self.IsMinimized then return end
-        
+        self.IsMinimized = true
         for i = #WasUI.OpenDropdowns, 1, -1 do
             local dropdown = WasUI.OpenDropdowns[i]
             if dropdown and dropdown.Close then
                 dropdown:Close(true)
             end
         end
-        
         if isSearchActive then
             expandSearchBox(false)
         end
-        
         for _, dialogGui in ipairs(WasUI.ActiveDialogs) do
             if dialogGui and dialogGui.Parent then
                 local overlay = dialogGui:FindFirstChild("Overlay")
@@ -4792,7 +4790,6 @@ WasUI:SetLocalizedText(self.Title, name)
             end
         end
         WasUI.ActiveDialogs = {}
-        
         if WasUI.SettingsGui then
             Tween(WasUI.SettingsPanel, {BackgroundTransparency = 1}, 0.2)
             Tween(WasUI.SettingsPanel:FindFirstChildWhichIsA("UIScale"), {Scale = 0.8}, 0.2)
@@ -4804,7 +4801,6 @@ WasUI:SetLocalizedText(self.Title, name)
                 WasUI.SettingsPanel = nil
             end)
         end
-        
         local tweenDuration = 0.3
         local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
         for _, dot in ipairs(dots) do
@@ -4819,7 +4815,6 @@ WasUI:SetLocalizedText(self.Title, name)
             Size = self.MinimizedSize,
             Position = self.Instance.Position
         }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-        
         if self.TitleContainer then
             self.TitleContainer.Visible = false
         elseif self.Title then
@@ -4834,11 +4829,10 @@ WasUI:SetLocalizedText(self.Title, name)
         if self.DraggableArea then self.DraggableArea.Visible = false end
         if self.DotContainer then self.DotContainer.Visible = true end
         if self.SnowContainer then self.SnowContainer.Visible = false end
-        
-        self.IsMinimized = true
     end
     self.RestoreFromDots = function()
         if not self.IsMinimized then return end
+        self.IsMinimized = false
         local tweenDuration = 0.3
         local dots = {self.CloseDot, self.MinimizeDot, self.MaximizeDot}
         for _, dot in ipairs(dots) do
@@ -4854,7 +4848,6 @@ WasUI:SetLocalizedText(self.Title, name)
             Size = self.OriginalSize,
             Position = self.Instance.Position
         }, tweenDuration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-        
         if self.TitleContainer then
             self.TitleContainer.Visible = true
         elseif self.Title then
@@ -4868,8 +4861,6 @@ WasUI:SetLocalizedText(self.Title, name)
         if self.DraggableArea then self.DraggableArea.Visible = true end
         if self.DotContainer then self.DotContainer.Visible = true end
         if self.SnowContainer then self.SnowContainer.Visible = true end
-        
-        self.IsMinimized = false
     end
     local minimizeDebounce = false
     local function toggleMinimize()
@@ -4884,13 +4875,11 @@ WasUI:SetLocalizedText(self.Title, name)
             minimizeDebounce = false
         end)
     end
-
     self.MinimizeDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             toggleMinimize()
         end
     end)
-
     self.CloseDot.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             self:SetVisible(false)
@@ -5077,19 +5066,14 @@ WasUI:SetLocalizedText(self.Title, name)
         if not targetArea or not targetArea.Parent then return false end
         local absPos = targetArea.AbsolutePosition
         local absSize = targetArea.AbsoluteSize
-        if self.IsMinimized then
-            return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
-                   point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y
-        else
-            local hitCloseDot = isPointOverButton(self.CloseDot, point)
-            local hitMinimizeDot = isPointOverButton(self.MinimizeDot, point)
-            local hitMaximizeDot = isPointOverButton(self.MaximizeDot, point)
-            local hitCloseBtn = isPointOverButton(closeButton, point)
-            local hitSearchBtn = isPointOverButton(searchButton, point)
-            return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
-                   point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y and
-                   not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn)
-        end
+        local hitCloseDot = isPointOverButton(self.CloseDot, point)
+        local hitMinimizeDot = isPointOverButton(self.MinimizeDot, point)
+        local hitMaximizeDot = isPointOverButton(self.MaximizeDot, point)
+        local hitCloseBtn = isPointOverButton(closeButton, point)
+        local hitSearchBtn = isPointOverButton(searchButton, point)
+        return point.X >= absPos.X and point.X <= absPos.X + absSize.X and
+               point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y and
+               not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn)
     end
     
     local function startDrag(input, processed)
