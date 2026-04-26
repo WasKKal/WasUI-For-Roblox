@@ -29,7 +29,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.1"
+WasUI.Version = "1.1.1.1"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -39,6 +39,9 @@ WasUI.OpenDropdowns = {}
 WasUI.SettingsPanel = nil
 WasUI.GroupButtonText = "加入WasUI主群"
 WasUI.GroupCopyContent = "786284990"
+WasUI.CleanMode = false
+WasUI.DefaultFeatureStates = {}
+WasUI.DefaultHotkeys = {}
 
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
@@ -309,6 +312,7 @@ local function RecordOriginalTransparency(instance)
 end
 
 local function ensureConfigFolderExists()
+    if WasUI.CleanMode then return false end
     if not WasUI.ConfigFolderCreated then
         WasUI:Notify({
             Title = "配置错误",
@@ -322,7 +326,32 @@ local function ensureConfigFolderExists()
     return true
 end
 
+function WasUI:SetCleanMode(enabled)
+    self.CleanMode = enabled
+end
+
+function WasUI:SetDefaultFeatureStates(states)
+    self.DefaultFeatureStates = states or {}
+    if self.ConfigManager then
+        local config = self.ConfigManager:GetConfig("defaultStates")
+        if config then
+            for k, v in pairs(states) do
+                config:Set(k, v)
+            end
+            config:Save()
+        end
+    end
+end
+
+function WasUI:SetFeatureHotkeys(hotkeys)
+    self.DefaultHotkeys = hotkeys or {}
+    for feature, keyCode in pairs(hotkeys) do
+        self.KeyBindings[feature] = { keyCode = keyCode, callback = function() end, controlType = "toggle" }
+    end
+end
+
 function WasUI:CreateFolder(folderName)
+    if WasUI.CleanMode then return end
     if not folderName or folderName == "" then
         error("CreateFolder: folderName cannot be empty")
     end
@@ -349,6 +378,7 @@ function WasUI:CreateFolder(folderName)
         }
         
         function config:Save()
+            if WasUI.CleanMode then return false end
             if not ensureConfigFolderExists() then return false end
             local dataToSave = {}
             for key, value in pairs(self.Data) do
@@ -462,11 +492,14 @@ function WasUI:CreateFolder(folderName)
         self:DeleteConfig(configName)
     end
     
-    WasUI:Notify({Title = "配置系统", Content = "已创建配置文件夹: " .. folderName, Duration = 2})
+    if not WasUI.CleanMode then
+        WasUI:Notify({Title = "配置系统", Content = "已创建配置文件夹: " .. folderName, Duration = 2})
+    end
     return WasUI.ConfigManager
 end
 
 local function EnsureShortcutGui()
+    if WasUI.CleanMode then return end
     if not WasUI.ShortcutGui or not WasUI.ShortcutGui.Parent then
         WasUI.ShortcutGui = Instance.new("ScreenGui")
         WasUI.ShortcutGui.Name = "WasUI_Shortcuts"
@@ -478,6 +511,7 @@ end
 EnsureShortcutGui()
 
 local function EnsureNotificationGui()
+    if WasUI.CleanMode then return end
     if not WasUI.NotificationGui or not WasUI.NotificationGui.Parent then
         WasUI.NotificationGui = Instance.new("ScreenGui")
         WasUI.NotificationGui.Name = "WasUI_Notifications"
@@ -488,6 +522,7 @@ local function EnsureNotificationGui()
 end
 
 local function EnsureDropdownGui()
+    if WasUI.CleanMode then return end
     if not WasUI.DropdownGui or not WasUI.DropdownGui.Parent then
         WasUI.DropdownGui = Instance.new("ScreenGui")
         WasUI.DropdownGui.Name = "WasUI_Dropdowns"
@@ -598,6 +633,7 @@ local function RefreshRainbowLayout()
 end
 
 local function CreateRainbowTextForFeature(featureName)
+    if WasUI.CleanMode then return end
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
     local screenGui = CreateInstance("ScreenGui", {
@@ -677,6 +713,7 @@ local function GetShortcutKey(controlType, controlId, rainbowName)
 end
 
 local function SaveShortcutPosition(key, position)
+    if WasUI.CleanMode then return end
     local folder = ReplicatedStorage:FindFirstChild(WasUI_Folder.Name)
     if not folder then
         folder = Instance.new("Folder")
@@ -716,6 +753,7 @@ function WasUI:ClearAllShortcuts()
 end
 
 local function SaveKeyBinding(key, keyCode)
+    if WasUI.CleanMode then return end
     local folder = ReplicatedStorage:FindFirstChild(WasUI_Folder.Name)
     if not folder then
         folder = Instance.new("Folder")
@@ -742,53 +780,6 @@ local function GetKeyName(keyCode)
     return string.gsub(tostring(keyCode), "Enum.KeyCode.", "")
 end
 
-local function AddKeyBindLongPress(controlInstance, controlKey, controlType, callback, displayName)
-    local longPressTime = 0.5
-    local timer = nil
-    local pressed = false
-    local startPos = nil
-
-    local function startPress(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            pressed = true
-            startPos = input.Position
-            timer = task.delay(longPressTime, function()
-                if pressed then
-                    if WasUI.AwaitingKeyBind then
-                        WasUI:Notify({Title = "快捷键", Content = "已有正在绑定的快捷键，请稍后", Duration = 1.5})
-                        return
-                    end
-                    WasUI.AwaitingKeyBind = {
-                        controlKey = controlKey,
-                        controlType = controlType,
-                        callback = callback,
-                        displayName = displayName
-                    }
-                    WasUI:Notify({Title = "设置快捷键", Content = "请按下任意键...", Duration = 3, BackgroundColor = WasUI.CurrentTheme.Section, BorderColor = WasUI.CurrentTheme.Accent})
-                end
-            end)
-        end
-    end
-
-    local function endPress()
-        if timer then task.cancel(timer); timer = nil end
-        pressed = false
-        startPos = nil
-    end
-
-    local function checkMove(input)
-        if pressed and input.UserInputType == Enum.UserInputType.MouseMovement then
-            if startPos and (input.Position - startPos).Magnitude > 10 then
-                endPress()
-            end
-        end
-    end
-
-    controlInstance.InputBegan:Connect(startPress)
-    controlInstance.InputEnded:Connect(endPress)
-    UserInputService.InputChanged:Connect(checkMove)
-end
-
 local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
     longPressTime = longPressTime or 0.5
     local timer = nil
@@ -797,7 +788,7 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
 
     local function cleanup()
         if timer then
-            task.cancel(timer)
+            pcall(function() task.cancel(timer) end)
             timer = nil
         end
         pressed = false
@@ -811,7 +802,9 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
             startPos = input.Position
             timer = task.delay(longPressTime, function()
                 if pressed then
-                    cleanup()
+                    timer = nil
+                    pressed = false
+                    startPos = nil
                     onLongPress()
                 end
             end)
@@ -840,19 +833,6 @@ end
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
-        if WasUI.AwaitingKeyBind then
-            local bind = WasUI.AwaitingKeyBind
-            WasUI.AwaitingKeyBind = nil
-            local keyCode = input.KeyCode
-            if keyCode then
-                SaveKeyBinding(bind.controlKey, keyCode)
-                WasUI.KeyBindings[bind.controlKey] = { keyCode = keyCode, callback = bind.callback, controlType = bind.controlType }
-                WasUI:Notify({Title = "设置完成", Content = string.format("当前功能 [%s] 绑定的快捷键为: %s", bind.displayName, GetKeyName(keyCode)), Duration = 2.5, BackgroundColor = WasUI.CurrentTheme.Success, BorderColor = WasUI.CurrentTheme.Success})
-            else
-                WasUI:Notify({Title = "设置失败", Content = "无效的按键", Duration = 1.5})
-            end
-            return
-        end
         for key, bind in pairs(WasUI.KeyBindings) do
             if input.KeyCode == bind.keyCode then
                 if bind.controlType == "toggle" and bind.callback then
@@ -898,6 +878,7 @@ local function AddRipple(instance, scaleFactor)
 end
 
 local function CreateShortcutButton(displayName, isToggle, initialState, onToggleCallback, onClickCallback, rainbowKey)
+    if WasUI.CleanMode then return nil end
     EnsureShortcutGui()
     local key = GetShortcutKey(isToggle and "toggle" or "button", nil, rainbowKey)
 
@@ -1275,9 +1256,9 @@ function Button:New(name, parent, text, onClick, size, iconName)
 
     AddRipple(self.Instance)
 
-AddLongPressToControl(self.Instance, function()
-    CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
-end, 3)
+    AddLongPressToControl(self.Instance, function()
+        CreateShortcutButton(text or name, false, nil, nil, onClick, text or name)
+    end, 1)
 
     local panel = parent
     while panel do
@@ -1468,12 +1449,12 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         performToggle(not self.Toggled)
     end)
 
-AddLongPressToControl(self.Background, function()
-    local shortcut = CreateShortcutButton(self.RainbowName, true, self.Toggled, 
-        function(newState)
-            performToggle(newState)
-        end, nil, self.RainbowName)
-end, 3)
+    AddLongPressToControl(self.Background, function()
+        local shortcut = CreateShortcutButton(self.RainbowName, true, self.Toggled, 
+            function(newState)
+                performToggle(newState)
+            end, nil, self.RainbowName)
+    end, 1)
 
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
@@ -1745,6 +1726,7 @@ end
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback, multiSelect, configKey)
+    if WasUI.CleanMode then return nil end
     EnsureDropdownGui()
     local self = Control:New(name, parent)
     self.MultiSelect = not not multiSelect
@@ -2557,7 +2539,7 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback)
     self.Fill = CreateInstance("Frame", {
         Name = "Fill",
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
-        BackgroundColor3 = WasUI.CurrentTheme.Accent,
+        BackgroundColor3 = WasUI.CurrentTheme.Success,
         BorderSizePixel = 0,
         ZIndex = 3,
         Parent = self.Track
@@ -2621,6 +2603,7 @@ function WasUI:CreateProgressBar(parent, title, min, max, defaultValue, callback
 end
 
 function WasUI:CreateTooltip(target, text, options)
+    if WasUI.CleanMode then return nil end
     options = options or {}
     local offset = options.offset or Vector2.new(0, 20)
     local backgroundColor = options.backgroundColor or WasUI.CurrentTheme.Section
@@ -2779,6 +2762,7 @@ function WasUI:CreateTooltip(target, text, options)
 end
 
 function WasUI:ShowConfirmDialog(options, callback)
+    if WasUI.CleanMode then return nil end
     local title = options.title or "确认"
     local titleColor = options.titleColor or WasUI.CurrentTheme.Text
     local description = options.description
@@ -2992,6 +2976,7 @@ function WasUI:ShowConfirmDialog(options, callback)
 end
 
 function WasUI:CreateConfirmButton(parent, text, confirmOptions, onClick, size, iconName)
+    if WasUI.CleanMode then return nil end
     local button = self:CreateButton(parent, text, function()
         self:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
             if confirmed and onClick then
@@ -3021,6 +3006,7 @@ function WasUI:CreateConfirmToggle(parent, title, initialState, confirmOptions, 
 end
 
 function WasUI:ShowPopup(options, callback)
+    if WasUI.CleanMode then return nil end
     local title = options.title or "提示"
     local titleIcon = options.titleIcon
     local content = options.content or ""
@@ -3239,6 +3225,7 @@ function WasUI:ShowPopup(options, callback)
 end
 
 function WasUI:ShowColorPicker(options, callback)
+    if WasUI.CleanMode then return nil end
     local title = options.title or "选择颜色"
     local defaultColor = options.defaultColor or Color3.fromRGB(255, 255, 255)
     local showAlpha = options.showAlpha or false
@@ -3766,7 +3753,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
             if track then
                 Tween(track, {BackgroundColor3 = newTheme.Input}, duration)
                 local fill = track:FindFirstChild("Fill")
-                if fill then Tween(fill, {BackgroundColor3 = newTheme.Accent}, duration) end
+                if fill then Tween(fill, {BackgroundColor3 = newTheme.Success}, duration) end
             end
         elseif obj.Type == "Dropdown" then
             local titleLabel = instance:FindFirstChild("Title")
@@ -4350,10 +4337,10 @@ WasUI:SetLocalizedText(self.Title, name)
         ZIndex = 6,
         Parent = self.DotContainer
     })
-self.CloseDot = CreateInstance("Frame", {
+    self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 10.2, 0.5, -5.4),
+        Position = UDim2.new(0, 13.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
@@ -4363,7 +4350,7 @@ self.CloseDot = CreateInstance("Frame", {
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 25.2, 0.5, -5.4),
+        Position = UDim2.new(0, 28.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
@@ -4373,7 +4360,7 @@ self.CloseDot = CreateInstance("Frame", {
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 40.2, 0.5, -5.4),
+        Position = UDim2.new(0, 43.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
@@ -4384,26 +4371,26 @@ self.CloseDot = CreateInstance("Frame", {
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
 
-   self.MinimizedTextLabel = CreateInstance("TextLabel", {
-    Name = "MinimizedText",
-    Size = UDim2.new(1, 0, 1, 0),
-    Position = UDim2.new(0.5, 0, 0.5, 0),
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundTransparency = 1,
-    Text = "WasUI",
-    TextColor3 = (WasUI.CurrentTheme == WasUI.Themes.Light) and Color3.fromRGB(0, 0, 0) or WasUI.CurrentTheme.Text,
-    Font = Enum.Font.GothamBold,
-    TextSize = 12,
-    TextXAlignment = Enum.TextXAlignment.Center,
-    TextYAlignment = Enum.TextYAlignment.Center,
-    Visible = false,
-    ZIndex = 10,
-    Parent = self.DotContainer
-})
+    self.MinimizedTextLabel = CreateInstance("TextLabel", {
+        Name = "MinimizedText",
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 1,
+        Text = "WasUI",
+        TextColor3 = (WasUI.CurrentTheme == WasUI.Themes.Light) and Color3.fromRGB(0, 0, 0) or WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Visible = false,
+        ZIndex = 10,
+        Parent = self.DotContainer
+    })
     self.MinimizedCustomText = "WasUI"
     function self:SetMinimizedText(text)
-        self.MinimizedCustomText = text or ""
-        self.MinimizedTextLabel.Text = text or ""
+        self.MinimizedCustomText = text or "WasUI"
+        self.MinimizedTextLabel.Text = text or "WasUI"
     end
     function self:SetMinimizedTextColor(color)
         self.MinimizedTextLabel.TextColor3 = color or WasUI.CurrentTheme.Text
@@ -6054,6 +6041,7 @@ local function updateAllNotificationPositions()
 end
 
 function WasUI:Notify(options)
+    if WasUI.CleanMode then return end
     EnsureNotificationGui()
     local title = options.Title or "Notification"
     local content = options.Content or ""
