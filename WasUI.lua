@@ -4877,16 +4877,16 @@ WasUI:SetLocalizedText(self.Title, name)
     end
 
 self.MinimizeDot.Activated:Connect(function()
-    if self.IsMinimized then
-        self:RestoreFromDots()
-    else
-        self:MinimizeToDots()
-    end
-end)
+        if self.IsMinimized then
+            self:RestoreFromDots()
+        else
+            self:MinimizeToDots()
+        end
+    end)
 
-self.CloseDot.Activated:Connect(function()
-    self:SetVisible(false)
-end)
+    self.CloseDot.Activated:Connect(function()
+        self:SetVisible(false)
+    end)
     closeButton.MouseButton1Click:Connect(function()
         local overlay = CreateInstance("Frame", {
             Name = "Overlay",
