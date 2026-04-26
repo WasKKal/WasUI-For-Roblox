@@ -2967,6 +2967,576 @@ function WasUI:AddSpacing(parent, height)
     spacing.Parent = parent
 end
 
+function WasUI:OpenBlocklyEditor(options)
+    options = options or {}
+    local onGenerate = options.onGenerate 
+    local title = options.title or "积木编程器"
+    
+    local blockTypes = {
+        events = {
+            { id = "on_button_click", name = "当按钮被点击", params = {"按钮名称"}, code = "WasUI:CreateButton(parent, '${按钮名称}', function()\n    ${actions}\nend)" },
+            { id = "on_toggle_on", name = "当开关开启", params = {"开关名称"}, code = "WasUI:CreateToggle(parent, '${开关名称}', false, function(state)\n    if state then\n        ${actions}\n    end\nend)" },
+            { id = "on_toggle_off", name = "当开关关闭", params = {"开关名称"}, code = "WasUI:CreateToggle(parent, '${开关名称}', false, function(state)\n    if not state then\n        ${actions}\n    end\nend)" },
+            { id = "on_slider_change", name = "当滑块变化", params = {"滑块名称"}, code = "WasUI:CreateSlider(parent, '${滑块名称}', 0, 100, 50, function(value)\n    ${actions}\nend)" }
+        },
+        actions = {
+            { id = "notify", name = "发送通知", params = {"标题", "内容"}, code = "WasUI:Notify({Title = '${标题}', Content = '${内容}', Duration = 2})" },
+            { id = "print", name = "打印到控制台", params = {"文本"}, code = "print('${文本}')" },
+            { id = "set_clipboard", name = "复制到剪贴板", params = {"文本"}, code = "setclipboard('${文本}')" },
+            { id = "teleport", name = "传送玩家", params = {"坐标X", "坐标Y", "坐标Z"}, code = "local char = game.Players.LocalPlayer.Character\nif char and char:FindFirstChild('HumanoidRootPart') then\n    char.HumanoidRootPart.CFrame = CFrame.new(${坐标X}, ${坐标Y}, ${坐标Z})\nend" }
+        }
+    }
+    
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "BlocklyEditor"
+    gui.ResetOnSpawn = false
+    gui.DisplayOrder = 2000
+    gui.IgnoreGuiInset = true
+    gui.Parent = game:GetService("CoreGui")
+    
+    local overlay = Instance.new("Frame")
+    overlay.Name = "Overlay"
+    overlay.Size = UDim2.new(1, 0, 1, 0)
+    overlay.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    overlay.BackgroundTransparency = 0.6
+    overlay.Active = true
+    overlay.Parent = gui
+    
+    local editorFrame = Instance.new("Frame")
+    editorFrame.Name = "EditorFrame"
+    editorFrame.Size = UDim2.new(0, 900, 0, 600)
+    editorFrame.Position = UDim2.new(0.5, -450, 0.5, -300)
+    editorFrame.BackgroundColor3 = WasUI.CurrentTheme.Background
+    editorFrame.BackgroundTransparency = 0.2
+    editorFrame.BorderSizePixel = 0
+    editorFrame.ClipsDescendants = true
+    editorFrame.Parent = overlay
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = editorFrame})
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = WasUI.CurrentTheme.Accent
+    stroke.Thickness = 1
+    stroke.Transparency = 0.5
+    stroke.Parent = editorFrame
+    
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 36)
+    titleBar.BackgroundColor3 = WasUI.CurrentTheme.Primary
+    titleBar.BackgroundTransparency = 0.3
+    titleBar.Parent = editorFrame
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = titleBar})
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -80, 1, 0)
+    titleLabel.Position = UDim2.new(0, 10, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.TextColor3 = WasUI.CurrentTheme.Text
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 16
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = titleBar
+    
+    local closeBtn = Instance.new("ImageButton")
+    closeBtn.Size = UDim2.new(0, 28, 0, 28)
+    closeBtn.Position = UDim2.new(1, -36, 0, 4)
+    closeBtn.BackgroundTransparency = 1
+    closeBtn.Image = ""
+    closeBtn.Parent = titleBar
+    local closeIcon = WasUI:CreateIcon("x", UDim2.new(0, 20, 0, 20))
+    if closeIcon then
+        closeIcon.Parent = closeBtn
+        closeIcon.Position = UDim2.new(0.5, -10, 0.5, -10)
+    end
+    closeBtn.MouseButton1Click:Connect(function()
+        local fade = Tween(overlay, {BackgroundTransparency = 1}, 0.2)
+        if fade then fade.Completed:Wait() end
+        gui:Destroy()
+    end)
+    
+    local leftPanel = Instance.new("ScrollingFrame")
+    leftPanel.Name = "LibraryPanel"
+    leftPanel.Size = UDim2.new(0, 240, 1, -40)
+    leftPanel.Position = UDim2.new(0, 0, 0, 40)
+    leftPanel.BackgroundColor3 = WasUI.CurrentTheme.Section
+    leftPanel.BackgroundTransparency = 0.3
+    leftPanel.BorderSizePixel = 0
+    leftPanel.ScrollBarThickness = 4
+    leftPanel.CanvasSize = UDim2.new(0, 0, 0, 0)
+    leftPanel.Parent = editorFrame
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 0), Parent = leftPanel})
+    
+    local rightPanel = Instance.new("ScrollingFrame")
+    rightPanel.Name = "WorkspacePanel"
+    rightPanel.Size = UDim2.new(1, -250, 1, -40)
+    rightPanel.Position = UDim2.new(0, 250, 0, 40)
+    rightPanel.BackgroundColor3 = WasUI.CurrentTheme.Background
+    rightPanel.BackgroundTransparency = 0.2
+    rightPanel.BorderSizePixel = 0
+    rightPanel.ScrollBarThickness = 4
+    rightPanel.CanvasSize = UDim2.new(0, 0, 0, 0)
+    rightPanel.Parent = editorFrame
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 0), Parent = rightPanel})
+    
+    local workspaceLayout = Instance.new("UIListLayout")
+    workspaceLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    workspaceLayout.Padding = UDim.new(0, 8)
+    workspaceLayout.Parent = rightPanel
+    
+    local buttonBar = Instance.new("Frame")
+    buttonBar.Size = UDim2.new(1, 0, 0, 48)
+    buttonBar.Position = UDim2.new(0, 0, 1, -48)
+    buttonBar.BackgroundTransparency = 1
+    buttonBar.Parent = editorFrame
+    
+    local generateBtn = WasUI:CreateButton(buttonBar, "生成 Lua 代码", nil, UDim2.new(0, 140, 0, 36))
+    generateBtn.Instance.Position = UDim2.new(1, -160, 0.5, -18)
+    generateBtn.Instance.MouseButton1Click:Connect(function()
+        local code = GenerateCodeFromBlocks(blocks)
+        if onGenerate then onGenerate(code) else setclipboard(code) end
+        WasUI:Notify({Title = "代码生成", Content = "代码已复制到剪贴板", Duration = 3})
+    end)
+    
+    local clearBtn = WasUI:CreateButton(buttonBar, "清空所有积木", nil, UDim2.new(0, 120, 0, 36))
+    clearBtn.Instance.Position = UDim2.new(1, -310, 0.5, -18)
+    clearBtn.Instance.MouseButton1Click:Connect(function()
+        blocks = {}
+        RenderWorkspace()
+    end)
+    
+    local blocks = {}  -- { id, def, type, params, children }
+    
+    local function RenderWorkspace()
+        for _, child in ipairs(rightPanel:GetChildren()) do
+            if child:IsA("Frame") and child.Name == "BlockFrame" then
+                child:Destroy()
+            end
+        end
+        for idx, block in ipairs(blocks) do
+            local blockFrame = Instance.new("Frame")
+            blockFrame.Name = "BlockFrame"
+            blockFrame.Size = UDim2.new(1, -20, 0, 0)
+            blockFrame.BackgroundColor3 = block.type == "event" and WasUI.CurrentTheme.Success or WasUI.CurrentTheme.Accent
+            blockFrame.BackgroundTransparency = 0.2
+            blockFrame.BorderSizePixel = 0
+            blockFrame.AutomaticSize = Enum.AutomaticSize.Y
+            blockFrame.Parent = rightPanel
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = blockFrame})
+            
+            -- 标题栏
+            local titleBar = Instance.new("Frame")
+            titleBar.Size = UDim2.new(1, 0, 0, 34)
+            titleBar.BackgroundTransparency = 1
+            titleBar.Parent = blockFrame
+            
+            local titleLabel = Instance.new("TextLabel")
+            titleLabel.Size = UDim2.new(0.7, 0, 1, 0)
+            titleLabel.BackgroundTransparency = 1
+            titleLabel.Text = block.def.name
+            titleLabel.TextColor3 = WasUI.CurrentTheme.Text
+            titleLabel.Font = Enum.Font.GothamBold
+            titleLabel.TextSize = 14
+            titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+            titleLabel.Parent = titleBar
+            
+            local delBtn = Instance.new("TextButton")
+            delBtn.Size = UDim2.new(0, 28, 0, 28)
+            delBtn.Position = UDim2.new(1, -34, 0, 3)
+            delBtn.BackgroundColor3 = WasUI.CurrentTheme.Error
+            delBtn.BackgroundTransparency = 0.5
+            delBtn.Text = "×"
+            delBtn.TextColor3 = WasUI.CurrentTheme.Text
+            delBtn.Font = Enum.Font.GothamBold
+            delBtn.TextSize = 18
+            delBtn.AutoButtonColor = false
+            delBtn.Parent = titleBar
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = delBtn})
+            delBtn.MouseButton1Click:Connect(function()
+                table.remove(blocks, idx)
+                RenderWorkspace()
+            end)
+            
+            local paramsArea = Instance.new("Frame")
+            paramsArea.Size = UDim2.new(1, 0, 0, 0)
+            paramsArea.BackgroundTransparency = 1
+            paramsArea.AutomaticSize = Enum.AutomaticSize.Y
+            paramsArea.Parent = blockFrame
+            local paramsLayout = Instance.new("UIListLayout")
+            paramsLayout.Padding = UDim.new(0, 6)
+            paramsLayout.Parent = paramsArea
+            
+            for _, paramName in ipairs(block.def.params) do
+                local paramRow = Instance.new("Frame")
+                paramRow.Size = UDim2.new(1, 0, 0, 32)
+                paramRow.BackgroundTransparency = 1
+                paramRow.Parent = paramsArea
+                
+                local paramLabel = Instance.new("TextLabel")
+                paramLabel.Size = UDim2.new(0.3, 0, 1, 0)
+                paramLabel.BackgroundTransparency = 1
+                paramLabel.Text = paramName .. ":"
+                paramLabel.TextColor3 = WasUI.CurrentTheme.Text
+                paramLabel.Font = Enum.Font.Gotham
+                paramLabel.TextSize = 12
+                paramLabel.TextXAlignment = Enum.TextXAlignment.Right
+                paramLabel.Parent = paramRow
+                
+                local paramInput = Instance.new("TextBox")
+                paramInput.Size = UDim2.new(0.65, 0, 1, -4)
+                paramInput.Position = UDim2.new(0.32, 5, 0, 2)
+                paramInput.BackgroundColor3 = WasUI.CurrentTheme.Input
+                paramInput.BackgroundTransparency = 0.3
+                paramInput.BorderSizePixel = 0
+                paramInput.Text = block.params[paramName] or ""
+                paramInput.PlaceholderText = paramName
+                paramInput.TextColor3 = WasUI.CurrentTheme.Text
+                paramInput.Font = Enum.Font.Gotham
+                paramInput.TextSize = 12
+                paramInput.TextXAlignment = Enum.TextXAlignment.Left
+                paramInput.Parent = paramRow
+                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = paramInput})
+                CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = paramInput})
+                
+                paramInput:GetPropertyChangedSignal("Text"):Connect(function()
+                    block.params[paramName] = paramInput.Text
+                end)
+            end
+            
+            if block.type == "event" then
+                local actionArea = Instance.new("Frame")
+                actionArea.Name = "ActionArea"
+                actionArea.Size = UDim2.new(1, -10, 0, 0)
+                actionArea.BackgroundColor3 = WasUI.CurrentTheme.Background
+                actionArea.BackgroundTransparency = 0.5
+                actionArea.AutomaticSize = Enum.AutomaticSize.Y
+                actionArea.Parent = blockFrame
+                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = actionArea})
+                
+                local actionLayout = Instance.new("UIListLayout")
+                actionLayout.Padding = UDim.new(0, 4)
+                actionLayout.Parent = actionArea
+                
+                -- 渲染已有的子动作
+                local function renderChildActions()
+                    for _, child in ipairs(actionArea:GetChildren()) do
+                        if child:IsA("Frame") and child.Name == "ActionItem" then
+                            child:Destroy()
+                        end
+                    end
+                    for _, childBlock in ipairs(block.children or {}) do
+                        local actionItem = Instance.new("Frame")
+                        actionItem.Name = "ActionItem"
+                        actionItem.Size = UDim2.new(1, 0, 0, 0)
+                        actionItem.BackgroundColor3 = WasUI.CurrentTheme.Accent
+                        actionItem.BackgroundTransparency = 0.3
+                        actionItem.AutomaticSize = Enum.AutomaticSize.Y
+                        actionItem.Parent = actionArea
+                        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = actionItem})
+                        
+                        local itemTitle = Instance.new("Frame")
+                        itemTitle.Size = UDim2.new(1, 0, 0, 30)
+                        itemTitle.BackgroundTransparency = 1
+                        itemTitle.Parent = actionItem
+                        
+                        local itemLabel = Instance.new("TextLabel")
+                        itemLabel.Size = UDim2.new(0.7, 0, 1, 0)
+                        itemLabel.BackgroundTransparency = 1
+                        itemLabel.Text = childBlock.def.name
+                        itemLabel.TextColor3 = WasUI.CurrentTheme.Text
+                        itemLabel.Font = Enum.Font.GothamBold
+                        itemLabel.TextSize = 12
+                        itemLabel.TextXAlignment = Enum.TextXAlignment.Left
+                        itemLabel.Parent = itemTitle
+                        
+                        local delActionBtn = Instance.new("TextButton")
+                        delActionBtn.Size = UDim2.new(0, 24, 0, 24)
+                        delActionBtn.Position = UDim2.new(1, -28, 0, 3)
+                        delActionBtn.BackgroundColor3 = WasUI.CurrentTheme.Error
+                        delActionBtn.BackgroundTransparency = 0.5
+                        delActionBtn.Text = "×"
+                        delActionBtn.TextColor3 = WasUI.CurrentTheme.Text
+                        delActionBtn.Font = Enum.Font.GothamBold
+                        delActionBtn.TextSize = 16
+                        delActionBtn.AutoButtonColor = false
+                        delActionBtn.Parent = itemTitle
+                        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = delActionBtn})
+                        delActionBtn.MouseButton1Click:Connect(function()
+                            for i, act in ipairs(block.children) do
+                                if act == childBlock then
+                                    table.remove(block.children, i)
+                                    break
+                                end
+                            end
+                            renderChildActions()
+                            RenderWorkspace()
+                        end)
+                        
+                        local actionParams = Instance.new("Frame")
+                        actionParams.Size = UDim2.new(1, 0, 0, 0)
+                        actionParams.BackgroundTransparency = 1
+                        actionParams.AutomaticSize = Enum.AutomaticSize.Y
+                        actionParams.Parent = actionItem
+                        local actionParamsLayout = Instance.new("UIListLayout")
+                        actionParamsLayout.Padding = UDim.new(0, 4)
+                        actionParamsLayout.Parent = actionParams
+                        
+                        for _, paramName in ipairs(childBlock.def.params) do
+                            local paramRow = Instance.new("Frame")
+                            paramRow.Size = UDim2.new(1, 0, 0, 28)
+                            paramRow.BackgroundTransparency = 1
+                            paramRow.Parent = actionParams
+                            
+                            local paramLabel = Instance.new("TextLabel")
+                            paramLabel.Size = UDim2.new(0.3, 0, 1, 0)
+                            paramLabel.BackgroundTransparency = 1
+                            paramLabel.Text = paramName .. ":"
+                            paramLabel.TextColor3 = WasUI.CurrentTheme.Text
+                            paramLabel.Font = Enum.Font.Gotham
+                            paramLabel.TextSize = 11
+                            paramLabel.TextXAlignment = Enum.TextXAlignment.Right
+                            paramLabel.Parent = paramRow
+                            
+                            local paramInput = Instance.new("TextBox")
+                            paramInput.Size = UDim2.new(0.65, 0, 1, -4)
+                            paramInput.Position = UDim2.new(0.32, 5, 0, 2)
+                            paramInput.BackgroundColor3 = WasUI.CurrentTheme.Input
+                            paramInput.BackgroundTransparency = 0.3
+                            paramInput.BorderSizePixel = 0
+                            paramInput.Text = childBlock.params[paramName] or ""
+                            paramInput.PlaceholderText = paramName
+                            paramInput.TextColor3 = WasUI.CurrentTheme.Text
+                            paramInput.Font = Enum.Font.Gotham
+                            paramInput.TextSize = 11
+                            paramInput.TextXAlignment = Enum.TextXAlignment.Left
+                            paramInput.Parent = paramRow
+                            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = paramInput})
+                            CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = paramInput})
+                            
+                            paramInput:GetPropertyChangedSignal("Text"):Connect(function()
+                                childBlock.params[paramName] = paramInput.Text
+                            end)
+                        end
+                        task.wait()
+                        actionItem.Size = UDim2.new(1, 0, 0, actionParams.AbsoluteSize.Y + 38)
+                    end
+                end
+                renderChildActions()
+                
+                local addActionBtn = Instance.new("TextButton")
+                addActionBtn.Size = UDim2.new(1, -10, 0, 32)
+                addActionBtn.Position = UDim2.new(0, 5, 0, 0)
+                addActionBtn.BackgroundColor3 = WasUI.CurrentTheme.Primary
+                addActionBtn.BackgroundTransparency = 0.3
+                addActionBtn.Text = "+ 添加动作"
+                addActionBtn.TextColor3 = WasUI.CurrentTheme.Text
+                addActionBtn.Font = Enum.Font.GothamSemibold
+                addActionBtn.TextSize = 12
+                addActionBtn.AutoButtonColor = false
+                addActionBtn.Parent = actionArea
+                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = addActionBtn})
+                addActionBtn.MouseButton1Click:Connect(function()
+                    ShowActionPicker(block)
+                end)
+            end
+            
+            task.wait()
+            local paramsHeight = paramsArea.AbsoluteSize.Y
+            local actionHeight = (block.type == "event" and (actionArea and actionArea.AbsoluteSize.Y or 40) or 0)
+            blockFrame.Size = UDim2.new(1, -20, 0, paramsHeight + 42 + actionHeight)
+        end
+        rightPanel.CanvasSize = UDim2.new(0, 0, 0, workspaceLayout.AbsoluteContentSize.Y + 20)
+    end
+    
+    local function ShowActionPicker(parentBlock)
+        local pickerGui = Instance.new("ScreenGui")
+        pickerGui.Name = "ActionPicker"
+        pickerGui.ResetOnSpawn = false
+        pickerGui.Parent = gui
+        
+        local pickerOverlay = Instance.new("Frame")
+        pickerOverlay.Size = UDim2.new(1, 0, 1, 0)
+        pickerOverlay.BackgroundColor3 = Color3.fromRGB(0,0,0)
+        pickerOverlay.BackgroundTransparency = 0.5
+        pickerOverlay.Active = true
+        pickerOverlay.Parent = pickerGui
+        
+        local pickerFrame = Instance.new("ScrollingFrame")
+        pickerFrame.Size = UDim2.new(0, 320, 0, 400)
+        pickerFrame.Position = UDim2.new(0.5, -160, 0.5, -200)
+        pickerFrame.BackgroundColor3 = WasUI.CurrentTheme.Background
+        pickerFrame.BackgroundTransparency = 0.2
+        pickerFrame.BorderSizePixel = 0
+        pickerFrame.ScrollBarThickness = 4
+        pickerFrame.Parent = pickerOverlay
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = pickerFrame})
+        
+        local layout = Instance.new("UIListLayout")
+        layout.Padding = UDim.new(0, 8)
+        layout.Parent = pickerFrame
+        
+        for _, block in ipairs(blockTypes.actions) do
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -20, 0, 44)
+            btn.BackgroundColor3 = WasUI.CurrentTheme.Primary
+            btn.BackgroundTransparency = 0.3
+            btn.Text = block.name
+            btn.TextColor3 = WasUI.CurrentTheme.Text
+            btn.Font = Enum.Font.GothamSemibold
+            btn.TextSize = 14
+            btn.AutoButtonColor = false
+            btn.Parent = pickerFrame
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = btn})
+            
+            btn.MouseButton1Click:Connect(function()
+                local newAction = {
+                    id = HttpService:GenerateGUID(false),
+                    def = block,
+                    type = "action",
+                    params = {}
+                }
+                for _, paramName in ipairs(block.params) do
+                    newAction.params[paramName] = ""
+                end
+                if not parentBlock.children then parentBlock.children = {} end
+                table.insert(parentBlock.children, newAction)
+                RenderWorkspace()
+                pickerGui:Destroy()
+            end)
+        end
+        pickerFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
+        
+        pickerOverlay.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                local mousePos = input.Position
+                local framePos = pickerFrame.AbsolutePosition
+                local frameSize = pickerFrame.AbsoluteSize
+                if not (mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y) then
+                    pickerGui:Destroy()
+                end
+            end
+        end)
+    end
+    
+    local function GenerateCodeFromBlocks(blocks)
+        local codeLines = {}
+        codeLines[#codeLines+1] = "-- 由 WasUI Blockly 生成"
+        codeLines[#codeLines+1] = "local WasUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/WasUI.lua'))()"
+        codeLines[#codeLines+1] = "local win = WasUI:CreateWindow('积木程序', UDim2.new(0, 380, 0, 350))"
+        codeLines[#codeLines+1] = "win:SetWelcome('通过积木生成的脚本')"
+        codeLines[#codeLines+1] = ""
+        
+        for _, block in ipairs(blocks) do
+            if block.type == "event" then
+                local actionCode = ""
+                if block.children and #block.children > 0 then
+                    local actionLines = {}
+                    for _, action in ipairs(block.children) do
+                        local actionTemplate = action.def.code
+                        for paramName, paramValue in pairs(action.params) do
+                            actionTemplate = actionTemplate:gsub("${" .. paramName .. "}", paramValue)
+                        end
+                        actionLines[#actionLines+1] = "    " .. actionTemplate
+                    end
+                    actionCode = table.concat(actionLines, "\n")
+                end
+                local eventTemplate = block.def.code
+                for paramName, paramValue in pairs(block.params) do
+                    eventTemplate = eventTemplate:gsub("${" .. paramName .. "}", paramValue)
+                end
+                eventTemplate = eventTemplate:gsub("${actions}", actionCode)
+                codeLines[#codeLines+1] = eventTemplate
+            end
+        end
+        
+        codeLines[#codeLines+1] = ""
+        codeLines[#codeLines+1] = "win:SetVisible(true)"
+        return table.concat(codeLines, "\n")
+    end
+
+    local function BuildLibrary()
+        local libraryContent = Instance.new("Frame")
+        libraryContent.Name = "LibraryContent"
+        libraryContent.Size = UDim2.new(1, 0, 0, 0)
+        libraryContent.BackgroundTransparency = 1
+        libraryContent.AutomaticSize = Enum.AutomaticSize.Y
+        libraryContent.Parent = leftPanel
+        
+        local libLayout = Instance.new("UIListLayout")
+        libLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        libLayout.Padding = UDim.new(0, 12)
+        libLayout.Parent = libraryContent
+        
+        -- 事件分类
+        local eventCat = Instance.new("Frame")
+        eventCat.Size = UDim2.new(1, 0, 0, 30)
+        eventCat.BackgroundTransparency = 1
+        eventCat.Parent = libraryContent
+        local catLabel = Instance.new("TextLabel")
+        catLabel.Size = UDim2.new(1, 0, 1, 0)
+        catLabel.BackgroundTransparency = 1
+        catLabel.Text = "事件积木"
+        catLabel.TextColor3 = WasUI.CurrentTheme.Text
+        catLabel.Font = Enum.Font.GothamBold
+        catLabel.TextSize = 14
+        catLabel.TextXAlignment = Enum.TextXAlignment.Left
+        catLabel.Parent = eventCat
+        
+        for _, block in ipairs(blockTypes.events) do
+            local btn = WasUI:CreateButton(libraryContent, block.name, function()
+                local newBlock = {
+                    id = HttpService:GenerateGUID(false),
+                    def = block,
+                    type = "event",
+                    params = {},
+                    children = {}
+                }
+                for _, paramName in ipairs(block.params) do
+                    newBlock.params[paramName] = ""
+                end
+                table.insert(blocks, newBlock)
+                RenderWorkspace()
+            end)
+            btn.Instance.Size = UDim2.new(1, 0, 0, 36)
+            btn.Instance.BackgroundColor3 = WasUI.CurrentTheme.Success
+            btn.Instance.BackgroundTransparency = 0.5
+        end
+
+        local actionCat = Instance.new("Frame")
+        actionCat.Size = UDim2.new(1, 0, 0, 30)
+        actionCat.BackgroundTransparency = 1
+        actionCat.Parent = libraryContent
+        local catLabel2 = Instance.new("TextLabel")
+        catLabel2.Size = UDim2.new(1, 0, 1, 0)
+        catLabel2.BackgroundTransparency = 1
+        catLabel2.Text = "动作积木"
+        catLabel2.TextColor3 = WasUI.CurrentTheme.Text
+        catLabel2.Font = Enum.Font.GothamBold
+        catLabel2.TextSize = 14
+        catLabel2.TextXAlignment = Enum.TextXAlignment.Left
+        catLabel2.Parent = actionCat
+        
+        for _, block in ipairs(blockTypes.actions) do
+            local btn = WasUI:CreateButton(libraryContent, block.name, function()
+                -- 动作不能单独添加，只能作为事件的子项，所以这里不做处理（或者可以提示）
+                WasUI:Notify({Title = "提示", Content = "动作积木只能添加到事件积木内部", Duration = 2})
+            end)
+            btn.Instance.Size = UDim2.new(1, 0, 0, 36)
+            btn.Instance.BackgroundColor3 = WasUI.CurrentTheme.Accent
+            btn.Instance.BackgroundTransparency = 0.5
+        end
+        
+        libraryContent:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+            leftPanel.CanvasSize = UDim2.new(0, 0, 0, libraryContent.AbsoluteSize.Y + 20)
+        end)
+        task.wait()
+        leftPanel.CanvasSize = UDim2.new(0, 0, 0, libraryContent.AbsoluteSize.Y + 20)
+    end
+    
+    BuildLibrary()
+    Tween(overlay, {BackgroundTransparency = 0.5}, 0.2)
+    
+    return gui
+end
+
 task.spawn(function()
     local success, langTable = pcall(function()
         return loadstring(game:HttpGet("https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/CnToEng.lua"))()
