@@ -4254,31 +4254,38 @@ local function startFlowAnimation()
         end)
     end
 
-function self:SetRainbowMode(mode)
-        if mode == "整体" or mode == "流动" then
-            self.RainbowMode = mode
-            if mode == "整体" then
-                self.BorderFlow.BackgroundTransparency = 1
-                self.BorderStroke.Enabled = true
-                self.GlowStroke1.Enabled = true
-                self.GlowStroke2.Enabled = true
-                self.GlowStroke3.Enabled = true
-                self.GlowStroke4.Enabled = true
-                self.GlowStroke5.Enabled = true
+local function startFlowAnimation()
+        if self.BorderConnection then self.BorderConnection:Disconnect() end
+        self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
+            if self.RainbowMode == "整体" then
+                borderTime = borderTime + deltaTime * 2.5
+                local hue = (borderTime * 0.3) % 1
+                local color = Color3.fromHSV(hue, 0.8, 1)
+                self.BorderStroke.Color = color
+                self.BorderStroke.Transparency = 0
+                self.GlowStroke1.Color = color
+                self.GlowStroke1.Transparency = 0.5
+                self.GlowStroke2.Color = color
+                self.GlowStroke2.Transparency = 0.7
+                self.GlowStroke3.Color = color
+                self.GlowStroke3.Transparency = 0.84
+                self.GlowStroke4.Color = color
+                self.GlowStroke4.Transparency = 0.93
+                self.GlowStroke5.Color = color
+                self.GlowStroke5.Transparency = 0.97
                 flowGradient.Enabled = false
             else
-                self.BorderFlow.BackgroundTransparency = 1
-                self.BorderStroke.Enabled = true
-                self.GlowStroke1.Enabled = true
-                self.GlowStroke2.Enabled = true
-                self.GlowStroke3.Enabled = true
-                self.GlowStroke4.Enabled = true
-                self.GlowStroke5.Enabled = true
-                flowGradient.Enabled = false
+                self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
+                flowGradient.Rotation = self.FlowRotation
+                flowGradient.Enabled = true
+                self.BorderStroke.Transparency = 1
+                self.GlowStroke1.Transparency = 1
+                self.GlowStroke2.Transparency = 1
+                self.GlowStroke3.Transparency = 1
+                self.GlowStroke4.Transparency = 1
+                self.GlowStroke5.Transparency = 1
             end
-            self.BorderFlow.Visible = true
-            startFlowAnimation()
-        end
+        end)
     end
 
     function self:SetRainbowEnabled(enabled)
