@@ -4209,31 +4209,35 @@ self.BorderStroke = CreateInstance("UIStroke", {
     self.BorderConnection = nil
 
 function self:SetRainbowMode(mode)
-        if mode == "整体" or mode == "流动" then
-            self.RainbowMode = mode
-            if mode == "整体" then
-                self.BorderFlow.BackgroundTransparency = 1
-                self.BorderStroke.Enabled = true
-                self.GlowStroke1.Enabled = true
-                self.GlowStroke2.Enabled = true
-                self.GlowStroke3.Enabled = true
-                self.GlowStroke4.Enabled = true
-                self.GlowStroke5.Enabled = true
-                flowGradient.Enabled = false
-            else
-                self.BorderFlow.BackgroundTransparency = 0
-                self.BorderStroke.Enabled = false
-                self.GlowStroke1.Enabled = false
-                self.GlowStroke2.Enabled = false
-                self.GlowStroke3.Enabled = false
-                self.GlowStroke4.Enabled = false
-                self.GlowStroke5.Enabled = false
-                flowGradient.Enabled = true
-            end
-            self.BorderFlow.Visible = true
+    if mode == "整体" or mode == "流动" then
+        self.RainbowMode = mode
+        if mode == "整体" then
+            self.BorderFlow.BackgroundTransparency = 1
+            self.BorderStroke.Enabled = true
+            self.GlowStroke1.Enabled = true
+            self.GlowStroke2.Enabled = true
+            self.GlowStroke3.Enabled = true
+            self.GlowStroke4.Enabled = true
+            self.GlowStroke5.Enabled = true
+            flowGradient.Enabled = false
+        else
+            self.BorderFlow.BackgroundTransparency = 0
+            self.BorderStroke.Enabled = false
+            self.GlowStroke1.Enabled = false
+            self.GlowStroke2.Enabled = false
+            self.GlowStroke3.Enabled = false
+            self.GlowStroke4.Enabled = false
+            self.GlowStroke5.Enabled = false
+            flowGradient.Enabled = true
+        end
+        self.BorderFlow.Visible = true
+        if type(startFlowAnimation) == "function" then
             startFlowAnimation()
+        else
+            warn("[WasUI] startFlowAnimation is not a function, rainbow border animation disabled")
         end
     end
+end
 
 local function startFlowAnimation()
         if self.BorderConnection then self.BorderConnection:Disconnect() end
