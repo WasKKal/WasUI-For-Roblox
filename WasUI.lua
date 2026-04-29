@@ -4084,12 +4084,42 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     }
     highlightGradient.Parent = highlightStroke
 
-    self.BorderStroke = CreateInstance("UIStroke", {
+ self.BorderStroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 2,
+        Thickness = 1.5,
         Transparency = 0,
         Parent = self.BorderFlow
     })
+    self.GlowStroke1 = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 0, 0),
+        Thickness = 4,
+        Transparency = 0.5,
+        Parent = self.BorderFlow
+    })
+    self.GlowStroke2 = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 0, 0),
+        Thickness = 8,
+        Transparency = 0.7,
+        Parent = self.BorderFlow
+    })
+    self.GlowStroke3 = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 0, 0),
+        Thickness = 14,
+        Transparency = 0.84,
+        Parent = self.BorderFlow
+    })
+    self.GlowStroke4 = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 0, 0),
+        Thickness = 22,
+        Transparency = 0.93,
+        Parent = self.BorderFlow
+    })
+    self.GlowStroke5 = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 0, 0),
+        Thickness = 32,
+        Transparency = 0.97,
+        Parent = self.BorderFlow
+    })})
     self.BorderFlow.Visible = false
 
     local function updateBorder()
@@ -4106,32 +4136,40 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     self.FlowRotation = 0
     self.BorderConnection = nil
 
-    local function startFlowAnimation()
+local function startFlowAnimation()
         if self.BorderConnection then self.BorderConnection:Disconnect() end
         self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
             if self.RainbowMode == "整体" then
-                borderTime = borderTime + deltaTime * 4
-                local r = (math.sin(borderTime) + 1) / 2
-                local g = (math.sin(borderTime + math.pi/3) + 1) / 2
-                local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
-                self.BorderStroke.Color = Color3.new(r, g, b)
+                borderTime = borderTime + deltaTime * 2.5   -- 稍微放慢颜色变化速度，避免跳动
+                local hue = (borderTime * 0.3) % 1
+                local color = Color3.fromHSV(hue, 0.8, 1)   -- 使用 HSV 色相平滑过渡
+                
+                self.BorderStroke.Color = color
                 self.BorderStroke.Transparency = 0
+                self.GlowStroke1.Color = color
+                self.GlowStroke1.Transparency = 0.5
+                self.GlowStroke2.Color = color
+                self.GlowStroke2.Transparency = 0.7
+                self.GlowStroke3.Color = color
+                self.GlowStroke3.Transparency = 0.84
+                self.GlowStroke4.Color = color
+                self.GlowStroke4.Transparency = 0.93
+                self.GlowStroke5.Color = color
+                self.GlowStroke5.Transparency = 0.97
                 flowGradient.Enabled = false
-                highlightStroke.Transparency = 0.7
-                local pulse = (math.sin(tick() * 0.5) + 1) / 2
-                highlightStroke.Transparency = 0.5 + pulse * 0.3
             else
                 self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
                 flowGradient.Rotation = self.FlowRotation
                 flowGradient.Enabled = true
                 self.BorderStroke.Transparency = 1
-                highlightStroke.Transparency = 0.7
-                local pulse = (math.sin(tick() * 0.5) + 1) / 2
-                highlightStroke.Transparency = 0.5 + pulse * 0.3
+                self.GlowStroke1.Transparency = 1
+                self.GlowStroke2.Transparency = 1
+                self.GlowStroke3.Transparency = 1
+                self.GlowStroke4.Transparency = 1
+                self.GlowStroke5.Transparency = 1
             end
         end)
     end
-
     function self:SetRainbowMode(mode)
         if mode == "整体" or mode == "流动" then
             self.RainbowMode = mode
