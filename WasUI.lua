@@ -2645,13 +2645,13 @@ function WasUI:CreateTooltip(target, text, options)
     local followMouse = options.followMouse or false
     
     local actualTarget = target
-    if target and target.Instance and target.Instance:IsA("GuiObject") then
+    if type(target) == "table" and target.Instance and target.Instance:IsA("GuiObject") then
         actualTarget = target.Instance
-    elseif not target:IsA("GuiObject") then
+    elseif typeof(target) ~= "Instance" or not target:IsA("GuiObject") then
         warn("CreateTooltip: target must be a GuiObject or Control with Instance")
         return
     end
-    
+
     local tooltipGui = nil
     local tooltipFrame = nil
     local timer = nil
