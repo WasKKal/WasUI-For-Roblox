@@ -1842,7 +1842,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
-        BorderSizePixel = 1,
+        BorderSizePixel = 0,
         Text = "",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
@@ -1867,31 +1867,28 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         ZIndex = 12,
         Parent = self.DropdownButton
     })
-
-    -- 选项容器：宽度与按钮一致，禁止水平滚动
-    self.OptionsContainer = CreateInstance("ScrollingFrame", {
-        Name = "OptionsContainer",
-        Size = UDim2.new(0.35, 0, 0, 0),
-        Position = UDim2.new(0.65, -3, 1, 2),
-        BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.3,
-        BorderColor3 = Color3.fromRGB(200, 200, 200),
-        BorderSizePixel = 0,
-        ClipsDescendants = true,
-        Visible = false,
-        ZIndex = 9999,
-        ScrollBarThickness = 4,
-        ScrollingDirection = Enum.ScrollingDirection.Y,   -- 禁止左右滑动
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        Parent = WasUI.DropdownGui
-    })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.OptionsContainer})
-    local shadow = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(0, 0, 0),
-        Thickness = 1,
-        Transparency = 1,
-        Parent = self.OptionsContainer
-    })
+self.OptionsContainer = CreateInstance("ScrollingFrame", {
+    Name = "OptionsContainer",
+    Size = UDim2.new(0.35, 0, 0, 0),
+    Position = UDim2.new(0.65, -3, 1, 2),
+    BackgroundColor3 = WasUI.CurrentTheme.Background,
+    BackgroundTransparency = 0.3,
+    BorderColor3 = Color3.fromRGB(200, 200, 200),
+    BorderSizePixel = 0,
+    ClipsDescendants = true,
+    Visible = false,
+    ZIndex = 9999,
+    ScrollBarThickness = 4,
+    ScrollingDirection = Enum.ScrollingDirection.Y,
+    CanvasSize = UDim2.new(0, 0, 0, 0),
+    Parent = WasUI.DropdownGui
+})
+local shadow = CreateInstance("UIStroke", {
+    Color = Color3.fromRGB(0, 0, 0),
+    Thickness = 1,
+    Transparency = 1,
+    Parent = self.OptionsContainer
+})
     local optionsList = CreateInstance("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 4),
