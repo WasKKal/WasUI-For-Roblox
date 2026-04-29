@@ -1809,59 +1809,42 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     end
     self.Callback = callback
     self.IsOpen = false
-self.Container = CreateInstance("Frame", {
-    Name = "Dropdown",
-    Size = UDim2.new(1, 0, 0, 28),
-    BackgroundTransparency = 1,
-    ZIndex = 10,
-    Parent = parent
-})
 
-self.TitleLabel = CreateInstance("TextLabel", {
-    Name = "Title",
-    Size = UDim2.new(0.6, 0, 1, 0),  
-    Position = UDim2.new(0, 0, 0, 0),
-    BackgroundTransparency = 1,
-    Text = "",
-    TextColor3 = WasUI.CurrentTheme.Text,
-    Font = Enum.Font.Gotham,
-    TextSize = 12,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    TextYAlignment = Enum.TextYAlignment.Center,
-    ZIndex = 2,
-    Parent = self.Container
-})
-WasUI:SetLocalizedText(self.TitleLabel, title or "下拉菜单")
+    -- 容器高度改为 28，紧凑布局
+    self.Container = CreateInstance("Frame", {
+        Name = "Dropdown",
+        Size = UDim2.new(1, 0, 0, 28),
+        BackgroundTransparency = 1,
+        ZIndex = 10,
+        Parent = parent
+    })
 
-self.DropdownButton = CreateInstance("TextButton", {
-    Name = "DropdownButton",
-    Size = UDim2.new(0.35, 0, 1, 0),
-    Position = UDim2.new(0.65, -3, 0, 0),
-    BackgroundColor3 = WasUI.CurrentTheme.Input,
-    BackgroundTransparency = 0.3,
-    BorderColor3 = Color3.fromRGB(200, 200, 200),
-    BorderSizePixel = 1,
-    Text = "",
-    TextColor3 = WasUI.CurrentTheme.Text,
-    Font = Enum.Font.Gotham,
-    TextSize = 12,
-    TextTruncate = Enum.TextTruncate.AtEnd,
-    AutoButtonColor = false,
-    ZIndex = 11,
-    Parent = self.Container
-})
+    self.TitleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(0.6, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        ZIndex = 2,
+        Parent = self.Container
+    })
     WasUI:SetLocalizedText(self.TitleLabel, title or "下拉菜单")
+
     self.DropdownButton = CreateInstance("TextButton", {
         Name = "DropdownButton",
-        Size = UDim2.new(0.3, 0, 0, 24),
-        Position = UDim2.new(0.7, -3, 0, 0),
+        Size = UDim2.new(0.35, 0, 1, 0),
+        Position = UDim2.new(0.65, -3, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Input,
         BackgroundTransparency = 0.3,
         BorderColor3 = Color3.fromRGB(200, 200, 200),
         BorderSizePixel = 1,
         Text = "",
         TextColor3 = WasUI.CurrentTheme.Text,
-        TextTransparency = 0,
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextTruncate = Enum.TextTruncate.AtEnd,
@@ -1870,6 +1853,7 @@ self.DropdownButton = CreateInstance("TextButton", {
         Parent = self.Container
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.DropdownButton})
+
     local arrowIcon = CreateInstance("ImageLabel", {
         Name = "ArrowIcon",
         Size = UDim2.new(0, 12, 0, 12),
@@ -1883,22 +1867,24 @@ self.DropdownButton = CreateInstance("TextButton", {
         ZIndex = 12,
         Parent = self.DropdownButton
     })
-self.OptionsContainer = CreateInstance("ScrollingFrame", {
-    Name = "OptionsContainer",
-    Size = UDim2.new(0.35, 0, 0, 0),
-    Position = UDim2.new(0.65, -3, 1, 2),
-    BackgroundColor3 = WasUI.CurrentTheme.Background,
-    BackgroundTransparency = 0.3,
-    BorderColor3 = Color3.fromRGB(200, 200, 200),
-    BorderSizePixel = 0,
-    ClipsDescendants = true,
-    Visible = false,
-    ZIndex = 9999,
-    ScrollBarThickness = 4,
-    ScrollingDirection = Enum.ScrollingDirection.Y,
-    CanvasSize = UDim2.new(0, 0, 0, 0),
-    Parent = WasUI.DropdownGui
-})
+
+    -- 选项容器：宽度与按钮一致，禁止水平滚动
+    self.OptionsContainer = CreateInstance("ScrollingFrame", {
+        Name = "OptionsContainer",
+        Size = UDim2.new(0.35, 0, 0, 0),
+        Position = UDim2.new(0.65, -3, 1, 2),
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BackgroundTransparency = 0.3,
+        BorderColor3 = Color3.fromRGB(200, 200, 200),
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Visible = false,
+        ZIndex = 9999,
+        ScrollBarThickness = 4,
+        ScrollingDirection = Enum.ScrollingDirection.Y,   -- 禁止左右滑动
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        Parent = WasUI.DropdownGui
+    })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.OptionsContainer})
     local shadow = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(0, 0, 0),
@@ -1918,12 +1904,16 @@ self.OptionsContainer = CreateInstance("ScrollingFrame", {
         PaddingBottom = UDim.new(0, 8),
         Parent = self.OptionsContainer
     })
+
     self.OptionButtons = {}
+
     local function rebuildOptions()
+        -- 清除原有选项
         for _, btn in pairs(self.OptionButtons) do
-            btn:Destroy()
+            if btn and btn.Destroy then pcall(btn.Destroy, btn) end
         end
         self.OptionButtons = {}
+        -- 创建新选项
         for i, option in ipairs(self.Options) do
             local optionButton = CreateInstance("TextButton", {
                 Name = "Option_" .. option,
@@ -1987,11 +1977,13 @@ self.OptionsContainer = CreateInstance("ScrollingFrame", {
             self.OptionButtons[option] = optionButton
             table.insert(WasUI.Objects, {Object = optionButton, Type = "DropdownOption"})
         end
+
         local function updateContainerSize()
             local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 16
-            local maxHeight = math.floor(Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize.Y or GuiService:GetScreenSize().Y) * 0.5
+            local viewportSize = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or GuiService:GetScreenSize()
+            local maxHeight = math.floor(viewportSize.Y) * 0.5
             local finalHeight = math.min(totalHeight, maxHeight)
-            self.OptionsContainer.Size = UDim2.new(0.3, 0, 0, finalHeight)
+            self.OptionsContainer.Size = UDim2.new(0.35, 0, 0, finalHeight)
             task.wait()
             self.OptionsContainer.CanvasSize = UDim2.new(0, 0, 0, optionsList.AbsoluteContentSize.Y + 8)
         end
@@ -2000,6 +1992,8 @@ self.OptionsContainer = CreateInstance("ScrollingFrame", {
             updatePosition()
         end
     end
+
+    -- 更新选项列表（供外部调用）
     function self:UpdateOptions(newOptions, newDefaultValue)
         self.Options = {}
         for _, v in ipairs(newOptions or {}) do
@@ -2024,6 +2018,8 @@ self.OptionsContainer = CreateInstance("ScrollingFrame", {
         rebuildOptions()
         self:UpdateDisplayText()
     end
+
+    -- 更新菜单位置（避免超出屏幕）
     local function updatePosition()
         if not self.IsOpen then return end
         local btnPos = self.DropdownButton.AbsolutePosition
@@ -2047,8 +2043,10 @@ self.OptionsContainer = CreateInstance("ScrollingFrame", {
         end
         self.OptionsContainer.Position = UDim2.new(0, x, 0, y)
     end
+
     self.DropdownButton:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePosition)
     self.DropdownButton:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
+
     function self:GetDisplayText()
         if self.MultiSelect then
             if #self.SelectedValues == 0 then return WasUI:Translate("选择...") end
@@ -2057,9 +2055,11 @@ self.OptionsContainer = CreateInstance("ScrollingFrame", {
             return self.SelectedValue and tostring(self.SelectedValue) or WasUI:Translate("选择...")
         end
     end
+
     function self:UpdateDisplayText()
         self.DropdownButton.Text = self:GetDisplayText()
     end
+
     function self:Open()
         if self.IsOpen then return end
         self.IsOpen = true
@@ -2072,6 +2072,7 @@ self.OptionsContainer = CreateInstance("ScrollingFrame", {
             Tween(btn, {BackgroundTransparency = 0.3, TextTransparency = 0}, 0.2)
         end
     end
+
     function self:Close(instant)
         if not self.IsOpen then return end
         self.IsOpen = false
@@ -2099,6 +2100,7 @@ self.OptionsContainer = CreateInstance("ScrollingFrame", {
             self.OptionsContainer.Visible = false
         end
     end
+
     self.DropdownButton.MouseButton1Click:Connect(function()
         if self.IsOpen then
             self:Close()
@@ -2107,8 +2109,11 @@ self.OptionsContainer = CreateInstance("ScrollingFrame", {
         end
     end)
     AddRipple(self.DropdownButton)
+
     rebuildOptions()
     self:UpdateDisplayText()
+
+    -- 配置绑定
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
@@ -2147,6 +2152,8 @@ self.OptionsContainer = CreateInstance("ScrollingFrame", {
             end)
         end
     end
+
+    -- 分类属性（用于搜索）
     local panel = parent
     while panel do
         if type(panel) == "table" and panel.GetActiveTab then
@@ -2165,6 +2172,7 @@ self.OptionsContainer = CreateInstance("ScrollingFrame", {
             self.Container:SetAttribute("Category", cat)
         end
     end
+
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
     table.insert(WasUI.Objects, {Object = self.DropdownButton, Type = "DropdownButton"})
     return self
