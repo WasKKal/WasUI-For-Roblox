@@ -653,11 +653,11 @@ local function RefreshRainbowLayout()
         mergedData.IsMerged = true
         mergedData.Label.Text = "等" .. (#ordered - maxShow + 1) .. "个功能"
         for i = maxShow + 1, #ordered do
-            ordered[i].ScreenGui.Visible = false
+            ordered[i].ScreenGui.Enabled = false 
         end
     else
         for _, data in ipairs(ordered) do
-            data.ScreenGui.Visible = true
+            data.ScreenGui.Enabled = true          -- 原为 .Visible
         end
     end
 
