@@ -626,7 +626,6 @@ local function RefreshRainbowLayout()
             table.insert(ordered, data)
         end
     end
-
     for _, data in ipairs(ordered) do
         data.Label.Text = data.OriginalText
         data.IsMerged = false
@@ -649,17 +648,20 @@ local function RefreshRainbowLayout()
     for i = 1, math.min(#ordered, maxShow) do
         table.insert(showList, ordered[i])
     end
-
     if #ordered > maxShow then
         local mergedData = showList[#showList]
         mergedData.IsMerged = true
         mergedData.Label.Text = "等" .. (#ordered - maxShow + 1) .. "个功能"
         for i = maxShow + 1, #ordered do
-            ordered[i].ScreenGui.Visible = false
+            if ordered[i].ScreenGui then
+                ordered[i].ScreenGui.Enabled = false
+            end
         end
     else
         for _, data in ipairs(ordered) do
-            data.ScreenGui.Visible = true
+            if data.ScreenGui then
+                data.ScreenGui.Enabled = true
+            end
         end
     end
     local startY = 10
