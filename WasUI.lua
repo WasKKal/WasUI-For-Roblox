@@ -4234,7 +4234,7 @@ function self:SetRainbowMode(mode)
         if type(startFlowAnimation) == "function" then
             startFlowAnimation()
         else
-            warn("[WasUI] startFlowAnimation is not a function, rainbow border animation disabled")
+            warn("[WasUI] 切换彩虹模式时遇到问题未知问题,请联系开发者")
         end
     end
 end
