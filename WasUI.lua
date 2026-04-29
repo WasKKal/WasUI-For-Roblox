@@ -626,7 +626,14 @@ local function RefreshRainbowLayout()
             table.insert(ordered, data)
         end
     end
+    for _, data in ipairs(ordered) do
+        data.Label.Text = data.OriginalText
+        data.IsMerged = false
+    end
     table.sort(ordered, function(a, b)
+        if a.IsMerged ~= b.IsMerged then
+            return a.IsMerged == false
+        end
         local aLen = utf8.len(a.Label.Text)
         local bLen = utf8.len(b.Label.Text)
         if aLen ~= bLen then
@@ -635,16 +642,25 @@ local function RefreshRainbowLayout()
             return a.CreationOrder < b.CreationOrder
         end
     end)
+
     local maxShow = 10
     local showList = {}
-    for i, data in ipairs(ordered) do
-        if i <= maxShow then
-            table.insert(showList, data)
-        else
-            showList[#showList].Label.Text = showList[#showList].Label.Text .. " 等" .. (#ordered - maxShow + 1) .. "个功能"
-            break
+    for i = 1, math.min(#ordered, maxShow) do
+        table.insert(showList, ordered[i])
+    end
+    if #ordered > maxShow then
+        local mergedData = showList[#showList]
+        mergedData.IsMerged = true
+        mergedData.Label.Text = "等" .. (#ordered - maxShow + 1) .. "个功能"
+        for i = maxShow + 1, #ordered do
+            ordered[i].ScreenGui.Visible = false
+        end
+    else
+        for _, data in ipairs(ordered) do
+            data.ScreenGui.Visible = true
         end
     end
+
     local startY = 10
     local spacing = 5
     for i, data in ipairs(showList) do
@@ -688,7 +704,9 @@ local function CreateRainbowTextForFeature(featureName)
         ScreenGui = screenGui,
         Connection = nil,
         Label = textLabel,
-        CreationOrder = creationOrder
+        CreationOrder = creationOrder,
+        OriginalText = featureName,
+        IsMerged = false
     }
     table.insert(WasUI.RainbowOrder, featureName)
     local targetPos = UDim2.new(1, -190, 0, textLabel.Position.Y.Offset)
@@ -2645,13 +2663,13 @@ function WasUI:CreateTooltip(target, text, options)
     local followMouse = options.followMouse or false
     
     local actualTarget = target
-    if target and target.Instance and target.Instance:IsA("GuiObject") then
+    if type(target) == "table" and target.Instance and target.Instance:IsA("GuiObject") then
         actualTarget = target.Instance
-    elseif not target:IsA("GuiObject") then
+    elseif typeof(target) ~= "Instance" or not target:IsA("GuiObject") then
         warn("CreateTooltip: target must be a GuiObject or Control with Instance")
         return
     end
-    
+
     local tooltipGui = nil
     local tooltipFrame = nil
     local timer = nil
@@ -4138,28 +4156,40 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
     }
     flowGradient.Parent = self.BorderFlow
-    self.BorderStroke = CreateInstance("UIStroke", {
+self.BorderStroke = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 2,
+        Thickness = 1.5,
         Transparency = 0,
         Parent = self.BorderFlow
     })
     self.GlowStroke1 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 6,
-        Transparency = 0.6,
+        Thickness = 4,
+        Transparency = 0.5,
         Parent = self.BorderFlow
     })
     self.GlowStroke2 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 12,
-        Transparency = 0.8,
+        Thickness = 8,
+        Transparency = 0.7,
         Parent = self.BorderFlow
     })
     self.GlowStroke3 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 20,
-        Transparency = 0.92,
+        Thickness = 14,
+        Transparency = 0.84,
+        Parent = self.BorderFlow
+    })
+    self.GlowStroke4 = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 0, 0),
+        Thickness = 22,
+        Transparency = 0.93,
+        Parent = self.BorderFlow
+    })
+    self.GlowStroke5 = CreateInstance("UIStroke", {
+        Color = Color3.fromRGB(255, 0, 0),
+        Thickness = 32,
+        Transparency = 0.97,
         Parent = self.BorderFlow
     })
     self.BorderFlow.Visible = false
@@ -4178,23 +4208,53 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     self.FlowRotation = 0
     self.BorderConnection = nil
 
-    local function startFlowAnimation()
+function self:SetRainbowMode(mode)
+        if mode == "整体" or mode == "流动" then
+            self.RainbowMode = mode
+            if mode == "整体" then
+                self.BorderFlow.BackgroundTransparency = 1
+                self.BorderStroke.Enabled = true
+                self.GlowStroke1.Enabled = true
+                self.GlowStroke2.Enabled = true
+                self.GlowStroke3.Enabled = true
+                self.GlowStroke4.Enabled = true
+                self.GlowStroke5.Enabled = true
+                flowGradient.Enabled = false
+            else
+                self.BorderFlow.BackgroundTransparency = 0
+                self.BorderStroke.Enabled = false
+                self.GlowStroke1.Enabled = false
+                self.GlowStroke2.Enabled = false
+                self.GlowStroke3.Enabled = false
+                self.GlowStroke4.Enabled = false
+                self.GlowStroke5.Enabled = false
+                flowGradient.Enabled = true
+            end
+            self.BorderFlow.Visible = true
+            startFlowAnimation()
+        end
+    end
+
+local function startFlowAnimation()
         if self.BorderConnection then self.BorderConnection:Disconnect() end
         self.BorderConnection = RunService.Heartbeat:Connect(function(deltaTime)
             if self.RainbowMode == "整体" then
-                borderTime = borderTime + deltaTime * 4
-                local r = (math.sin(borderTime) + 1) / 2
-                local g = (math.sin(borderTime + math.pi/3) + 1) / 2
-                local b = (math.sin(borderTime + 2*math.pi/3) + 1) / 2
-                local color = Color3.new(r, g, b)
+                borderTime = borderTime + deltaTime * 2.5   -- 稍微放慢颜色变化速度，避免跳动
+                local hue = (borderTime * 0.3) % 1
+                local color = Color3.fromHSV(hue, 0.8, 1)   -- 使用 HSV 色相平滑过渡
+                
                 self.BorderStroke.Color = color
                 self.BorderStroke.Transparency = 0
                 self.GlowStroke1.Color = color
-                self.GlowStroke1.Transparency = 0.6
+                self.GlowStroke1.Transparency = 0.5
                 self.GlowStroke2.Color = color
-                self.GlowStroke2.Transparency = 0.8
+                self.GlowStroke2.Transparency = 0.7
                 self.GlowStroke3.Color = color
-                self.GlowStroke3.Transparency = 0.92
+                self.GlowStroke3.Transparency = 0.84
+                self.GlowStroke4.Color = color
+                self.GlowStroke4.Transparency = 0.93
+                self.GlowStroke5.Color = color
+                self.GlowStroke5.Transparency = 0.97
                 flowGradient.Enabled = false
             else
                 self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
@@ -4204,31 +4264,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 self.GlowStroke1.Transparency = 1
                 self.GlowStroke2.Transparency = 1
                 self.GlowStroke3.Transparency = 1
+                self.GlowStroke4.Transparency = 1
+                self.GlowStroke5.Transparency = 1
             end
         end)
-    end
-
-    function self:SetRainbowMode(mode)
-        if mode == "整体" or mode == "流动" then
-            self.RainbowMode = mode
-            if mode == "整体" then
-                self.BorderFlow.BackgroundTransparency = 1
-                self.BorderStroke.Enabled = true
-                self.GlowStroke1.Enabled = true
-                self.GlowStroke2.Enabled = true
-                self.GlowStroke3.Enabled = true
-                flowGradient.Enabled = false
-            else
-                self.BorderFlow.BackgroundTransparency = 0
-                self.BorderStroke.Enabled = false
-                self.GlowStroke1.Enabled = false
-                self.GlowStroke2.Enabled = false
-                self.GlowStroke3.Enabled = false
-                flowGradient.Enabled = true
-            end
-            self.BorderFlow.Visible = true
-            startFlowAnimation()
-        end
     end
 
     function self:SetRainbowEnabled(enabled)
