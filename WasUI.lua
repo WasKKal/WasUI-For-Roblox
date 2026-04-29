@@ -626,7 +626,15 @@ local function RefreshRainbowLayout()
             table.insert(ordered, data)
         end
     end
+
+    for _, data in ipairs(ordered) do
+        data.Label.Text = data.OriginalText
+        data.IsMerged = false
+    end
     table.sort(ordered, function(a, b)
+        if a.IsMerged ~= b.IsMerged then
+            return a.IsMerged == false
+        end
         local aLen = utf8.len(a.Label.Text)
         local bLen = utf8.len(b.Label.Text)
         if aLen ~= bLen then
@@ -635,14 +643,23 @@ local function RefreshRainbowLayout()
             return a.CreationOrder < b.CreationOrder
         end
     end)
+
     local maxShow = 10
     local showList = {}
-    for i, data in ipairs(ordered) do
-        if i <= maxShow then
-            table.insert(showList, data)
-        else
-            showList[#showList].Label.Text = showList[#showList].Label.Text .. " 等" .. (#ordered - maxShow + 1) .. "个功能"
-            break
+    for i = 1, math.min(#ordered, maxShow) do
+        table.insert(showList, ordered[i])
+    end
+
+    if #ordered > maxShow then
+        local mergedData = showList[#showList]
+        mergedData.IsMerged = true
+        mergedData.Label.Text = "等" .. (#ordered - maxShow + 1) .. "个功能"
+        for i = maxShow + 1, #ordered do
+            ordered[i].ScreenGui.Visible = false
+        end
+    else
+        for _, data in ipairs(ordered) do
+            data.ScreenGui.Visible = true
         end
     end
     local startY = 10
@@ -688,7 +705,9 @@ local function CreateRainbowTextForFeature(featureName)
         ScreenGui = screenGui,
         Connection = nil,
         Label = textLabel,
-        CreationOrder = creationOrder
+        CreationOrder = creationOrder,
+        OriginalText = featureName,
+        IsMerged = false
     }
     table.insert(WasUI.RainbowOrder, featureName)
     local targetPos = UDim2.new(1, -190, 0, textLabel.Position.Y.Offset)
