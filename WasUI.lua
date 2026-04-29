@@ -629,6 +629,9 @@ local function RefreshRainbowLayout()
     for _, data in ipairs(ordered) do
         data.Label.Text = data.OriginalText
         data.IsMerged = false
+        local bounds = data.Label.TextBounds
+        local height = bounds.Y + 4
+        data.Label.Size = UDim2.new(0, 180, 0, height)
     end
     table.sort(ordered, function(a, b)
         if a.IsMerged ~= b.IsMerged then
@@ -652,15 +655,17 @@ local function RefreshRainbowLayout()
         local mergedData = showList[#showList]
         mergedData.IsMerged = true
         mergedData.Label.Text = "等" .. (#ordered - maxShow + 1) .. "个功能"
+        local bounds = mergedData.Label.TextBounds
+        local height = bounds.Y + 4
+        mergedData.Label.Size = UDim2.new(0, 180, 0, height)
         for i = maxShow + 1, #ordered do
-            ordered[i].ScreenGui.Enabled = false 
+            ordered[i].ScreenGui.Enabled = false
         end
     else
         for _, data in ipairs(ordered) do
-            data.ScreenGui.Enabled = true          -- 原为 .Visible
+            data.ScreenGui.Enabled = true
         end
     end
-
     local startY = 10
     local spacing = 5
     for i, data in ipairs(showList) do
@@ -1804,27 +1809,47 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     end
     self.Callback = callback
     self.IsOpen = false
-    self.Container = CreateInstance("Frame", {
-        Name = "Dropdown",
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        ZIndex = 10,
-        Parent = parent
-    })
-    self.TitleLabel = CreateInstance("TextLabel", {
-        Name = "Title",
-        Size = UDim2.new(0.7, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0, 0),
-        BackgroundTransparency = 1,
-        Text = "",
-        TextColor3 = WasUI.CurrentTheme.Text,
-        TextTransparency = 0,
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 2,
-        Parent = self.Container
-    })
+self.Container = CreateInstance("Frame", {
+    Name = "Dropdown",
+    Size = UDim2.new(1, 0, 0, 28),
+    BackgroundTransparency = 1,
+    ZIndex = 10,
+    Parent = parent
+})
+
+self.TitleLabel = CreateInstance("TextLabel", {
+    Name = "Title",
+    Size = UDim2.new(0.6, 0, 1, 0),  
+    Position = UDim2.new(0, 0, 0, 0),
+    BackgroundTransparency = 1,
+    Text = "",
+    TextColor3 = WasUI.CurrentTheme.Text,
+    Font = Enum.Font.Gotham,
+    TextSize = 12,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    TextYAlignment = Enum.TextYAlignment.Center,
+    ZIndex = 2,
+    Parent = self.Container
+})
+WasUI:SetLocalizedText(self.TitleLabel, title or "下拉菜单")
+
+self.DropdownButton = CreateInstance("TextButton", {
+    Name = "DropdownButton",
+    Size = UDim2.new(0.35, 0, 1, 0),
+    Position = UDim2.new(0.65, -3, 0, 0),
+    BackgroundColor3 = WasUI.CurrentTheme.Input,
+    BackgroundTransparency = 0.3,
+    BorderColor3 = Color3.fromRGB(200, 200, 200),
+    BorderSizePixel = 1,
+    Text = "",
+    TextColor3 = WasUI.CurrentTheme.Text,
+    Font = Enum.Font.Gotham,
+    TextSize = 12,
+    TextTruncate = Enum.TextTruncate.AtEnd,
+    AutoButtonColor = false,
+    ZIndex = 11,
+    Parent = self.Container
+})
     WasUI:SetLocalizedText(self.TitleLabel, title or "下拉菜单")
     self.DropdownButton = CreateInstance("TextButton", {
         Name = "DropdownButton",
@@ -1858,21 +1883,22 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         ZIndex = 12,
         Parent = self.DropdownButton
     })
-    self.OptionsContainer = CreateInstance("ScrollingFrame", {
-        Name = "OptionsContainer",
-        Size = UDim2.new(0.3, 0, 0, 0),
-        Position = UDim2.new(0.7, -3, 0, 24),
-        BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.3,
-        BorderColor3 = Color3.fromRGB(200, 200, 200),
-        BorderSizePixel = 0,
-        ClipsDescendants = true,
-        Visible = false,
-        ZIndex = 9999,
-        ScrollBarThickness = 4,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        Parent = WasUI.DropdownGui
-    })
+self.OptionsContainer = CreateInstance("ScrollingFrame", {
+    Name = "OptionsContainer",
+    Size = UDim2.new(0.35, 0, 0, 0),
+    Position = UDim2.new(0.65, -3, 1, 2),
+    BackgroundColor3 = WasUI.CurrentTheme.Background,
+    BackgroundTransparency = 0.3,
+    BorderColor3 = Color3.fromRGB(200, 200, 200),
+    BorderSizePixel = 0,
+    ClipsDescendants = true,
+    Visible = false,
+    ZIndex = 9999,
+    ScrollBarThickness = 4,
+    ScrollingDirection = Enum.ScrollingDirection.Y,
+    CanvasSize = UDim2.new(0, 0, 0, 0),
+    Parent = WasUI.DropdownGui
+})
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.OptionsContainer})
     local shadow = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(0, 0, 0),
