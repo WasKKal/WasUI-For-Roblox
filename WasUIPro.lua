@@ -3485,67 +3485,148 @@ function WasUI:Notify(options)
 end
 
 function WasUI:CreateWindow(options)
-    local screenGui = Instance.new("ScreenGui"); screenGui.Name = "WasUI_Main"; screenGui.ResetOnSpawn = false
-    screenGui.DisplayOrder = WasUI.DefaultDisplayOrder; screenGui.Parent = game:GetService("CoreGui")
-    if options.Folder then WasUI:CreateFolder(options.Folder) end
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "WasUI_Main"
+    screenGui.ResetOnSpawn = false
+    screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
+    screenGui.Parent = game:GetService("CoreGui")
+    
+    if options.Folder then
+        WasUI:CreateFolder(options.Folder)
+    end
+    
     WasUI.DialogTitle = options.DialogTitle or WasUI.DialogTitle
     WasUI.GroupButtonText = options.GroupText or WasUI.GroupButtonText
     WasUI.GroupCopyContent = options.GroupCopy or WasUI.GroupCopyContent
-    if options.Theme then WasUI:SetDefaultTheme(options.Theme) end
-    if options.RainbowMode then WasUI:SetDefaultRainbowMode(options.RainbowMode) end
-    if options.Language == "EN" then WasUI:SetDefaultLanguage("English") elseif options.Language == "CN" then WasUI:SetDefaultLanguage("中文") end
+    
+    if options.Theme then
+        WasUI:SetDefaultTheme(options.Theme)
+    end
+    if options.RainbowMode then
+        WasUI:SetDefaultRainbowMode(options.RainbowMode)
+    end
+    if options.Language == "EN" then
+        WasUI:SetDefaultLanguage("English")
+    elseif options.Language == "CN" then
+        WasUI:SetDefaultLanguage("中文")
+    end
+    
     local window = Panel:New(options, screenGui)
-    window:SetWelcome(options.WelcomeText or "欢迎使用 WasUI"); window:SetMinimizedText(options.MinimizedText or "WasUI")
+    window:SetWelcome(options.WelcomeText or "欢迎使用 WasUI")
+    window:SetMinimizedText(options.MinimizedText or "WasUI")
+    
     RecordOriginalTransparency(window.Instance)
+    
     local showBuiltinPopup = true
-    if WasUI.ExternalPopupCalled or WasUI.PendingPopup then showBuiltinPopup = false end
+    if WasUI.ExternalPopupCalled or WasUI.PendingPopup then
+        showBuiltinPopup = false
+    end
+    
     local hasConfig = false
-    if WasUI.ConfigManager then local config = WasUI.ConfigManager:GetConfig("user_settings"); if config and next(config.Data) then hasConfig = true end end
+    if WasUI.ConfigManager then
+        local config = WasUI.ConfigManager:GetConfig("user_settings")
+        if config and next(config.Data) then
+            hasConfig = true
+        end
+    end
+    
     if hasConfig and showBuiltinPopup then
-        WasUI:ShowPopup({ title = "找到配置文件", titleIcon = "file-cog", content = "是否加载上次保存的配置？", confirmText = "加载", cancelText = "跳过", onConfirm = function() local config = WasUI.ConfigManager:GetConfig("user_settings"); if config then config:Load() end end, onCancel = function() end })
+        WasUI:ShowPopup({
+            title = "找到配置文件",
+            titleIcon = "file-cog",
+            content = "是否加载上次保存的配置？",
+            confirmText = "加载",
+            cancelText = "跳过",
+            onConfirm = function()
+                local config = WasUI.ConfigManager:GetConfig("user_settings")
+                if config then config:Load() end
+            end,
+            onCancel = function() end,
+        })
     end
+    
     local windowAPI = {}
-    local function addToTab(controlType, createFunc, opts)
-        opts = (type(opts) == "table") and opts or {}
-        opts.Parent = window.Instance
-        local control = createFunc(opts)
-        return control
-    end
+    
     function windowAPI:Tab(tabOptions)
         local tabFrame = window:AddTab(tabOptions)
         local tabAPI = {}
-        local function addToCurrentTab(controlType, createFunc, opts)
+        
+        -- 内部函数：将控件创建绑定到当前选项卡
+        local function addControl(createFunc, opts)
             opts = (type(opts) == "table") and opts or {}
             opts.Parent = tabFrame
             return createFunc(opts)
         end
-        tabAPI.Button = function(opts) return addToCurrentTab("Button", Button.New, opts) end
-        tabAPI.Toggle = function(opts) return addToCurrentTab("Toggle", ToggleSwitch.New, opts) end
-        tabAPI.Label = function(opts) return addToCurrentTab("Label", Label.New, opts) end
-        tabAPI.Category = function(opts) return addToCurrentTab("Category", Category.New, opts) end
-        tabAPI.Dropdown = function(opts) return addToCurrentTab("Dropdown", Dropdown.New, opts) end
-        tabAPI.Slider = function(opts) return addToCurrentTab("Slider", Slider.New, opts) end
-        tabAPI.TextInput = function(opts) return addToCurrentTab("TextInput", TextInput.New, opts) end
-        tabAPI.ProgressBar = function(opts) return addToCurrentTab("ProgressBar", ProgressBar.New, opts) end
-        tabAPI.Paragraph = function(opts) return addToCurrentTab("Paragraph", Paragraph.New, opts) end
+        
+        -- 所有控件方法
+        tabAPI.Button = function(opts) return addControl(Button.New, opts) end
+        tabAPI.Toggle = function(opts) return addControl(ToggleSwitch.New, opts) end
+        tabAPI.Label = function(opts) return addControl(Label.New, opts) end
+        tabAPI.Category = function(opts) return addControl(Category.New, opts) end
+        tabAPI.Dropdown = function(opts) return addControl(Dropdown.New, opts) end
+        tabAPI.Slider = function(opts) return addControl(Slider.New, opts) end
+        tabAPI.TextInput = function(opts) return addControl(TextInput.New, opts) end
+        tabAPI.ProgressBar = function(opts) return addControl(ProgressBar.New, opts) end
+        tabAPI.Paragraph = function(opts) return addControl(Paragraph.New, opts) end
         tabAPI.ColorPickerButton = function(opts)
             opts = opts or {}
             opts.Parent = tabFrame
             return WasUI:CreateColorPickerButton(opts.Parent, opts.Title, opts.Default, opts.Callback, opts.ConfigKey)
         end
-        tabAPI.AddSpacing = function(height) WasUI:AddSpacing(tabFrame, height) end
+        
+        tabAPI.AddSpacing = function(height)
+            local spacing = Instance.new("Frame")
+            spacing.Name = "Spacing"
+            spacing.Size = UDim2.new(1, 0, 0, height or 4)
+            spacing.BackgroundTransparency = 1
+            spacing.Parent = tabFrame
+        end
+        
         return tabAPI
     end
-    function windowAPI:Category(categoryOptions) return Category.New(categoryOptions, window.Instance) end
-    function windowAPI:SetVisible(visible) window:SetVisible(visible) end
-    function windowAPI:Close() window:MinimizeToDots() end
-    function windowAPI:Destroy() window:MinimizeToDots(); task.wait(0.3); if screenGui then screenGui:Destroy() end end
-    function windowAPI:SetTitle(title) window:SetTitle(title) end
-    function windowAPI:SetWelcome(text) window:SetWelcome(text) end
-    function windowAPI:EnableHotkeyToggle(keyCode) window:EnableHotkeyToggle(keyCode) end
-    function windowAPI:DisableHotkeyToggle() window:DisableHotkeyToggle() end
-    function windowAPI:SetMinimizedText(text) window:SetMinimizedText(text) end
-    function windowAPI:GetConfigManager() return WasUI.ConfigManager end
+    
+    function windowAPI:Category(categoryOptions)
+        return Category.New(categoryOptions, window.Instance)
+    end
+    
+    function windowAPI:SetVisible(visible)
+        window:SetVisible(visible)
+    end
+    
+    function windowAPI:Close()
+        window:MinimizeToDots()
+    end
+    
+    function windowAPI:Destroy()
+        window:MinimizeToDots()
+        task.wait(0.3)
+        if screenGui then screenGui:Destroy() end
+    end
+    
+    function windowAPI:SetTitle(title)
+        window:SetTitle(title)
+    end
+    
+    function windowAPI:SetWelcome(text)
+        window:SetWelcome(text)
+    end
+    
+    function windowAPI:EnableHotkeyToggle(keyCode)
+        window:EnableHotkeyToggle(keyCode)
+    end
+    
+    function windowAPI:DisableHotkeyToggle()
+        window:DisableHotkeyToggle()
+    end
+    
+    function windowAPI:SetMinimizedText(text)
+        window:SetMinimizedText(text)
+    end
+    
+    function windowAPI:GetConfigManager()
+        return WasUI.ConfigManager
+    end
+    
     windowAPI.Window = window
     return windowAPI
 end
