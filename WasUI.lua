@@ -4459,7 +4459,7 @@ WasUI:SetLocalizedText(self.Title, name)
     self.CloseDot = CreateInstance("Frame", {
         Name = "Close",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 13.2, 0.5, -5.4),
+        Position = UDim2.new(0, 11.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 95, 87),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
@@ -4469,7 +4469,7 @@ WasUI:SetLocalizedText(self.Title, name)
     self.MinimizeDot = CreateInstance("Frame", {
         Name = "Minimize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 28.2, 0.5, -5.4),
+        Position = UDim2.new(0, 26.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(255, 189, 46),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
@@ -4479,7 +4479,7 @@ WasUI:SetLocalizedText(self.Title, name)
     self.MaximizeDot = CreateInstance("Frame", {
         Name = "Maximize",
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 43.2, 0.5, -5.4),
+        Position = UDim2.new(0, 41.2, 0.5, -5.4),
         BackgroundColor3 = Color3.fromRGB(39, 201, 63),
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
