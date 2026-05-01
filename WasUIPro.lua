@@ -61,6 +61,9 @@ function WasUI:Translate(text)
     return self.LanguageTable[text] or text
 end
 function WasUI:SetLocalizedText(guiObject, chineseText, propertyName)
+    if chineseText == nil or chineseText == "" then
+        chineseText = " "
+    end
     propertyName = propertyName or "Text"
     local translated = self:Translate(chineseText)
     guiObject[propertyName] = translated
