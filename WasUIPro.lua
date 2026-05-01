@@ -463,7 +463,12 @@ end
 
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
-    for prop, value in pairs(properties) do instance[prop] = value end
+    for prop, value in pairs(properties) do
+        if prop == "Name" and type(value) ~= "string" then
+            value = tostring(value) or ""
+        end
+        instance[prop] = value
+    end
     return instance
 end
 
@@ -547,11 +552,8 @@ local function CreateRainbowTextForFeature(featureName)
     })
     local creationOrder = #WasUI.RainbowOrder + 1
     WasUI.ActiveRainbowTexts[featureName] = {
-        ScreenGui = screenGui,
-        Label = textLabel,
-        CreationOrder = creationOrder,
-        OriginalText = featureName,
-        IsMerged = false
+        ScreenGui = screenGui, Label = textLabel, CreationOrder = creationOrder,
+        OriginalText = featureName, IsMerged = false
     }
     table.insert(WasUI.RainbowOrder, featureName)
     RefreshRainbowLayout()
@@ -1123,6 +1125,7 @@ function ToggleSwitch:New(options, parent)
     table.insert(WasUI.Objects, {Object = self.Knob, Type = "ToggleKnob"})
     return self
 end
+
 local Label = setmetatable({}, {__index = Control})
 Label.__index = Label
 function Label:New(options, parent)
@@ -1744,6 +1747,116 @@ function ProgressBar:New(options, parent)
     return self
 end
 
+-- Paragraph 控件
+local Paragraph = setmetatable({}, {__index = Control})
+Paragraph.__index = Paragraph
+function Paragraph:New(options, parent)
+    options = options or {}
+    local self = Control:New(options.Name or "Paragraph", parent)
+    self.Title = options.Title or ""
+    self.Desc = options.Desc or ""
+    self.Icon = options.Icon
+    self.IconSize = options.IconSize or 24
+    self.Button = options.Button  -- { Title, Icon, Callback, Variant } 可选
+    self.Container = CreateInstance("Frame", {
+        Name = "ParagraphContainer", Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.Y, Parent = parent, ZIndex = 2
+    })
+    local mainLayout = CreateInstance("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8), Parent = self.Container })
+    local contentFrame = CreateInstance("Frame", {
+        Name = "Content", Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = self.Container
+    })
+    local innerLayout = CreateInstance("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 12), VerticalAlignment = Enum.VerticalAlignment.Center, Parent = contentFrame })
+    local iconImg = nil
+    if self.Icon then
+        iconImg = WasUI:CreateIcon(self.Icon, UDim2.new(0, self.IconSize, 0, self.IconSize), WasUI.CurrentTheme.Text)
+        if iconImg then iconImg.Parent = contentFrame; iconImg.LayoutOrder = 1; iconImg.BackgroundTransparency = 1 end
+    end
+    local textContainer = CreateInstance("Frame", {
+        Name = "TextContainer", Size = UDim2.new(1, (iconImg and -self.IconSize-12 or 0), 0, 0), BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.Y, Parent = contentFrame
+    })
+    local textLayout = CreateInstance("UIListLayout", { Padding = UDim.new(0, 4), FillDirection = Enum.FillDirection.Vertical, Parent = textContainer })
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title", BackgroundTransparency = 1, Text = self.Title, TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold, TextSize = 16, TextXAlignment = Enum.TextXAlignment.Left,
+        TextWrapped = true, AutomaticSize = Enum.AutomaticSize.Y, Size = UDim2.new(1, 0, 0, 0), Parent = textContainer
+    })
+    local descLabel = nil
+    if self.Desc and self.Desc ~= "" then
+        descLabel = CreateInstance("TextLabel", {
+            Name = "Desc", BackgroundTransparency = 1, Text = self.Desc, TextColor3 = WasUI.CurrentTheme.Text,
+            TextTransparency = 0.4, Font = Enum.Font.Gotham, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left,
+            TextWrapped = true, AutomaticSize = Enum.AutomaticSize.Y, Size = UDim2.new(1, 0, 0, 0), Parent = textContainer
+        })
+    end
+    local buttonContainer = nil
+    local buttonObj = nil
+    if self.Button and self.Button.Title then
+        buttonContainer = CreateInstance("Frame", {
+            Name = "ButtonContainer", Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1,
+            AutomaticSize = Enum.AutomaticSize.Y, Parent = self.Container, LayoutOrder = 2
+        })
+        local btnLayout = CreateInstance("UIListLayout", { Padding = UDim.new(0, 8), FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, Parent = buttonContainer })
+        local btnVariant = self.Button.Variant or "Primary"
+        local btn = WasUI:CreateButton(buttonContainer, self.Button.Title, self.Button.Callback or function() end, nil, self.Button.Icon, nil)
+        buttonObj = btn
+    end
+    function self:SetTitle(newTitle)
+        self.Title = newTitle
+        titleLabel.Text = newTitle
+    end
+    function self:SetDesc(newDesc)
+        self.Desc = newDesc or ""
+        if descLabel then
+            if newDesc and newDesc ~= "" then
+                descLabel.Text = newDesc; descLabel.Visible = true
+            else
+                descLabel.Visible = false
+            end
+        elseif newDesc and newDesc ~= "" then
+            descLabel = CreateInstance("TextLabel", {
+                Name = "Desc", BackgroundTransparency = 1, Text = newDesc, TextColor3 = WasUI.CurrentTheme.Text,
+                TextTransparency = 0.4, Font = Enum.Font.Gotham, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left,
+                TextWrapped = true, AutomaticSize = Enum.AutomaticSize.Y, Size = UDim2.new(1, 0, 0, 0), Parent = textContainer
+            })
+        end
+    end
+    function self:SetIcon(iconName, size)
+        if iconImg then iconImg:Destroy() end
+        self.Icon = iconName
+        self.IconSize = size or self.IconSize
+        if iconName then
+            iconImg = WasUI:CreateIcon(iconName, UDim2.new(0, self.IconSize, 0, self.IconSize), WasUI.CurrentTheme.Text)
+            if iconImg then
+                iconImg.Parent = contentFrame; iconImg.LayoutOrder = 1; iconImg.BackgroundTransparency = 1
+                textContainer.Size = UDim2.new(1, -self.IconSize-12, 0, 0)
+            end
+        else
+            textContainer.Size = UDim2.new(1, 0, 0, 0)
+        end
+    end
+    function self:SetButton(title, callback, icon, variant)
+        if buttonContainer then buttonContainer:Destroy() end
+        if title then
+            buttonContainer = CreateInstance("Frame", {
+                Name = "ButtonContainer", Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1,
+                AutomaticSize = Enum.AutomaticSize.Y, Parent = self.Container, LayoutOrder = 2
+            })
+            local btnLayout = CreateInstance("UIListLayout", { Padding = UDim.new(0, 8), FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, Parent = buttonContainer })
+            buttonObj = WasUI:CreateButton(buttonContainer, title, callback or function() end, nil, icon, nil)
+            self.Button = { Title = title, Callback = callback, Icon = icon, Variant = variant }
+        else
+            self.Button = nil
+            buttonObj = nil
+        end
+    end
+    self.Instance = self.Container
+    table.insert(WasUI.Objects, {Object = self.Container, Type = "Paragraph"})
+    return self
+end
+
 function WasUI:CreateTooltip(target, text, options)
     if WasUI.CleanMode then return nil end
     options = options or {}
@@ -1751,7 +1864,6 @@ function WasUI:CreateTooltip(target, text, options)
     local backgroundColor = options.backgroundColor or WasUI.CurrentTheme.Section
     local textColor = options.textColor or WasUI.CurrentTheme.Text
     local delay = options.delay or 0.5
-    local followMouse = options.followMouse or false
     local actualTarget = target
     if type(target) == "table" and target.Instance and target.Instance:IsA("GuiObject") then actualTarget = target.Instance
     elseif typeof(target) ~= "Instance" or not target:IsA("GuiObject") then warn("CreateTooltip: target must be a GuiObject or Control with Instance"); return end
@@ -1965,7 +2077,7 @@ function WasUI:ShowPopup(options, callback)
         Parent = dialogGui, ZIndex = 999
     })
     local dialogFrame = CreateInstance("Frame", {
-        Name = "Dialog", Size = UDim2.new(0, 480, 0, 0), BackgroundColor3 = WasUI.CurrentTheme.Background,
+        Name = "Dialog", Size = UDim2.new(0, 360, 0, 0), BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 1, BorderSizePixel = 0, ClipsDescendants = true,
         Parent = overlay, ZIndex = 1000
     })
@@ -2011,7 +2123,7 @@ function WasUI:ShowPopup(options, callback)
         Parent = dialogFrame, ZIndex = 1001
     })
     local buttonContainer = CreateInstance("Frame", {
-        Name = "ButtonContainer", Size = UDim2.new(1, -20, 0, 40), Position = UDim2.new(0, 10, 0, 70),
+        Name = "ButtonContainer", Size = UDim2.new(1, -20, 0, 40), Position = UDim2.new(0, 10, 1, -60),
         BackgroundTransparency = 1, Parent = dialogFrame, ZIndex = 1001
     })
     local cancelButton = CreateInstance("TextButton", {
@@ -2034,8 +2146,9 @@ function WasUI:ShowPopup(options, callback)
         confirmButton.Text = confirmText .. "  "; confirmButton.TextXAlignment = Enum.TextXAlignment.Left
         local padding = Instance.new("UIPadding"); padding.PaddingLeft = UDim.new(0, 12); padding.Parent = confirmButton
     end
-    local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 65; dialogFrame.Size = UDim2.new(0, 480, 0, totalHeight)
-    buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 18)
+    local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 45
+    dialogFrame.Size = UDim2.new(0, 360, 0, totalHeight)
+    buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 12)
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
             local parentSize = dialogGui.AbsoluteSize; local frameSize = dialogFrame.AbsoluteSize
@@ -2340,6 +2453,13 @@ local function AnimateThemeChange(oldTheme, newTheme)
         elseif obj.Type == "TextInput" then
             local textBox = instance:FindFirstChild("TextBox")
             if textBox and textBox:IsA("TextBox") then Tween(textBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration); textBox.PlaceholderColor3 = newTheme.Text end
+        elseif obj.Type == "Paragraph" then
+            local container = instance; local iconImg = container:FindFirstChild("Content") and container.Content:FindFirstChildOfClass("ImageLabel")
+            local titleLabel = container:FindFirstChild("Content") and container.Content.TextContainer and container.Content.TextContainer:FindFirstChild("Title")
+            local descLabel = container:FindFirstChild("Content") and container.Content.TextContainer and container.Content.TextContainer:FindFirstChild("Desc")
+            if iconImg and not iconImg:GetAttribute("IgnoreThemeChange") then Tween(iconImg, {ImageColor3 = newTheme.Text}, duration) end
+            if titleLabel and titleLabel:IsA("TextLabel") then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+            if descLabel and descLabel:IsA("TextLabel") then Tween(descLabel, {TextColor3 = newTheme.Text}, duration) end
         elseif obj.Type == "Panel" then
             Tween(instance, {BackgroundColor3 = newTheme.Background}, duration)
             local titleBar = instance:FindFirstChild("TitleBar")
@@ -2520,7 +2640,7 @@ function Panel:New(options, parent)
     options = options or {}
     local self = setmetatable({}, Panel)
     self.SnowEnabled = options.SnowEnabled or false
-    self.BackgroundImage = nil
+    self.BackroundImage = nil
     function self:SetBackground(url)
         if self.BackgroundImage then self.BackgroundImage:Destroy() end
         if url and url ~= "" then
@@ -2532,8 +2652,9 @@ function Panel:New(options, parent)
             ContentProvider:PreloadAsync({url}); self.BackgroundImage.Image = url
         else self.BackgroundImage = nil end
     end
+    local titleStr = type(options.Title) == "string" and options.Title or (type(options.Title) == "table" and options.Title.Text) or tostring(options.Title) or "Window"
     self.Instance = CreateInstance("Frame", {
-        Name = options.Title, Size = options.Size or UDim2.new(0, 380, 0, 350),
+        Name = titleStr, Size = options.Size or UDim2.new(0, 380, 0, 350),
         Position = options.Position or UDim2.new(0.5, -190, 0.5, -175),
         BackgroundColor3 = WasUI.CurrentTheme.Background, BackgroundTransparency = 0.3,
         ClipsDescendants = true, ZIndex = 1, Parent = parent
@@ -2628,7 +2749,7 @@ function Panel:New(options, parent)
         TextTruncate = Enum.TextTruncate.None, AutomaticSize = Enum.AutomaticSize.X,
         Active = false, ZIndex = 2, Parent = self.TitleBar
     })
-    WasUI:SetLocalizedText(self.Title, options.Title)
+    WasUI:SetLocalizedText(self.Title, titleStr)
     local titleTagsList = {}; local titleTag = options.TitleTag
     if type(titleTag) == "table" then
         if titleTag[1] then titleTagsList = titleTag else titleTagsList = {titleTag} end
@@ -3406,6 +3527,7 @@ function WasUI:CreateWindow(options)
         tabAPI.Slider = function(opts) return addToCurrentTab("Slider", Slider.New, opts) end
         tabAPI.TextInput = function(opts) return addToCurrentTab("TextInput", TextInput.New, opts) end
         tabAPI.ProgressBar = function(opts) return addToCurrentTab("ProgressBar", ProgressBar.New, opts) end
+        tabAPI.Paragraph = function(opts) return addToCurrentTab("Paragraph", Paragraph.New, opts) end
         tabAPI.ColorPickerButton = function(opts)
             opts = opts or {}
             opts.Parent = tabFrame
