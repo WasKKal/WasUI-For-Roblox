@@ -12,13 +12,12 @@ local GuiService = game:GetService("GuiService")
 local ContentProvider = game:GetService("ContentProvider")
 local TextService = game:GetService("TextService")
 
-local _WASUI_LOADED = false
-if _WASUI_LOADED then
-    warn("WasUI已加载，请勿重复加载")
+local _LOADED = false
+if _LOADED then
+    warn("WasUIPro已加载，请勿重复加载")
     return WasUI
 end
-_WASUI_LOADED = true
-
+_LOADED = true
 local function copyToClipboard(text)
     if type(setclipboard) == "function" then
         setclipboard(text)
@@ -29,9 +28,9 @@ local function copyToClipboard(text)
     return false
 end
 
+WasUI.Version = "1.0.1"
 WasUI.DefaultDisplayOrder = 10
-WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.0.1[NEW]"
+WasUI.DialogTitle = "你要关闭WasUIPro吗?"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -39,7 +38,7 @@ WasUI.NotificationWidth = 250
 WasUI.ActiveNotifications = {}
 WasUI.OpenDropdowns = {}
 WasUI.SettingsPanel = nil
-WasUI.GroupButtonText = "加入WasUI主群"
+WasUI.GroupButtonText = "加入群组"
 WasUI.GroupCopyContent = "786284990"
 WasUI.CleanMode = false
 WasUI.DefaultFeatureStates = {}
@@ -54,209 +53,51 @@ WasUI.DefaultRainbowMode = "整体"
 WasUI.CurrentThemeName = WasUI.DefaultTheme
 WasUI.CurrentLanguage = "中文"
 WasUI.LanguageTable = nil
-
-function WasUI:LoadLanguageTable(tbl) self.LanguageTable = tbl end
-function WasUI:Translate(text)
-    if self.CurrentLanguage == "中文" or not self.LanguageTable then return text end
-    return self.LanguageTable[text] or text
-end
-function WasUI:SetLocalizedText(guiObject, chineseText, propertyName)
-    if chineseText == nil or chineseText == "" then
-        chineseText = " "
-    end
-    propertyName = propertyName or "Text"
-    local translated = self:Translate(chineseText)
-    guiObject[propertyName] = translated
-    guiObject:SetAttribute("OriginalText", chineseText)
-    guiObject:SetAttribute("LocalizedProperty", propertyName)
-end
-function WasUI:SetLanguage(lang)
-    if lang ~= "中文" and lang ~= "English" then return false end
-    self.CurrentLanguage = lang
-    self:RefreshAllTexts()
-    return true
-end
-function WasUI:SetDefaultLanguage(lang)
-    if lang ~= "中文" and lang ~= "English" then return false end
-    self.CurrentLanguage = lang
-    return true
-end
-
-function WasUI:RefreshAllTexts()
-    for _, obj in ipairs(WasUI.Objects) do
-        local instance = obj.Object
-        if instance and instance:IsA("GuiObject") then
-            local original = instance:GetAttribute("OriginalText")
-            if original then
-                local prop = instance:GetAttribute("LocalizedProperty") or "Text"
-                local translated = self:Translate(original)
-                if instance[prop] ~= nil then instance[prop] = translated end
-            end
-        end
-    end
-    for _, shortcut in pairs(WasUI.ShortcutButtons) do
-        local btn = shortcut.button
-        if btn then
-            local textLabel = btn:FindFirstChild("Text")
-            if textLabel then
-                local original = textLabel:GetAttribute("OriginalText")
-                if original then textLabel.Text = self:Translate(original) end
-            end
-        end
-    end
-    if WasUI.SettingsPanel then
-        local content = WasUI.SettingsPanel:FindFirstChild("Content")
-        if content then
-            for _, child in ipairs(content:GetChildren()) do
-                if child:IsA("TextLabel") or child:IsA("TextButton") then
-                    local original = child:GetAttribute("OriginalText")
-                    if original then child.Text = self:Translate(original) end
-                elseif child.Name == "SnowToggleContainer" or child.Name == "LanguageToggleContainer" then
-                    local title = child:FindFirstChild("Title")
-                    if title then
-                        local original = title:GetAttribute("OriginalText")
-                        if original then title.Text = self:Translate(original) end
-                    end
-                end
-            end
-        end
-        local titleBar = WasUI.SettingsPanel:FindFirstChild("TitleBar")
-        if titleBar then
-            local title = titleBar:FindFirstChild("Title")
-            if title then
-                local original = title:GetAttribute("OriginalText")
-                if original then title.Text = self:Translate(original) end
-            end
-        end
-        for _, child in ipairs(WasUI.SettingsPanel:GetChildren()) do
-            if child:IsA("TextLabel") or child:IsA("TextButton") then
-                local original = child:GetAttribute("OriginalText")
-                if original then child.Text = self:Translate(original) end
-            end
-        end
-    end
-    for _, notif in pairs(WasUI.ActiveNotifications) do
-        local frame = notif.Frame
-        if frame then
-            local title = frame:FindFirstChild("Title")
-            local content = frame:FindFirstChild("Content")
-            if title then
-                local original = title:GetAttribute("OriginalText")
-                if original then title.Text = self:Translate(original) end
-            end
-            if content then
-                local original = content:GetAttribute("OriginalText")
-                if original then content.Text = self:Translate(original) end
-            end
-        end
-    end
-    for _, panelObj in ipairs(WasUI.Objects) do
-        if panelObj.Type == "Panel" and panelObj.Object then
-            local panelInstance = panelObj.Object
-            local titleBar = panelInstance:FindFirstChild("TitleBar")
-            if titleBar then
-                local titleLabel = titleBar:FindFirstChild("Title")
-                if not titleLabel then
-                    local titleContainer = titleBar:FindFirstChild("TitleContainer")
-                    if titleContainer then titleLabel = titleContainer:FindFirstChild("Title") end
-                end
-                if titleLabel then
-                    local original = titleLabel:GetAttribute("OriginalText")
-                    if original then titleLabel.Text = self:Translate(original) end
-                end
-            end
-            local announcementBar = panelInstance:FindFirstChild("AnnouncementBar")
-            if announcementBar then
-                local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
-                if welcomeLabel then
-                    local original = welcomeLabel:GetAttribute("OriginalText")
-                    if original then welcomeLabel.Text = self:Translate(original) end
-                end
-                local settingsHint = announcementBar:FindFirstChild("SettingsHint")
-                if settingsHint then
-                    local original = settingsHint:GetAttribute("OriginalText")
-                    if original then settingsHint.Text = self:Translate(original) end
-                end
-            end
-            local tabBar = panelInstance:FindFirstChild("TabBar")
-            if tabBar then
-                local tabContainer = tabBar:FindFirstChild("TabContainer")
-                if tabContainer then
-                    for _, tabBtn in ipairs(tabContainer:GetChildren()) do
-                        if tabBtn:IsA("TextButton") then
-                            local original = tabBtn:GetAttribute("OriginalText")
-                            if original then tabBtn.Text = self:Translate(original) end
-                        end
-                    end
-                end
-            end
-        end
-    end
-end
-
-function WasUI:SetDefaultTheme(themeName)
-    if self.Themes[themeName] then
-        self.DefaultTheme = themeName
-        self.CurrentThemeName = themeName
-        self.CurrentTheme = self.Themes[themeName]
-        return true
-    end
-    return false
-end
-
-function WasUI:SetDefaultRainbowMode(mode)
-    if mode == "整体" or mode == "流动" then
-        self.DefaultRainbowMode = mode
-        return true
-    end
-    return false
-end
-
 WasUI.Themes = {
     Dark = {
-        Primary = Color3.fromRGB(15, 15, 20),
-        Secondary = Color3.fromRGB(25, 25, 30),
-        Background = Color3.fromRGB(28, 28, 34),
-        Text = Color3.fromRGB(220, 220, 220),
-        Accent = Color3.fromRGB(153, 51, 255),
-        Success = Color3.fromRGB(83, 227, 136),
-        Warning = Color3.fromRGB(255, 213, 92),
-        Error = Color3.fromRGB(255, 123, 123),
-        Section = Color3.fromRGB(45, 45, 50),
-        Input = Color3.fromRGB(45, 45, 50),
-        TabBorder = Color3.fromRGB(60, 60, 65),
-        TabButton = Color3.fromRGB(0, 0, 0),
-        SnowColor = Color3.fromRGB(255, 255, 255)
+        Primary = Color3.fromRGB(15,15,20),
+        Secondary = Color3.fromRGB(25,25,30),
+        Background = Color3.fromRGB(28,28,34),
+        Text = Color3.fromRGB(220,220,220),
+        Accent = Color3.fromRGB(153,51,255),
+        Success = Color3.fromRGB(83,227,136),
+        Warning = Color3.fromRGB(255,213,92),
+        Error = Color3.fromRGB(255,123,123),
+        Section = Color3.fromRGB(45,45,50),
+        Input = Color3.fromRGB(45,45,50),
+        TabBorder = Color3.fromRGB(60,60,65),
+        TabButton = Color3.fromRGB(0,0,0),
+        SnowColor = Color3.fromRGB(255,255,255)
     },
     Light = {
-        Primary = Color3.fromRGB(240, 240, 245),
-        Secondary = Color3.fromRGB(245, 245, 250),
-        Background = Color3.fromRGB(255, 255, 255),
-        Text = Color3.fromRGB(0, 0, 0),
-        Accent = Color3.fromRGB(52, 86, 139),
-        Success = Color3.fromRGB(52, 168, 83),
-        Warning = Color3.fromRGB(251, 188, 5),
-        Error = Color3.fromRGB(234, 67, 53),
-        Section = Color3.fromRGB(240, 240, 245),
-        Input = Color3.fromRGB(240, 240, 245),
-        TabBorder = Color3.fromRGB(200, 200, 205),
-        TabButton = Color3.fromRGB(248, 248, 250),
-        SnowColor = Color3.fromRGB(0, 0, 0)
+        Primary = Color3.fromRGB(240,240,245),
+        Secondary = Color3.fromRGB(245,245,250),
+        Background = Color3.fromRGB(255,255,255),
+        Text = Color3.fromRGB(0,0,0),
+        Accent = Color3.fromRGB(52,86,139),
+        Success = Color3.fromRGB(52,168,83),
+        Warning = Color3.fromRGB(251,188,5),
+        Error = Color3.fromRGB(234,67,53),
+        Section = Color3.fromRGB(240,240,245),
+        Input = Color3.fromRGB(240,240,245),
+        TabBorder = Color3.fromRGB(200,200,205),
+        TabButton = Color3.fromRGB(248,248,250),
+        SnowColor = Color3.fromRGB(0,0,0)
     },
     Blue = {
-        Primary = Color3.fromRGB(30, 42, 56),
-        Secondary = Color3.fromRGB(44, 62, 80),
-        Background = Color3.fromRGB(52, 73, 94),
-        Text = Color3.fromRGB(236, 240, 241),
-        Accent = Color3.fromRGB(230, 126, 34),
-        Success = Color3.fromRGB(46, 204, 113),
-        Warning = Color3.fromRGB(241, 196, 15),
-        Error = Color3.fromRGB(231, 76, 60),
-        Section = Color3.fromRGB(61, 86, 110),
-        Input = Color3.fromRGB(44, 62, 80),
-        TabBorder = Color3.fromRGB(93, 109, 126),
-        TabButton = Color3.fromRGB(40, 55, 71),
-        SnowColor = Color3.fromRGB(255, 255, 255)
+        Primary = Color3.fromRGB(30,42,56),
+        Secondary = Color3.fromRGB(44,62,80),
+        Background = Color3.fromRGB(52,73,94),
+        Text = Color3.fromRGB(236,240,241),
+        Accent = Color3.fromRGB(230,126,34),
+        Success = Color3.fromRGB(46,204,113),
+        Warning = Color3.fromRGB(241,196,15),
+        Error = Color3.fromRGB(231,76,60),
+        Section = Color3.fromRGB(61,86,110),
+        Input = Color3.fromRGB(44,62,80),
+        TabBorder = Color3.fromRGB(93,109,126),
+        TabButton = Color3.fromRGB(40,55,71),
+        SnowColor = Color3.fromRGB(255,255,255)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes[WasUI.DefaultTheme]
@@ -272,6 +113,9 @@ WasUI.ConfigFolderCreated = false
 WasUI.ConfigFolderName = nil
 WasUI.ActiveDialogs = {}
 WasUI.ExternalPopupCalled = false
+Button = {}; ToggleSwitch = {}; Slider = {}; Dropdown = {};
+TextInput = {}; ProgressBar = {}; Label = {}; Category = {};
+Paragraph = {}
 
 local function RecordOriginalTransparency(instance)
     if instance and instance:IsA("GuiObject") then
