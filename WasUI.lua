@@ -657,50 +657,18 @@ function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
 end
 
 local function RefreshRainbowLayout()
-    local ordered = {}
-    for _, featureName in ipairs(WasUI.RainbowOrder) do
-        local data = WasUI.ActiveRainbowTexts[featureName]
-        if data and data.Label then table.insert(ordered, data) end
-    end
-    for _, data in ipairs(ordered) do
-        data.Label.Text = data.OriginalText
-        data.IsMerged = false
-        local bounds = data.Label.TextBounds
-        local height = bounds.Y + 4
-        data.Label.Size = UDim2.new(0, 180, 0, height)
-    end
-    table.sort(ordered, function(a, b)
-        if a.IsMerged ~= b.IsMerged then return a.IsMerged == false end
-        local aLen = utf8.len(a.Label.Text)
-        local bLen = utf8.len(b.Label.Text)
-        if aLen ~= bLen then return aLen > bLen
-        else return a.CreationOrder < b.CreationOrder end
-    end)
-
-    local maxShow = 10
-    local showList = {}
-    for i = 1, math.min(#ordered, maxShow) do table.insert(showList, ordered[i]) end
-    if #ordered > maxShow then
-        local mergedData = showList[#showList]
-        mergedData.IsMerged = true
-        mergedData.Label.Text = "等" .. (#ordered - maxShow + 1) .. "个功能"
-        local bounds = mergedData.Label.TextBounds
-        local height = bounds.Y + 4
-        mergedData.Label.Size = UDim2.new(0, 180, 0, height)
-        for i = maxShow + 1, #ordered do ordered[i].ScreenGui.Enabled = false end
-    else
-        for _, data in ipairs(ordered) do data.ScreenGui.Enabled = true end
-    end
     local startY = 10
     local spacing = 5
-    for i, data in ipairs(showList) do
-        local label = data.Label
-        local height = label.Size.Y.Offset
-        label.Position = UDim2.new(1, -190, 0, startY)
-        startY = startY + height + spacing
+    for i, featureName in ipairs(WasUI.RainbowOrder) do
+        local data = WasUI.ActiveRainbowTexts[featureName]
+        if data and data.Label then
+            data.Label.Position = UDim2.new(1, -190, 0, startY)
+            data.Label.Size = UDim2.new(0, 180, 0, 20)  -- 固定高度
+            data.ScreenGui.Enabled = true
+            startY = startY + 20 + spacing
+        end
     end
 end
-
 local function CreateRainbowTextForFeature(featureName)
     if WasUI.CleanMode then return end
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
@@ -713,7 +681,7 @@ local function CreateRainbowTextForFeature(featureName)
     })
     local textLabel = CreateInstance("TextLabel", {
         Name = "Text",
-        Size = UDim2.new(0, 180, 0, 0),
+        Size = UDim2.new(0, 180, 0, 20),
         Position = UDim2.new(1, 10, 0, 0),
         BackgroundTransparency = 1,
         Text = featureName,
@@ -726,8 +694,6 @@ local function CreateRainbowTextForFeature(featureName)
         TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
         Parent = screenGui
     })
-    local bounds = textLabel.TextBounds
-    local height = bounds.Y + 4
     textLabel.Size = UDim2.new(0, 180, 0, height)
     local creationOrder = #WasUI.RainbowOrder + 1
     WasUI.ActiveRainbowTexts[featureName] = {
@@ -1707,23 +1673,35 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         rebuildOptions()
         self:UpdateDisplayText()
     end
-    local function updatePosition()
-        if not self.IsOpen then return end
-        local btnPos = self.DropdownButton.AbsolutePosition
-        local btnSize = self.DropdownButton.AbsoluteSize
-        local viewportSize = ws.CurrentCamera and ws.CurrentCamera.ViewportSize or guiS:GetScreenSize()
-        local menuHeight = self.OptionsContainer.AbsoluteSize.Y
-        local menuWidth = self.OptionsContainer.AbsoluteSize.X
-        local x = btnPos.X
-        local y = btnPos.Y + btnSize.Y
-        if y + menuHeight > viewportSize.Y then
-            y = btnPos.Y - menuHeight
-            if y < 0 then y = 5 end
+local function updatePosition()
+    if not self.IsOpen then return end
+    local btnPos = self.DropdownButton.AbsolutePosition
+    local btnSize = self.DropdownButton.AbsoluteSize
+    local viewportSize = ws.CurrentCamera and ws.CurrentCamera.ViewportSize or guiS:GetScreenSize()
+    local menuHeight = self.OptionsContainer.AbsoluteSize.Y
+    local menuWidth = self.OptionsContainer.AbsoluteSize.X
+
+    local spaceBelow = viewportSize.Y - (btnPos.Y + btnSize.Y)
+    local spaceAbove = btnPos.Y
+
+    local y
+    if menuHeight <= spaceBelow then
+        y = btnPos.Y + btnSize.Y
+    elseif menuHeight <= spaceAbove then
+        y = btnPos.Y - menuHeight
+    else
+        if spaceAbove > spaceBelow then
+            y = math.max(5, btnPos.Y - menuHeight)
+        else
+            y = math.min(viewportSize.Y - menuHeight, btnPos.Y + btnSize.Y)
         end
-        if x + menuWidth > viewportSize.X then x = viewportSize.X - menuWidth - 5 end
-        if x < 0 then x = 5 end
-        self.OptionsContainer.Position = UDim2.new(0, x, 0, y)
     end
+
+    local x = btnPos.X
+    if x + menuWidth > viewportSize.X then x = viewportSize.X - menuWidth - 5 end
+    if x < 0 then x = 5 end
+    self.OptionsContainer.Position = UDim2.new(0, x, 0, y)
+end
     self.DropdownButton:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePosition)
     self.DropdownButton:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
     function self:GetDisplayText()
