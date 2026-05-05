@@ -663,7 +663,7 @@ local function RefreshRainbowLayout()
         local data = WasUI.ActiveRainbowTexts[featureName]
         if data and data.Label then
             data.Label.Position = UDim2.new(1, -190, 0, startY)
-            data.Label.Size = UDim2.new(0, 180, 0, 20)  -- 固定高度
+            data.Label.Size = UDim2.new(0, 180, 0, 20)
             data.ScreenGui.Enabled = true
             startY = startY + 20 + spacing
         end
