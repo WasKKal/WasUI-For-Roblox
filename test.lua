@@ -331,6 +331,12 @@ local function EnsureDropdownGui()
 end
 EnsureDropdownGui()
 
+local function CreateInstance(className, properties)
+    local instance = Instance.new(className)
+    for prop, value in pairs(properties) do instance[prop] = value end
+    return instance
+end
+
 local function updateAllNotificationPositions()
     local sorted = {}
     for id, data in pairs(WasUI.ActiveNotifications) do
@@ -631,12 +637,6 @@ function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
         imageLabel:SetAttribute("IgnoreThemeChange", true)
     end
     return imageLabel
-end
-
-local function CreateInstance(className, properties)
-    local instance = Instance.new(className)
-    for prop, value in pairs(properties) do instance[prop] = value end
-    return instance
 end
 
 local function Tween(instance, properties, duration, easingStyle, easingDirection)
