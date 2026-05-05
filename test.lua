@@ -4789,7 +4789,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         local langBg = CreateInstance("ImageButton", {
             Name = "LangBG",
             Size = UDim2.new(0, 36, 0, 18),
-            Position = UDim2 new(1, -40, 0.5, -9),
+            Position = UDim2.new(1, -40, 0.5, -9),
             BackgroundColor3 = (WasUI.CurrentLanguage == "English") and WasUI.CurrentTheme.Success or ((WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)),
             Image = "",
             BorderSizePixel = 0,
@@ -5397,14 +5397,15 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
     window:SetTitle(title)
     RecordOriginalTransparency(window.Instance)
     window:EnableHotkeyToggle(Enum.KeyCode.F1)
-    local showBuiltinPopup = true
-    if WasUI.ExternalPopupCalled or WasUI.PendingPopup then showBuiltinPopup = false end
+
     local hasConfig = false
     if WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig("user_settings")
-        if config and next(config.Data) then hasConfig = true end
+        if config and next(config.Data) then
+            hasConfig = true
+        end
     end
-    if hasConfig and showBuiltinPopup then
+    if hasConfig then
         WasUI:ShowPopup({
             title = "找到配置文件",
             titleIcon = "file-cog",
@@ -5418,6 +5419,7 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
             onCancel = function() end
         })
     end
+
     return window
 end
 
