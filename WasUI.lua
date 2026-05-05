@@ -5375,7 +5375,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self.SnowContainer.Visible = true
         end
     end)
-table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel", PanelData = self})
+    table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel", PanelData = self})
     return self
 end
 
@@ -5493,3 +5493,4 @@ task.spawn(function()
 end)
 
 return WasUI
+end
