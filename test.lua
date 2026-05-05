@@ -336,6 +336,23 @@ local function CreateInstance(className, properties)
     for prop, value in pairs(properties) do instance[prop] = value end
     return instance
 end
+local function Tween(instance, properties, duration, easingStyle, easingDirection)
+    if not instance or not instance:IsDescendantOf(game) then return nil end
+    easingStyle = easingStyle or Enum.EasingStyle.Quad
+    easingDirection = easingDirection or Enum.EasingDirection.Out
+    local tweenInfo = TweenInfo.new(duration or 0.3, easingStyle, easingDirection)
+    local tween = twS:Create(instance, tweenInfo, properties)
+    tween:Play()
+    return tween
+end
+
+local function SpringTween(instance, properties, duration)
+    if not instance or not instance:IsDescendantOf(game) then return nil end
+    local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
+    local tween = twS:Create(instance, tweenInfo, properties)
+    tween:Play()
+    return tween
+end
 
 local function updateAllNotificationPositions()
     local sorted = {}
@@ -637,24 +654,6 @@ function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
         imageLabel:SetAttribute("IgnoreThemeChange", true)
     end
     return imageLabel
-end
-
-local function Tween(instance, properties, duration, easingStyle, easingDirection)
-    if not instance or not instance:IsDescendantOf(game) then return nil end
-    easingStyle = easingStyle or Enum.EasingStyle.Quad
-    easingDirection = easingDirection or Enum.EasingDirection.Out
-    local tweenInfo = TweenInfo.new(duration or 0.3, easingStyle, easingDirection)
-    local tween = twS:Create(instance, tweenInfo, properties)
-    tween:Play()
-    return tween
-end
-
-local function SpringTween(instance, properties, duration)
-    if not instance or not instance:IsDescendantOf(game) then return nil end
-    local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
-    local tween = twS:Create(instance, tweenInfo, properties)
-    tween:Play()
-    return tween
 end
 
 local function RefreshRainbowLayout()
