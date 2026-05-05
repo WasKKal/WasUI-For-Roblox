@@ -2158,12 +2158,12 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
         ZIndex = 3,
         Parent = self.Container
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Track})
     self.Fill = CreateInstance("Frame", {
         Name = "Fill",
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Success,
         BorderSizePixel = 0,
+        ClipsDescendants = true,
         ZIndex = 3,
         Parent = self.Track
     })
@@ -3196,9 +3196,6 @@ function Paragraph:New(name, parent, options)
         ZIndex = 2,
         Parent = textFrame
     })
-    if options.Title then self:SetTitle(options.Title) end
-    if options.Content then self:SetContent(options.Content) end
-    if options.Icon then self:SetIcon(options.Icon) end
     function self:SetTitle(text)
         WasUI:SetLocalizedText(self.TitleLabel, text)
     end
@@ -3221,6 +3218,10 @@ function Paragraph:New(name, parent, options)
         local iconWidth = self.IconFrame.Visible and 28 or 0
         textFrame.Size = UDim2.new(1, -iconWidth, 0, 0)
     end
+    if options.Title then self:SetTitle(options.Title) end
+    if options.Content then self:SetContent(options.Content) end
+    if options.Icon then self:SetIcon(options.Icon) end
+
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Paragraph"})
     return self
 end
