@@ -694,7 +694,6 @@ local function CreateRainbowTextForFeature(featureName)
         TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
         Parent = screenGui
     })
-    textLabel.Size = UDim2.new(0, 180, 0, height)
     local creationOrder = #WasUI.RainbowOrder + 1
     WasUI.ActiveRainbowTexts[featureName] = {
         ScreenGui = screenGui,
