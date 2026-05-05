@@ -5493,4 +5493,3 @@ task.spawn(function()
 end)
 
 return WasUI
-end
