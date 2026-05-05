@@ -2194,16 +2194,18 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
         ZIndex = 3,
         Parent = self.Container
     })
-    local function updateStatusText(val)
-        local statusText = ""
+local function updateStatusText(val)
+    local statusText = ""
+    if type(self.Segments) == "table" then
         for _, seg in ipairs(self.Segments) do
             if val >= seg.min and val <= seg.max then
                 statusText = seg.text
                 break
             end
         end
-        WasUI:SetLocalizedText(self.StatusLabel, statusText)
     end
+    WasUI:SetLocalizedText(self.StatusLabel, statusText)
+end
     local function updateFill()
         local t = (self.Value - self.Min) / (self.Max - self.Min)
         self.Fill:TweenSize(UDim2.new(t, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
@@ -2219,7 +2221,7 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
         return self.Value
     end
     function self:SetSegments(segments)
-        self.Segments = segments
+        self.Segments = (type(segments) == "table" and segments) or {}
         updateStatusText(self.Value)
     end
     if defaultValue then updateFill() end
