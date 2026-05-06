@@ -1,25 +1,25 @@
 local WasUI = {}
 WasUI.__index = WasUI
 
-local plrs = game:GetService("Players")
-local repSt = game:GetService("ReplicatedStorage")
-local twS = game:GetService("TweenService")
-local uis = game:GetService("UserInputService")
-local runS = game:GetService("RunService")
-local httpS = game:GetService("HttpService")
-local ws = game:GetService("Workspace")
-local guiS = game:GetService("GuiService")
-local cp = game:GetService("ContentProvider")
-local txtS = game:GetService("TextService")
-local cg = game:GetService("CoreGui")
-local sel = game:GetService("Selection")
-local lp = plrs.LocalPlayer
+local v1 = game:GetService("Players")
+local v2 = game:GetService("ReplicatedStorage")
+local v3 = game:GetService("TweenService")
+local v4 = game:GetService("UserInputService")
+local v5 = game:GetService("RunService")
+local v6 = game:GetService("HttpService")
+local v7 = game:GetService("Workspace")
+local v8 = game:GetService("GuiService")
+local v9 = game:GetService("ContentProvider")
+local v10 = game:GetService("TextService")
+local v11 = game:GetService("CoreGui")
+local v12 = game:GetService("Selection")
+local lp = v1.LocalPlayer
 
 local function copyToClipboard(text)
     if type(setclipboard) == "function" then
         setclipboard(text)
         return true
-    elseif pcall(function() sel:SetTextAsync(text) end) then
+    elseif pcall(function() v12:SetTextAsync(text) end) then
         return true
     end
     return false
@@ -27,7 +27,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.1.1"
+WasUI.Version = "1.1.2"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -43,7 +43,7 @@ WasUI.DefaultHotkeys = {}
 
 local WasUI_Folder = Instance.new("Folder")
 WasUI_Folder.Name = "WasUI_Config"
-WasUI_Folder.Parent = repSt
+WasUI_Folder.Parent = v2
 
 WasUI.DefaultTheme = "Dark"
 WasUI.DefaultRainbowMode = "整体"
@@ -260,18 +260,18 @@ WasUI.Themes = {
         SnowColor = Color3.fromRGB(0, 0, 0)
     },
     Blue = {
-        Primary = Color3.fromRGB(30, 42, 56),
-        Secondary = Color3.fromRGB(44, 62, 80),
-        Background = Color3.fromRGB(52, 73, 94),
-        Text = Color3.fromRGB(236, 240, 241),
-        Accent = Color3.fromRGB(230, 126, 34),
+        Primary = Color3.fromRGB(20, 30, 48),
+        Secondary = Color3.fromRGB(30, 42, 62),
+        Background = Color3.fromRGB(36, 50, 72),
+        Text = Color3.fromRGB(245, 245, 255),
+        Accent = Color3.fromRGB(255, 140, 0),
         Success = Color3.fromRGB(46, 204, 113),
         Warning = Color3.fromRGB(241, 196, 15),
         Error = Color3.fromRGB(231, 76, 60),
-        Section = Color3.fromRGB(61, 86, 110),
-        Input = Color3.fromRGB(44, 62, 80),
-        TabBorder = Color3.fromRGB(93, 109, 126),
-        TabButton = Color3.fromRGB(40, 55, 71),
+        Section = Color3.fromRGB(52, 73, 102),
+        Input = Color3.fromRGB(30, 42, 62),
+        TabBorder = Color3.fromRGB(70, 90, 120),
+        TabButton = Color3.fromRGB(28, 40, 58),
         SnowColor = Color3.fromRGB(255, 255, 255)
     }
 }
@@ -302,7 +302,7 @@ local function EnsureShortcutGui()
         WasUI.ShortcutGui.Name = "WasUI_Shortcuts"
         WasUI.ShortcutGui.ResetOnSpawn = false
         WasUI.ShortcutGui.DisplayOrder = 500
-        WasUI.ShortcutGui.Parent = cg
+        WasUI.ShortcutGui.Parent = v11
     end
 end
 EnsureShortcutGui()
@@ -314,7 +314,7 @@ local function EnsureNotificationGui()
         WasUI.NotificationGui.Name = "WasUI_Notifications"
         WasUI.NotificationGui.ResetOnSpawn = false
         WasUI.NotificationGui.DisplayOrder = 999
-        WasUI.NotificationGui.Parent = cg
+        WasUI.NotificationGui.Parent = v11
     end
 end
 EnsureNotificationGui()
@@ -326,7 +326,7 @@ local function EnsureDropdownGui()
         WasUI.DropdownGui.Name = "WasUI_Dropdowns"
         WasUI.DropdownGui.ResetOnSpawn = false
         WasUI.DropdownGui.DisplayOrder = 1000
-        WasUI.DropdownGui.Parent = cg
+        WasUI.DropdownGui.Parent = v11
     end
 end
 EnsureDropdownGui()
@@ -341,7 +341,7 @@ local function Tween(instance, properties, duration, easingStyle, easingDirectio
     easingStyle = easingStyle or Enum.EasingStyle.Quad
     easingDirection = easingDirection or Enum.EasingDirection.Out
     local tweenInfo = TweenInfo.new(duration or 0.3, easingStyle, easingDirection)
-    local tween = twS:Create(instance, tweenInfo, properties)
+    local tween = v3:Create(instance, tweenInfo, properties)
     tween:Play()
     return tween
 end
@@ -349,7 +349,7 @@ end
 local function SpringTween(instance, properties, duration)
     if not instance or not instance:IsDescendantOf(game) then return nil end
     local tweenInfo = TweenInfo.new(duration or 0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
-    local tween = twS:Create(instance, tweenInfo, properties)
+    local tween = v3:Create(instance, tweenInfo, properties)
     tween:Play()
     return tween
 end
@@ -377,7 +377,7 @@ function WasUI:Notify(options)
     local duration = options.Duration or 3
     local bgColor = options.BackgroundColor or WasUI.CurrentTheme.Section
     local borderColor = options.BorderColor or WasUI.CurrentTheme.Text
-    local notificationId = httpS:GenerateGUID(false)
+    local notificationId = v6:GenerateGUID(false)
     local frame = CreateInstance("Frame", {
         Name = "Notification_" .. notificationId,
         Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
@@ -514,7 +514,7 @@ function WasUI:CreateFolder(folderName)
             if not ensureConfigFolderExists() then return false end
             local dataToSave = {}
             for key, value in pairs(self.Data) do dataToSave[key] = value end
-            local json = httpS:JSONEncode(dataToSave)
+            local json = v6:JSONEncode(dataToSave)
             writefile(self.Path, json)
             return true
         end
@@ -523,7 +523,7 @@ function WasUI:CreateFolder(folderName)
             if not ensureConfigFolderExists() then return false end
             if not isfile(self.Path) then return false end
             local success, data = pcall(function()
-                return httpS:JSONDecode(readfile(self.Path))
+                return v6:JSONDecode(readfile(self.Path))
             end)
             if success and type(data) == "table" then
                 self.Data = data
@@ -657,50 +657,17 @@ function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
 end
 
 local function RefreshRainbowLayout()
-    local ordered = {}
-    for _, featureName in ipairs(WasUI.RainbowOrder) do
-        local data = WasUI.ActiveRainbowTexts[featureName]
-        if data and data.Label then table.insert(ordered, data) end
-    end
-    for _, data in ipairs(ordered) do
-        data.Label.Text = data.OriginalText
-        data.IsMerged = false
-        local bounds = data.Label.TextBounds
-        local height = bounds.Y + 4
-        data.Label.Size = UDim2.new(0, 180, 0, height)
-    end
-    table.sort(ordered, function(a, b)
-        if a.IsMerged ~= b.IsMerged then return a.IsMerged == false end
-        local aLen = utf8.len(a.Label.Text)
-        local bLen = utf8.len(b.Label.Text)
-        if aLen ~= bLen then return aLen > bLen
-        else return a.CreationOrder < b.CreationOrder end
-    end)
-
-    local maxShow = 10
-    local showList = {}
-    for i = 1, math.min(#ordered, maxShow) do table.insert(showList, ordered[i]) end
-    if #ordered > maxShow then
-        local mergedData = showList[#showList]
-        mergedData.IsMerged = true
-        mergedData.Label.Text = "等" .. (#ordered - maxShow + 1) .. "个功能"
-        local bounds = mergedData.Label.TextBounds
-        local height = bounds.Y + 4
-        mergedData.Label.Size = UDim2.new(0, 180, 0, height)
-        for i = maxShow + 1, #ordered do ordered[i].ScreenGui.Enabled = false end
-    else
-        for _, data in ipairs(ordered) do data.ScreenGui.Enabled = true end
-    end
     local startY = 10
     local spacing = 5
-    for i, data in ipairs(showList) do
-        local label = data.Label
-        local height = label.Size.Y.Offset
-        label.Position = UDim2.new(1, -190, 0, startY)
-        startY = startY + height + spacing
+    for i, featureName in ipairs(WasUI.RainbowOrder) do
+        local data = WasUI.ActiveRainbowTexts[featureName]
+        if data and data.Label then
+            data.Label.Position = UDim2.new(1, -190, 0, startY)
+            data.Label.Size = UDim2.new(0, 180, 0, 20)
+            startY = startY + 20 + spacing
+        end
     end
 end
-
 local function CreateRainbowTextForFeature(featureName)
     if WasUI.CleanMode then return end
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
@@ -709,11 +676,11 @@ local function CreateRainbowTextForFeature(featureName)
         Name = "RainbowText_" .. featureName,
         ResetOnSpawn = false,
         DisplayOrder = 100,
-        Parent = cg
+        Parent = v11
     })
     local textLabel = CreateInstance("TextLabel", {
         Name = "Text",
-        Size = UDim2.new(0, 180, 0, 0),
+        Size = UDim2.new(0, 180, 0, 20),
         Position = UDim2.new(1, 10, 0, 0),
         BackgroundTransparency = 1,
         Text = featureName,
@@ -726,9 +693,6 @@ local function CreateRainbowTextForFeature(featureName)
         TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
         Parent = screenGui
     })
-    local bounds = textLabel.TextBounds
-    local height = bounds.Y + 4
-    textLabel.Size = UDim2.new(0, 180, 0, height)
     local creationOrder = #WasUI.RainbowOrder + 1
     WasUI.ActiveRainbowTexts[featureName] = {
         ScreenGui = screenGui,
@@ -739,9 +703,10 @@ local function CreateRainbowTextForFeature(featureName)
         IsMerged = false
     }
     table.insert(WasUI.RainbowOrder, featureName)
-    local targetPos = UDim2.new(1, -190, 0, textLabel.Position.Y.Offset)
+    local targetY = 10 + (#WasUI.RainbowOrder - 1) * (20 + 5)
+    local targetPos = UDim2.new(1, -190, 0, targetY)
+    textLabel.Position = UDim2.new(1, 10, 0, targetY)
     Tween(textLabel, {Position = targetPos}, 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    RefreshRainbowLayout()
 end
 
 local function DestroyRainbowTextForFeature(featureName)
@@ -762,7 +727,7 @@ end
 
 local rainbowTime = 0
 local rainbowSpeed = 2
-local rainbowConnection = runS.Heartbeat:Connect(function(deltaTime)
+local rainbowConnection = v5.Heartbeat:Connect(function(deltaTime)
     rainbowTime = rainbowTime + deltaTime * rainbowSpeed
     local r = (math.sin(rainbowTime) + 1) / 2
     local g = (math.sin(rainbowTime + math.pi/3) + 1) / 2
@@ -784,18 +749,18 @@ end
 
 local function SaveShortcutPosition(key, position)
     if WasUI.CleanMode then return end
-    local folder = repSt:FindFirstChild(WasUI_Folder.Name)
+    local folder = v2:FindFirstChild(WasUI_Folder.Name)
     if not folder then
         folder = Instance.new("Folder")
         folder.Name = WasUI_Folder.Name
-        folder.Parent = repSt
+        folder.Parent = v2
     end
     local posStr = string.format("%.3f,%.3f,%.3f,%.3f", position.X.Scale, position.X.Offset, position.Y.Scale, position.Y.Offset)
     folder:SetAttribute(key .. "_Pos", posStr)
 end
 
 local function LoadShortcutPosition(key)
-    local folder = repSt:FindFirstChild(WasUI_Folder.Name)
+    local folder = v2:FindFirstChild(WasUI_Folder.Name)
     if folder then
         local posStr = folder:GetAttribute(key .. "_Pos")
         if posStr and type(posStr) == "string" then
@@ -817,17 +782,17 @@ end
 
 local function SaveKeyBinding(key, keyCode)
     if WasUI.CleanMode then return end
-    local folder = repSt:FindFirstChild(WasUI_Folder.Name)
+    local folder = v2:FindFirstChild(WasUI_Folder.Name)
     if not folder then
         folder = Instance.new("Folder")
         folder.Name = WasUI_Folder.Name
-        folder.Parent = repSt
+        folder.Parent = v2
     end
     folder:SetAttribute(key .. "_Key", tostring(keyCode))
 end
 
 local function LoadKeyBinding(key)
-    local folder = repSt:FindFirstChild(WasUI_Folder.Name)
+    local folder = v2:FindFirstChild(WasUI_Folder.Name)
     if folder then
         local keyStr = folder:GetAttribute(key .. "_Key")
         if keyStr then
@@ -874,10 +839,10 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
     end
     controlInstance.InputBegan:Connect(startPress)
     controlInstance.InputEnded:Connect(endPress)
-    uis.InputChanged:Connect(checkMove)
+    v4.InputChanged:Connect(checkMove)
 end
 
-uis.InputBegan:Connect(function(input, processed)
+v4.InputBegan:Connect(function(input, processed)
     if processed then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
         for key, bind in pairs(WasUI.KeyBindings) do
@@ -1054,8 +1019,8 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         end
     end
     btnFrame.InputBegan:Connect(onInputBegan)
-    dragData.connectionChanged = uis.InputChanged:Connect(onInputChanged)
-    dragData.connectionEnded = uis.InputEnded:Connect(onInputEnded)
+    dragData.connectionChanged = v4.InputChanged:Connect(onInputChanged)
+    dragData.connectionEnded = v4.InputEnded:Connect(onInputEnded)
     local function updateState(newState)
         if isToggle then currentState = newState; updateVisuals() end
     end
@@ -1153,12 +1118,12 @@ function Button:New(name, parent, text, onClick, size, iconName, tips)
     end)
     self.Instance.MouseButton1Down:Connect(function()
         isPressed = true
-        dragStartPos = uis:GetMouseLocation()
+        dragStartPos = v4:GetMouseLocation()
         Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
         SpringTween(scale, {Scale = 0.97}, 0.2)
-        dragConnection = uis.InputChanged:Connect(function(input)
+        dragConnection = v4.InputChanged:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseMovement and dragStartPos then
-                local delta = (uis:GetMouseLocation() - dragStartPos).Magnitude
+                local delta = (v4:GetMouseLocation() - dragStartPos).Magnitude
                 if delta > dragThreshold then isDragging = true end
             end
         end)
@@ -1173,7 +1138,7 @@ function Button:New(name, parent, text, onClick, size, iconName, tips)
         if dragConnection then dragConnection:Disconnect() end
         isDragging = false; dragStartPos = nil
     end)
-    if uis.TouchEnabled then
+    if v4.TouchEnabled then
         local touchStartPos = nil
         local touchDragging = false
         local touchConnection = nil
@@ -1183,7 +1148,7 @@ function Button:New(name, parent, text, onClick, size, iconName, tips)
                 touchStartPos = input.Position
                 Tween(self.Instance, {BackgroundColor3 = WasUI.CurrentTheme.Accent}, 0.1)
                 SpringTween(scale, {Scale = 0.97}, 0.2)
-                touchConnection = uis.InputChanged:Connect(function(inp)
+                touchConnection = v4.InputChanged:Connect(function(inp)
                     if inp.UserInputType == Enum.UserInputType.Touch and touchStartPos then
                         local delta = (inp.Position - touchStartPos).Magnitude
                         if delta > dragThreshold then touchDragging = true end
@@ -1346,7 +1311,9 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     end, 1)
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
-        if config then config:Bind(configKey, self, function(state) performToggle(state) end) end
+        if config then
+            config:Bind(configKey, self, function(value) setStateSilently(value) end)
+        end
     end
     local panel = parent
     while panel do
@@ -1595,8 +1562,8 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         TextSize = 12,
         TextTruncate = Enum.TextTruncate.AtEnd,
         AutoButtonColor = false,
-        ZIndex = 11,
-        Parent = self.Container
+        ZIndex = 9999,
+        Parent = parent
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.DropdownButton})
     local arrowIcon = CreateInstance("ImageLabel", {
@@ -1622,6 +1589,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Visible = false,
+        Active = false,
         ZIndex = 9999,
         ScrollBarThickness = 4,
         ScrollingDirection = Enum.ScrollingDirection.Y,
@@ -1661,6 +1629,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                     if index then table.remove(self.SelectedValues, index)
                     else table.insert(self.SelectedValues, option) end
                     self:UpdateDisplayText()
+                    self:UpdateOptionVisuals()
                     if self.Callback then self.Callback(self.SelectedValues) end
                     if configKey and WasUI.ConfigManager then
                         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
@@ -1683,7 +1652,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         end
         local function updateContainerSize()
             local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 16
-            local viewportSize = ws.CurrentCamera and ws.CurrentCamera.ViewportSize or guiS:GetScreenSize()
+            local viewportSize = v7.CurrentCamera and v7.CurrentCamera.ViewportSize or v8:GetScreenSize()
             local maxHeight = math.floor(viewportSize.Y) * 0.6
             local finalHeight = math.min(totalHeight, maxHeight)
             self.OptionsContainer.Size = UDim2.new(0.35, 0, 0, finalHeight)
@@ -1692,6 +1661,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         end
         updateContainerSize()
         if self.IsOpen then updatePosition() end
+        self:UpdateOptionVisuals()
     end
     function self:UpdateOptions(newOptions, newDefaultValue)
         self.Options = {}
@@ -1707,25 +1677,54 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         rebuildOptions()
         self:UpdateDisplayText()
     end
-    local function updatePosition()
-        if not self.IsOpen then return end
-        local btnPos = self.DropdownButton.AbsolutePosition
-        local btnSize = self.DropdownButton.AbsoluteSize
-        local viewportSize = ws.CurrentCamera and ws.CurrentCamera.ViewportSize or guiS:GetScreenSize()
-        local menuHeight = self.OptionsContainer.AbsoluteSize.Y
-        local menuWidth = self.OptionsContainer.AbsoluteSize.X
-        local x = btnPos.X
-        local y = btnPos.Y + btnSize.Y
-        if y + menuHeight > viewportSize.Y then
-            y = btnPos.Y - menuHeight
-            if y < 0 then y = 5 end
+local function updatePosition()
+    if not self.IsOpen then return end
+    local btnPos = self.DropdownButton.AbsolutePosition
+    local btnSize = self.DropdownButton.AbsoluteSize
+    local viewportSize = v7.CurrentCamera and v7.CurrentCamera.ViewportSize or v8:GetScreenSize()
+    local menuHeight = self.OptionsContainer.AbsoluteSize.Y
+    local menuWidth = self.OptionsContainer.AbsoluteSize.X
+
+    local spaceBelow = viewportSize.Y - (btnPos.Y + btnSize.Y)
+    local spaceAbove = btnPos.Y
+
+    local y
+    if menuHeight <= spaceBelow then
+        y = btnPos.Y + btnSize.Y
+    elseif menuHeight <= spaceAbove then
+        y = btnPos.Y - menuHeight
+    else
+        if spaceAbove > spaceBelow then
+            y = math.max(5, btnPos.Y - menuHeight)
+        else
+            y = math.min(viewportSize.Y - menuHeight, btnPos.Y + btnSize.Y)
         end
-        if x + menuWidth > viewportSize.X then x = viewportSize.X - menuWidth - 5 end
-        if x < 0 then x = 5 end
-        self.OptionsContainer.Position = UDim2.new(0, x, 0, y)
     end
+
+    local x = btnPos.X
+    if x + menuWidth > viewportSize.X then x = viewportSize.X - menuWidth - 5 end
+    if x < 0 then x = 5 end
+    self.OptionsContainer.Position = UDim2.new(0, x, 0, y)
+end
     self.DropdownButton:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePosition)
     self.DropdownButton:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
+    function self:UpdateOptionVisuals()
+        if self.MultiSelect then
+            for option, btn in pairs(self.OptionButtons) do
+                local isSelected = false
+                for _, v in ipairs(self.SelectedValues) do if v == option then isSelected = true break end end
+                if isSelected then
+                    btn.BackgroundColor3 = WasUI.CurrentTheme.Accent
+                    btn.BackgroundTransparency = 0.3
+                    btn.TextColor3 = Color3.new(1, 1, 1)
+                else
+                    btn.BackgroundColor3 = WasUI.CurrentTheme.Input
+                    btn.BackgroundTransparency = 0.3
+                    btn.TextColor3 = WasUI.CurrentTheme.Text
+                end
+            end
+        end
+    end
     function self:GetDisplayText()
         if self.MultiSelect then return #self.SelectedValues == 0 and WasUI:Translate("选择...") or table.concat(self.SelectedValues, ", ") end
         return self.SelectedValue and tostring(self.SelectedValue) or WasUI:Translate("选择...")
@@ -1769,17 +1768,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
-            local savedValue = config:Get(configKey)
-            if savedValue ~= nil then
-                if self.MultiSelect then
-                    if type(savedValue) == "table" then self.SelectedValues = savedValue
-                    elseif type(savedValue) == "string" then self.SelectedValues = { savedValue } end
-                else
-                    if type(savedValue) == "string" then self.SelectedValue = savedValue
-                    elseif type(savedValue) == "table" and #savedValue > 0 then self.SelectedValue = savedValue[1] end
-                end
-                self:UpdateDisplayText()
-            end
             config:Bind(configKey, self, function(value)
                 if self.MultiSelect then
                     if type(value) == "table" then self.SelectedValues = value
@@ -1789,6 +1777,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                     elseif type(value) == "table" and #value > 0 then self.SelectedValue = value[1] end
                 end
                 self:UpdateDisplayText()
+                self:UpdateOptionVisuals()
             end)
         end
     end
@@ -1806,7 +1795,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     return self
 end
 
-uis.InputBegan:Connect(function(input, processed)
+v4.InputBegan:Connect(function(input, processed)
     if processed then return end
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         for i = #WasUI.OpenDropdowns, 1, -1 do
@@ -1952,8 +1941,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         local targetT = (targetValue - self.Min) / (self.Max - self.Min)
         stopAnimation()
         local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local fillTween = twS:Create(self.SliderFill, tweenInfo, {Size = UDim2.new(targetT, 0, 1, 0)})
-        local knobTween = twS:Create(self.Knob, tweenInfo, {Position = UDim2.new(targetT, -10, 0.5, -10)})
+        local fillTween = v3:Create(self.SliderFill, tweenInfo, {Size = UDim2.new(targetT, 0, 1, 0)})
+        local knobTween = v3:Create(self.Knob, tweenInfo, {Position = UDim2.new(targetT, -10, 0.5, -10)})
         local completed = false
         local function onFinish()
             if completed then return end
@@ -1989,7 +1978,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             dragging = true
             showTooltip(self.Value)
             if inputChangedConn then inputChangedConn:Disconnect() end
-            inputChangedConn = uis.InputChanged:Connect(function(inp)
+            inputChangedConn = v4.InputChanged:Connect(function(inp)
                 if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
                     local newVal = updateFromMousePosition(inp.Position.X)
                     if newVal ~= self.Value then stopAnimation(); setValueImmediately(newVal) end
@@ -2031,8 +2020,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
-            local savedValue = config:Get(configKey)
-            if savedValue ~= nil then setValueImmediately(savedValue) end
             config:Bind(configKey, self, function(value) setValueImmediately(value) end)
         end
     end
@@ -2092,8 +2079,6 @@ function TextInput:New(name, parent, placeholder, defaultValue, callback, config
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
-            local savedValue = config:Get(configKey)
-            if savedValue ~= nil then self.TextBox.Text = savedValue end
             config:Bind(configKey, self, function(value) self.TextBox.Text = value end)
         end
     end
@@ -2158,6 +2143,7 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
         ZIndex = 3,
         Parent = self.Container
     })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = self.Track})
     self.Fill = CreateInstance("Frame", {
         Name = "Fill",
         Size = UDim2.new((self.Value - self.Min) / (self.Max - self.Min), 0, 1, 0),
@@ -2272,7 +2258,7 @@ function WasUI:CreateTooltip(target, text, options)
         tooltipGui.Name = "WasUI_Tooltip"
         tooltipGui.ResetOnSpawn = false
         tooltipGui.DisplayOrder = 2000
-        tooltipGui.Parent = cg
+        tooltipGui.Parent = v11
         tooltipFrame = CreateInstance("Frame", {
             Name = "Tooltip",
             Size = UDim2.new(0, 0, 0, 0),
@@ -2300,11 +2286,11 @@ function WasUI:CreateTooltip(target, text, options)
             ZIndex = 10001,
             Parent = tooltipFrame
         })
-        local textBounds = txtS:GetTextSize(text, 12, Enum.Font.Gotham, Vector2.new(1000, 1000))
+        local textBounds = v10:GetTextSize(text, 12, Enum.Font.Gotham, Vector2.new(1000, 1000))
         local width = math.max(60, textBounds.X + 16)
         local height = textBounds.Y + 8
         tooltipFrame.Size = UDim2.new(0, width, 0, height)
-        local viewportSize = ws.CurrentCamera.ViewportSize
+        local viewportSize = v7.CurrentCamera.ViewportSize
         local x = point.X - width/2
         local y = point.Y + offset.Y
         if y + height > viewportSize.Y then y = point.Y - height - offset.Y end
@@ -2372,7 +2358,7 @@ function WasUI:ShowConfirmDialog(options, callback)
     dialogGui.Name = "WasUI_ConfirmDialog"
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
-    dialogGui.Parent = cg
+    dialogGui.Parent = v11
     local overlay = CreateInstance("Frame", {
         Name = "Overlay",
         Size = UDim2.new(1, 0, 1, 0),
@@ -2568,7 +2554,7 @@ function WasUI:ShowPopup(options, callback)
     dialogGui.Name = "WasUI_Popup"
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
-    dialogGui.Parent = cg
+    dialogGui.Parent = v11
     local overlay = CreateInstance("Frame", {
         Name = "Overlay",
         Size = UDim2.new(1, 0, 1, 0),
@@ -2754,7 +2740,7 @@ function WasUI:ShowColorPicker(options, callback)
     dialogGui.Name = "WasUI_ColorPicker"
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
-    dialogGui.Parent = cg
+    dialogGui.Parent = v11
     local transparentOverlay = CreateInstance("Frame", {
         Name = "TransparentOverlay",
         Size = UDim2.new(1, 0, 1, 0),
@@ -2981,7 +2967,7 @@ function WasUI:ShowColorPicker(options, callback)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingAlpha = true end
         end)
     end
-    uis.InputChanged:Connect(function(input)
+    v4.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             local pos = input.Position
             if draggingSV then
@@ -2997,7 +2983,7 @@ function WasUI:ShowColorPicker(options, callback)
             end
         end
     end)
-    uis.InputEnded:Connect(function(input)
+    v4.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             draggingSV = false; draggingHue = false; draggingAlpha = false
         end
@@ -3011,11 +2997,9 @@ function WasUI:ShowColorPicker(options, callback)
     local function animateOpen()
         dialogFrame.Position = UDim2.new(0.5, -140, 0.5, -dialogHeight/2)
         Tween(dialogFrame, {BackgroundTransparency = 0.3}, 0.2)
-        Tween(transparentOverlay, {BackgroundTransparency = 0.5}, 0.2)
     end
     local function animateClose()
         Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
-        Tween(transparentOverlay, {BackgroundTransparency = 1}, 0.2)
         task.wait(0.2)
         dialogGui:Destroy()
         for i, d in ipairs(WasUI.ActiveDialogs) do if d == dialogGui then table.remove(WasUI.ActiveDialogs, i); break end end
@@ -3091,7 +3075,7 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
         colorPreview.BackgroundColor3 = color
         colorPreview.BackgroundTransparency = 1 - currentAlpha
     end
-    button.Activated:Connect(function()
+    button.MouseButton1Click:Connect(function()
         WasUI:ShowColorPicker({
             title = title or "选择颜色",
             defaultColor = currentColor,
@@ -3109,8 +3093,6 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
-            local saved = config:Get(configKey)
-            if saved and saved.color then updatePreview(saved.color, saved.alpha) end
             config:Bind(configKey, container, function(value)
                 if value and value.color then updatePreview(value.color, value.alpha) end
             end)
@@ -3392,7 +3374,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 ZIndex = 0,
                 Parent = self.Instance
             })
-            cp:PreloadAsync({url})
+            v9:PreloadAsync({url})
             self.BackgroundImage.Image = url
         else
             self.BackgroundImage = nil
@@ -3520,7 +3502,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
 
     local function startFlowAnimation()
         if self.BorderConnection then self.BorderConnection:Disconnect() end
-        self.BorderConnection = runS.Heartbeat:Connect(function(deltaTime)
+        self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
             if self.RainbowMode == "整体" then
                 borderTime = borderTime + deltaTime * 2.5
                 local hue = (borderTime * 0.3) % 1
@@ -3744,7 +3726,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundTransparency = 1,
         Text = "WasUI",
-        TextColor3 = (WasUI.CurrentTheme == WasUI.Themes.Light) and Color3.fromRGB(0, 0, 0) or WasUI.CurrentTheme.Text,
+        TextColor3 = (WasUI.CurrentTheme == WasUI.Themes.Light) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamBold,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Center,
@@ -3754,6 +3736,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.DotContainer
     })
     self.MinimizedCustomText = "WasUI"
+    self.MinimizeTextTimer = nil
     function self:SetMinimizedText(text)
         self.MinimizedCustomText = text or "WasUI"
         self.MinimizedTextLabel.Text = text or "WasUI"
@@ -4136,6 +4119,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Tween(dot, {BackgroundTransparency = 1}, tweenDuration)
         end
         if self.MinimizedCustomText ~= "" then
+            if self.MinimizeTextTimer then
+                task.cancel(self.MinimizeTextTimer)
+                self.MinimizeTextTimer = nil
+            end
             self.MinimizedTextLabel.Visible = true
             self.MinimizedTextLabel.TextTransparency = 1
             Tween(self.MinimizedTextLabel, {TextTransparency = 0}, tweenDuration)
@@ -4168,9 +4155,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Tween(dot, {BackgroundTransparency = 0}, tweenDuration)
         end
         if self.MinimizedCustomText ~= "" then
+            if self.MinimizeTextTimer then
+                task.cancel(self.MinimizeTextTimer)
+                self.MinimizeTextTimer = nil
+            end
             Tween(self.MinimizedTextLabel, {TextTransparency = 1}, tweenDuration)
-            task.delay(tweenDuration, function()
+            self.MinimizeTextTimer = task.delay(tweenDuration, function()
                 self.MinimizedTextLabel.Visible = false
+                self.MinimizeTextTimer = nil
             end)
         end
         Tween(self.Instance, {
@@ -4401,9 +4393,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 startPos = self.Instance.Position
                 currentDragTouch = nil
                 if dragRenderConn then dragRenderConn:Disconnect() end
-                dragRenderConn = runS.RenderStepped:Connect(function()
+                dragRenderConn = v5.RenderStepped:Connect(function()
                     if dragging then
-                        local delta = uis:GetMouseLocation() - dragStart
+                        local delta = v4:GetMouseLocation() - dragStart
                         local newX = startPos.X.Offset + delta.X
                         local newY = startPos.Y.Offset + delta.Y
                         self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
@@ -4424,7 +4416,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 startPos = self.Instance.Position
                 currentDragTouch = input
                 if dragRenderConn then dragRenderConn:Disconnect() end
-                dragRenderConn = runS.RenderStepped:Connect(function()
+                dragRenderConn = v5.RenderStepped:Connect(function()
                     if dragging and currentDragTouch then
                         local delta = currentDragTouch.Position - dragStart
                         local newX = startPos.X.Offset + delta.X
@@ -4461,7 +4453,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     end
     
     self.DraggableArea.InputBegan:Connect(startDrag)
-    dragEndConn = uis.InputEnded:Connect(endDrag)
+    dragEndConn = v4.InputEnded:Connect(endDrag)
     
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
@@ -4474,9 +4466,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         ZIndex = 2,
         Parent = self.Instance
     })
-    local player = plrs.LocalPlayer
+    local player = v1.LocalPlayer
     local function loadAvatar()
-        local headshot = plrs:GetUserThumbnailAsync(
+        local headshot = v1:GetUserThumbnailAsync(
             player.UserId,
             Enum.ThumbnailType.HeadShot,
             Enum.ThumbnailSize.Size60x60
@@ -4521,7 +4513,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         settingsGui.Name = "WasUI_Settings"
         settingsGui.ResetOnSpawn = false
         settingsGui.DisplayOrder = 1001
-        settingsGui.Parent = cg
+        settingsGui.Parent = v11
         local clickCatcher = CreateInstance("Frame", {
             Name = "ClickCatcher",
             Size = UDim2.new(1, 0, 1, 0),
@@ -4839,7 +4831,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             ZIndex = 1002,
             Parent = contentFrame
         })
-        WasUI:SetLocalizedText(refreshThemeButton, "刷新主题")
+        WasUI:SetLocalizedText(refreshThemeButton, "刷新所有控件状态")
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = refreshThemeButton})
         refreshThemeButton.MouseEnter:Connect(function()
             Tween(refreshThemeButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
@@ -4849,7 +4841,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end)
         refreshThemeButton.MouseButton1Click:Connect(function()
             WasUI:SetTheme(WasUI.CurrentThemeName)
-            WasUI:Notify({Title = "主题", Content = "已刷新主题样式", Duration = 1.5})
+            if WasUI.ConfigManager then
+                local config = WasUI.ConfigManager:GetConfig("user_settings")
+                if config then config:Load() end
+            end
+            WasUI:Notify({Title = "刷新完毕", Content = "已刷新所有控件状态", Duration = 1.5})
         end)
 
         local groupButton = CreateInstance("TextButton", {
@@ -5253,7 +5249,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self.HotkeyConnection:Disconnect()
         end
         keyCode = keyCode or Enum.KeyCode.F1
-        self.HotkeyConnection = uis.InputBegan:Connect(function(input, processed)
+        self.HotkeyConnection = v4.InputBegan:Connect(function(input, processed)
             if processed then return end
             if input.KeyCode == keyCode then
                 if self.IsMinimized then
@@ -5299,7 +5295,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         self.Snowflakes = {}
         self.SnowTimer = 0
         self.SnowChangeTimer = 0
-        self.SnowConnection = runS.Heartbeat:Connect(function(deltaTime)
+        self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
             if not self.Instance.Visible then return end
             if not self.SnowContainer.Visible then return end
             self.SnowTimer = self.SnowTimer + deltaTime
@@ -5393,7 +5389,7 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
     screenGui.Name = "WasUI_Main"
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
-    screenGui.Parent = cg
+    screenGui.Parent = v11
     local internalName = title
     local window = Panel:New(internalName, screenGui, size or UDim2.new(0, 380, 0, 350), position, backgroundUrl, snowEnabled, titleTag)
     window:SetTitle(title)
@@ -5403,7 +5399,7 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
     local hasConfig = false
     if WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig("user_settings")
-        if config and next(config.Data) then
+        if config then
             hasConfig = true
         end
     end
