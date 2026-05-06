@@ -1562,8 +1562,8 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         TextSize = 12,
         TextTruncate = Enum.TextTruncate.AtEnd,
         AutoButtonColor = false,
-        ZIndex = 9999,
-        Parent = parent
+        ZIndex = 11,
+        Parent = self.Container
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.DropdownButton})
     local arrowIcon = CreateInstance("ImageLabel", {
@@ -1589,7 +1589,6 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Visible = false,
-        Active = false,
         ZIndex = 9999,
         ScrollBarThickness = 4,
         ScrollingDirection = Enum.ScrollingDirection.Y,
@@ -5404,18 +5403,23 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
         end
     end
     if hasConfig then
-        WasUI:ShowPopup({
-            title = "找到配置文件",
-            titleIcon = "file-cog",
-            content = "是否加载上次保存的配置？",
-            confirmText = "加载",
-            cancelText = "跳过",
-            onConfirm = function()
-                local config = WasUI.ConfigManager:GetConfig("user_settings")
-                if config then config:Load() end
-            end,
-            onCancel = function() end
-        })
+        if WasUI.ExternalPopupCalled then
+            local config = WasUI.ConfigManager:GetConfig("user_settings")
+            if config then config:Load() end
+        else
+            WasUI:ShowPopup({
+                title = "找到配置文件",
+                titleIcon = "file-cog",
+                content = "是否加载上次保存的配置？",
+                confirmText = "加载",
+                cancelText = "跳过",
+                onConfirm = function()
+                    local config = WasUI.ConfigManager:GetConfig("user_settings")
+                    if config then config:Load() end
+                end,
+                onCancel = function() end
+            })
+        end
     end
 
     return window
