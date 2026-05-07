@@ -2699,9 +2699,10 @@ function WasUI:ShowPopup(options, callback)
         padding.PaddingLeft = UDim.new(0, 12)
         padding.Parent = confirmButton
     end
-    local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 65
-    dialogFrame.Size = UDim2.new(0, 480, 0, totalHeight)
-    buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 18)
+
+local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 20
+dialogFrame.Size = UDim2.new(0, 480, 0, totalHeight)
+buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 10)
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
             local parentSize = dialogGui.AbsoluteSize
@@ -3597,72 +3598,72 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     elseif titleTag then
         titleTagsList = {titleTag}
     end
+if #titleTagsList > 0 then
+    local titleContainer = CreateInstance("Frame", {
+        Name = "TitleContainer",
+        Size = UDim2.new(1, -140, 1, 0),
+        Position = UDim2.new(0, 54, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = self.TitleBar,
+        ZIndex = 2
+    })
+    self.TitleContainer = titleContainer
 
-    if #titleTagsList > 0 then
-        local titleContainer = CreateInstance("Frame", {
-            Name = "TitleContainer",
-            Size = UDim2.new(1, -120, 1, 0),
-            Position = UDim2.new(0, 60, 0, 0),
+    local titleLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 6),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = titleContainer
+    })
+
+    self.Title.Parent = titleContainer
+    self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
+    self.Title.TextXAlignment = Enum.TextXAlignment.Left
+    self.Title.Position = UDim2.new(0, 0, 0, 0)
+    self.Title.AutomaticSize = Enum.AutomaticSize.X
+    local tagContainers = {}
+    for _, tag in ipairs(titleTagsList) do
+        local tagText = tag.text
+        if not tagText or tagText == "" then
+            tagText = "你没有配置Text"
+        end
+        local tagContainer = CreateInstance("Frame", {
+            Name = "TitleTagContainer",
+            Size = UDim2.new(0, 0, 0, 18),
+            BackgroundColor3 = tag.backgroundColor or WasUI.CurrentTheme.Accent,
+            BackgroundTransparency = 0.2,
+            BorderSizePixel = 0,
+            Parent = titleContainer,
+            ZIndex = 10
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
+        local tagLabel = CreateInstance("TextLabel", {
+            Name = "TagLabel",
+            Size = UDim2.new(1, -6, 1, 0),
+            Position = UDim2.new(0, 3, 0, 0),
             BackgroundTransparency = 1,
-            Parent = self.TitleBar,
-            ZIndex = 2
+            Text = tagText,
+            TextColor3 = tag.textColor or WasUI.CurrentTheme.Text,
+            Font = Enum.Font.GothamSemibold,
+            TextSize = 11,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            Parent = tagContainer,
+            ZIndex = 11
         })
-        self.TitleContainer = titleContainer
-        local titleLayout = CreateInstance("UIListLayout", {
-            FillDirection = Enum.FillDirection.Horizontal,
-            HorizontalAlignment = Enum.HorizontalAlignment.Left,
-            VerticalAlignment = Enum.VerticalAlignment.Center,
-            Padding = UDim.new(0, 6),
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Parent = titleContainer
-        })
-        self.Title.Parent = titleContainer
-        self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
-        self.Title.TextXAlignment = Enum.TextXAlignment.Left
-        self.Title.Position = UDim2.new(0, 0, 0, 0)
-        local function updateTitleWidth()
-            self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
-        end
-        self.Title:GetPropertyChangedSignal("TextBounds"):Connect(updateTitleWidth)
-        updateTitleWidth()
-
-        local tagContainers = {}
-        for _, tag in ipairs(titleTagsList) do
-            local tagContainer = CreateInstance("Frame", {
-                Name = "TitleTagContainer",
-                Size = UDim2.new(0, 0, 0, 18),
-                BackgroundColor3 = tag.backgroundColor or WasUI.CurrentTheme.Accent,
-                BackgroundTransparency = 0.2,
-                BorderSizePixel = 0,
-                Parent = titleContainer,
-                ZIndex = 10
-            })
-            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
-            local tagLabel = CreateInstance("TextLabel", {
-                Name = "TagLabel",
-                Size = UDim2.new(1, -6, 1, 0),
-                Position = UDim2.new(0, 3, 0, 0),
-                BackgroundTransparency = 1,
-                Text = tag.text,
-                TextColor3 = tag.textColor or WasUI.CurrentTheme.Text,
-                Font = Enum.Font.GothamSemibold,
-                TextSize = 11,
-                TextXAlignment = Enum.TextXAlignment.Center,
-                TextYAlignment = Enum.TextYAlignment.Center,
-                Parent = tagContainer,
-                ZIndex = 11
-            })
-            task.wait()
-            local textWidth = tagLabel.TextBounds.X
-            tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
-            tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
-            table.insert(tagContainers, tagContainer)
-        end
-        self.TitleTagContainers = tagContainers
-    else
-        self.Title.Size = UDim2.new(1, -140, 1, 0)
-        self.Title.Position = UDim2.new(0, 54, 0, 0)
+        task.wait()
+        local textWidth = tagLabel.TextBounds.X
+        tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
+        tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
+        table.insert(tagContainers, tagContainer)
     end
+    self.TitleTagContainers = tagContainers
+else
+    self.Title.Size = UDim2.new(1, -140, 1, 0)
+    self.Title.Position = UDim2.new(0, 54, 0, 0)
+end
 
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
@@ -5387,7 +5388,7 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = v11
     local internalName = title
-    local window = Panel:New(internalName, screenGui, size or UDim2.new(0, 380, 0, 350), position, backgroundUrl, snowEnabled, titleTag)
+    local window = Panel:New(internalName, screenGui, size or UDim2.new(0, 400, 0, 350), position, backgroundUrl, snowEnabled, titleTag)
     window:SetTitle(title)
     RecordOriginalTransparency(window.Instance)
     window:EnableHotkeyToggle(Enum.KeyCode.F1)
