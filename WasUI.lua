@@ -37,7 +37,6 @@ WasUI.OpenDropdowns = {}
 WasUI.SettingsPanel = nil
 WasUI.GroupButtonText = "加入WasUI主群"
 WasUI.GroupCopyContent = "786284990"
-WasUI.CleanMode = false
 WasUI.DefaultFeatureStates = {}
 WasUI.DefaultHotkeys = {}
 
@@ -296,7 +295,6 @@ local function RecordOriginalTransparency(instance)
 end
 
 local function EnsureShortcutGui()
-    if WasUI.CleanMode then return end
     if not WasUI.ShortcutGui or not WasUI.ShortcutGui.Parent then
         WasUI.ShortcutGui = Instance.new("ScreenGui")
         WasUI.ShortcutGui.Name = "WasUI_Shortcuts"
@@ -308,7 +306,6 @@ end
 EnsureShortcutGui()
 
 local function EnsureNotificationGui()
-    if WasUI.CleanMode then return end
     if not WasUI.NotificationGui or not WasUI.NotificationGui.Parent then
         WasUI.NotificationGui = Instance.new("ScreenGui")
         WasUI.NotificationGui.Name = "WasUI_Notifications"
@@ -320,7 +317,6 @@ end
 EnsureNotificationGui()
 
 local function EnsureDropdownGui()
-    if WasUI.CleanMode then return end
     if not WasUI.DropdownGui or not WasUI.DropdownGui.Parent then
         WasUI.DropdownGui = Instance.new("ScreenGui")
         WasUI.DropdownGui.Name = "WasUI_Dropdowns"
@@ -371,7 +367,6 @@ local function updateAllNotificationPositions()
 end
 
 function WasUI:Notify(options)
-    if WasUI.CleanMode then return end
     local title = options.Title or "Notification"
     local content = options.Content or ""
     local duration = options.Duration or 3
@@ -448,7 +443,6 @@ function WasUI:Notify(options)
 end
 
 local function ensureConfigFolderExists()
-    if WasUI.CleanMode then return false end
     if not WasUI.ConfigFolderCreated then
         WasUI:Notify({
             Title = "配置错误",
@@ -460,10 +454,6 @@ local function ensureConfigFolderExists()
         return false
     end
     return true
-end
-
-function WasUI:SetCleanMode(enabled)
-    self.CleanMode = enabled
 end
 
 function WasUI:SetDefaultFeatureStates(states)
@@ -485,7 +475,6 @@ function WasUI:SetFeatureHotkeys(hotkeys)
 end
 
 function WasUI:CreateFolder(folderName)
-    if WasUI.CleanMode then return end
     if not folderName or folderName == "" then
         error("CreateFolder: folderName cannot be empty")
     end
@@ -510,7 +499,6 @@ function WasUI:CreateFolder(folderName)
         }
         
         function config:Save()
-            if WasUI.CleanMode then return false end
             if not ensureConfigFolderExists() then return false end
             local dataToSave = {}
             for key, value in pairs(self.Data) do dataToSave[key] = value end
@@ -607,9 +595,7 @@ function WasUI:CreateFolder(folderName)
         self:DeleteConfig(configName)
     end
     
-    if not WasUI.CleanMode then
-        WasUI:Notify({Title = "配置系统", Content = "已创建配置文件夹: " .. folderName, Duration = 2})
-    end
+    WasUI:Notify({Title = "配置系统", Content = "已创建配置文件夹: " .. folderName, Duration = 2})
     return WasUI.ConfigManager
 end
 
@@ -669,7 +655,6 @@ local function RefreshRainbowLayout()
     end
 end
 local function CreateRainbowTextForFeature(featureName)
-    if WasUI.CleanMode then return end
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
     local screenGui = CreateInstance("ScreenGui", {
@@ -748,7 +733,6 @@ local function GetShortcutKey(controlType, controlId, rainbowName)
 end
 
 local function SaveShortcutPosition(key, position)
-    if WasUI.CleanMode then return end
     local folder = v2:FindFirstChild(WasUI_Folder.Name)
     if not folder then
         folder = Instance.new("Folder")
@@ -781,7 +765,6 @@ function WasUI:ClearAllShortcuts()
 end
 
 local function SaveKeyBinding(key, keyCode)
-    if WasUI.CleanMode then return end
     local folder = v2:FindFirstChild(WasUI_Folder.Name)
     if not folder then
         folder = Instance.new("Folder")
@@ -885,7 +868,6 @@ local function AddRipple(instance, scaleFactor)
 end
 
 local function CreateShortcutButton(displayName, isToggle, initialState, onToggleCallback, onClickCallback, rainbowKey)
-    if WasUI.CleanMode then return nil end
     EnsureShortcutGui()
     local key = GetShortcutKey(isToggle and "toggle" or "button", nil, rainbowKey)
     if WasUI.ShortcutButtons[key] then
@@ -1211,7 +1193,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             Text = "",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
-            TextSize = 12,
+            TextSize = 14,
             TextXAlignment = Enum.TextXAlignment.Left,
             TextYAlignment = Enum.TextYAlignment.Center,
             ZIndex = 2,
@@ -1341,7 +1323,7 @@ function Label:New(name, parent, text, textColor)
         TextColor3 = textColor or WasUI.CurrentTheme.Text,
         TextTransparency = 0,
         Font = Enum.Font.Gotham,
-        TextSize = 12,
+        TextSize = 14,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 2,
@@ -1509,7 +1491,6 @@ end
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback, multiSelect, configKey)
-    if WasUI.CleanMode then return nil end
     EnsureDropdownGui()
     local self = Control:New(name, parent)
     self.MultiSelect = not not multiSelect
@@ -1541,7 +1522,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         Text = "",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
-        TextSize = 12,
+        TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
         ZIndex = 2,
@@ -1589,6 +1570,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Visible = false,
+        Active = false,
         ZIndex = 9999,
         ScrollBarThickness = 4,
         ScrollingDirection = Enum.ScrollingDirection.Y,
@@ -1619,8 +1601,24 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                 Parent = self.OptionsContainer
             })
             CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = optionButton})
-            optionButton.MouseEnter:Connect(function() Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1) end)
-            optionButton.MouseLeave:Connect(function() Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.1) end)
+            optionButton.MouseEnter:Connect(function()
+                if self.MultiSelect then
+                    local isSel = false
+                    for _, v in ipairs(self.SelectedValues) do if v == option then isSel = true break end end
+                    if not isSel then Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1) end
+                else
+                    Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.1)
+                end
+            end)
+            optionButton.MouseLeave:Connect(function()
+                if self.MultiSelect then
+                    local isSel = false
+                    for _, v in ipairs(self.SelectedValues) do if v == option then isSel = true break end end
+                    if not isSel then Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.1) end
+                else
+                    Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.1)
+                end
+            end)
             optionButton.MouseButton1Click:Connect(function()
                 if self.MultiSelect then
                     local index = nil
@@ -1651,12 +1649,8 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         end
         local function updateContainerSize()
             local totalHeight = #self.Options * 28 + (#self.Options - 1) * 4 + 16
-            local viewportSize = v7.CurrentCamera and v7.CurrentCamera.ViewportSize or v8:GetScreenSize()
-            local maxHeight = math.floor(viewportSize.Y) * 0.6
-            local finalHeight = math.min(totalHeight, maxHeight)
-            self.OptionsContainer.Size = UDim2.new(0.35, 0, 0, finalHeight)
-            task.wait()
-            self.OptionsContainer.CanvasSize = UDim2.new(0, 0, 0, optionsList.AbsoluteContentSize.Y + 8)
+            self._rawHeight = totalHeight
+            self.OptionsContainer.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
         end
         updateContainerSize()
         if self.IsOpen then updatePosition() end
@@ -1676,35 +1670,43 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         rebuildOptions()
         self:UpdateDisplayText()
     end
-local function updatePosition()
-    if not self.IsOpen then return end
-    local btnPos = self.DropdownButton.AbsolutePosition
-    local btnSize = self.DropdownButton.AbsoluteSize
-    local viewportSize = v7.CurrentCamera and v7.CurrentCamera.ViewportSize or v8:GetScreenSize()
-    local menuHeight = self.OptionsContainer.AbsoluteSize.Y
-    local menuWidth = self.OptionsContainer.AbsoluteSize.X
+    local function updatePosition()
+        if not self.IsOpen then return end
+        local btnPos = self.DropdownButton.AbsolutePosition
+        local btnSize = self.DropdownButton.AbsoluteSize
+        local viewportSize = v7.CurrentCamera and v7.CurrentCamera.ViewportSize or v8:GetScreenSize()
+        local rawHeight = self._rawHeight or self.OptionsContainer.CanvasSize.Y.Offset
+        local menuWidth = self.OptionsContainer.AbsoluteSize.X
 
-    local spaceBelow = viewportSize.Y - (btnPos.Y + btnSize.Y)
-    local spaceAbove = btnPos.Y
+        local spaceBelow = viewportSize.Y - (btnPos.Y + btnSize.Y) - 5
+        local spaceAbove = btnPos.Y - 5
 
-    local y
-    if menuHeight <= spaceBelow then
-        y = btnPos.Y + btnSize.Y
-    elseif menuHeight <= spaceAbove then
-        y = btnPos.Y - menuHeight
-    else
-        if spaceAbove > spaceBelow then
-            y = math.max(5, btnPos.Y - menuHeight)
+        local y, finalHeight
+        if rawHeight <= spaceBelow then
+            y = btnPos.Y + btnSize.Y
+            finalHeight = rawHeight
+        elseif rawHeight <= spaceAbove then
+            y = btnPos.Y - rawHeight
+            finalHeight = rawHeight
         else
-            y = math.min(viewportSize.Y - menuHeight, btnPos.Y + btnSize.Y)
+            if spaceAbove > spaceBelow then
+                finalHeight = spaceAbove
+                y = btnPos.Y - finalHeight
+            else
+                finalHeight = spaceBelow
+                y = btnPos.Y + btnSize.Y
+            end
+            finalHeight = math.max(20, finalHeight)
         end
-    end
 
-    local x = btnPos.X
-    if x + menuWidth > viewportSize.X then x = viewportSize.X - menuWidth - 5 end
-    if x < 0 then x = 5 end
-    self.OptionsContainer.Position = UDim2.new(0, x, 0, y)
-end
+        local x = btnPos.X
+        if x + menuWidth > viewportSize.X then x = viewportSize.X - menuWidth - 5 end
+        if x < 0 then x = 5 end
+
+        self.OptionsContainer.Size = UDim2.new(0.35, 0, 0, finalHeight)
+        self.OptionsContainer.CanvasSize = UDim2.new(0, 0, 0, rawHeight)
+        self.OptionsContainer.Position = UDim2.new(0, x, 0, y)
+    end
     self.DropdownButton:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePosition)
     self.DropdownButton:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePosition)
     function self:UpdateOptionVisuals()
@@ -1837,7 +1839,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         Text = "",
         TextColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
-        TextSize = 12,
+        TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 3,
         Parent = self.Container
@@ -2058,7 +2060,7 @@ function TextInput:New(name, parent, placeholder, defaultValue, callback, config
         TextColor3 = WasUI.CurrentTheme.Text,
         PlaceholderColor3 = WasUI.CurrentTheme.Text,
         Font = Enum.Font.Gotham,
-        TextSize = 12,
+        TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
         ClearTextOnFocus = false,
         ZIndex = 2,
@@ -2125,7 +2127,7 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
             Text = "",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
-            TextSize = 12,
+            TextSize = 14,
             TextXAlignment = Enum.TextXAlignment.Left,
             ZIndex = 3,
             Parent = self.Container
@@ -2179,18 +2181,18 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
         ZIndex = 3,
         Parent = self.Container
     })
-local function updateStatusText(val)
-    local statusText = ""
-    if type(self.Segments) == "table" then
-        for _, seg in ipairs(self.Segments) do
-            if val >= seg.min and val <= seg.max then
-                statusText = seg.text
-                break
+    local function updateStatusText(val)
+        local statusText = ""
+        if type(self.Segments) == "table" then
+            for _, seg in ipairs(self.Segments) do
+                if val >= seg.min and val <= seg.max then
+                    statusText = seg.text
+                    break
+                end
             end
         end
+        WasUI:SetLocalizedText(self.StatusLabel, statusText)
     end
-    WasUI:SetLocalizedText(self.StatusLabel, statusText)
-end
     local function updateFill()
         local t = (self.Value - self.Min) / (self.Max - self.Min)
         self.Fill:TweenSize(UDim2.new(t, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
@@ -2228,7 +2230,6 @@ function WasUI:CreateProgressBar(parent, title, min, max, defaultValue, callback
 end
 
 function WasUI:CreateTooltip(target, text, options)
-    if WasUI.CleanMode then return nil end
     options = options or {}
     local offset = options.offset or Vector2.new(0, 20)
     local backgroundColor = options.backgroundColor or WasUI.CurrentTheme.Section
@@ -2341,7 +2342,6 @@ function WasUI:CreateTooltip(target, text, options)
 end
 
 function WasUI:ShowConfirmDialog(options, callback)
-    if WasUI.CleanMode then return nil end
     local title = options.title or "确认"
     local titleColor = options.titleColor or WasUI.CurrentTheme.Text
     local description = options.description
@@ -2519,7 +2519,6 @@ function WasUI:ShowConfirmDialog(options, callback)
 end
 
 function WasUI:CreateConfirmButton(parent, text, confirmOptions, onClick, size, iconName)
-    if WasUI.CleanMode then return nil end
     return self:CreateButton(parent, text, function()
         self:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
             if confirmed and onClick then onClick(inputValue) end
@@ -2540,7 +2539,6 @@ function WasUI:CreateConfirmToggle(parent, title, initialState, confirmOptions, 
 end
 
 function WasUI:ShowPopup(options, callback)
-    if WasUI.CleanMode then return nil end
     local title = options.title or "提示"
     local titleIcon = options.titleIcon
     local content = options.content or ""
@@ -2728,7 +2726,6 @@ function WasUI:ShowPopup(options, callback)
 end
 
 function WasUI:ShowColorPicker(options, callback)
-    if WasUI.CleanMode then return nil end
     local title = options.title or "选择颜色"
     local defaultColor = options.defaultColor or Color3.fromRGB(255, 255, 255)
     local showAlpha = options.showAlpha or false
@@ -3051,7 +3048,7 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
             Text = title,
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
-            TextSize = 12,
+            TextSize = 14,
             TextXAlignment = Enum.TextXAlignment.Left,
             TextYAlignment = Enum.TextYAlignment.Center,
             ZIndex = 2,
