@@ -34,7 +34,9 @@ WasUI.DefaultRainbowMode="整体"
 WasUI.CurrentThemeName=WasUI.DefaultTheme
 WasUI.CurrentLanguage="中文"
 WasUI.LanguageTable=nil
-function WasUI.LoadLanguageTable(s,t)self.LanguageTable=t end
+function WasUI.LoadLanguageTable(tbl)
+    WasUI.LanguageTable = tbl
+end
 function WasUI.Translate(s,t)if s.CurrentLanguage=="中文"or not s.LanguageTable then return t end return s.LanguageTable[t]or t end
 function WasUI.SetLocalizedText(s,g,c,p)p=p or"Text"local t=s:Translate(c)g[p]=t g:SetAttribute("OriginalText",c)g:SetAttribute("LocalizedProperty",p)end
 function WasUI.SetLanguage(s,l)if l~="中文"and l~="English"then return false end s.CurrentLanguage=l s:RefreshAllTexts()return true end
@@ -143,5 +145,8 @@ function WasUI.SetGroupButtonText(s,text)WasUI.GroupButtonText=text if WasUI.Set
 function WasUI.SetGroupCopyContent(s,content)WasUI.GroupCopyContent=content end
 function WasUI.CreateParagraph(s,p,options)return Paragraph.New("Paragraph",p,options)end
 function WasUI.CreateProgressBar(s,p,title,min,max,dv,cb,seg)return ProgressBar.New("ProgressBar",p,title,min,max,dv,cb,seg)end
-task.spawn(function()local ok,tbl=pcall(function()return loadstring(game:HttpGet("https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/CnToEng.lua"))()end)if ok and type(tbl)=="table"then WasUI:LoadLanguageTable(tbl)print("[WasUI] 远程翻译表加载成功")else warn("[WasUI] 远程翻译表加载失败,无法切换English")end end)
+if ok and type(tbl)=="table" then
+    WasUI.LoadLanguageTable(tbl)
+    print("[WasUI] 远程翻译表加载成功")
+end
 return WasUI
