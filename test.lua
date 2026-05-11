@@ -16,14 +16,7 @@ local v12 = game:GetService("Selection")
 local v13 = v1.LocalPlayer
 
 local function CopyToClipboard(t)
-    if type(setclipboard) == "function" then
-        setclipboard(t)
-        return true
-    elseif pcall(function()
-        v12:SetTextAsync(t)
-    end) then
-        return true
-    end
+    if type(setclipboard) == "function" then setclipboard(t) return true end
     return false
 end
 
@@ -58,33 +51,26 @@ function WasUI.LoadLanguageTable(tbl)
 end
 
 function WasUI.Translate(s, text)
-    if s.CurrentLanguage == "中文" or not s.LanguageTable then
-        return text
-    end
+    if s.CurrentLanguage == "中文" or not s.LanguageTable then return text end
     return s.LanguageTable[text] or text
 end
 
 function WasUI.SetLocalizedText(s, guiObject, chineseText, propertyName)
     propertyName = propertyName or "Text"
-    local translated = s:Translate(chineseText)
-    guiObject[propertyName] = translated
+    guiObject[propertyName] = s:Translate(chineseText)
     guiObject:SetAttribute("OriginalText", chineseText)
     guiObject:SetAttribute("LocalizedProperty", propertyName)
 end
 
 function WasUI.SetLanguage(s, lang)
-    if lang ~= "中文" and lang ~= "English" then
-        return false
-    end
+    if lang ~= "中文" and lang ~= "English" then return false end
     s.CurrentLanguage = lang
     s:RefreshAllTexts()
     return true
 end
 
 function WasUI.SetDefaultLanguage(s, lang)
-    if lang ~= "中文" and lang ~= "English" then
-        return false
-    end
+    if lang ~= "中文" and lang ~= "English" then return false end
     s.CurrentLanguage = lang
     return true
 end
@@ -97,42 +83,32 @@ function WasUI.RefreshAllTexts(s)
             if original then
                 local prop = instance:GetAttribute("LocalizedProperty") or "Text"
                 local translated = s:Translate(original)
-                if instance[prop] ~= nil then
-                    instance[prop] = translated
-                end
+                if instance[prop] ~= nil then instance[prop] = translated end
             end
         end
     end
-
     for _, shortcut in pairs(WasUI.ShortcutButtons) do
         local btn = shortcut.button
         if btn then
             local textLabel = btn:FindFirstChild("Text")
             if textLabel then
                 local original = textLabel:GetAttribute("OriginalText")
-                if original then
-                    textLabel.Text = s:Translate(original)
-                end
+                if original then textLabel.Text = s:Translate(original) end
             end
         end
     end
-
     if WasUI.SettingsPanel then
         local content = WasUI.SettingsPanel:FindFirstChild("Content")
         if content then
             for _, child in ipairs(content:GetChildren()) do
                 if child:IsA("TextLabel") or child:IsA("TextButton") then
                     local original = child:GetAttribute("OriginalText")
-                    if original then
-                        child.Text = s:Translate(original)
-                    end
+                    if original then child.Text = s:Translate(original) end
                 elseif child.Name == "SnowToggleContainer" or child.Name == "LanguageToggleContainer" then
                     local title = child:FindFirstChild("Title")
                     if title then
                         local original = title:GetAttribute("OriginalText")
-                        if original then
-                            title.Text = s:Translate(original)
-                        end
+                        if original then title.Text = s:Translate(original) end
                     end
                 end
             end
@@ -142,21 +118,16 @@ function WasUI.RefreshAllTexts(s)
             local title = titleBar:FindFirstChild("Title")
             if title then
                 local original = title:GetAttribute("OriginalText")
-                if original then
-                    title.Text = s:Translate(original)
-                end
+                if original then title.Text = s:Translate(original) end
             end
         end
         for _, child in ipairs(WasUI.SettingsPanel:GetChildren()) do
             if child:IsA("TextLabel") or child:IsA("TextButton") then
                 local original = child:GetAttribute("OriginalText")
-                if original then
-                    child.Text = s:Translate(original)
-                end
+                if original then child.Text = s:Translate(original) end
             end
         end
     end
-
     for _, notif in pairs(WasUI.ActiveNotifications) do
         local frame = notif.Frame
         if frame then
@@ -164,19 +135,14 @@ function WasUI.RefreshAllTexts(s)
             local content = frame:FindFirstChild("Content")
             if title then
                 local original = title:GetAttribute("OriginalText")
-                if original then
-                    title.Text = s:Translate(original)
-                end
+                if original then title.Text = s:Translate(original) end
             end
             if content then
                 local original = content:GetAttribute("OriginalText")
-                if original then
-                    content.Text = s:Translate(original)
-                end
+                if original then content.Text = s:Translate(original) end
             end
         end
     end
-
     for _, panelObj in ipairs(WasUI.Objects) do
         if panelObj.Type == "Panel" and panelObj.Object then
             local panelInstance = panelObj.Object
@@ -185,15 +151,11 @@ function WasUI.RefreshAllTexts(s)
                 local titleLabel = titleBar:FindFirstChild("Title")
                 if not titleLabel then
                     local titleContainer = titleBar:FindFirstChild("TitleContainer")
-                    if titleContainer then
-                        titleLabel = titleContainer:FindFirstChild("Title")
-                    end
+                    if titleContainer then titleLabel = titleContainer:FindFirstChild("Title") end
                 end
                 if titleLabel then
                     local original = titleLabel:GetAttribute("OriginalText")
-                    if original then
-                        titleLabel.Text = s:Translate(original)
-                    end
+                    if original then titleLabel.Text = s:Translate(original) end
                 end
             end
             local announcementBar = panelInstance:FindFirstChild("AnnouncementBar")
@@ -202,15 +164,11 @@ function WasUI.RefreshAllTexts(s)
                 local settingsHint = announcementBar:FindFirstChild("SettingsHint")
                 if welcomeLabel then
                     local original = welcomeLabel:GetAttribute("OriginalText")
-                    if original then
-                        welcomeLabel.Text = s:Translate(original)
-                    end
+                    if original then welcomeLabel.Text = s:Translate(original) end
                 end
                 if settingsHint then
                     local original = settingsHint:GetAttribute("OriginalText")
-                    if original then
-                        settingsHint.Text = s:Translate(original)
-                    end
+                    if original then settingsHint.Text = s:Translate(original) end
                 end
             end
             local tabBar = panelInstance:FindFirstChild("TabBar")
@@ -220,18 +178,13 @@ function WasUI.RefreshAllTexts(s)
                     for _, tabBtn in ipairs(tabContainer:GetChildren()) do
                         if tabBtn:IsA("TextButton") then
                             local original = tabBtn:GetAttribute("OriginalText")
-                            if original then
-                                tabBtn.Text = s:Translate(original)
-                            end
+                            if original then tabBtn.Text = s:Translate(original) end
                         end
                     end
                 end
             end
         end
     end
-end
-
-function WasUI.RefreshSettingsPanelTexts()
 end
 
 function WasUI.SetDefaultTheme(s, themeName)
@@ -254,49 +207,31 @@ end
 
 WasUI.Themes = {
     Dark = {
-        Primary = Color3.fromRGB(15, 15, 20),
-        Secondary = Color3.fromRGB(25, 25, 30),
-        Background = Color3.fromRGB(28, 28, 34),
-        Text = Color3.fromRGB(220, 220, 220),
-        Accent = Color3.fromRGB(153, 51, 255),
-        Success = Color3.fromRGB(83, 227, 136),
-        Warning = Color3.fromRGB(255, 213, 92),
-        Error = Color3.fromRGB(255, 123, 123),
-        Section = Color3.fromRGB(45, 45, 50),
-        Input = Color3.fromRGB(45, 45, 50),
-        TabBorder = Color3.fromRGB(60, 60, 65),
-        TabButton = Color3.fromRGB(0, 0, 0),
-        SnowColor = Color3.fromRGB(255, 255, 255)
+        Primary = Color3.fromRGB(15,15,20), Secondary = Color3.fromRGB(25,25,30),
+        Background = Color3.fromRGB(28,28,34), Text = Color3.fromRGB(220,220,220),
+        Accent = Color3.fromRGB(153,51,255), Success = Color3.fromRGB(83,227,136),
+        Warning = Color3.fromRGB(255,213,92), Error = Color3.fromRGB(255,123,123),
+        Section = Color3.fromRGB(45,45,50), Input = Color3.fromRGB(45,45,50),
+        TabBorder = Color3.fromRGB(60,60,65), TabButton = Color3.fromRGB(0,0,0),
+        SnowColor = Color3.fromRGB(255,255,255)
     },
     Light = {
-        Primary = Color3.fromRGB(240, 240, 245),
-        Secondary = Color3.fromRGB(245, 245, 250),
-        Background = Color3.fromRGB(255, 255, 255),
-        Text = Color3.fromRGB(0, 0, 0),
-        Accent = Color3.fromRGB(52, 86, 139),
-        Success = Color3.fromRGB(52, 168, 83),
-        Warning = Color3.fromRGB(251, 188, 5),
-        Error = Color3.fromRGB(234, 67, 53),
-        Section = Color3.fromRGB(240, 240, 245),
-        Input = Color3.fromRGB(240, 240, 245),
-        TabBorder = Color3.fromRGB(200, 200, 205),
-        TabButton = Color3.fromRGB(248, 248, 250),
-        SnowColor = Color3.fromRGB(0, 0, 0)
+        Primary = Color3.fromRGB(240,240,245), Secondary = Color3.fromRGB(245,245,250),
+        Background = Color3.fromRGB(255,255,255), Text = Color3.fromRGB(0,0,0),
+        Accent = Color3.fromRGB(52,86,139), Success = Color3.fromRGB(52,168,83),
+        Warning = Color3.fromRGB(251,188,5), Error = Color3.fromRGB(234,67,53),
+        Section = Color3.fromRGB(240,240,245), Input = Color3.fromRGB(240,240,245),
+        TabBorder = Color3.fromRGB(200,200,205), TabButton = Color3.fromRGB(248,248,250),
+        SnowColor = Color3.fromRGB(0,0,0)
     },
     Blue = {
-        Primary = Color3.fromRGB(25, 35, 55),
-        Secondary = Color3.fromRGB(35, 45, 65),
-        Background = Color3.fromRGB(20, 28, 45),
-        Text = Color3.fromRGB(235, 240, 250),
-        Accent = Color3.fromRGB(255, 140, 50),
-        Success = Color3.fromRGB(80, 200, 120),
-        Warning = Color3.fromRGB(255, 190, 60),
-        Error = Color3.fromRGB(255, 90, 90),
-        Section = Color3.fromRGB(35, 45, 65),
-        Input = Color3.fromRGB(35, 45, 65),
-        TabBorder = Color3.fromRGB(60, 70, 90),
-        TabButton = Color3.fromRGB(30, 40, 60),
-        SnowColor = Color3.fromRGB(255, 255, 255)
+        Primary = Color3.fromRGB(25,35,55), Secondary = Color3.fromRGB(35,45,65),
+        Background = Color3.fromRGB(20,28,45), Text = Color3.fromRGB(235,240,250),
+        Accent = Color3.fromRGB(255,140,50), Success = Color3.fromRGB(80,200,120),
+        Warning = Color3.fromRGB(255,190,60), Error = Color3.fromRGB(255,90,90),
+        Section = Color3.fromRGB(35,45,65), Input = Color3.fromRGB(35,45,65),
+        TabBorder = Color3.fromRGB(60,70,90), TabButton = Color3.fromRGB(30,40,60),
+        SnowColor = Color3.fromRGB(255,255,255)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes[WasUI.DefaultTheme]
@@ -306,7 +241,6 @@ WasUI.RainbowOrder = {}
 WasUI.ShortcutGui = nil
 WasUI.ShortcutButtons = {}
 WasUI.KeyBindings = {}
-WasUI.AwaitingKeyBind = nil
 WasUI.ConfigManager = nil
 WasUI.ConfigFolderCreated = false
 WasUI.ConfigFolderName = nil
@@ -355,6 +289,96 @@ local function EnsureDropdownGui()
 end
 EnsureDropdownGui()
 
+local function updateAllNotificationPositions()
+    local sorted = {}
+    for id, data in pairs(WasUI.ActiveNotifications) do
+        table.insert(sorted, data)
+    end
+    table.sort(sorted, function(a, b) return a.CreationTime < b.CreationTime end)
+    local targetPositions = {}
+    for i, data in ipairs(sorted) do
+        local targetY = WasUI.NotificationTop + (i-1)*(WasUI.NotificationHeight + WasUI.NotificationSpacing)
+        targetPositions[data] = UDim2.new(1, -WasUI.NotificationWidth - 10, 0, targetY)
+    end
+    return targetPositions
+end
+
+function WasUI.Notify(s, options)
+    if WasUI.CleanMode then return end
+    local title = options.Title or "通知"
+    local content = options.Content or ""
+    local duration = options.Duration or 3
+    local bgColor = options.BackgroundColor or WasUI.CurrentTheme.Section
+    local borderColor = options.BorderColor or WasUI.CurrentTheme.Text
+    local notificationId = v6:GenerateGUID(false)
+    local frame = CreateInstance("Frame", {
+        Name = "Notification_" .. notificationId,
+        Size = UDim2.new(0, WasUI.NotificationWidth, 0, WasUI.NotificationHeight),
+        Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, WasUI.NotificationTop),
+        BackgroundColor3 = bgColor,
+        BackgroundTransparency = 0.2,
+        ClipsDescendants = true,
+        Visible = true,
+        ZIndex = 9999,
+        Parent = WasUI.NotificationGui
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = frame})
+    CreateInstance("UIStroke", {
+        Color = borderColor,
+        Thickness = 1,
+        Transparency = 0.5,
+        Parent = frame
+    })
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(1, -10, 0, 14),
+        Position = UDim2.new(0, 5, 0, 2),
+        BackgroundTransparency = 1,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 10000,
+        Parent = frame
+    })
+    WasUI:SetLocalizedText(titleLabel, title)
+    local contentLabel = CreateInstance("TextLabel", {
+        Name = "Content",
+        Size = UDim2.new(1, -10, 0, 12),
+        Position = UDim2.new(0, 5, 0, 16),
+        BackgroundTransparency = 1,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 10000,
+        Parent = frame
+    })
+    WasUI:SetLocalizedText(contentLabel, content)
+    local data = {
+        Frame = frame,
+        Id = notificationId,
+        CreationTime = tick()
+    }
+    WasUI.ActiveNotifications[notificationId] = data
+    local targetPositions = updateAllNotificationPositions()
+    for notif, targetPos in pairs(targetPositions) do
+        Tween(notif.Frame, {Position = targetPos}, 0.35)
+    end
+    task.delay(duration, function()
+        WasUI.ActiveNotifications[notificationId] = nil
+        local newTargets = updateAllNotificationPositions()
+        for notif, targetPos in pairs(newTargets) do
+            Tween(notif.Frame, {Position = targetPos}, 0.3)
+        end
+        Tween(frame, {
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, frame.Position.Y.Offset)
+        }, 0.3)
+        task.delay(0.3, function() frame:Destroy() end)
+    end)
+end
+
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
     for prop, value in pairs(properties) do
@@ -381,274 +405,6 @@ local function SpringTween(instance, properties, duration)
     return tween
 end
 
-local function RefreshRainbowLayout()
-    local startY = 10
-    local spacing = 5
-    for _, featureName in ipairs(WasUI.RainbowOrder) do
-        local data = WasUI.ActiveRainbowTexts[featureName]
-        if data and data.Label then
-            data.Label.Position = UDim2.new(1, -190, 0, startY)
-            data.Label.Size = UDim2.new(0, 180, 0, 20)
-            data.ScreenGui.Enabled = true
-            startY = startY + 20 + spacing
-        end
-    end
-end
-
-local function CreateRainbowTextForFeature(featureName)
-    if WasUI.CleanMode then return end
-    featureName = type(featureName) == "string" and featureName or tostring(featureName)
-    if WasUI.ActiveRainbowTexts[featureName] then return end
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "RainbowText_" .. featureName,
-        ResetOnSpawn = false,
-        DisplayOrder = 100,
-        Parent = v11
-    })
-    local textLabel = CreateInstance("TextLabel", {
-        Name = "Text",
-        Size = UDim2.new(0, 180, 0, 20),
-        Position = UDim2.new(1, 10, 0, 0),
-        BackgroundTransparency = 1,
-        Text = featureName,
-        TextColor3 = Color3.fromRGB(255, 0, 0),
-        Font = Enum.Font.GothamBold,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        TextWrapped = true,
-        TextStrokeTransparency = 0.5,
-        TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
-        Parent = screenGui
-    })
-    local creationOrder = #WasUI.RainbowOrder + 1
-    WasUI.ActiveRainbowTexts[featureName] = {
-        ScreenGui = screenGui,
-        Connection = nil,
-        Label = textLabel,
-        CreationOrder = creationOrder,
-        OriginalText = featureName,
-        IsMerged = false
-    }
-    table.insert(WasUI.RainbowOrder, featureName)
-    Tween(textLabel, { Position = UDim2.new(1, -190, 0, 0) }, 0.4)
-    RefreshRainbowLayout()
-end
-
-local function DestroyRainbowTextForFeature(featureName)
-    featureName = type(featureName) == "string" and featureName or tostring(featureName)
-    local data = WasUI.ActiveRainbowTexts[featureName]
-    if data then
-        if data.ScreenGui then data.ScreenGui:Destroy() end
-        WasUI.ActiveRainbowTexts[featureName] = nil
-        for i, name in ipairs(WasUI.RainbowOrder) do
-            if name == featureName then
-                table.remove(WasUI.RainbowOrder, i)
-                break
-            end
-        end
-        RefreshRainbowLayout()
-    end
-end
-
-local rainbowTime = 0
-local rainbowSpeed = 2
-v5.Heartbeat:Connect(function(dt)
-    rainbowTime = rainbowTime + dt * rainbowSpeed
-    local r = (math.sin(rainbowTime) + 1) / 2
-    local g = (math.sin(rainbowTime + math.pi / 3) + 1) / 2
-    local b = (math.sin(rainbowTime + 2 * math.pi / 3) + 1) / 2
-    local color = Color3.new(r, g, b)
-    for _, data in pairs(WasUI.ActiveRainbowTexts) do
-        if data.Label then
-            data.Label.TextColor3 = color
-        end
-    end
-end)
-
-local function GetShortcutKey(controlType, controlId, rainbowName)
-    local base = ""
-    local safeRainbowName = (type(rainbowName) == "string" and rainbowName ~= "") and rainbowName or nil
-    if safeRainbowName then
-        base = "shortcut_" .. safeRainbowName
-    else
-        base = "shortcut_" .. controlType .. "_" .. tostring(controlId)
-    end
-    base = base:gsub("[^%w_]", "_")
-    return base
-end
-
-local function SaveShortcutPosition(key, position)
-    if WasUI.CleanMode then return end
-    local folder = v2:FindFirstChild(WasUI_Folder.Name)
-    if not folder then
-        folder = Instance.new("Folder")
-        folder.Name = WasUI_Folder.Name
-        folder.Parent = v2
-    end
-    local posStr = string.format("%.3f,%.3f,%.3f,%.3f",
-        position.X.Scale, position.X.Offset,
-        position.Y.Scale, position.Y.Offset)
-    folder:SetAttribute(key .. "_Pos", posStr)
-end
-
-local function LoadShortcutPosition(key)
-    local folder = v2:FindFirstChild(WasUI_Folder.Name)
-    if folder then
-        local posStr = folder:GetAttribute(key .. "_Pos")
-        if posStr and type(posStr) == "string" then
-            local parts = {}
-            for part in string.gmatch(posStr, "[^,]+") do
-                table.insert(parts, tonumber(part))
-            end
-            if #parts == 4 then
-                return UDim2.new(parts[1], parts[2], parts[3], parts[4])
-            end
-        end
-    end
-    return nil
-end
-
-function WasUI.ClearAllShortcuts(s)
-    for k, v in pairs(WasUI.ShortcutButtons) do
-        if v and v.destroy then
-            v:destroy()
-        elseif v and v.button then
-            v.button:Destroy()
-        end
-    end
-    WasUI.ShortcutButtons = {}
-end
-
-local function SaveKeyBinding(key, keyCode)
-    if WasUI.CleanMode then return end
-    local folder = v2:FindFirstChild(WasUI_Folder.Name)
-    if not folder then
-        folder = Instance.new("Folder")
-        folder.Name = WasUI_Folder.Name
-        folder.Parent = v2
-    end
-    folder:SetAttribute(key .. "_Key", tostring(keyCode))
-end
-
-local function LoadKeyBinding(key)
-    local folder = v2:FindFirstChild(WasUI_Folder.Name)
-    if folder then
-        local keyStr = folder:GetAttribute(key .. "_Key")
-        if keyStr then
-            for _, kc in pairs(Enum.KeyCode:GetEnumItems()) do
-                if tostring(kc) == keyStr then return kc end
-            end
-        end
-    end
-    return nil
-end
-
-local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
-    longPressTime = longPressTime or 0.5
-    local timer = nil
-    local pressed = false
-    local startPos = nil
-
-    local function cleanup()
-        if timer then
-            pcall(function() task.cancel(timer) end)
-            timer = nil
-        end
-        pressed = false
-        startPos = nil
-    end
-
-    controlInstance.InputBegan:Connect(function(input)
-        cleanup()
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-            pressed = true
-            startPos = input.Position
-            timer = task.delay(longPressTime, function()
-                if pressed then
-                    timer = nil
-                    pressed = false
-                    startPos = nil
-                    onLongPress()
-                end
-            end)
-        end
-    end)
-
-    controlInstance.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            cleanup()
-        end
-    end)
-
-    v4.InputChanged:Connect(function(input)
-        if pressed and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-            if startPos and (input.Position - startPos).Magnitude > 10 then
-                cleanup()
-            end
-        end
-    end)
-end
-
-local function AddRipple(instance, scaleFactor)
-    scaleFactor = scaleFactor or 1.5
-    local function createRipple(input)
-        local ripple = Instance.new("Frame")
-        ripple.Name = "Ripple"
-        ripple.Size = UDim2.new(0, 0, 0, 0)
-        ripple.BackgroundColor3 = WasUI.CurrentTheme.Accent
-        ripple.BackgroundTransparency = 0.6
-        ripple.BorderSizePixel = 0
-        ripple.ZIndex = 10
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(1, 0)
-        corner.Parent = ripple
-        ripple.Parent = instance
-        local mousePos = input.Position
-        local btnPos = instance.AbsolutePosition
-        local x = mousePos.X - btnPos.X
-        local y = mousePos.Y - btnPos.Y
-        ripple.Position = UDim2.new(0, x, 0, y)
-        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-        local maxSize = math.max(instance.AbsoluteSize.X, instance.AbsoluteSize.Y) * scaleFactor
-        Tween(ripple, {
-            Size = UDim2.new(0, maxSize, 0, maxSize),
-            BackgroundTransparency = 1
-        }, 0.5)
-        task.delay(0.5, function()
-            ripple:Destroy()
-        end)
-    end
-
-    instance.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            createRipple(input)
-        end
-    end)
-end
-WasUI.LucideManager = { Module = nil, Loaded = false }
-
-function WasUI.LoadLucide(s)
-    if s.LucideManager.Loaded then return s.LucideManager.Module end
-    local ok, m = pcall(function()
-        local url = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
-        return loadstring(game:HttpGet(url))()
-    end)
-    if ok and m then
-        s.LucideManager.Module = m
-        s.LucideManager.Loaded = true
-        return m
-    end
-    return nil
-end
-
-function WasUI.GetIcon(s, iconName)
-    local lucide = s:LoadLucide()
-    if lucide then
-        local ok, icon = pcall(lucide.GetAsset, iconName)
-        if ok and icon then return icon end
-    end
-    return nil
-end
 local function ensureConfigFolderExists()
     if WasUI.CleanMode then return false end
     if not WasUI.ConfigFolderCreated then
@@ -674,11 +430,9 @@ function WasUI.CreateFolder(s, folderName)
     WasUI.ConfigFolderCreated = true
     WasUI.ConfigFolderName = folderName
     WasUI.ConfigManager = {}
-
     local function getFilePath(configName)
         return path .. "/" .. configName .. ".json"
     end
-
     function WasUI.ConfigManager.GetConfig(self, configName)
         if not ensureConfigFolderExists() then return nil end
         local filePath = getFilePath(configName)
@@ -738,7 +492,6 @@ function WasUI.CreateFolder(s, folderName)
         if isfile(filePath) then config:Load() end
         return config
     end
-
     function WasUI.ConfigManager.AllConfigs(self)
         if not ensureConfigFolderExists() then return {} end
         local files = {}
@@ -750,41 +503,57 @@ function WasUI.CreateFolder(s, folderName)
         end
         return files
     end
-
     function WasUI.ConfigManager.DeleteConfig(self, configName)
         if not ensureConfigFolderExists() then return false end
         local filePath = getFilePath(configName)
         if isfile(filePath) then delfile(filePath) end
         return true
     end
-
     function WasUI.ConfigManager.GetConfigNames(self)
         if not ensureConfigFolderExists() then return {} end
         return self:AllConfigs()
     end
-
     function WasUI.ConfigManager.LoadConfigByName(self, configName)
         local config = self:GetConfig(configName)
         if config then config:Load(); return true end
         return false
     end
-
     function WasUI.ConfigManager.SaveConfigByName(self, configName, data)
         local config = self:GetConfig(configName)
         for k, v in pairs(data) do config:Set(k, v) end
         config:Save()
     end
-
     function WasUI.ConfigManager.DeleteConfigByName(self, configName)
         self:DeleteConfig(configName)
     end
-
     if not WasUI.CleanMode then
         WasUI:Notify({ Title = "配置系统", Content = "已创建配置文件夹: " .. folderName, Duration = 2 })
     end
     return WasUI.ConfigManager
 end
 
+WasUI.LucideManager = { Module = nil, Loaded = false }
+function WasUI.LoadLucide(s)
+    if s.LucideManager.Loaded then return s.LucideManager.Module end
+    local ok, m = pcall(function()
+        local url = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
+        return loadstring(game:HttpGet(url))()
+    end)
+    if ok and m then
+        s.LucideManager.Module = m
+        s.LucideManager.Loaded = true
+        return m
+    end
+    return nil
+end
+function WasUI.GetIcon(s, iconName)
+    local lucide = s:LoadLucide()
+    if lucide then
+        local ok, icon = pcall(lucide.GetAsset, iconName)
+        if ok and icon then return icon end
+    end
+    return nil
+end
 function WasUI.CreateIcon(s, iconName, size, color, ignoreTheme)
     local icon = s:GetIcon(iconName)
     if not icon then return nil end
