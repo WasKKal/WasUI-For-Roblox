@@ -1923,7 +1923,7 @@ function Slider.New(s, name, parent, title, min, max, defaultValue, callback, co
     })
     self.Knob.Visible = false
     local knobCircle = CreateInstance("Frame", {
-        Size = UDim2 new(1, 0, 1, 0),
+        Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Accent,
         BorderSizePixel = 0,
         Parent = self.Knob
