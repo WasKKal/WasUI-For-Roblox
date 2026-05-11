@@ -4518,7 +4518,7 @@ function Panel.New(s, name, parent, size, position, bgUrl, snowEnabled, titleTag
         })
         local langTitle = CreateInstance("TextLabel", {
             Name = "Title",
-            Size = UDim2 new(0.7, 0, 1, 0),
+            Size = UDim2.new(0.7, 0, 1, 0),
             Position = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
             Text = "",
