@@ -625,6 +625,184 @@ local function AddRipple(instance, scaleFactor)
         end
     end)
 end
+WasUI.LucideManager = { Module = nil, Loaded = false }
+
+function WasUI.LoadLucide(s)
+    if s.LucideManager.Loaded then return s.LucideManager.Module end
+    local ok, m = pcall(function()
+        local url = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
+        return loadstring(game:HttpGet(url))()
+    end)
+    if ok and m then
+        s.LucideManager.Module = m
+        s.LucideManager.Loaded = true
+        return m
+    end
+    return nil
+end
+
+function WasUI.GetIcon(s, iconName)
+    local lucide = s:LoadLucide()
+    if lucide then
+        local ok, icon = pcall(lucide.GetAsset, iconName)
+        if ok and icon then return icon end
+    end
+    return nil
+end
+local function ensureConfigFolderExists()
+    if WasUI.CleanMode then return false end
+    if not WasUI.ConfigFolderCreated then
+        WasUI:Notify({
+            Title = "配置错误",
+            Content = "当前脚本作者未正确配置 Folder 状态，请先调用 WasUI:CreateFolder('文件夹名')",
+            Duration = 4,
+            BackgroundColor = WasUI.CurrentTheme.Error,
+            BorderColor = WasUI.CurrentTheme.Error
+        })
+        return false
+    end
+    return true
+end
+
+function WasUI.CreateFolder(s, folderName)
+    if WasUI.CleanMode then return end
+    if not folderName or folderName == "" then
+        error("CreateFolder: folderName cannot be empty")
+    end
+    local path = "WasUI_Configs/" .. folderName
+    if not isfolder(path) then makefolder(path) end
+    WasUI.ConfigFolderCreated = true
+    WasUI.ConfigFolderName = folderName
+    WasUI.ConfigManager = {}
+
+    local function getFilePath(configName)
+        return path .. "/" .. configName .. ".json"
+    end
+
+    function WasUI.ConfigManager.GetConfig(self, configName)
+        if not ensureConfigFolderExists() then return nil end
+        local filePath = getFilePath(configName)
+        local config = {
+            Name = configName,
+            Path = filePath,
+            Data = {},
+            Bindings = {},
+        }
+        function config.Save(self)
+            if WasUI.CleanMode then return false end
+            if not ensureConfigFolderExists() then return false end
+            local dataToSave = {}
+            for key, value in pairs(self.Data) do dataToSave[key] = value end
+            local json = v6:JSONEncode(dataToSave)
+            writefile(self.Path, json)
+            return true
+        end
+        function config.Load(self)
+            if not ensureConfigFolderExists() then return false end
+            if not isfile(self.Path) then return false end
+            local ok, data = pcall(function()
+                return v6:JSONDecode(readfile(self.Path))
+            end)
+            if ok and type(data) == "table" then
+                self.Data = data
+                for key, value in pairs(self.Data) do
+                    local binding = self.Bindings[key]
+                    if binding and binding.control and binding.update then
+                        binding.update(value)
+                    end
+                end
+                return true
+            end
+            return false
+        end
+        function config.Delete(self)
+            if not ensureConfigFolderExists() then return false end
+            if isfile(self.Path) then delfile(self.Path) end
+            self.Data = {}
+            self.Bindings = {}
+            return true
+        end
+        function config.Set(self, key, value)
+            self.Data[key] = value
+        end
+        function config.Get(self, key, defaultValue)
+            local val = self.Data[key]
+            if val == nil then return defaultValue end
+            return val
+        end
+        function config.Bind(self, key, control, updateFunc)
+            self.Bindings[key] = { control = control, update = updateFunc }
+            local savedValue = self.Data[key]
+            if savedValue ~= nil then updateFunc(savedValue) end
+        end
+        if isfile(filePath) then config:Load() end
+        return config
+    end
+
+    function WasUI.ConfigManager.AllConfigs(self)
+        if not ensureConfigFolderExists() then return {} end
+        local files = {}
+        if listfiles then
+            for _, file in ipairs(listfiles(path)) do
+                local name = file:match("([^/]+)%.json$")
+                if name then table.insert(files, name) end
+            end
+        end
+        return files
+    end
+
+    function WasUI.ConfigManager.DeleteConfig(self, configName)
+        if not ensureConfigFolderExists() then return false end
+        local filePath = getFilePath(configName)
+        if isfile(filePath) then delfile(filePath) end
+        return true
+    end
+
+    function WasUI.ConfigManager.GetConfigNames(self)
+        if not ensureConfigFolderExists() then return {} end
+        return self:AllConfigs()
+    end
+
+    function WasUI.ConfigManager.LoadConfigByName(self, configName)
+        local config = self:GetConfig(configName)
+        if config then config:Load(); return true end
+        return false
+    end
+
+    function WasUI.ConfigManager.SaveConfigByName(self, configName, data)
+        local config = self:GetConfig(configName)
+        for k, v in pairs(data) do config:Set(k, v) end
+        config:Save()
+    end
+
+    function WasUI.ConfigManager.DeleteConfigByName(self, configName)
+        self:DeleteConfig(configName)
+    end
+
+    if not WasUI.CleanMode then
+        WasUI:Notify({ Title = "配置系统", Content = "已创建配置文件夹: " .. folderName, Duration = 2 })
+    end
+    return WasUI.ConfigManager
+end
+
+function WasUI.CreateIcon(s, iconName, size, color, ignoreTheme)
+    local icon = s:GetIcon(iconName)
+    if not icon then return nil end
+    local imageLabel = Instance.new("ImageLabel")
+    imageLabel.Image = icon.Url
+    imageLabel.Size = size or UDim2.new(0, 20, 0, 20)
+    imageLabel.BackgroundTransparency = 1
+    imageLabel.ImageColor3 = color or WasUI.CurrentTheme.Text
+    imageLabel.ScaleType = Enum.ScaleType.Fit
+    if icon.ImageRectOffset then
+        imageLabel.ImageRectOffset = icon.ImageRectOffset
+        imageLabel.ImageRectSize = icon.ImageRectSize
+    end
+    if ignoreTheme then
+        imageLabel:SetAttribute("IgnoreThemeChange", true)
+    end
+    return imageLabel
+end
 
 local function CreateShortcutButton(displayName, isToggle, initialState, onToggleCallback, onClickCallback, rainbowKey)
     if WasUI.CleanMode then return nil end
