@@ -2963,7 +2963,7 @@ function WasUI.ShowPopup(s, options, callback)
 
     local cancelBtn = CreateInstance("TextButton", {
         Name = "CancelButton",
-        Size = UDim2 new(0.5, -5, 1, 0),
+        Size = UDim2.new(0.5, -5, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
         BackgroundTransparency = 0.3,
@@ -3581,18 +3581,18 @@ function Paragraph.New(s, name, parent, options)
     })
     table.insert(WasUI.Objects, { Object = self.ContentLabel, Type = "ParagraphContent" })
 
-    function self.SetTitle(text)
-        WasUI:SetLocalizedText(self.TitleLabel, text)
-    end
+function self.SetTitle(text)
+    WasUI:SetLocalizedText(self.TitleLabel, text)
+end
 
-    function self.SetContent(text)
-        if text and text ~= "" then
-            WasUI:SetLocalizedText(self.ContentLabel, text)
-            self.ContentLabel.Visible = true
-        else
-            self.ContentLabel.Visible = false
-        end
+function self.SetContent(text)
+    if text and text ~= "" then
+        WasUI:SetLocalizedText(self.ContentLabel, text)
+        self.ContentLabel.Visible = true
+    else
+        self.ContentLabel.Visible = false
     end
+end
 
     function self.SetIcon(iconName)
         if self.Icon then
@@ -3777,6 +3777,10 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     for _, btn in ipairs(tabContainer:GetChildren()) do
                         if btn:IsA("TextButton") then
                             Tween(btn, { BackgroundColor3 = newTheme.TabButton, TextColor3 = newTheme.Text }, duration)
+                            local underline = btn:FindFirstChild("Underline")
+                            if underline and underline:IsA("Frame") then
+                                Tween(underline, { BackgroundColor3 = newTheme.Accent }, duration)
+                            end
                         end
                     end
                 end
