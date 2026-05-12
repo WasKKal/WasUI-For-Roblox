@@ -3423,6 +3423,7 @@ local function isPointOverButton(btn, point)
     return point.X >= ap.X and point.X <= ap.X + as.X and point.Y >= ap.Y and point.Y <= ap.Y + as.Y
 end
 function Panel.New(s, title, parent, size, position, backgroundUrl, snowEnabled, titleTag)
+    print("Panel.New title:", title)
     local self = setmetatable({}, Panel)
     self.SnowEnabled = snowEnabled or false
     self.BackgroundImage = nil
@@ -5162,5 +5163,4 @@ task.spawn(function()
         warn("[WasUI] 远程翻译表加载失败,无法切换English")
     end
 end)
-
 return WasUI
