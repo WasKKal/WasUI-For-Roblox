@@ -2839,7 +2839,7 @@ function WasUI.ShowColorPicker(s, options, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = previewFrame})
     local svMap = CreateInstance("ImageLabel", {
         Name = "SVMap",
-        Size = UDim2 new(1, -16, 0, 140),
+        Size = UDim2.new(1, -16, 0, 140),
         Position = UDim2.new(0, 8, 0, 78),
         BackgroundColor3 = Color3.fromHSV(0, 1, 1),
         Image = "rbxassetid://4155801252",
