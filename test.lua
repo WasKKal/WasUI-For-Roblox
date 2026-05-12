@@ -64,7 +64,13 @@ end
 
 function WasUI.SetLocalizedText(s, guiObject, chineseText, propertyName)
     propertyName = propertyName or "Text"
+    if type(chineseText) ~= "string" then
+        chineseText = tostring(chineseText)
+    end
     local translated = s:Translate(chineseText)
+    if type(translated) ~= "string" then
+        translated = tostring(chineseText)
+    end
     guiObject[propertyName] = translated
     guiObject:SetAttribute("OriginalText", chineseText)
     guiObject:SetAttribute("LocalizedProperty", propertyName)
@@ -3224,9 +3230,12 @@ function Paragraph.New(s, name, parent, options)
         Parent = textFrame
     })
     table.insert(WasUI.Objects, {Object = self.ContentLabel, Type = "ParagraphContent"})
-    function self.SetTitle(text)
-        WasUI:SetLocalizedText(self.TitleLabel, text)
+function self.SetTitle(text)
+    if type(text) ~= "string" then
+        text = tostring(text)
     end
+    WasUI:SetLocalizedText(self.Title, text)
+end
     function self.SetContent(text)
         if text and text ~= "" then
             WasUI:SetLocalizedText(self.ContentLabel, text)
