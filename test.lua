@@ -330,7 +330,7 @@ local function EnsureDropdownGui()
 end
 EnsureDropdownGui()
 
-lolocal function CreateInstance(className, properties)
+local function CreateInstance(className, properties)
     local instance = Instance.new(className)
     for prop, value in pairs(properties) do
         local ok, err = pcall(function()
