@@ -337,8 +337,11 @@ local function CreateInstance(className, properties)
             instance[prop] = value
         end)
         if not ok then
-            warn(string.format("[CreateInstance] 设置属性 '%s' 失败：%s | 值类型: %s | 值: %s",
-                tostring(prop), err, typeof(value), tostring(value)))
+            warn(string.format(
+                "[CreateInstance] 设置属性 '%s' 失败：%s | 值类型: %s | 值: %s",
+                tostring(prop), err, typeof(value), tostring(value)
+            ))
+            print(debug.traceback("调用栈："))
         end
     end
     return instance
