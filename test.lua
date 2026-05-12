@@ -3422,8 +3422,7 @@ local function isPointOverButton(btn, point)
     local ap = btn.AbsolutePosition; local as = btn.AbsoluteSize
     return point.X >= ap.X and point.X <= ap.X + as.X and point.Y >= ap.Y and point.Y <= ap.Y + as.Y
 end
-
-function Panel.New(s, title, parent, size, position, bgUrl, snowEnabled, titleTag)
+function Panel.New(s, title, parent, size, position, backgroundUrl, snowEnabled, titleTag)
     local self = setmetatable({}, Panel)
     self.SnowEnabled = snowEnabled or false
     self.BackgroundImage = nil
