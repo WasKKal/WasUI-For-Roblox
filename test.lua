@@ -5061,7 +5061,7 @@ function WasUI.CreateWindow(s, title, size, position, bgUrl, snowEnabled, titleT
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = v11
-    local window = Panel.New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position, bgUrl, snowEnabled, titleTag)
+local window = Panel.New(title, screenGui, size or UDim2.new(0, 380, 0, 350), position, bgUrl, snowEnabled, titleTag)
     window:SetTitle(title)
     RecordOriginalTransparency(window.Instance)
     window:EnableHotkeyToggle(Enum.KeyCode.F1)
