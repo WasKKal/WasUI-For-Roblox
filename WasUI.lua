@@ -27,7 +27,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.2"
+WasUI.Version = "1.1.3"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -259,18 +259,18 @@ WasUI.Themes = {
         SnowColor = Color3.fromRGB(0, 0, 0)
     },
     Blue = {
-        Primary = Color3.fromRGB(20, 30, 48),
-        Secondary = Color3.fromRGB(30, 42, 62),
-        Background = Color3.fromRGB(36, 50, 72),
-        Text = Color3.fromRGB(245, 245, 255),
+        Primary = Color3.fromRGB(10, 22, 40),
+        Secondary = Color3.fromRGB(23, 42, 69),
+        Background = Color3.fromRGB(26, 43, 74),
+        Text = Color3.fromRGB(224, 230, 237),
         Accent = Color3.fromRGB(255, 140, 0),
         Success = Color3.fromRGB(46, 204, 113),
         Warning = Color3.fromRGB(241, 196, 15),
         Error = Color3.fromRGB(231, 76, 60),
-        Section = Color3.fromRGB(52, 73, 102),
-        Input = Color3.fromRGB(30, 42, 62),
-        TabBorder = Color3.fromRGB(70, 90, 120),
-        TabButton = Color3.fromRGB(28, 40, 58),
+        Section = Color3.fromRGB(31, 58, 95),
+        Input = Color3.fromRGB(20, 37, 61),
+        TabBorder = Color3.fromRGB(46, 74, 106),
+        TabButton = Color3.fromRGB(15, 30, 51),
         SnowColor = Color3.fromRGB(255, 255, 255)
     }
 }
@@ -1440,21 +1440,31 @@ function Category:New(name, parent, title, iconName)
             if layout then parentScroller.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8) end
         end
     end
-    local function updateLayout(animate)
-        local targetHeight = self.Collapsed and 0 or getContentHeight()
-        if animate then
-            local tween = Tween(self.Content, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.25)
-            if self.Icon then Tween(self.Icon, {Rotation = self.Collapsed and -90 or 0}, 0.25) end
-            tween.Completed:Connect(function() updateParentScroller() end)
-        else
-            self.Content.Size = UDim2.new(1, 0, 0, targetHeight)
-            if self.Icon then self.Icon.Rotation = self.Collapsed and -90 or 0 end
-            updateParentScroller()
+    local function setChildrenVisible(visible)
+        for _, child in ipairs(self.Content:GetChildren()) do
+            if child:IsA("GuiObject") and child.Name ~= "UIListLayout" and child.Name ~= "UIPadding" then
+                child.Visible = visible
+            end
         end
     end
     local function toggleCollapsed()
         self.Collapsed = not self.Collapsed
-        updateLayout(true)
+        if self.Collapsed then
+            local tween = Tween(self.Content, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+            if self.Icon then Tween(self.Icon, {Rotation = -90}, 0.25) end
+            tween.Completed:Connect(function()
+                setChildrenVisible(false)
+                updateParentScroller()
+            end)
+        else
+            setChildrenVisible(true)
+            local targetHeight = getContentHeight()
+            local tween = Tween(self.Content, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.25)
+            if self.Icon then Tween(self.Icon, {Rotation = 0}, 0.25) end
+            tween.Completed:Connect(function()
+                updateParentScroller()
+            end)
+        end
     end
     local toggleButton = CreateInstance("TextButton", {
         Name = "ToggleButton",
@@ -1475,7 +1485,11 @@ function Category:New(name, parent, title, iconName)
             end
         end
     end)
-    updateLayout(false)
+    self.Content.ChildAdded:Connect(function(child)
+        if self.Collapsed and child:IsA("GuiObject") and child.Name ~= "UIListLayout" and child.Name ~= "UIPadding" then
+            child.Visible = false
+        end
+    end)
     local panel = parent
     while panel do
         if type(panel) == "table" and panel.GetActiveTab then break end
@@ -2565,7 +2579,7 @@ function WasUI:ShowPopup(options, callback)
     })
     local dialogFrame = CreateInstance("Frame", {
         Name = "Dialog",
-        Size = UDim2.new(0, 480, 0, 0),
+        Size = UDim2.new(0, 380, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
@@ -2653,7 +2667,7 @@ function WasUI:ShowPopup(options, callback)
     local buttonContainer = CreateInstance("Frame", {
         Name = "ButtonContainer",
         Size = UDim2.new(1, -20, 0, 40),
-        Position = UDim2.new(0, 10, 0, 70),
+        Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 24),
         BackgroundTransparency = 1,
         Parent = dialogFrame,
         ZIndex = 1001
@@ -2700,9 +2714,8 @@ function WasUI:ShowPopup(options, callback)
         padding.Parent = confirmButton
     end
 
-local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 65
-dialogFrame.Size = UDim2.new(0, 480, 0, totalHeight)
-buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 18)
+    local totalHeight = 56 + contentLabel.TextBounds.Y + 24 + 40 + 15
+    dialogFrame.Size = UDim2.new(0, 380, 0, totalHeight)
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
             local parentSize = dialogGui.AbsoluteSize
@@ -3190,7 +3203,11 @@ function Paragraph:New(name, parent, options)
         if self.Icon then self.Icon:Destroy(); self.Icon = nil end
         if iconName then
             self.Icon = WasUI:CreateIcon(iconName, UDim2.new(0, 20, 0, 20), WasUI.CurrentTheme.Text)
-            if self.Icon then self.Icon.Parent = self.IconFrame; self.IconFrame.Visible = true end
+            if self.Icon then
+                self.Icon.Position = UDim2.new(0, 0, 0, 0)
+                self.Icon.Parent = self.IconFrame
+                self.IconFrame.Visible = true
+            end
         else
             self.IconFrame.Visible = false
         end
@@ -3294,7 +3311,11 @@ local function AnimateThemeChange(oldTheme, newTheme)
             if tabBar then
                 Tween(tabBar, {BackgroundColor3 = newTheme.Primary}, duration)
                 local tabContainer = tabBar:FindFirstChild("TabContainer")
-                if tabContainer then for _, btn in ipairs(tabContainer:GetChildren()) do if btn:IsA("TextButton") then Tween(btn, {BackgroundColor3 = newTheme.TabButton, TextColor3 = newTheme.Text}, duration) end end end
+                if tabContainer then for _, btn in ipairs(tabContainer:GetChildren()) do if btn:IsA("TextButton") then
+                    Tween(btn, {BackgroundColor3 = newTheme.TabButton, TextColor3 = newTheme.Text}, duration)
+                    local underline = btn:FindFirstChild("Underline")
+                    if underline then Tween(underline, {BackgroundColor3 = newTheme.Accent}, duration) end
+                end end end
             end
         elseif obj.Type == "TabArrow" then Tween(instance, {ImageColor3 = newTheme.Text}, duration)
         elseif obj.Type == "Paragraph" then
@@ -5393,13 +5414,8 @@ function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, t
     RecordOriginalTransparency(window.Instance)
     window:EnableHotkeyToggle(Enum.KeyCode.F1)
 
-    local hasConfig = false
-    if WasUI.ConfigManager then
-        local config = WasUI.ConfigManager:GetConfig("user_settings")
-        if config then
-            hasConfig = true
-        end
-    end
+    local configFilePath = "WasUI_Configs/" .. (WasUI.ConfigFolderName or "") .. "/user_settings.json"
+    local hasConfig = WasUI.ConfigFolderCreated and isfile(configFilePath)
     if hasConfig then
         if WasUI.ExternalPopupCalled then
             local config = WasUI.ConfigManager:GetConfig("user_settings")
