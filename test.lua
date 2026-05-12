@@ -64,6 +64,10 @@ end
 
 function WasUI.SetLocalizedText(s, guiObject, chineseText, propertyName)
     propertyName = propertyName or "Text"
+    if type(chineseText) ~= "string" then
+        warn("[SetLocalizedText] 传入的文本不是字符串！类型：" .. typeof(chineseText) .. " 值：" .. tostring(chineseText))
+        print(debug.traceback("调用栈"))
+    end
     local translated = s:Translate(chineseText)
     guiObject[propertyName] = translated
     guiObject:SetAttribute("OriginalText", chineseText)
@@ -3588,7 +3592,7 @@ function Panel.New(s, parent, name, size, position, bgUrl, snowEnabled, titleTag
         ZIndex = 2,
         Parent = self.TitleBar
     })
-    WasUI:SetLocalizedText(self.Title, name)
+    WasUI:SetLocalizedText(self.Title, title)
     local titleTagsList = {}
     if type(titleTag) == "table" then
         if titleTag[1] then titleTagsList = titleTag else titleTagsList = {titleTag} end
