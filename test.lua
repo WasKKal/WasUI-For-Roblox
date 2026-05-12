@@ -3419,7 +3419,7 @@ local function isPointOverButton(btn, point)
     return point.X >= ap.X and point.X <= ap.X + as.X and point.Y >= ap.Y and point.Y <= ap.Y + as.Y
 end
 
-function Panel.New(s, name, parent, size, position, bgUrl, snowEnabled, titleTag)
+function Panel.New(s, parent, name, size, position, bgUrl, snowEnabled, titleTag)
     local self = setmetatable({}, Panel)
     self.SnowEnabled = snowEnabled or false
     self.BackgroundImage = nil
@@ -3450,7 +3450,7 @@ function Panel.New(s, name, parent, size, position, bgUrl, snowEnabled, titleTag
         end
     end
     self.Instance = CreateInstance("Frame", {
-        Name = name,
+        Name = title,
         Size = size or UDim2.new(0, 380, 0, 350),
         Position = position or UDim2.new(0.5, -190, 0.5, -175),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
