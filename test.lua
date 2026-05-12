@@ -3720,7 +3720,13 @@ function Panel.New(s, title, parent, size, position, backgroundUrl, snowEnabled,
         Parent = self.DotContainer
     })
     self.MinimizedCustomText = "WasUI"
-    function self.SetMinimizedText(text) self.MinimizedCustomText = text or "WasUI"; self.MinimizedTextLabel.Text = text or "WasUI" end
+    function self.SetMinimizedText(text)
+        if type(text) ~= "string" then
+            text = tostring(text)
+        end
+        self.MinimizedCustomText = text
+        self.MinimizedTextLabel.Text = text
+    end
     function self.SetMinimizedTextColor(color) self.MinimizedTextLabel.TextColor3 = color or WasUI.CurrentTheme.Text end
     local searchContainer = CreateInstance("Frame", {
         Name = "SearchContainer",
