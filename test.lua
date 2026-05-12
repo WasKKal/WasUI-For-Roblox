@@ -64,10 +64,6 @@ end
 
 function WasUI.SetLocalizedText(s, guiObject, chineseText, propertyName)
     propertyName = propertyName or "Text"
-    if type(chineseText) ~= "string" then
-        warn("[SetLocalizedText] 传入的文本不是字符串！类型：" .. typeof(chineseText) .. " 值：" .. tostring(chineseText))
-        print(debug.traceback("调用栈"))
-    end
     local translated = s:Translate(chineseText)
     guiObject[propertyName] = translated
     guiObject:SetAttribute("OriginalText", chineseText)
@@ -334,19 +330,10 @@ local function EnsureDropdownGui()
 end
 EnsureDropdownGui()
 
-local function CreateInstance(className, properties)
+llocal function CreateInstance(className, properties)
     local instance = Instance.new(className)
     for prop, value in pairs(properties) do
-        local ok, err = pcall(function()
-            instance[prop] = value
-        end)
-        if not ok then
-            warn(string.format(
-                "[CreateInstance] 设置属性 '%s' 失败：%s | 值类型: %s | 值: %s",
-                tostring(prop), err, typeof(value), tostring(value)
-            ))
-            print(debug.traceback("调用栈："))
-        end
+        instance[prop] = value
     end
     return instance
 end
