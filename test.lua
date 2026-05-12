@@ -333,6 +333,10 @@ EnsureDropdownGui()
 local function CreateInstance(className, properties)
     local instance = Instance.new(className)
     for prop, value in pairs(properties) do
+        if prop == "Name" and type(value) ~= "string" then
+            warn("[CreateInstance] 错误：Name 需要字符串，却得到了 " .. typeof(value))
+            value = "FIXME_" .. className
+        end
         instance[prop] = value
     end
     return instance
