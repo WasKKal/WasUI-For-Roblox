@@ -2839,7 +2839,7 @@ function WasUI.ShowColorPicker(s, options, callback)
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = previewFrame})
     local svMap = CreateInstance("ImageLabel", {
         Name = "SVMap",
-        Size = UDim2.new(1, -16, 0, 140),
+        Size = UDim2 new(1, -16, 0, 140),
         Position = UDim2.new(0, 8, 0, 78),
         BackgroundColor3 = Color3.fromHSV(0, 1, 1),
         Image = "rbxassetid://4155801252",
@@ -3230,12 +3230,10 @@ function Paragraph.New(s, name, parent, options)
         Parent = textFrame
     })
     table.insert(WasUI.Objects, {Object = self.ContentLabel, Type = "ParagraphContent"})
-function self.SetTitle(text)
-    if type(text) ~= "string" then
-        text = tostring(text)
+    function self.SetTitle(text)
+        if type(text) ~= "string" then text = tostring(text) end
+        WasUI:SetLocalizedText(self.TitleLabel, text)
     end
-    WasUI:SetLocalizedText(self.Title, text)
-end
     function self.SetContent(text)
         if text and text ~= "" then
             WasUI:SetLocalizedText(self.ContentLabel, text)
@@ -3418,8 +3416,7 @@ local function isPointOverButton(btn, point)
     local ap = btn.AbsolutePosition; local as = btn.AbsoluteSize
     return point.X >= ap.X and point.X <= ap.X + as.X and point.Y >= ap.Y and point.Y <= ap.Y + as.Y
 end
-function Panel.New(s, title, parent, size, position, backgroundUrl, snowEnabled, titleTag)
-    print("Panel.New title:", title)
+function Panel.New(s, title, parent, size, position, bgUrl, snowEnabled, titleTag)
     local self = setmetatable({}, Panel)
     self.SnowEnabled = snowEnabled or false
     self.BackgroundImage = nil
@@ -3721,9 +3718,7 @@ function Panel.New(s, title, parent, size, position, backgroundUrl, snowEnabled,
     })
     self.MinimizedCustomText = "WasUI"
     function self.SetMinimizedText(text)
-        if type(text) ~= "string" then
-            text = tostring(text)
-        end
+        if type(text) ~= "string" then text = tostring(text) end
         self.MinimizedCustomText = text
         self.MinimizedTextLabel.Text = text
     end
@@ -4869,9 +4864,7 @@ function Panel.New(s, title, parent, size, position, backgroundUrl, snowEnabled,
     self.ActiveTab = nil
     self.TabOrderCounter = 0
 function self.AddTab(tabName, icon)
-    if type(tabName) ~= "string" then
-        tabName = tostring(tabName)
-    end
+    if type(tabName) ~= "string" then tabName = tostring(tabName) end
     self.TabOrderCounter = self.TabOrderCounter + 1
         local tabButton = CreateInstance("TextButton", {
             Name = "Tab_" .. tabName,
@@ -5067,7 +5060,7 @@ function WasUI.CreateWindow(s, title, size, position, bgUrl, snowEnabled, titleT
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = v11
-local window = Panel.New(nil, title, screenGui, size or UDim2.new(0, 380, 0, 350), position, bgUrl, snowEnabled, titleTag)
+    local window = Panel.New(nil, title, screenGui, size or UDim2.new(0, 380, 0, 350), position, bgUrl, snowEnabled, titleTag)
     window:SetTitle(title)
     RecordOriginalTransparency(window.Instance)
     window:EnableHotkeyToggle(Enum.KeyCode.F1)
@@ -5125,7 +5118,7 @@ function WasUI.CreateSlider(s, parent, title, min, max, defaultValue, callback, 
     return Slider.New("Slider", parent, title, min, max, defaultValue, callback, configKey)
 end
 
-function WasUI.CreateTextInput(s, parent, placeholder, defaultValue, callback, configKey)
+function WasUI.CreateTextBox(s, parent, placeholder, defaultValue, callback, configKey)
     return TextInput.New("TextInput", parent, placeholder, defaultValue, callback, configKey)
 end
 
@@ -5168,4 +5161,5 @@ task.spawn(function()
         warn("[WasUI] 远程翻译表加载失败,无法切换English")
     end
 end)
+
 return WasUI
