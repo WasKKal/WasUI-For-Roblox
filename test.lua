@@ -4868,8 +4868,11 @@ function Panel.New(s, title, parent, size, position, backgroundUrl, snowEnabled,
     self.Tabs = {}
     self.ActiveTab = nil
     self.TabOrderCounter = 0
-    function self.AddTab(tabName, icon)
-        self.TabOrderCounter = self.TabOrderCounter + 1
+function self.AddTab(tabName, icon)
+    if type(tabName) ~= "string" then
+        tabName = tostring(tabName)
+    end
+    self.TabOrderCounter = self.TabOrderCounter + 1
         local tabButton = CreateInstance("TextButton", {
             Name = "Tab_" .. tabName,
             Size = UDim2.new(0, 90, 0, 24),
