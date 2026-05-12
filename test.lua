@@ -2667,7 +2667,7 @@ function WasUI:ShowPopup(options, callback)
     local buttonContainer = CreateInstance("Frame", {
         Name = "ButtonContainer",
         Size = UDim2.new(1, -20, 0, 40),
-        Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 18),
+        Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 24),
         BackgroundTransparency = 1,
         Parent = dialogFrame,
         ZIndex = 1001
@@ -2714,7 +2714,7 @@ function WasUI:ShowPopup(options, callback)
         padding.Parent = confirmButton
     end
 
-    local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 30
+    local totalHeight = 56 + contentLabel.TextBounds.Y + 24 + 40 + 15
     dialogFrame.Size = UDim2.new(0, 380, 0, totalHeight)
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
