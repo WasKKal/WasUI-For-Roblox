@@ -3469,7 +3469,6 @@ local function AnimateThemeChange(oldTheme, newTheme)
             if contentLabel then Tween(contentLabel, {TextColor3 = newTheme.Text}, duration) end
         end
     end
-end
 
 function WasUI:SetTheme(themeName)
     if self.Themes[themeName] then
