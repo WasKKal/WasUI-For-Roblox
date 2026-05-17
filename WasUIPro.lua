@@ -476,7 +476,7 @@ end
 
 function WasUI:CreateFolder(folderName)
     if not folderName or folderName == "" then
-        error("CreateFolder: folderName cannot be empty")
+        error("CreateWindow: Folder name cannot be empty")
     end
     local path = "WasUI_Configs/" .. folderName
     if not isfolder(path) then makefolder(path) end
@@ -489,7 +489,7 @@ function WasUI:CreateFolder(folderName)
     end
     
     function WasUI.ConfigManager:GetConfig(configName)
-        if not ensureConfigFolderExists() then return nil end
+        if not WasUI.ConfigFolderCreated then return nil end
         local filePath = getFilePath(configName)
         local config = {
             Name = configName,
@@ -499,7 +499,7 @@ function WasUI:CreateFolder(folderName)
         }
         
         function config:Save()
-            if not ensureConfigFolderExists() then return false end
+            if not WasUI.ConfigFolderCreated then return false end
             local dataToSave = {}
             for key, value in pairs(self.Data) do dataToSave[key] = value end
             local json = v6:JSONEncode(dataToSave)
@@ -508,7 +508,7 @@ function WasUI:CreateFolder(folderName)
         end
         
         function config:Load()
-            if not ensureConfigFolderExists() then return false end
+            if not WasUI.ConfigFolderCreated then return false end
             if not isfile(self.Path) then return false end
             local success, data = pcall(function()
                 return v6:JSONDecode(readfile(self.Path))
@@ -525,7 +525,7 @@ function WasUI:CreateFolder(folderName)
         end
         
         function config:Delete()
-            if not ensureConfigFolderExists() then return false end
+            if not WasUI.ConfigFolderCreated then return false end
             if isfile(self.Path) then delfile(self.Path) end
             self.Data = {}
             self.Bindings = {}
@@ -553,7 +553,7 @@ function WasUI:CreateFolder(folderName)
     end
     
     function WasUI.ConfigManager:AllConfigs()
-        if not ensureConfigFolderExists() then return {} end
+        if not WasUI.ConfigFolderCreated then return {} end
         local files = {}
         if listfiles then
             for _, file in ipairs(listfiles(path)) do
@@ -565,14 +565,14 @@ function WasUI:CreateFolder(folderName)
     end
     
     function WasUI.ConfigManager:DeleteConfig(configName)
-        if not ensureConfigFolderExists() then return false end
+        if not WasUI.ConfigFolderCreated then return false end
         local filePath = getFilePath(configName)
         if isfile(filePath) then delfile(filePath) end
         return true
     end
     
     function WasUI.ConfigManager:GetConfigNames()
-        if not ensureConfigFolderExists() then return {} end
+        if not WasUI.ConfigFolderCreated then return {} end
         return self:AllConfigs()
     end
     
@@ -595,7 +595,6 @@ function WasUI:CreateFolder(folderName)
         self:DeleteConfig(configName)
     end
     
-    WasUI:Notify({Title = "配置系统", Content = "已创建配置文件夹: " .. folderName, Duration = 2})
     return WasUI.ConfigManager
 end
 
@@ -5381,7 +5380,6 @@ end
     return self
 end
 
--- 新的 API
 function WasUI:CreateWindow(options)
     options = options or {}
     local title = options.Title or "WasUI"
@@ -5390,27 +5388,30 @@ function WasUI:CreateWindow(options)
     local background = options.Background
     local snowEnabled = options.SnowEnabled or false
     local titleTag = options.TitleTag
+    if options.Folder and type(options.Folder) == "string" and options.Folder ~= "" then
+        self:CreateFolder(options.Folder)
+    end
 
     if options.Theme then
-        WasUI:SetTheme(options.Theme)
+        self:SetTheme(options.Theme)
     end
     if options.RainbowMode then
-        WasUI.DefaultRainbowMode = options.RainbowMode
+        self.DefaultRainbowMode = options.RainbowMode
     end
     if options.DialogTitle then
-        WasUI.DialogTitle = options.DialogTitle
+        self.DialogTitle = options.DialogTitle
     end
     if options.GroupText then
-        WasUI.GroupButtonText = options.GroupText
+        self.GroupButtonText = options.GroupText
     end
     if options.GroupCopy then
-        WasUI.GroupCopyContent = options.GroupCopy
+        self.GroupCopyContent = options.GroupCopy
     end
 
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "WasUI_Main"
     screenGui.ResetOnSpawn = false
-    screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
+    screenGui.DisplayOrder = self.DefaultDisplayOrder
     screenGui.Parent = v11
 
     local window = Panel:New(title, screenGui, size, position, background, snowEnabled, titleTag)
@@ -5420,7 +5421,34 @@ function WasUI:CreateWindow(options)
     if options.MinimizedText then
         window:SetMinimizedText(options.MinimizedText)
     end
-    window:SetRainbowMode(WasUI.DefaultRainbowMode)
+    window:SetRainbowMode(self.DefaultRainbowMode)
+
+    local hasConfig = false
+    if self.ConfigManager then
+        local config = self.ConfigManager:GetConfig("user_settings")
+        if config then
+            hasConfig = true
+        end
+    end
+    if hasConfig then
+        if self.ExternalPopupCalled then
+            local config = self.ConfigManager:GetConfig("user_settings")
+            if config then config:Load() end
+        else
+            self:ShowPopup({
+                title = "找到配置文件",
+                titleIcon = "file-cog",
+                content = "是否加载上次保存的配置？",
+                confirmText = "加载",
+                cancelText = "跳过",
+                onConfirm = function()
+                    local config = self.ConfigManager:GetConfig("user_settings")
+                    if config then config:Load() end
+                end,
+                onCancel = function() end
+            })
+        end
+    end
 
     local windowFacade = {
         _panel = window,
