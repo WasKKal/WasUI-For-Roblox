@@ -1,4 +1,3 @@
-```lua
 local WasUI = {}
 WasUI.__index = WasUI
 
