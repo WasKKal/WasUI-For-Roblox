@@ -3174,9 +3174,11 @@ function Paragraph:New(name, parent, options)
         ZIndex = 2,
         Parent = textFrame
     })
+    
     function self:SetTitle(text)
         WasUI:SetLocalizedText(self.TitleLabel, text)
     end
+    
     function self:SetContent(text)
         if text and text ~= "" then
             WasUI:SetLocalizedText(self.ContentLabel, text)
@@ -3185,21 +3187,32 @@ function Paragraph:New(name, parent, options)
             self.ContentLabel.Visible = false
         end
     end
+    
     function self:SetIcon(iconName)
         if self.Icon then self.Icon:Destroy(); self.Icon = nil end
         if iconName then
             self.Icon = WasUI:CreateIcon(iconName, UDim2.new(0, 20, 0, 20), WasUI.CurrentTheme.Text)
-            if self.Icon then self.Icon.Parent = self.IconFrame; self.IconFrame.Visible = true end
+            if self.Icon then
+                self.Icon.Parent = self.IconFrame
+                self.IconFrame.Visible = true
+            end
         else
             self.IconFrame.Visible = false
         end
         local iconWidth = self.IconFrame.Visible and 28 or 0
         textFrame.Size = UDim2.new(1, -iconWidth, 0, 0)
     end
-    if options.Title then self:SetTitle(options.Title) end
+    
+    if options.Title then
+        self:SetTitle(options.Title)
+    end
     local contentText = options.Content or options.Desc
-    if contentText then self:SetContent(contentText) end
-    if options.Icon then self:SetIcon(options.Icon) end
+    if contentText then
+        self:SetContent(contentText)
+    end
+    if options.Icon then
+        self:SetIcon(options.Icon)
+    end
 
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Paragraph"})
     return self
