@@ -1618,20 +1618,37 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                     Tween(optionButton, {BackgroundColor3 = WasUI.CurrentTheme.Input}, 0.1)
                 end
             end)
-            optionButton.MouseButton1Click:Connect(function()
-                if self.MultiSelect then
-                    local index = nil
-                    for i, v in ipairs(self.SelectedValues) do if v == option then index = i; break end end
-                    if index then table.remove(self.SelectedValues, index)
-                    else table.insert(self.SelectedValues, option) end
-                    self:UpdateDisplayText()
-                    self:UpdateOptionVisuals()
-                    if self.Callback then self.Callback(self.SelectedValues) end
-                    if configKey and WasUI.ConfigManager then
-                        local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
-                        if config then config:Set(configKey, self.SelectedValues); config:Save() end
-                    end
+                optionButton.MouseButton1Click:Connect(function()
+        if self.MultiSelect then
+            local index = nil
+            for i, v in ipairs(self.SelectedValues) do if v == option then index = i; break end end
+            if index then
+                table.remove(self.SelectedValues, index)
+            else
+                table.insert(self.SelectedValues, option)
+            end
+            self:UpdateDisplayText()
+            self:UpdateOptionVisuals()
+            local btn = self.OptionButtons[option]
+            if btn then
+                local isSelected = false
+                for _, v in ipairs(self.SelectedValues) do if v == option then isSelected = true break end end
+                if isSelected then
+                    btn.BackgroundColor3 = WasUI.CurrentTheme.Accent
+                    btn.BackgroundTransparency = 0.3
+                    btn.TextColor3 = Color3.new(1, 1, 1)
                 else
+                    btn.BackgroundColor3 = WasUI.CurrentTheme.Input
+                    btn.BackgroundTransparency = 0.3
+                    btn.TextColor3 = WasUI.CurrentTheme.Text
+                end
+            end
+            if self.Callback then self.Callback(self.SelectedValues) end
+            if configKey and WasUI.ConfigManager then
+                local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+                if config then config:Set(configKey, self.SelectedValues); config:Save() end
+            end
+        else
                     self.SelectedValue = option
                     self:UpdateDisplayText()
                     if self.Callback then self.Callback(option) end
@@ -2711,6 +2728,13 @@ function WasUI:ShowPopup(options, callback)
         padding.PaddingLeft = UDim.new(0, 12)
         padding.Parent = confirmButton
     end
+    local bottomSpacer = CreateInstance("Frame", {
+        Name = "BottomSpacer",
+        Size = UDim2.new(1, 0, 0, 10),
+        BackgroundTransparency = 1,
+        LayoutOrder = 4,
+        Parent = dialogFrame
+    })
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
             local parentSize = overlay.AbsoluteSize
@@ -3117,7 +3141,6 @@ function Paragraph:New(name, parent, options)
         Size = UDim2.new(1, 0, 0, 0),
         BackgroundTransparency = 1,
         AutomaticSize = Enum.AutomaticSize.Y,
-        ZIndex = 2,
         Parent = parent
     })
     local padding = CreateInstance("UIPadding", {
@@ -3165,7 +3188,7 @@ function Paragraph:New(name, parent, options)
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
         AutomaticSize = Enum.AutomaticSize.Y,
-        ZIndex = 2,
+        LayoutOrder = 1,
         Parent = textFrame
     })
     self.ContentLabel = CreateInstance("TextLabel", {
@@ -3180,14 +3203,12 @@ function Paragraph:New(name, parent, options)
         TextXAlignment = Enum.TextXAlignment.Left,
         AutomaticSize = Enum.AutomaticSize.Y,
         Visible = false,
-        ZIndex = 2,
+        LayoutOrder = 2,
         Parent = textFrame
     })
-    
     function self:SetTitle(text)
         WasUI:SetLocalizedText(self.TitleLabel, text)
     end
-    
     function self:SetContent(text)
         if text and text ~= "" then
             WasUI:SetLocalizedText(self.ContentLabel, text)
@@ -3196,7 +3217,6 @@ function Paragraph:New(name, parent, options)
             self.ContentLabel.Visible = false
         end
     end
-    
     function self:SetIcon(iconName)
         if self.Icon then self.Icon:Destroy(); self.Icon = nil end
         if iconName then
@@ -3211,18 +3231,10 @@ function Paragraph:New(name, parent, options)
         local iconWidth = self.IconFrame.Visible and 28 or 0
         textFrame.Size = UDim2.new(1, -iconWidth, 0, 0)
     end
-    
-    if options.Title then
-        self:SetTitle(options.Title)
-    end
+    if options.Title then self:SetTitle(options.Title) end
     local contentText = options.Content or options.Desc
-    if contentText then
-        self:SetContent(contentText)
-    end
-    if options.Icon then
-        self:SetIcon(options.Icon)
-    end
-
+    if contentText then self:SetContent(contentText) end
+    if options.Icon then self:SetIcon(options.Icon) end
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Paragraph"})
     return self
 end
