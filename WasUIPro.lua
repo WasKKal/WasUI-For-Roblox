@@ -908,7 +908,7 @@ function Category:New(options, parent)
         TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Center,
         AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = 2, ZIndex = 2, Parent = titleContainer
     })
-    titleLabel.Text = options.Title
+    titleLabel.Text = options.Title or "分类"
     local icon = WasUIPro:CreateIcon(actualIcon, UDim2.new(0, 18, 0, 18), WasUIPro.CurrentTheme.Text)
     if icon then
         icon.Name = "CategoryIcon"; icon.Parent = titleContainer; icon.LayoutOrder = 1; icon.ZIndex = 3; icon.Rotation = 0
