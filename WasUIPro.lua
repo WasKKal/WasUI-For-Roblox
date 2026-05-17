@@ -3412,6 +3412,12 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 local icon = iconFrame:FindFirstChildOfClass("ImageLabel")
                 if icon and not icon:GetAttribute("IgnoreThemeChange") then
                     Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+                    elseif obj.Type == "TabButton" then
+                        local underline = instance:FindFirstChild("Underline")
+                        if underline and underline:IsA("Frame") then
+                            Tween(underline, {BackgroundColor3 = newTheme.Accent}, duration)
+                        end
+                    end
                 end
             end
         end
