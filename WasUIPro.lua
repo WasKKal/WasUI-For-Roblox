@@ -2569,17 +2569,25 @@ function WasUI:ShowPopup(options, callback)
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ClipsDescendants = true,
+        AutomaticSize = Enum.AutomaticSize.Y,
         Parent = overlay,
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
+    local dialogLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Vertical,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 10),
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        Parent = dialogFrame
+    })
     local titleContainer = CreateInstance("Frame", {
         Name = "TitleContainer",
         Size = UDim2.new(1, -20, 0, 36),
-        Position = UDim2.new(0, 10, 0, 10),
         BackgroundTransparency = 1,
         Parent = dialogFrame,
-        ZIndex = 1001
+        ZIndex = 1001,
+        LayoutOrder = 1
     })
     local titleIconImage = nil
     if titleIcon then
@@ -2636,7 +2644,6 @@ function WasUI:ShowPopup(options, callback)
     local contentLabel = CreateInstance("TextLabel", {
         Name = "Content",
         Size = UDim2.new(1, -20, 0, 0),
-        Position = UDim2.new(0, 10, 0, 56),
         BackgroundTransparency = 1,
         Text = content,
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -2647,20 +2654,27 @@ function WasUI:ShowPopup(options, callback)
         TextWrapped = true,
         AutomaticSize = Enum.AutomaticSize.Y,
         Parent = dialogFrame,
-        ZIndex = 1001
+        ZIndex = 1001,
+        LayoutOrder = 2
     })
     local buttonContainer = CreateInstance("Frame", {
         Name = "ButtonContainer",
         Size = UDim2.new(1, -20, 0, 40),
-        Position = UDim2.new(0, 10, 0, 70),
         BackgroundTransparency = 1,
         Parent = dialogFrame,
-        ZIndex = 1001
+        ZIndex = 1001,
+        LayoutOrder = 3
+    })
+    local buttonLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 10),
+        Parent = buttonContainer
     })
     local cancelButton = CreateInstance("TextButton", {
         Name = "CancelButton",
-        Size = UDim2.new(0.5, -5, 1, 0),
-        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0, 120, 0, 36),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
         BackgroundTransparency = 0.3,
         Text = cancelText,
@@ -2671,11 +2685,10 @@ function WasUI:ShowPopup(options, callback)
         Parent = buttonContainer,
         ZIndex = 1002
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = cancelButton})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 18), Parent = cancelButton})
     local confirmButton = CreateInstance("TextButton", {
         Name = "ConfirmButton",
-        Size = UDim2.new(0.5, -5, 1, 0),
-        Position = UDim2.new(0.5, 5, 0, 0),
+        Size = UDim2.new(0, 120, 0, 36),
         BackgroundColor3 = WasUI.CurrentTheme.Accent,
         BackgroundTransparency = 0.3,
         Text = confirmText,
@@ -2686,7 +2699,7 @@ function WasUI:ShowPopup(options, callback)
         Parent = buttonContainer,
         ZIndex = 1002
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = confirmButton})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 18), Parent = confirmButton})
     local arrowIcon = WasUI:CreateIcon("arrow-right", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text, true)
     if arrowIcon then
         arrowIcon.Parent = confirmButton
@@ -2698,13 +2711,9 @@ function WasUI:ShowPopup(options, callback)
         padding.PaddingLeft = UDim.new(0, 12)
         padding.Parent = confirmButton
     end
-
-local totalHeight = 56 + contentLabel.TextBounds.Y + 40 + 65
-dialogFrame.Size = UDim2.new(0, 480, 0, totalHeight)
-buttonContainer.Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 18)
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
-            local parentSize = dialogGui.AbsoluteSize
+            local parentSize = overlay.AbsoluteSize
             local frameSize = dialogFrame.AbsoluteSize
             dialogFrame.Position = UDim2.new(0.5, -frameSize.X/2, 0.5, -frameSize.Y/2)
         end
