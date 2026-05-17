@@ -5381,9 +5381,7 @@ end
     return self
 end
 
--- ========== 新的现代 API 封装 ==========
-
--- 创建窗口（新风格）
+-- 新的 API
 function WasUI:CreateWindow(options)
     options = options or {}
     local title = options.Title or "WasUI"
@@ -5392,15 +5390,12 @@ function WasUI:CreateWindow(options)
     local background = options.Background
     local snowEnabled = options.SnowEnabled or false
     local titleTag = options.TitleTag
-    
-    -- 应用全局设置
+
     if options.Theme then
         WasUI:SetTheme(options.Theme)
     end
     if options.RainbowMode then
         WasUI.DefaultRainbowMode = options.RainbowMode
-        -- 注意：窗口创建后，可以后续设置边框模式，但需要遍历已有窗口（暂时只影响新窗口）
-        -- 为了演示，我们在窗口创建后设置其彩虹模式（需要获取窗口对象）
     end
     if options.DialogTitle then
         WasUI.DialogTitle = options.DialogTitle
@@ -5411,137 +5406,114 @@ function WasUI:CreateWindow(options)
     if options.GroupCopy then
         WasUI.GroupCopyContent = options.GroupCopy
     end
-    
+
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "WasUI_Main"
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
     screenGui.Parent = v11
-    
-    -- 创建底层 Panel
+
     local window = Panel:New(title, screenGui, size, position, background, snowEnabled, titleTag)
-    -- 设置欢迎文字（如果有）
     if options.WelcomeText then
         window:SetWelcome(options.WelcomeText)
     end
     if options.MinimizedText then
         window:SetMinimizedText(options.MinimizedText)
     end
-    -- 设置彩虹模式
     window:SetRainbowMode(WasUI.DefaultRainbowMode)
-    
-    -- 扩展 window 对象，添加 Tab 方法及控件快捷方法
+
     local windowFacade = {
         _panel = window,
         _tabs = {},
     }
-    
+
     function windowFacade:Tab(tabOptions)
         local tabName = tabOptions.Title or "Tab"
         local tabFrame = window:AddTab(tabName)
-        -- 创建 Tab 外观对象
         local tabFacade = {
             _frame = tabFrame,
             _categories = {},
         }
-        -- 实现 Category 方法
+
         function tabFacade:Category(catOptions)
             local catTitle = catOptions.Title or "Category"
             local catIcon = catOptions.IconName
-            -- 使用原始的 Category:New，父级为 TabFrame
             local categoryObj = Category:New("Category", tabFrame, catTitle, catIcon)
-            -- 扩展 categoryObj 以支持简便控件创建
             local catFacade = {
                 _category = categoryObj,
                 _content = categoryObj.Content,
             }
-            -- 辅助函数：将 options 表转换为原始参数
-            local function parseToggleOpts(opts)
-                return opts.Title or "",
-                       opts.Value or false,
-                       opts.Callback,
-                       opts.FeatureName,
-                       opts.FeatureName, -- rainbowName 同 featureName
-                       opts.Icon,
-                       opts.ConfigKey,
-                       opts.Tooltip
-            end
-            local function parseButtonOpts(opts)
-                return opts.Text or "按钮",
-                       opts.Callback,
-                       opts.Size,
-                       opts.Icon,
-                       opts.Tooltip
-            end
-            local function parseSliderOpts(opts)
-                return opts.Title or "",
-                       opts.Min or 0,
-                       opts.Max or 100,
-                       opts.Default or 50,
-                       opts.Callback,
-                       opts.ConfigKey
-            end
-            local function parseDropdownOpts(opts)
-                return opts.Title or "",
-                       opts.Values or {},
-                       opts.Value,
-                       opts.Callback,
-                       opts.Multi or false,
-                       opts.ConfigKey
-            end
-            local function parseTextInputOpts(opts)
-                return opts.Placeholder or "",
-                       opts.Value or "",
-                       opts.Callback,
-                       opts.ConfigKey
-            end
-            local function parseProgressOpts(opts)
-                return opts.Title or "",
-                       opts.Min or 0,
-                       opts.Max or 100,
-                       opts.Default or 0,
-                       opts.Callback,
-                       opts.Segments
-            end
-            local function parseParaOpts(opts)
-                return opts
-            end
-            -- 添加各种控件
+
             function catFacade:Toggle(opts)
-                local title, init, cb, feat, rainbow, icon, cfgKey, tip = parseToggleOpts(opts)
-                return ToggleSwitch:New("Toggle", self._content, title, init, cb, feat, rainbow, icon, cfgKey, tip)
+                local title = opts.Title or ""
+                local value = opts.Value or false
+                local callback = opts.Callback
+                local featureName = opts.FeatureName
+                local icon = opts.Icon
+                local configKey = opts.ConfigKey
+                local tooltip = opts.Tooltip
+                return ToggleSwitch:New("Toggle", self._content, title, value, callback, featureName, featureName, icon, configKey, tooltip)
             end
+
             function catFacade:Button(opts)
-                local text, cb, sz, icon, tip = parseButtonOpts(opts)
-                return Button:New("Button", self._content, text, cb, sz, icon, tip)
+                local text = opts.Text or "按钮"
+                local callback = opts.Callback
+                local size = opts.Size
+                local icon = opts.Icon
+                local tooltip = opts.Tooltip
+                return Button:New("Button", self._content, text, callback, size, icon, tooltip)
             end
+
             function catFacade:Slider(opts)
-                local title, minv, maxv, def, cb, cfg = parseSliderOpts(opts)
-                return Slider:New("Slider", self._content, title, minv, maxv, def, cb, cfg)
+                local title = opts.Title or ""
+                local min = opts.Min or 0
+                local max = opts.Max or 100
+                local default = opts.Default or 50
+                local callback = opts.Callback
+                local configKey = opts.ConfigKey
+                return Slider:New("Slider", self._content, title, min, max, default, callback, configKey)
             end
+
             function catFacade:Dropdown(opts)
-                local title, vals, def, cb, multi, cfg = parseDropdownOpts(opts)
-                return Dropdown:New("Dropdown", self._content, title, vals, def, cb, multi, cfg)
+                local title = opts.Title or ""
+                local values = opts.Values or {}
+                local value = opts.Value
+                local callback = opts.Callback
+                local multi = opts.Multi or false
+                local configKey = opts.ConfigKey
+                return Dropdown:New("Dropdown", self._content, title, values, value, callback, multi, configKey)
             end
+
             function catFacade:TextInput(opts)
-                local place, def, cb, cfg = parseTextInputOpts(opts)
-                return TextInput:New("TextInput", self._content, place, def, cb, cfg)
+                local placeholder = opts.Placeholder or ""
+                local value = opts.Value or ""
+                local callback = opts.Callback
+                local configKey = opts.ConfigKey
+                return TextInput:New("TextInput", self._content, placeholder, value, callback, configKey)
             end
+
             function catFacade:ProgressBar(opts)
-                local title, minv, maxv, def, cb, seg = parseProgressOpts(opts)
-                return ProgressBar:New("ProgressBar", self._content, title, minv, maxv, def, cb, seg)
+                local title = opts.Title or ""
+                local min = opts.Min or 0
+                local max = opts.Max or 100
+                local default = opts.Default or 0
+                local callback = opts.Callback
+                local segments = opts.Segments
+                return ProgressBar:New("ProgressBar", self._content, title, min, max, default, callback, segments)
             end
+
             function catFacade:ColorPickerButton(opts)
                 local title = opts.Title
                 local defaultColor = opts.Default or Color3.fromRGB(255,255,255)
-                local cb = opts.Callback
-                local cfg = opts.ConfigKey
-                return WasUI:CreateColorPickerButton(self._content, title, defaultColor, cb, cfg)
+                local callback = opts.Callback
+                local configKey = opts.ConfigKey
+                return WasUI:CreateColorPickerButton(self._content, title, defaultColor, callback, configKey)
             end
+
             function catFacade:Paragraph(opts)
                 return Paragraph:New("Paragraph", self._content, opts)
             end
-            -- 添加空白间距
+
             function catFacade:Spacing(height)
                 local spacing = Instance.new("Frame")
                 spacing.Name = "Spacing"
@@ -5550,46 +5522,84 @@ function WasUI:CreateWindow(options)
                 spacing.Parent = self._content
                 return spacing
             end
+
             return catFacade
         end
+
         function tabFacade:Paragraph(opts)
             return Paragraph:New("Paragraph", tabFrame, opts)
         end
+
         function tabFacade:Button(opts)
-            local text, cb, sz, icon, tip = parseButtonOpts(opts)
-            return Button:New("Button", tabFrame, text, cb, sz, icon, tip)
+            local text = opts.Text or "按钮"
+            local callback = opts.Callback
+            local size = opts.Size
+            local icon = opts.Icon
+            local tooltip = opts.Tooltip
+            return Button:New("Button", tabFrame, text, callback, size, icon, tooltip)
         end
+
         function tabFacade:Toggle(opts)
-            local title, init, cb, feat, rainbow, icon, cfgKey, tip = parseToggleOpts(opts)
-            return ToggleSwitch:New("Toggle", tabFrame, title, init, cb, feat, rainbow, icon, cfgKey, tip)
+            local title = opts.Title or ""
+            local value = opts.Value or false
+            local callback = opts.Callback
+            local featureName = opts.FeatureName
+            local icon = opts.Icon
+            local configKey = opts.ConfigKey
+            local tooltip = opts.Tooltip
+            return ToggleSwitch:New("Toggle", tabFrame, title, value, callback, featureName, featureName, icon, configKey, tooltip)
         end
+
         function tabFacade:Slider(opts)
-            local title, minv, maxv, def, cb, cfg = parseSliderOpts(opts)
-            return Slider:New("Slider", tabFrame, title, minv, maxv, def, cb, cfg)
+            local title = opts.Title or ""
+            local min = opts.Min or 0
+            local max = opts.Max or 100
+            local default = opts.Default or 50
+            local callback = opts.Callback
+            local configKey = opts.ConfigKey
+            return Slider:New("Slider", tabFrame, title, min, max, default, callback, configKey)
         end
+
         function tabFacade:Dropdown(opts)
-            local title, vals, def, cb, multi, cfg = parseDropdownOpts(opts)
-            return Dropdown:New("Dropdown", tabFrame, title, vals, def, cb, multi, cfg)
+            local title = opts.Title or ""
+            local values = opts.Values or {}
+            local value = opts.Value
+            local callback = opts.Callback
+            local multi = opts.Multi or false
+            local configKey = opts.ConfigKey
+            return Dropdown:New("Dropdown", tabFrame, title, values, value, callback, multi, configKey)
         end
+
         function tabFacade:TextInput(opts)
-            local place, def, cb, cfg = parseTextInputOpts(opts)
-            return TextInput:New("TextInput", tabFrame, place, def, cb, cfg)
+            local placeholder = opts.Placeholder or ""
+            local value = opts.Value or ""
+            local callback = opts.Callback
+            local configKey = opts.ConfigKey
+            return TextInput:New("TextInput", tabFrame, placeholder, value, callback, configKey)
         end
+
         function tabFacade:ProgressBar(opts)
-            local title, minv, maxv, def, cb, seg = parseProgressOpts(opts)
-            return ProgressBar:New("ProgressBar", tabFrame, title, minv, maxv, def, cb, seg)
+            local title = opts.Title or ""
+            local min = opts.Min or 0
+            local max = opts.Max or 100
+            local default = opts.Default or 0
+            local callback = opts.Callback
+            local segments = opts.Segments
+            return ProgressBar:New("ProgressBar", tabFrame, title, min, max, default, callback, segments)
         end
+
         function tabFacade:ColorPickerButton(opts)
             local title = opts.Title
             local defaultColor = opts.Default or Color3.fromRGB(255,255,255)
-            local cb = opts.Callback
-            local cfg = opts.ConfigKey
-            return WasUI:CreateColorPickerButton(tabFrame, title, defaultColor, cb, cfg)
+            local callback = opts.Callback
+            local configKey = opts.ConfigKey
+            return WasUI:CreateColorPickerButton(tabFrame, title, defaultColor, callback, configKey)
         end
+
         windowFacade._tabs[tabName] = tabFacade
         return tabFacade
     end
-    
+
     function windowFacade:SetVisible(visible)
         window:SetVisible(visible)
     end
@@ -5623,26 +5633,17 @@ function WasUI:CreateWindow(options)
     function windowFacade:SetMinimizedText(text)
         window:SetMinimizedText(text)
     end
+
     return windowFacade
 end
 
 function WasUI:Popup(options, callback)
     WasUI.ExternalPopupCalled = true
-    if WasUI.ConfigFolderCreated then 
+    if WasUI.ConfigFolderCreated then
         WasUI:ShowPopup(options, callback)
-    else 
+    else
         WasUI.PendingPopup = {options = options, callback = callback}
     end
-end
-function WasUI:LegacyCreateWindow(title, size, position, backgroundUrl, snowEnabled, titleTag)
-    return self:CreateWindow({
-        Title = title,
-        Size = size,
-        Position = position,
-        Background = backgroundUrl,
-        SnowEnabled = snowEnabled,
-        TitleTag = titleTag,
-    })
 end
 
 task.spawn(function()
