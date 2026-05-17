@@ -3197,7 +3197,8 @@ function Paragraph:New(name, parent, options)
         textFrame.Size = UDim2.new(1, -iconWidth, 0, 0)
     end
     if options.Title then self:SetTitle(options.Title) end
-    if options.Content then self:SetContent(options.Content) end
+    local contentText = options.Content or options.Desc
+    if contentText then self:SetContent(contentText) end
     if options.Icon then self:SetIcon(options.Icon) end
 
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Paragraph"})
