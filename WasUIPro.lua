@@ -2564,7 +2564,7 @@ function WasUI:ShowPopup(options, callback)
     })
     local dialogFrame = CreateInstance("Frame", {
         Name = "Dialog",
-        Size = UDim2.new(0, 480, 0, 0),
+        Size = UDim2.new(0, 360, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
