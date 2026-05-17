@@ -305,6 +305,17 @@ local function EnsureShortcutGui()
 end
 EnsureShortcutGui()
 
+local function EnsureRippleGui()
+    if not WasUI.RippleGui or not WasUI.RippleGui.Parent then
+        WasUI.RippleGui = Instance.new("ScreenGui")
+        WasUI.RippleGui.Name = "WasUI_Ripples"
+        WasUI.RippleGui.ResetOnSpawn = false
+        WasUI.RippleGui.DisplayOrder = 10000
+        WasUI.RippleGui.Parent = v11
+    end
+end
+EnsureRippleGui()
+
 local function EnsureNotificationGui()
     if not WasUI.NotificationGui or not WasUI.NotificationGui.Parent then
         WasUI.NotificationGui = Instance.new("ScreenGui")
@@ -840,29 +851,38 @@ end)
 local function AddRipple(instance, scaleFactor)
     scaleFactor = scaleFactor or 1.5
     local function createRipple(input)
+        EnsureRippleGui()
         local ripple = Instance.new("Frame")
         ripple.Name = "Ripple"
         ripple.Size = UDim2.new(0, 0, 0, 0)
         ripple.BackgroundColor3 = WasUI.CurrentTheme.Accent
         ripple.BackgroundTransparency = 0.6
         ripple.BorderSizePixel = 0
-        ripple.ZIndex = 10
+        ripple.ZIndex = 100000
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(1, 0)
         corner.Parent = ripple
-        ripple.Parent = instance
-        local mousePos = input.Position
+        ripple.Parent = WasUI.RippleGui
+        local clickPos = input.Position
         local btnPos = instance.AbsolutePosition
-        local x = mousePos.X - btnPos.X
-        local y = mousePos.Y - btnPos.Y
-        ripple.Position = UDim2.new(0, x, 0, y)
+        local relX = clickPos.X - btnPos.X
+        local relY = clickPos.Y - btnPos.Y
+        ripple.Position = UDim2.new(0, clickPos.X, 0, clickPos.Y)
         ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        
         local maxSize = math.max(instance.AbsoluteSize.X, instance.AbsoluteSize.Y) * scaleFactor
         Tween(ripple, {Size = UDim2.new(0, maxSize, 0, maxSize), BackgroundTransparency = 1}, 0.5)
-        task.delay(0.5, function() ripple:Destroy() end)
+        task.delay(0.5, function()
+            if ripple and ripple.Parent then
+                ripple:Destroy()
+            end
+        end)
     end
+    
     instance.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then createRipple(input) end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            createRipple(input)
+        end
     end)
 end
 
