@@ -3330,12 +3330,30 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 local tabContainer = tabBar:FindFirstChild("TabContainer")
                 if tabContainer then for _, btn in ipairs(tabContainer:GetChildren()) do if btn:IsA("TextButton") then Tween(btn, {BackgroundColor3 = newTheme.TabButton, TextColor3 = newTheme.Text}, duration) end end end
             end
-        elseif obj.Type == "TabArrow" then Tween(instance, {ImageColor3 = newTheme.Text}, duration)
+            local dotContainer = instance:FindFirstChild("DotContainer")
+            if dotContainer then
+                local minimizedText = dotContainer:FindFirstChild("MinimizedText")
+                if minimizedText and minimizedText:IsA("TextLabel") then
+                    Tween(minimizedText, {TextColor3 = newTheme.Text}, duration)
+                end
+            end
+        elseif obj.Type == "TabArrow" then
+            Tween(instance, {ImageColor3 = newTheme.Text}, duration)
         elseif obj.Type == "Paragraph" then
-            local titleLabel = instance:FindFirstChild("TextFrame") and instance.TextFrame:FindFirstChild("Title")
-            local contentLabel = instance:FindFirstChild("TextFrame") and instance.TextFrame:FindFirstChild("Content")
-            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
-            if contentLabel then Tween(contentLabel, {TextColor3 = newTheme.Text}, duration) end
+            local textFrame = instance:FindFirstChild("TextFrame")
+            if textFrame then
+                local titleLabel = textFrame:FindFirstChild("Title")
+                local contentLabel = textFrame:FindFirstChild("Content")
+                if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+                if contentLabel then Tween(contentLabel, {TextColor3 = newTheme.Text}, duration) end
+            end
+            local iconFrame = instance:FindFirstChild("IconFrame")
+            if iconFrame then
+                local icon = iconFrame:FindFirstChildOfClass("ImageLabel")
+                if icon and not icon:GetAttribute("IgnoreThemeChange") then
+                    Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+                end
+            end
         end
     end
     if WasUI.DropdownGui then
