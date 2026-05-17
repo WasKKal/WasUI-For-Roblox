@@ -3156,41 +3156,40 @@ function WasUIPro:CreateWindow(options)
     
     local windowAPI = {}
     
-    function windowAPI:Tab(tabOptions)
-        local tabFrame = window:AddTab(tabOptions)
-        local tabAPI = {}
-        
-        local function addControl(createFunc, opts)
-            opts = (type(opts) == "table") and opts or {}
-            opts.Parent = tabFrame
-            return createFunc(opts)
-        end
-        
-        tabAPI.Button = function(opts) return addControl(Button.New, opts) end
-        tabAPI.Toggle = function(opts) return addControl(ToggleSwitch.New, opts) end
-        tabAPI.Label = function(opts) return addControl(Label.New, opts) end
-        tabAPI.Category = function(opts) return addControl(Category.New, opts) end
-        tabAPI.Dropdown = function(opts) return addControl(Dropdown.New, opts) end
-        tabAPI.Slider = function(opts) return addControl(Slider.New, opts) end
-        tabAPI.TextInput = function(opts) return addControl(TextInput.New, opts) end
-        tabAPI.ProgressBar = function(opts) return addControl(ProgressBar.New, opts) end
-        tabAPI.Paragraph = function(opts) return addControl(Paragraph.New, opts) end
-        tabAPI.ColorPickerButton = function(opts)
-            opts = opts or {}
-            opts.Parent = tabFrame
-            return WasUIPro:CreateColorPickerButton(opts.Parent, opts.Title, opts.Default, opts.Callback)
-        end
-        
-        tabAPI.AddSpacing = function(height)
-            local spacing = Instance.new("Frame")
-            spacing.Name = "Spacing"
-            spacing.Size = UDim2.new(1, 0, 0, height or 4)
-            spacing.BackgroundTransparency = 1
-            spacing.Parent = tabFrame
-        end
-        
-        return tabAPI
+function windowAPI:Tab(tabOptions)
+    local tabFrame = window:AddTab(tabOptions)
+    local tabAPI = {}
+
+    local function addControl(createFunc, opts)
+        opts = (type(opts) == "table") and opts or {}
+        opts.Parent = tabFrame
+        return createFunc(opts)
     end
+
+    tabAPI.Button   = function(opts) return addControl(Button.New, opts) end
+    tabAPI.Toggle   = function(opts) return addControl(ToggleSwitch.New, opts) end
+    tabAPI.Label    = function(opts) return addControl(Label.New, opts) end
+    tabAPI.Category = function(opts) return addControl(Category.New, opts) end
+    tabAPI.Dropdown = function(opts) return addControl(Dropdown.New, opts) end
+    tabAPI.Slider   = function(opts) return addControl(Slider.New, opts) end
+    tabAPI.TextInput = function(opts) return addControl(TextInput.New, opts) end
+    tabAPI.ProgressBar = function(opts) return addControl(ProgressBar.New, opts) end
+    tabAPI.Paragraph = function(opts) return addControl(Paragraph.New, opts) end
+    tabAPI.ColorPickerButton = function(opts)
+        opts = opts or {}
+        opts.Parent = tabFrame
+        return WasUIPro:CreateColorPickerButton(opts.Parent, opts.Title, opts.Default, opts.Callback)
+    end
+    tabAPI.AddSpacing = function(height)
+        local spacing = Instance.new("Frame")
+        spacing.Name = "Spacing"
+        spacing.Size = UDim2.new(1, 0, 0, height or 4)
+        spacing.BackgroundTransparency = 1
+        spacing.Parent = tabFrame
+    end
+
+    return tabAPI
+end
     
     function windowAPI:Category(categoryOptions)
         return Category.New(categoryOptions, window.Instance)
