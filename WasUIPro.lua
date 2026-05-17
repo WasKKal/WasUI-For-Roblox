@@ -3154,6 +3154,7 @@ function Paragraph:New(name, parent, options)
         FillDirection = Enum.FillDirection.Horizontal,
         VerticalAlignment = Enum.VerticalAlignment.Top,
         Padding = UDim.new(0, 8),
+        SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = self.Container
     })
     self.IconFrame = CreateInstance("Frame", {
@@ -3161,6 +3162,7 @@ function Paragraph:New(name, parent, options)
         Size = UDim2.new(0, 20, 0, 20),
         BackgroundTransparency = 1,
         Visible = false,
+        LayoutOrder = 1,
         Parent = self.Container
     })
     self.Icon = nil
@@ -3169,12 +3171,14 @@ function Paragraph:New(name, parent, options)
         Size = UDim2.new(1, -28, 0, 0),
         BackgroundTransparency = 1,
         AutomaticSize = Enum.AutomaticSize.Y,
+        LayoutOrder = 2,
         Parent = self.Container
     })
     local textLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Vertical,
         VerticalAlignment = Enum.VerticalAlignment.Top,
         Padding = UDim.new(0, 2),
+        SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = textFrame
     })
     self.TitleLabel = CreateInstance("TextLabel", {
