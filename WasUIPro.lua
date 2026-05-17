@@ -259,19 +259,19 @@ WasUI.Themes = {
         SnowColor = Color3.fromRGB(0, 0, 0)
     },
     Blue = {
-        Primary = Color3.fromRGB(20, 30, 48),
-        Secondary = Color3.fromRGB(30, 42, 62),
-        Background = Color3.fromRGB(36, 50, 72),
-        Text = Color3.fromRGB(245, 245, 255),
-        Accent = Color3.fromRGB(255, 140, 0),
-        Success = Color3.fromRGB(46, 204, 113),
-        Warning = Color3.fromRGB(241, 196, 15),
-        Error = Color3.fromRGB(231, 76, 60),
-        Section = Color3.fromRGB(52, 73, 102),
-        Input = Color3.fromRGB(30, 42, 62),
-        TabBorder = Color3.fromRGB(70, 90, 120),
-        TabButton = Color3.fromRGB(28, 40, 58),
-        SnowColor = Color3.fromRGB(255, 255, 255)
+        Primary = Color3.fromRGB(13, 27, 42),
+        Secondary = Color3.fromRGB(21, 45, 68),
+        Background = Color3.fromRGB(26, 54, 78),
+        Text = Color3.fromRGB(240, 248, 255),
+        Accent = Color3.fromRGB(255, 120, 0),
+        Success = Color3.fromRGB(0, 200, 100),
+        Warning = Color3.fromRGB(255, 180, 50),
+        Error = Color3.fromRGB(255, 70, 70),
+        Section = Color3.fromRGB(34, 67, 92),
+        Input = Color3.fromRGB(22, 48, 72),
+        TabBorder = Color3.fromRGB(50, 90, 120),
+        TabButton = Color3.fromRGB(18, 40, 60),
+        SnowColor = Color3.fromRGB(240, 248, 255)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes[WasUI.DefaultTheme]
