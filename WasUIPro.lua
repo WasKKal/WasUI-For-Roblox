@@ -1392,7 +1392,6 @@ function Label:New(name, parent, text, textColor)
     return self
 end
 
--- 修改Category: 添加右侧图标，旋转180度
 local Category = setmetatable({}, {__index = Control})
 Category.__index = Category
 function Category:New(name, parent, title, iconName)
@@ -1406,11 +1405,32 @@ function Category:New(name, parent, title, iconName)
         Parent = parent,
         ZIndex = 2
     })
-    -- 标题容器改为相对布局：标题左对齐，图标右对齐
+    -- 左侧图标容器
+    local leftIconFrame = CreateInstance("Frame", {
+        Name = "LeftIconFrame",
+        Size = UDim2.new(0, 24, 1, 0),
+        Position = UDim2.new(0, 4, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = self.Header,
+        ZIndex = 2
+    })
+    local leftIcon = nil
+    if iconName and iconName ~= "" then
+        leftIcon = WasUI:CreateIcon(iconName, UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
+        if leftIcon then
+            leftIcon.Name = "LeftIcon"
+            leftIcon.Parent = leftIconFrame
+            leftIcon.Position = UDim2.new(0, 0, 0.5, -9)
+            leftIcon.ZIndex = 3
+        end
+    else
+        leftIconFrame.Visible = false
+    end
+    -- 标题文字
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(1, -30, 1, 0),
-        Position = UDim2.new(0, 4, 0, 0),
+        Size = UDim2.new(1, -60, 1, 0),
+        Position = UDim2.new(0, 32, 0, 0),
         BackgroundTransparency = 1,
         Text = "",
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -1423,16 +1443,16 @@ function Category:New(name, parent, title, iconName)
     })
     WasUI:SetLocalizedText(self.TitleLabel, title)
     table.insert(WasUI.Objects, {Object = self.TitleLabel, Type = "CategoryTitle"})
-    -- 右侧图标
-    local actualIcon = iconName or "chevron-down"
-    local icon = WasUI:CreateIcon(actualIcon, UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
-    if icon then
-        icon.Name = "CategoryIcon"
-        icon.Parent = self.Header
-        icon.Position = UDim2.new(1, -24, 0.5, -9)
-        icon.ZIndex = 3
-        icon.Rotation = 0
-        self.Icon = icon
+    -- 右侧固定图标（chevron-down，不可外部修改）
+    local rightIcon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text, true)
+    if rightIcon then
+        rightIcon.Name = "CategoryIcon"
+        rightIcon.Parent = self.Header
+        rightIcon.Position = UDim2.new(1, -26, 0.5, -9)
+        rightIcon.ZIndex = 3
+        rightIcon.Rotation = 0
+        rightIcon:SetAttribute("InternalIcon", true)   -- 标记为内部图标，防止外部修改
+        self.Icon = rightIcon
     end
     local line = CreateInstance("Frame", {
         Name = "Line",
@@ -1513,7 +1533,6 @@ function Category:New(name, parent, title, iconName)
     table.insert(WasUI.Objects, {Object = self.Content, Type = "CategoryContent"})
     return self
 end
-
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback, multiSelect, configKey)
@@ -2633,19 +2652,27 @@ function WasUI:ShowPopup(options, callback)
         ZIndex = 1001,
         LayoutOrder = 1
     })
+    -- 水平布局
+    local titleLayout = Instance.new("UIListLayout")
+    titleLayout.FillDirection = Enum.FillDirection.Horizontal
+    titleLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    titleLayout.Padding = UDim.new(0, 8)
+    titleLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    titleLayout.Parent = titleContainer
+
     local titleIconImage = nil
     if titleIcon then
         titleIconImage = WasUI:CreateIcon(titleIcon, UDim2.new(0, 20, 0, 20), WasUI.CurrentTheme.Text)
         if titleIconImage then
             titleIconImage.Parent = titleContainer
-            titleIconImage.Position = UDim2.new(0, 0, 0.5, -10)
+            titleIconImage.LayoutOrder = 1
             titleIconImage.ZIndex = 1002
         end
     end
+
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(1, (titleIconImage and -24 or 0), 0, 24),
-        Position = UDim2.new(titleIconImage and 0 or 0, titleIconImage and 2 or 0, 0.5, -12), -- 图标右侧标题向右移动2px
+        Size = UDim2.new(0, 0, 0, 24),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -2653,19 +2680,33 @@ function WasUI:ShowPopup(options, callback)
         TextSize = 18,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
+        AutomaticSize = Enum.AutomaticSize.X,
+        LayoutOrder = 2,
         Parent = titleContainer,
         ZIndex = 1002
     })
+
+    -- 右侧固定 chevron-down 图标（不可外部修改）
+    local chevronIcon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text, true)
+    if chevronIcon then
+        chevronIcon.Name = "ChevronDown"
+        chevronIcon.Parent = titleContainer
+        chevronIcon.LayoutOrder = 3
+        chevronIcon.ZIndex = 1002
+        chevronIcon:SetAttribute("InternalIcon", true)
+        chevronIcon:SetAttribute("IgnoreThemeChange", true)
+    end
+
     if titleTag then
         local tagContainer = CreateInstance("Frame", {
             Name = "TagContainer",
             Size = UDim2.new(0, 0, 0, 20),
-            Position = UDim2.new(1, 4, 0.5, -10),
             BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
             BackgroundTransparency = 0.2,
             BorderSizePixel = 0,
             Parent = titleContainer,
-            ZIndex = 1003
+            ZIndex = 1003,
+            LayoutOrder = 4
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tagContainer})
         local tagLabel = CreateInstance("TextLabel", {
@@ -2685,6 +2726,7 @@ function WasUI:ShowPopup(options, callback)
         tagContainer.Size = UDim2.new(0, tagLabel.TextBounds.X + 8, 0, 20)
         tagLabel.Size = UDim2.new(0, tagLabel.TextBounds.X, 1, 0)
     end
+
     local contentLabel = CreateInstance("TextLabel", {
         Name = "Content",
         Size = UDim2.new(1, -20, 0, 0),
@@ -3078,8 +3120,6 @@ function WasUI:ShowColorPicker(options, callback)
     table.insert(WasUI.ActiveDialogs, dialogGui)
     return dialogGui
 end
-
--- 修复ColorPickerButton：确保单指触摸打开
 function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, configKey)
     defaultColor = defaultColor or Color3.fromRGB(255, 255, 255)
     local buttonSize = UDim2.new(1, 0, 0, 28)
@@ -3148,7 +3188,6 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
         end)
     end
     button.MouseButton1Click:Connect(openColorPicker)
-    -- 添加触摸支持，确保单指能打开
     button.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
             openColorPicker()
@@ -3555,8 +3594,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     end
 
     AddRipple(self.Instance)
-
-    -- 彩虹边框优化：减少发散距离，平滑颜色过渡
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
@@ -3569,7 +3606,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     local borderFlowCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.BorderFlow})
     local flowGradient = Instance.new("UIGradient")
     flowGradient.Rotation = 0
-    -- 增加更多颜色关键帧使过渡更平滑
     flowGradient.Color = ColorSequence.new{
         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
         ColorSequenceKeypoint.new(0.08, Color3.fromRGB(255, 80, 0)),
@@ -3592,7 +3628,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Transparency = 0,
         Parent = self.BorderFlow
     })
-    -- 减少发散距离：减小后续Stroke厚度
     self.GlowStroke1 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
         Thickness = 2,
@@ -4670,8 +4705,6 @@ end
     self.Avatar.MouseButton1Up:Connect(function()
         SpringTween(avatarScale, {Scale = 1}, 0.25)
     end)
-    
-    -- 隐私模式相关变量
     local privacyMode = false
     local originalUsername = player.Name
     local originalAvatarImage = ""
@@ -4701,7 +4734,6 @@ end
             WasUI.SettingsPanel = nil
             return
         end
-        -- 创建设置窗口（代码较长，省略，但包含隐私开关）
         local settingsGui = Instance.new("ScreenGui")
         settingsGui.Name = "WasUI_Settings"
         settingsGui.ResetOnSpawn = false
