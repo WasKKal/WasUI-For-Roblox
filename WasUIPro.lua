@@ -653,7 +653,6 @@ function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
     return imageLabel
 end
 
--- 彩虹文字动画优化
 local function RefreshRainbowLayout()
     local startY = 10
     local spacing = 5
@@ -711,7 +710,6 @@ local function DestroyRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     local data = WasUI.ActiveRainbowTexts[featureName]
     if data and data.Label then
-        -- 向右退场动画
         local startPos = data.Label.Position
         local exitPos = UDim2.new(1, 10, 0, startPos.Y.Offset)
         Tween(data.Label, {Position = exitPos, TextTransparency = 1}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
@@ -1405,7 +1403,6 @@ function Category:New(name, parent, title, iconName)
         Parent = parent,
         ZIndex = 2
     })
-    -- 左侧图标容器
     local leftIconFrame = CreateInstance("Frame", {
         Name = "LeftIconFrame",
         Size = UDim2.new(0, 24, 1, 0),
@@ -1426,7 +1423,6 @@ function Category:New(name, parent, title, iconName)
     else
         leftIconFrame.Visible = false
     end
-    -- 标题文字
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(1, -60, 1, 0),
@@ -1443,7 +1439,6 @@ function Category:New(name, parent, title, iconName)
     })
     WasUI:SetLocalizedText(self.TitleLabel, title)
     table.insert(WasUI.Objects, {Object = self.TitleLabel, Type = "CategoryTitle"})
-    -- 右侧固定图标（chevron-down，不可外部修改）
     local rightIcon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text, true)
     if rightIcon then
         rightIcon.Name = "CategoryIcon"
@@ -1451,7 +1446,7 @@ function Category:New(name, parent, title, iconName)
         rightIcon.Position = UDim2.new(1, -26, 0.5, -9)
         rightIcon.ZIndex = 3
         rightIcon.Rotation = 0
-        rightIcon:SetAttribute("InternalIcon", true)   -- 标记为内部图标，防止外部修改
+        rightIcon:SetAttribute("InternalIcon", true)
         self.Icon = rightIcon
     end
     local line = CreateInstance("Frame", {
@@ -1533,6 +1528,7 @@ function Category:New(name, parent, title, iconName)
     table.insert(WasUI.Objects, {Object = self.Content, Type = "CategoryContent"})
     return self
 end
+
 local Dropdown = setmetatable({}, {__index = Control})
 Dropdown.__index = Dropdown
 function Dropdown:New(name, parent, title, options, defaultValue, callback, multiSelect, configKey)
@@ -2652,7 +2648,6 @@ function WasUI:ShowPopup(options, callback)
         ZIndex = 1001,
         LayoutOrder = 1
     })
-    -- 水平布局
     local titleLayout = Instance.new("UIListLayout")
     titleLayout.FillDirection = Enum.FillDirection.Horizontal
     titleLayout.VerticalAlignment = Enum.VerticalAlignment.Center
@@ -2686,7 +2681,6 @@ function WasUI:ShowPopup(options, callback)
         ZIndex = 1002
     })
 
-    -- 右侧固定 chevron-down 图标（不可外部修改）
     local chevronIcon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text, true)
     if chevronIcon then
         chevronIcon.Name = "ChevronDown"
@@ -3120,6 +3114,7 @@ function WasUI:ShowColorPicker(options, callback)
     table.insert(WasUI.ActiveDialogs, dialogGui)
     return dialogGui
 end
+
 function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, configKey)
     defaultColor = defaultColor or Color3.fromRGB(255, 255, 255)
     local buttonSize = UDim2.new(1, 0, 0, 28)
@@ -3594,6 +3589,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     end
 
     AddRipple(self.Instance)
+
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
@@ -3724,7 +3720,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 self.GlowStroke5.Transparency = 0.97
                 flowGradient.Enabled = false
             else
-                self.FlowRotation = (self.FlowRotation + deltaTime * 60) % 360  -- 加快流动速度减少阶段感
+                self.FlowRotation = (self.FlowRotation + deltaTime * 60) % 360
                 flowGradient.Rotation = self.FlowRotation
                 flowGradient.Enabled = true
                 self.BorderStroke.Transparency = 1
@@ -4705,13 +4701,14 @@ end
     self.Avatar.MouseButton1Up:Connect(function()
         SpringTween(avatarScale, {Scale = 1}, 0.25)
     end)
+    
     local privacyMode = false
     local originalUsername = player.Name
     local originalAvatarImage = ""
     
     local function updatePrivacyMode()
         if privacyMode then
-            self.Avatar.Image = "rbxassetid://0"  -- 空头像或默认图标
+            self.Avatar.Image = "rbxassetid://0"
             self.Username.Text = "隐私保护已开启"
             self.ExecutorLabel.Text = "隐私保护已开启"
         else
@@ -4750,7 +4747,7 @@ end
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 300, 0, 380), -- 增加高度容纳隐私开关
+            Size = UDim2.new(0, 300, 0, 380),
             Position = UDim2.new(0.5, -150, 0.5, -200),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
@@ -4921,7 +4918,6 @@ end
             WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
         end)
 
-        -- 隐私模式开关
         local privacyContainer = CreateInstance("Frame", {
             Name = "PrivacyToggleContainer",
             Size = UDim2.new(1, 0, 0, 28),
@@ -4977,7 +4973,6 @@ end
                 Tween(privacyBg, {BackgroundColor3 = offCol}, 0.2)
                 SpringTween(privacyKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
             end
-            -- 保存配置
             if WasUI.ConfigManager then
                 local internalConfig = WasUI.ConfigManager:GetConfig("WasUI内部配置")
                 if internalConfig then
@@ -5201,7 +5196,6 @@ end
         })
         WasUI:SetLocalizedText(f1Hint, "按F1开关UI")
         
-        -- 加载隐私模式配置
         if WasUI.ConfigManager then
             local internalConfig = WasUI.ConfigManager:GetConfig("WasUI内部配置")
             if internalConfig then
@@ -5511,7 +5505,6 @@ end
         return tabFrame
     end
     function self:SetActiveTab(tabName)
-        -- 切换选项卡时关闭所有打开的下拉菜单
         for _, dropdown in ipairs(WasUI.OpenDropdowns) do
             if dropdown.Close then dropdown:Close(true) end
         end
