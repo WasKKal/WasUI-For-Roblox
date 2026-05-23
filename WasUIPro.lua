@@ -1422,11 +1422,11 @@ function Category:New(name, parent, title, iconName)
             leftIcon.Position = UDim2.new(0, 0, 0.5, -9)
             leftIcon.ZIndex = 3
         end
-        leftIconWidth = 28 -- 24宽度 + 4间距
+        leftIconWidth = 28 
     end
 
     local titlePosX = leftIconWidth
-    local titleSizeX = -(26 + leftIconWidth) -- 右侧固定占26px
+    local titleSizeX = -(26 + leftIconWidth)
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(1, titleSizeX, 1, 0),
@@ -4730,510 +4730,508 @@ end
         end
     end
     
-    self.Avatar.MouseButton1Click:Connect(function()
-        if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
+self.Avatar.MouseButton1Click:Connect(function()
+    if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
+        WasUI.SettingsGui:Destroy()
+        WasUI.SettingsGui = nil
+        WasUI.SettingsPanel = nil
+        return
+    end
+    local settingsGui = Instance.new("ScreenGui")
+    settingsGui.Name = "WasUI_Settings"
+    settingsGui.ResetOnSpawn = false
+    settingsGui.DisplayOrder = 1001
+    settingsGui.Parent = v11
+    local clickCatcher = CreateInstance("Frame", {
+        Name = "ClickCatcher",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Visible = true,
+        ZIndex = 999,
+        Parent = settingsGui
+    })
+    local settingsFrame = CreateInstance("Frame", {
+        Name = "SettingsPanel",
+        Size = UDim2.new(0, 280, 0, 340),
+        Position = UDim2.new(0.5, -140, 0.5, -170),
+        BackgroundColor3 = WasUI.CurrentTheme.Background,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        ZIndex = 1000,
+        Parent = settingsGui
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
+    WasUI.SettingsGui = settingsGui
+    WasUI.SettingsPanel = settingsFrame
+    local titleBar = CreateInstance("Frame", {
+        Name = "TitleBar",
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundColor3 = WasUI.CurrentTheme.Background:lerp(Color3.fromRGB(0, 0, 0), 0.2),
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        ZIndex = 1001,
+        Parent = settingsFrame
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = titleBar})
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(1, -30, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 1002,
+        Parent = titleBar
+    })
+    WasUI:SetLocalizedText(titleLabel, "UI设置")
+    local closeBtn = CreateInstance("TextButton", {
+        Name = "Close",
+        Size = UDim2.new(0, 24, 0, 24),
+        Position = UDim2.new(1, -28, 0, 3),
+        BackgroundTransparency = 1,
+        Text = "×",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        ZIndex = 1002,
+        Parent = titleBar
+    })
+    closeBtn.MouseButton1Click:Connect(function()
+        Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+        task.wait(0.2)
+        if WasUI.SettingsGui then
             WasUI.SettingsGui:Destroy()
             WasUI.SettingsGui = nil
-            WasUI.SettingsPanel = nil
-            return
         end
-        local settingsGui = Instance.new("ScreenGui")
-        settingsGui.Name = "WasUI_Settings"
-        settingsGui.ResetOnSpawn = false
-        settingsGui.DisplayOrder = 1001
-        settingsGui.Parent = v11
-        local clickCatcher = CreateInstance("Frame", {
-            Name = "ClickCatcher",
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            Visible = true,
-            ZIndex = 999,
-            Parent = settingsGui
-        })
-        local settingsFrame = CreateInstance("Frame", {
-            Name = "SettingsPanel",
-            Size = UDim2.new(0, 300, 0, 380),
-            Position = UDim2.new(0.5, -150, 0.5, -200),
-            BackgroundColor3 = WasUI.CurrentTheme.Background,
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            ClipsDescendants = true,
-            ZIndex = 1000,
-            Parent = settingsGui
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
-        WasUI.SettingsGui = settingsGui
-        WasUI.SettingsPanel = settingsFrame
-        local titleBar = CreateInstance("Frame", {
-            Name = "TitleBar",
-            Size = UDim2.new(1, 0, 0, 30),
-            BackgroundColor3 = WasUI.CurrentTheme.Background:lerp(Color3.fromRGB(0, 0, 0), 0.2),
-            BackgroundTransparency = 0.3,
-            BorderSizePixel = 0,
-            ZIndex = 1001,
-            Parent = settingsFrame
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = titleBar})
-        local titleLabel = CreateInstance("TextLabel", {
-            Name = "Title",
-            Size = UDim2.new(1, -30, 1, 0),
-            Position = UDim2.new(0, 10, 0, 0),
-            BackgroundTransparency = 1,
-            Text = "",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamBold,
-            TextSize = 14,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 1002,
-            Parent = titleBar
-        })
-        WasUI:SetLocalizedText(titleLabel, "UI设置")
-        local closeBtn = CreateInstance("TextButton", {
-            Name = "Close",
-            Size = UDim2.new(0, 24, 0, 24),
-            Position = UDim2.new(1, -28, 0, 3),
-            BackgroundTransparency = 1,
-            Text = "×",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamBold,
-            TextSize = 18,
-            ZIndex = 1002,
-            Parent = titleBar
-        })
-        closeBtn.MouseButton1Click:Connect(function()
-            Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-            task.wait(0.2)
-            if WasUI.SettingsGui then
-                WasUI.SettingsGui:Destroy()
-                WasUI.SettingsGui = nil
-            end
-            WasUI.SettingsPanel = nil
-        end)
-        local contentFrame = CreateInstance("ScrollingFrame", {
-            Name = "Content",
-            Size = UDim2.new(1, -20, 1, -40),
-            Position = UDim2.new(0, 10, 0, 40),
-            BackgroundTransparency = 1,
-            ScrollBarThickness = 4,
-            ScrollingDirection = Enum.ScrollingDirection.Y,
-            CanvasSize = UDim2.new(0, 0, 0, 0),
-            ZIndex = 1001,
-            Parent = settingsFrame
-        })
-        local contentLayout = CreateInstance("UIListLayout", {
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 8),
-            Parent = contentFrame
-        })
-        local contentPadding = CreateInstance("UIPadding", {
-            PaddingLeft = UDim.new(0, 4),
-            PaddingRight = UDim.new(0, 4),
-            PaddingTop = UDim.new(0, 4),
-            PaddingBottom = UDim.new(0, 4),
-            Parent = contentFrame
-        })
-        local function refreshCanvas()
-            contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 8)
-        end
-        contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshCanvas)
-        local themeLabel = CreateInstance("TextLabel", {
-            Name = "ThemeLabel",
-            Size = UDim2.new(1, 0, 0, 24),
-            BackgroundTransparency = 1,
-            Text = "",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 14,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        WasUI:SetLocalizedText(themeLabel, "窗口风格")
-        local themeDropdown = CreateInstance("TextButton", {
-            Name = "ThemeDropdown",
-            Size = UDim2.new(0, 120, 0, 28),
-            Position = UDim2.new(1, -130, 0, -2),
-            BackgroundColor3 = WasUI.CurrentTheme.Input,
-            BackgroundTransparency = 0.3,
-            Text = "",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            AutoButtonColor = false,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
-        local themeDisplayNames = {"Dark", "Light", "Blue"}
-        local currentThemeDisplay = WasUI.CurrentThemeName
-        themeDropdown.Text = currentThemeDisplay
-        themeDropdown.MouseButton1Click:Connect(function()
-            local currentIndex = 1
-            for i, name in ipairs(themeDisplayNames) do
-                if name == themeDropdown.Text then
-                    currentIndex = i
-                    break
-                end
-            end
-            local nextIndex = (currentIndex % #themeDisplayNames) + 1
-            local newThemeName = themeDisplayNames[nextIndex]
-            themeDropdown.Text = newThemeName
-            Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-            task.wait(0.2)
-            if WasUI.SettingsGui then
-                WasUI.SettingsGui:Destroy()
-                WasUI.SettingsGui = nil
-            end
-            WasUI.SettingsPanel = nil
-            WasUI:SetTheme(newThemeName)
-        end)
-
-        local rainbowModeLabel = CreateInstance("TextLabel", {
-            Name = "RainbowModeLabel",
-            Size = UDim2.new(1, 0, 0, 24),
-            BackgroundTransparency = 1,
-            Text = "",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 14,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        WasUI:SetLocalizedText(rainbowModeLabel, "彩虹边框模式")
-        local rainbowModeButton = CreateInstance("TextButton", {
-            Name = "RainbowModeButton",
-            Size = UDim2.new(0, 120, 0, 28),
-            Position = UDim2.new(1, -130, 0, -2),
-            BackgroundColor3 = WasUI.CurrentTheme.Input,
-            BackgroundTransparency = 0.3,
-            Text = self.RainbowMode,
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            AutoButtonColor = false,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = rainbowModeButton})
-        rainbowModeButton.MouseButton1Click:Connect(function()
-            local newMode = (self.RainbowMode == "整体") and "流动" or "整体"
-            self:SetRainbowMode(newMode)
-            rainbowModeButton.Text = newMode
-            WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
-        end)
-
-        local privacyContainer = CreateInstance("Frame", {
-            Name = "PrivacyToggleContainer",
-            Size = UDim2.new(1, 0, 0, 28),
-            BackgroundTransparency = 1,
-            ZIndex = 1003,
-            Parent = contentFrame
-        })
-        local privacyTitle = CreateInstance("TextLabel", {
-            Name = "Title",
-            Size = UDim2.new(0.7, 0, 1, 0),
-            Position = UDim2.new(0, 0, 0, 0),
-            BackgroundTransparency = 1,
-            Text = "",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextYAlignment = Enum.TextYAlignment.Center,
-            ZIndex = 1003,
-            Parent = privacyContainer
-        })
-        WasUI:SetLocalizedText(privacyTitle, "隐私模式")
-        local privacyBg = CreateInstance("ImageButton", {
-            Name = "PrivacyBG",
-            Size = UDim2.new(0, 36, 0, 18),
-            Position = UDim2.new(1, -40, 0.5, -9),
-            BackgroundColor3 = privacyMode and WasUI.CurrentTheme.Success or ((WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)),
-            Image = "",
-            BorderSizePixel = 0,
-            AutoButtonColor = false,
-            ZIndex = 1003,
-            Parent = privacyContainer
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = privacyBg})
-        local privacyKnob = CreateInstance("Frame", {
-            Name = "PrivacyKnob",
-            Size = UDim2.new(0, 16, 0, 16),
-            Position = privacyMode and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
-            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            BorderSizePixel = 0,
-            ZIndex = 1004,
-            Parent = privacyBg
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = privacyKnob})
-        local function updatePrivacyToggle(newState)
-            privacyMode = newState
-            updatePrivacyMode()
-            if newState then
-                Tween(privacyBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-                SpringTween(privacyKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
-            else
-                local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
-                Tween(privacyBg, {BackgroundColor3 = offCol}, 0.2)
-                SpringTween(privacyKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
-            end
-            if WasUI.ConfigManager then
-                local internalConfig = WasUI.ConfigManager:GetConfig("WasUI内部配置")
-                if internalConfig then
-                    internalConfig:Set("PrivacyMode", privacyMode)
-                    internalConfig:Save()
-                end
+        WasUI.SettingsPanel = nil
+    end)
+    local contentFrame = CreateInstance("ScrollingFrame", {
+        Name = "Content",
+        Size = UDim2.new(1, -20, 1, -40),
+        Position = UDim2.new(0, 10, 0, 40),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 4,
+        ScrollingDirection = Enum.ScrollingDirection.Y,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        ZIndex = 1001,
+        Parent = settingsFrame
+    })
+    local contentLayout = CreateInstance("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 4),
+        Parent = contentFrame
+    })
+    local contentPadding = CreateInstance("UIPadding", {
+        PaddingLeft = UDim.new(0, 4),
+        PaddingRight = UDim.new(0, 4),
+        PaddingTop = UDim.new(0, 2),
+        PaddingBottom = UDim.new(0, 2),
+        Parent = contentFrame
+    })
+    local function refreshCanvas()
+        contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 8)
+    end
+    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshCanvas)
+    -- 窗口风格标签
+    local themeLabel = CreateInstance("TextLabel", {
+        Name = "ThemeLabel",
+        Size = UDim2.new(1, 0, 0, 20),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 1002,
+        Parent = contentFrame
+    })
+    WasUI:SetLocalizedText(themeLabel, "窗口风格")
+    local themeDropdown = CreateInstance("TextButton", {
+        Name = "ThemeDropdown",
+        Size = UDim2.new(0, 100, 0, 24),
+        Position = UDim2.new(1, -110, 0, -2),
+        BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BackgroundTransparency = 0.3,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        AutoButtonColor = false,
+        ZIndex = 1002,
+        Parent = contentFrame
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = themeDropdown})
+    local themeDisplayNames = {"Dark", "Light", "Blue"}
+    local currentThemeDisplay = WasUI.CurrentThemeName
+    themeDropdown.Text = currentThemeDisplay
+    themeDropdown.MouseButton1Click:Connect(function()
+        local currentIndex = 1
+        for i, name in ipairs(themeDisplayNames) do
+            if name == themeDropdown.Text then
+                currentIndex = i
+                break
             end
         end
-        privacyBg.MouseButton1Click:Connect(function()
-            updatePrivacyToggle(not privacyMode)
-        end)
-
-        local snowContainer = CreateInstance("Frame", {
-            Name = "SnowToggleContainer",
-            Size = UDim2.new(1, 0, 0, 28),
-            BackgroundTransparency = 1,
-            ZIndex = 1003,
-            Parent = contentFrame
-        })
-        local snowTitle = CreateInstance("TextLabel", {
-            Name = "Title",
-            Size = UDim2.new(0.7, 0, 1, 0),
-            Position = UDim2.new(0, 0, 0, 0),
-            BackgroundTransparency = 1,
-            Text = "",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextYAlignment = Enum.TextYAlignment.Center,
-            ZIndex = 1003,
-            Parent = snowContainer
-        })
-        WasUI:SetLocalizedText(snowTitle, "雪花飘落")
-        local snowBg = CreateInstance("ImageButton", {
-            Name = "SnowBG",
-            Size = UDim2.new(0, 36, 0, 18),
-            Position = UDim2.new(1, -40, 0.5, -9),
-            BackgroundColor3 = self.SnowEnabled and WasUI.CurrentTheme.Success or ((WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)),
-            Image = "",
-            BorderSizePixel = 0,
-            AutoButtonColor = false,
-            ZIndex = 1003,
-            Parent = snowContainer
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowBg})
-        local snowKnob = CreateInstance("Frame", {
-            Name = "SnowKnob",
-            Size = UDim2.new(0, 16, 0, 16),
-            Position = self.SnowEnabled and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
-            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            BorderSizePixel = 0,
-            ZIndex = 1004,
-            Parent = snowBg
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowKnob})
-        local function updateSnowToggle(newState)
-            self.SnowEnabled = newState
-            if self.SnowContainer then
-                self.SnowContainer.Visible = newState
-            end
-            if newState then
-                Tween(snowBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-                SpringTween(snowKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
-            else
-                local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
-                Tween(snowBg, {BackgroundColor3 = offCol}, 0.2)
-                SpringTween(snowKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
-            end
+        local nextIndex = (currentIndex % #themeDisplayNames) + 1
+        local newThemeName = themeDisplayNames[nextIndex]
+        themeDropdown.Text = newThemeName
+        Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+        task.wait(0.2)
+        if WasUI.SettingsGui then
+            WasUI.SettingsGui:Destroy()
+            WasUI.SettingsGui = nil
         end
-        snowBg.MouseButton1Click:Connect(function()
-            updateSnowToggle(not self.SnowEnabled)
-        end)
-
-        local langContainer = CreateInstance("Frame", {
-            Name = "LanguageToggleContainer",
-            Size = UDim2.new(1, 0, 0, 28),
-            BackgroundTransparency = 1,
-            ZIndex = 1003,
-            Parent = contentFrame
-        })
-        local langTitle = CreateInstance("TextLabel", {
-            Name = "Title",
-            Size = UDim2.new(0.7, 0, 1, 0),
-            Position = UDim2.new(0, 0, 0, 0),
-            BackgroundTransparency = 1,
-            Text = "",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextYAlignment = Enum.TextYAlignment.Center,
-            ZIndex = 1003,
-            Parent = langContainer
-        })
-        WasUI:SetLocalizedText(langTitle, "English")
-        local langBg = CreateInstance("ImageButton", {
-            Name = "LangBG",
-            Size = UDim2.new(0, 36, 0, 18),
-            Position = UDim2.new(1, -40, 0.5, -9),
-            BackgroundColor3 = (WasUI.CurrentLanguage == "English") and WasUI.CurrentTheme.Success or ((WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)),
-            Image = "",
-            BorderSizePixel = 0,
-            AutoButtonColor = false,
-            ZIndex = 1003,
-            Parent = langContainer
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = langBg})
-        local langKnob = CreateInstance("Frame", {
-            Name = "LangKnob",
-            Size = UDim2.new(0, 16, 0, 16),
-            Position = (WasUI.CurrentLanguage == "English") and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
-            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            BorderSizePixel = 0,
-            ZIndex = 1004,
-            Parent = langBg
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = langKnob})
-        local function updateLangToggle(state)
-            if state then
-                Tween(langBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-                SpringTween(langKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
-                WasUI:SetLanguage("English")
-            else
-                local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
-                Tween(langBg, {BackgroundColor3 = offCol}, 0.2)
-                SpringTween(langKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
-                WasUI:SetLanguage("中文")
-            end
+        WasUI.SettingsPanel = nil
+        WasUI:SetTheme(newThemeName)
+    end)
+    -- 彩虹边框模式
+    local rainbowModeLabel = CreateInstance("TextLabel", {
+        Name = "RainbowModeLabel",
+        Size = UDim2.new(1, 0, 0, 20),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 1002,
+        Parent = contentFrame
+    })
+    WasUI:SetLocalizedText(rainbowModeLabel, "彩虹边框模式")
+    local rainbowModeButton = CreateInstance("TextButton", {
+        Name = "RainbowModeButton",
+        Size = UDim2.new(0, 100, 0, 24),
+        Position = UDim2.new(1, -110, 0, -2),
+        BackgroundColor3 = WasUI.CurrentTheme.Input,
+        BackgroundTransparency = 0.3,
+        Text = self.RainbowMode,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        AutoButtonColor = false,
+        ZIndex = 1002,
+        Parent = contentFrame
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = rainbowModeButton})
+    rainbowModeButton.MouseButton1Click:Connect(function()
+        local newMode = (self.RainbowMode == "整体") and "流动" or "整体"
+        self:SetRainbowMode(newMode)
+        rainbowModeButton.Text = newMode
+        WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
+    end)
+    -- 隐私模式开关
+    local privacyContainer = CreateInstance("Frame", {
+        Name = "PrivacyToggleContainer",
+        Size = UDim2.new(1, 0, 0, 24),
+        BackgroundTransparency = 1,
+        ZIndex = 1003,
+        Parent = contentFrame
+    })
+    local privacyTitle = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(0.7, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        ZIndex = 1003,
+        Parent = privacyContainer
+    })
+    WasUI:SetLocalizedText(privacyTitle, "隐私模式")
+    local privacyBg = CreateInstance("ImageButton", {
+        Name = "PrivacyBG",
+        Size = UDim2.new(0, 36, 0, 18),
+        Position = UDim2.new(1, -40, 0.5, -9),
+        BackgroundColor3 = privacyMode and WasUI.CurrentTheme.Success or ((WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)),
+        Image = "",
+        BorderSizePixel = 0,
+        AutoButtonColor = false,
+        ZIndex = 1003,
+        Parent = privacyContainer
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = privacyBg})
+    local privacyKnob = CreateInstance("Frame", {
+        Name = "PrivacyKnob",
+        Size = UDim2.new(0, 16, 0, 16),
+        Position = privacyMode and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = 0,
+        ZIndex = 1004,
+        Parent = privacyBg
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = privacyKnob})
+    local function updatePrivacyToggle(newState)
+        privacyMode = newState
+        updatePrivacyMode()
+        if newState then
+            Tween(privacyBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+            SpringTween(privacyKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
+        else
+            local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+            Tween(privacyBg, {BackgroundColor3 = offCol}, 0.2)
+            SpringTween(privacyKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
         end
-        langBg.MouseButton1Click:Connect(function()
-            updateLangToggle(WasUI.CurrentLanguage ~= "English")
-        end)
-
-        local refreshThemeButton = CreateInstance("TextButton", {
-            Name = "RefreshThemeButton",
-            Size = UDim2.new(1, 0, 0, 32),
-            BackgroundColor3 = WasUI.CurrentTheme.Primary,
-            BackgroundTransparency = 0.3,
-            Text = "",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 12,
-            AutoButtonColor = false,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        WasUI:SetLocalizedText(refreshThemeButton, "刷新所有控件状态")
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = refreshThemeButton})
-        refreshThemeButton.MouseEnter:Connect(function()
-            Tween(refreshThemeButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
-        end)
-        refreshThemeButton.MouseLeave:Connect(function()
-            Tween(refreshThemeButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
-        end)
-        refreshThemeButton.MouseButton1Click:Connect(function()
-            WasUI:SetTheme(WasUI.CurrentThemeName)
-            if WasUI.ConfigManager then
-                local config = WasUI.ConfigManager:GetConfig("user_settings")
-                if config then config:Load() end
-            end
-            WasUI:Notify({Title = "刷新完毕", Content = "已刷新所有控件状态", Duration = 1.5})
-        end)
-
-        local groupButton = CreateInstance("TextButton", {
-            Name = "GroupButton",
-            Size = UDim2.new(1, 0, 0, 32),
-            BackgroundColor3 = WasUI.CurrentTheme.Primary,
-            BackgroundTransparency = 0.3,
-            Text = WasUI.GroupButtonText,
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 12,
-            AutoButtonColor = false,
-            ZIndex = 1002,
-            Parent = contentFrame
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = groupButton})
-        groupButton.MouseEnter:Connect(function()
-            Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
-        end)
-        groupButton.MouseLeave:Connect(function()
-            Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
-        end)
-        groupButton.MouseButton1Click:Connect(function()
-            local copied = copyToClipboard(WasUI.GroupCopyContent)
-            if copied then
-                WasUI:Notify({Title = "复制成功", Content = "已复制：" .. WasUI.GroupCopyContent, Duration = 2})
-            else
-                WasUI:Notify({Title = "复制失败", Content = "当前环境不支持复制到剪贴板", Duration = 2})
-            end
-        end)
-        
-        local shortcutHint = CreateInstance("TextLabel", {
-            Name = "ShortcutHint",
-            Size = UDim2.new(1, -20, 0, 20),
-            Position = UDim2.new(0, 10, 1, -20.4),
-            BackgroundTransparency = 1,
-            Text = "",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 11,
-            TextXAlignment = Enum.TextXAlignment.Center,
-            ZIndex = 1002,
-            Parent = settingsFrame
-        })
-        WasUI:SetLocalizedText(shortcutHint, "长按控件可创建快捷键")
-        
-        local f1Hint = CreateInstance("TextLabel", {
-            Name = "F1Hint",
-            Size = UDim2.new(1, -20, 0, 20),
-            Position = UDim2.new(0, 10, 1, -4.4),
-            BackgroundTransparency = 1,
-            Text = "",
-            TextColor3 = WasUI.CurrentTheme.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 11,
-            TextXAlignment = Enum.TextXAlignment.Center,
-            ZIndex = 1002,
-            Parent = settingsFrame
-        })
-        WasUI:SetLocalizedText(f1Hint, "按F1开关UI")
-        
         if WasUI.ConfigManager then
             local internalConfig = WasUI.ConfigManager:GetConfig("WasUI内部配置")
             if internalConfig then
-                local savedPrivacy = internalConfig:Get("PrivacyMode")
-                if savedPrivacy ~= nil then
-                    privacyMode = savedPrivacy
-                    updatePrivacyToggle(privacyMode)
-                end
+                internalConfig:Set("PrivacyMode", privacyMode)
+                internalConfig:Save()
             end
         end
-        
-        refreshCanvas()
-        Tween(settingsFrame, {BackgroundTransparency = 0.2}, 0.25)
-        local function onScreenClick(input)
-            if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-            local mousePos = input.Position
-            local framePos = settingsFrame.AbsolutePosition
-            local frameSize = settingsFrame.AbsoluteSize
-            local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
-                            mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
-            if not inPanel then
-                Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
-                task.wait(0.2)
-                if WasUI.SettingsGui then
-                    WasUI.SettingsGui:Destroy()
-                    WasUI.SettingsGui = nil
-                end
-                WasUI.SettingsPanel = nil
-            end
-        end
-        clickCatcher.InputBegan:Connect(onScreenClick)
+    end
+    privacyBg.MouseButton1Click:Connect(function()
+        updatePrivacyToggle(not privacyMode)
     end)
+    -- 雪花开关
+    local snowContainer = CreateInstance("Frame", {
+        Name = "SnowToggleContainer",
+        Size = UDim2.new(1, 0, 0, 24),
+        BackgroundTransparency = 1,
+        ZIndex = 1003,
+        Parent = contentFrame
+    })
+    local snowTitle = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(0.7, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        ZIndex = 1003,
+        Parent = snowContainer
+    })
+    WasUI:SetLocalizedText(snowTitle, "雪花飘落")
+    local snowBg = CreateInstance("ImageButton", {
+        Name = "SnowBG",
+        Size = UDim2.new(0, 36, 0, 18),
+        Position = UDim2.new(1, -40, 0.5, -9),
+        BackgroundColor3 = self.SnowEnabled and WasUI.CurrentTheme.Success or ((WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)),
+        Image = "",
+        BorderSizePixel = 0,
+        AutoButtonColor = false,
+        ZIndex = 1003,
+        Parent = snowContainer
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowBg})
+    local snowKnob = CreateInstance("Frame", {
+        Name = "SnowKnob",
+        Size = UDim2.new(0, 16, 0, 16),
+        Position = self.SnowEnabled and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = 0,
+        ZIndex = 1004,
+        Parent = snowBg
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowKnob})
+    local function updateSnowToggle(newState)
+        self.SnowEnabled = newState
+        if self.SnowContainer then
+            self.SnowContainer.Visible = newState
+        end
+        if newState then
+            Tween(snowBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+            SpringTween(snowKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
+        else
+            local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+            Tween(snowBg, {BackgroundColor3 = offCol}, 0.2)
+            SpringTween(snowKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
+        end
+    end
+    snowBg.MouseButton1Click:Connect(function()
+        updateSnowToggle(not self.SnowEnabled)
+    end)
+    -- 语言开关
+    local langContainer = CreateInstance("Frame", {
+        Name = "LanguageToggleContainer",
+        Size = UDim2.new(1, 0, 0, 24),
+        BackgroundTransparency = 1,
+        ZIndex = 1003,
+        Parent = contentFrame
+    })
+    local langTitle = CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(0.7, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        ZIndex = 1003,
+        Parent = langContainer
+    })
+    WasUI:SetLocalizedText(langTitle, "English")
+    local langBg = CreateInstance("ImageButton", {
+        Name = "LangBG",
+        Size = UDim2.new(0, 36, 0, 18),
+        Position = UDim2.new(1, -40, 0.5, -9),
+        BackgroundColor3 = (WasUI.CurrentLanguage == "English") and WasUI.CurrentTheme.Success or ((WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)),
+        Image = "",
+        BorderSizePixel = 0,
+        AutoButtonColor = false,
+        ZIndex = 1003,
+        Parent = langContainer
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = langBg})
+    local langKnob = CreateInstance("Frame", {
+        Name = "LangKnob",
+        Size = UDim2.new(0, 16, 0, 16),
+        Position = (WasUI.CurrentLanguage == "English") and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = 0,
+        ZIndex = 1004,
+        Parent = langBg
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = langKnob})
+    local function updateLangToggle(state)
+        if state then
+            Tween(langBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+            SpringTween(langKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
+            WasUI:SetLanguage("English")
+        else
+            local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+            Tween(langBg, {BackgroundColor3 = offCol}, 0.2)
+            SpringTween(langKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
+            WasUI:SetLanguage("中文")
+        end
+    end
+    langBg.MouseButton1Click:Connect(function()
+        updateLangToggle(WasUI.CurrentLanguage ~= "English")
+    end)
+    -- 刷新按钮
+    local refreshThemeButton = CreateInstance("TextButton", {
+        Name = "RefreshThemeButton",
+        Size = UDim2.new(1, 0, 0, 28),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.3,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 12,
+        AutoButtonColor = false,
+        ZIndex = 1002,
+        Parent = contentFrame
+    })
+    WasUI:SetLocalizedText(refreshThemeButton, "刷新所有控件状态")
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = refreshThemeButton})
+    refreshThemeButton.MouseEnter:Connect(function()
+        Tween(refreshThemeButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
+    end)
+    refreshThemeButton.MouseLeave:Connect(function()
+        Tween(refreshThemeButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
+    end)
+    refreshThemeButton.MouseButton1Click:Connect(function()
+        WasUI:SetTheme(WasUI.CurrentThemeName)
+        if WasUI.ConfigManager then
+            local config = WasUI.ConfigManager:GetConfig("user_settings")
+            if config then config:Load() end
+        end
+        WasUI:Notify({Title = "刷新完毕", Content = "已刷新所有控件状态", Duration = 1.5})
+    end)
+    -- 群组按钮
+    local groupButton = CreateInstance("TextButton", {
+        Name = "GroupButton",
+        Size = UDim2.new(1, 0, 0, 28),
+        BackgroundColor3 = WasUI.CurrentTheme.Primary,
+        BackgroundTransparency = 0.3,
+        Text = WasUI.GroupButtonText,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 12,
+        AutoButtonColor = false,
+        ZIndex = 1002,
+        Parent = contentFrame
+    })
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = groupButton})
+    groupButton.MouseEnter:Connect(function()
+        Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
+    end)
+    groupButton.MouseLeave:Connect(function()
+        Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Primary}, 0.2)
+    end)
+    groupButton.MouseButton1Click:Connect(function()
+        local copied = copyToClipboard(WasUI.GroupCopyContent)
+        if copied then
+            WasUI:Notify({Title = "复制成功", Content = "已复制：" .. WasUI.GroupCopyContent, Duration = 2})
+        else
+            WasUI:Notify({Title = "复制失败", Content = "当前环境不支持复制到剪贴板", Duration = 2})
+        end
+    end)
+    local shortcutHint = CreateInstance("TextLabel", {
+        Name = "ShortcutHint",
+        Size = UDim2.new(1, -20, 0, 18),
+        Position = UDim2.new(0, 10, 1, -18),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        ZIndex = 1002,
+        Parent = settingsFrame
+    })
+    WasUI:SetLocalizedText(shortcutHint, "长按控件可创建快捷键")
+    local f1Hint = CreateInstance("TextLabel", {
+        Name = "F1Hint",
+        Size = UDim2.new(1, -20, 0, 18),
+        Position = UDim2.new(0, 10, 1, -2),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        ZIndex = 1002,
+        Parent = settingsFrame
+    })
+    WasUI:SetLocalizedText(f1Hint, "按F1开关UI")
+    if WasUI.ConfigManager then
+        local internalConfig = WasUI.ConfigManager:GetConfig("WasUI内部配置")
+        if internalConfig then
+            local savedPrivacy = internalConfig:Get("PrivacyMode")
+            if savedPrivacy ~= nil then
+                privacyMode = savedPrivacy
+                updatePrivacyToggle(privacyMode)
+            end
+        end
+    end
+    refreshCanvas()
+    Tween(settingsFrame, {BackgroundTransparency = 0.2}, 0.25)
+    local function onScreenClick(input)
+        if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+        local mousePos = input.Position
+        local framePos = settingsFrame.AbsolutePosition
+        local frameSize = settingsFrame.AbsoluteSize
+        local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
+                        mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
+        if not inPanel then
+            Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+            task.wait(0.2)
+            if WasUI.SettingsGui then
+                WasUI.SettingsGui:Destroy()
+                WasUI.SettingsGui = nil
+            end
+            WasUI.SettingsPanel = nil
+        end
+    end
+    clickCatcher.InputBegan:Connect(onScreenClick)
+end)
+
     self.Username = CreateInstance("TextLabel", {
         Name = "Username",
         Size = UDim2.new(0.6, 0, 0, 18),
