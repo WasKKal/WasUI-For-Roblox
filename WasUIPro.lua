@@ -2681,16 +2681,6 @@ function WasUI:ShowPopup(options, callback)
         ZIndex = 1002
     })
 
-    local chevronIcon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text, true)
-    if chevronIcon then
-        chevronIcon.Name = "ChevronDown"
-        chevronIcon.Parent = titleContainer
-        chevronIcon.LayoutOrder = 3
-        chevronIcon.ZIndex = 1002
-        chevronIcon:SetAttribute("InternalIcon", true)
-        chevronIcon:SetAttribute("IgnoreThemeChange", true)
-    end
-
     if titleTag then
         local tagContainer = CreateInstance("Frame", {
             Name = "TagContainer",
@@ -2700,7 +2690,7 @@ function WasUI:ShowPopup(options, callback)
             BorderSizePixel = 0,
             Parent = titleContainer,
             ZIndex = 1003,
-            LayoutOrder = 4
+            LayoutOrder = 3
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tagContainer})
         local tagLabel = CreateInstance("TextLabel", {
