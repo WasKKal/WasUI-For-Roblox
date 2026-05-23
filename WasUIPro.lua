@@ -1403,16 +1403,18 @@ function Category:New(name, parent, title, iconName)
         Parent = parent,
         ZIndex = 2
     })
-    local leftIconFrame = CreateInstance("Frame", {
-        Name = "LeftIconFrame",
-        Size = UDim2.new(0, 24, 1, 0),
-        Position = UDim2.new(0, 4, 0, 0),
-        BackgroundTransparency = 1,
-        Parent = self.Header,
-        ZIndex = 2
-    })
+
     local leftIcon = nil
+    local leftIconWidth = 0
     if iconName and iconName ~= "" then
+        local leftIconFrame = CreateInstance("Frame", {
+            Name = "LeftIconFrame",
+            Size = UDim2.new(0, 24, 1, 0),
+            Position = UDim2.new(0, 4, 0, 0),
+            BackgroundTransparency = 1,
+            Parent = self.Header,
+            ZIndex = 2
+        })
         leftIcon = WasUI:CreateIcon(iconName, UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
         if leftIcon then
             leftIcon.Name = "LeftIcon"
@@ -1420,13 +1422,15 @@ function Category:New(name, parent, title, iconName)
             leftIcon.Position = UDim2.new(0, 0, 0.5, -9)
             leftIcon.ZIndex = 3
         end
-    else
-        leftIconFrame.Visible = false
+        leftIconWidth = 28 -- 24宽度 + 4间距
     end
+
+    local titlePosX = leftIconWidth
+    local titleSizeX = -(26 + leftIconWidth) -- 右侧固定占26px
     self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(1, -60, 1, 0),
-        Position = UDim2.new(0, 32, 0, 0),
+        Size = UDim2.new(1, titleSizeX, 1, 0),
+        Position = UDim2.new(0, titlePosX, 0, 0),
         BackgroundTransparency = 1,
         Text = "",
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -1439,6 +1443,7 @@ function Category:New(name, parent, title, iconName)
     })
     WasUI:SetLocalizedText(self.TitleLabel, title)
     table.insert(WasUI.Objects, {Object = self.TitleLabel, Type = "CategoryTitle"})
+
     local rightIcon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text, true)
     if rightIcon then
         rightIcon.Name = "CategoryIcon"
@@ -1449,6 +1454,7 @@ function Category:New(name, parent, title, iconName)
         rightIcon:SetAttribute("InternalIcon", true)
         self.Icon = rightIcon
     end
+
     local line = CreateInstance("Frame", {
         Name = "Line",
         Size = UDim2.new(1, 0, 0, 1),
@@ -1459,6 +1465,7 @@ function Category:New(name, parent, title, iconName)
         ZIndex = 2,
         Parent = self.Header
     })
+
     self.Content = CreateInstance("Frame", {
         Name = "CategoryContent",
         Size = UDim2.new(1, 0, 0, 0),
@@ -1469,10 +1476,12 @@ function Category:New(name, parent, title, iconName)
     })
     local contentLayout = CreateInstance("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4), Parent = self.Content})
     local contentPadding = CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4), Parent = self.Content})
+
     local function getContentHeight()
         local h = contentLayout.AbsoluteContentSize.Y
         return h > 0 and h or 0
     end
+
     local function updateParentScroller()
         local parentScroller = self.Content.Parent
         while parentScroller and not parentScroller:IsA("ScrollingFrame") do parentScroller = parentScroller.Parent end
@@ -1481,6 +1490,7 @@ function Category:New(name, parent, title, iconName)
             if layout then parentScroller.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8) end
         end
     end
+
     local function updateLayout(animate)
         local targetHeight = self.Collapsed and 0 or getContentHeight()
         if animate then
@@ -1493,10 +1503,12 @@ function Category:New(name, parent, title, iconName)
             updateParentScroller()
         end
     end
+
     local function toggleCollapsed()
         self.Collapsed = not self.Collapsed
         updateLayout(true)
     end
+
     local toggleButton = CreateInstance("TextButton", {
         Name = "ToggleButton",
         Size = UDim2.new(1, 0, 1, 0),
@@ -1507,6 +1519,7 @@ function Category:New(name, parent, title, iconName)
         AutoButtonColor = false
     })
     toggleButton.MouseButton1Click:Connect(toggleCollapsed)
+
     contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         if not self.Collapsed then
             local newHeight = getContentHeight()
@@ -1516,13 +1529,16 @@ function Category:New(name, parent, title, iconName)
             end
         end
     end)
+
     updateLayout(false)
+
     local panel = parent
     while panel do
         if type(panel) == "table" and panel.GetActiveTab then break end
         if panel.Parent then panel = panel.Parent else panel = nil; break end
     end
     if panel and panel.SetCurrentCategory then panel:SetCurrentCategory(title) end
+
     self.Instance = self.Content
     table.insert(WasUI.Objects, {Object = self.Header, Type = "Category"})
     table.insert(WasUI.Objects, {Object = self.Content, Type = "CategoryContent"})
