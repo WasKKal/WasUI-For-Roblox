@@ -49,6 +49,7 @@ WasUI.DefaultRainbowMode = "整体"
 WasUI.CurrentThemeName = WasUI.DefaultTheme
 WasUI.CurrentLanguage = "中文"
 WasUI.LanguageTable = nil
+WasUI.PrivacyModeEnabled = false
 
 function WasUI:LoadLanguageTable(tbl)
     self.LanguageTable = tbl
@@ -117,7 +118,7 @@ function WasUI:RefreshAllTexts()
                     if original then
                         child.Text = self:Translate(original)
                     end
-                elseif child.Name == "SnowToggleContainer" or child.Name == "LanguageToggleContainer" then
+                elseif child.Name == "SnowToggleContainer" or child.Name == "LanguageToggleContainer" or child.Name == "PrivacyToggleContainer" then
                     local title = child:FindFirstChild("Title")
                     if title then
                         local original = title:GetAttribute("OriginalText")
@@ -652,18 +653,20 @@ function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
     return imageLabel
 end
 
+-- 彩虹文字动画优化
 local function RefreshRainbowLayout()
     local startY = 10
     local spacing = 5
     for i, featureName in ipairs(WasUI.RainbowOrder) do
         local data = WasUI.ActiveRainbowTexts[featureName]
         if data and data.Label then
-            data.Label.Position = UDim2.new(1, -190, 0, startY)
-            data.Label.Size = UDim2.new(0, 180, 0, 20)
+            local targetY = startY
+            Tween(data.Label, {Position = UDim2.new(1, -190, 0, targetY)}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
             startY = startY + 20 + spacing
         end
     end
 end
+
 local function CreateRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
@@ -707,8 +710,24 @@ end
 local function DestroyRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     local data = WasUI.ActiveRainbowTexts[featureName]
-    if data then
-        if data.ScreenGui then data.ScreenGui:Destroy() end
+    if data and data.Label then
+        -- 向右退场动画
+        local startPos = data.Label.Position
+        local exitPos = UDim2.new(1, 10, 0, startPos.Y.Offset)
+        Tween(data.Label, {Position = exitPos, TextTransparency = 1}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+        task.delay(0.25, function()
+            if data.ScreenGui then data.ScreenGui:Destroy() end
+            WasUI.ActiveRainbowTexts[featureName] = nil
+            for i, name in ipairs(WasUI.RainbowOrder) do
+                if name == featureName then
+                    table.remove(WasUI.RainbowOrder, i)
+                    break
+                end
+            end
+            RefreshRainbowLayout()
+        end)
+    else
+        if data and data.ScreenGui then data.ScreenGui:Destroy() end
         WasUI.ActiveRainbowTexts[featureName] = nil
         for i, name in ipairs(WasUI.RainbowOrder) do
             if name == featureName then
@@ -1373,10 +1392,10 @@ function Label:New(name, parent, text, textColor)
     return self
 end
 
+-- 修改Category: 添加右侧图标，旋转180度
 local Category = setmetatable({}, {__index = Control})
 Category.__index = Category
 function Category:New(name, parent, title, iconName)
-    local actualIcon = iconName or "chevron-down"
     local self = Control:New(name, parent)
     self.Collapsed = false
     self.ContentHeight = 0
@@ -1387,23 +1406,11 @@ function Category:New(name, parent, title, iconName)
         Parent = parent,
         ZIndex = 2
     })
-    local titleContainer = CreateInstance("Frame", {
-        Name = "TitleContainer",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Parent = self.Header
-    })
-    local titleLayout = CreateInstance("UIListLayout", {
-        FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Left,
-        VerticalAlignment = Enum.VerticalAlignment.Center,
-        Padding = UDim.new(0, 6),
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = titleContainer
-    })
-    local titleLabel = CreateInstance("TextLabel", {
+    -- 标题容器改为相对布局：标题左对齐，图标右对齐
+    self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(0, 0, 1, 0),
+        Size = UDim2.new(1, -30, 1, 0),
+        Position = UDim2.new(0, 4, 0, 0),
         BackgroundTransparency = 1,
         Text = "",
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -1411,18 +1418,18 @@ function Category:New(name, parent, title, iconName)
         TextSize = 16,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
-        AutomaticSize = Enum.AutomaticSize.X,
-        LayoutOrder = 2,
         ZIndex = 2,
-        Parent = titleContainer
+        Parent = self.Header
     })
-    WasUI:SetLocalizedText(titleLabel, title)
-    table.insert(WasUI.Objects, {Object = titleLabel, Type = "CategoryTitle"})
+    WasUI:SetLocalizedText(self.TitleLabel, title)
+    table.insert(WasUI.Objects, {Object = self.TitleLabel, Type = "CategoryTitle"})
+    -- 右侧图标
+    local actualIcon = iconName or "chevron-down"
     local icon = WasUI:CreateIcon(actualIcon, UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
     if icon then
         icon.Name = "CategoryIcon"
-        icon.Parent = titleContainer
-        icon.LayoutOrder = 1
+        icon.Parent = self.Header
+        icon.Position = UDim2.new(1, -24, 0.5, -9)
         icon.ZIndex = 3
         icon.Rotation = 0
         self.Icon = icon
@@ -1463,11 +1470,11 @@ function Category:New(name, parent, title, iconName)
         local targetHeight = self.Collapsed and 0 or getContentHeight()
         if animate then
             local tween = Tween(self.Content, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.25)
-            if self.Icon then Tween(self.Icon, {Rotation = self.Collapsed and -90 or 0}, 0.25) end
+            if self.Icon then Tween(self.Icon, {Rotation = self.Collapsed and 180 or 0}, 0.25) end
             tween.Completed:Connect(function() updateParentScroller() end)
         else
             self.Content.Size = UDim2.new(1, 0, 0, targetHeight)
-            if self.Icon then self.Icon.Rotation = self.Collapsed and -90 or 0 end
+            if self.Icon then self.Icon.Rotation = self.Collapsed and 180 or 0 end
             updateParentScroller()
         end
     end
@@ -2638,7 +2645,7 @@ function WasUI:ShowPopup(options, callback)
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
         Size = UDim2.new(1, (titleIconImage and -24 or 0), 0, 24),
-        Position = UDim2.new(titleIconImage and 0.06 or 0, 0, 0.5, -12),
+        Position = UDim2.new(titleIconImage and 0 or 0, titleIconImage and 2 or 0, 0.5, -12), -- 图标右侧标题向右移动2px
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -3072,6 +3079,7 @@ function WasUI:ShowColorPicker(options, callback)
     return dialogGui
 end
 
+-- 修复ColorPickerButton：确保单指触摸打开
 function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, configKey)
     defaultColor = defaultColor or Color3.fromRGB(255, 255, 255)
     local buttonSize = UDim2.new(1, 0, 0, 28)
@@ -3124,7 +3132,7 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
         colorPreview.BackgroundColor3 = color
         colorPreview.BackgroundTransparency = 1 - currentAlpha
     end
-    button.MouseButton1Click:Connect(function()
+    local function openColorPicker()
         WasUI:ShowColorPicker({
             title = title or "选择颜色",
             defaultColor = currentColor,
@@ -3138,6 +3146,13 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
                 if config then config:Set(configKey, {color = color, alpha = alpha}); config:Save() end
             end
         end)
+    end
+    button.MouseButton1Click:Connect(openColorPicker)
+    -- 添加触摸支持，确保单指能打开
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            openColorPicker()
+        end
     end)
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
@@ -3357,9 +3372,9 @@ local function AnimateThemeChange(oldTheme, newTheme)
         elseif obj.Type == "DropdownOption" then
             Tween(instance, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
         elseif obj.Type == "Category" then
-            local titleLabel = instance:FindFirstChild("TitleContainer") and instance.TitleContainer:FindFirstChild("Title")
+            local titleLabel = instance:FindFirstChild("Title")
             local line = instance:FindFirstChild("Line")
-            local icon = instance:FindFirstChild("TitleContainer") and instance.TitleContainer:FindFirstChild("CategoryIcon")
+            local icon = instance:FindFirstChild("CategoryIcon")
             if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
             if line then Tween(line, {BackgroundColor3 = newTheme.Primary}, duration) end
             if icon and not icon:GetAttribute("IgnoreThemeChange") then
@@ -3436,13 +3451,12 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 local icon = iconFrame:FindFirstChildOfClass("ImageLabel")
                 if icon and not icon:GetAttribute("IgnoreThemeChange") then
                     Tween(icon, {ImageColor3 = newTheme.Text}, duration)
-                    elseif obj.Type == "TabButton" then
-                        local underline = instance:FindFirstChild("Underline")
-                        if underline and underline:IsA("Frame") then
-                            Tween(underline, {BackgroundColor3 = newTheme.Accent}, duration)
-                        end
-                    end
                 end
+            end
+        elseif obj.Type == "TabButton" then
+            local underline = instance:FindFirstChild("Underline")
+            if underline and underline:IsA("Frame") then
+                Tween(underline, {BackgroundColor3 = newTheme.Accent}, duration)
             end
         end
     end
@@ -3469,6 +3483,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
             if contentLabel then Tween(contentLabel, {TextColor3 = newTheme.Text}, duration) end
         end
     end
+end
 
 function WasUI:SetTheme(themeName)
     if self.Themes[themeName] then
@@ -3541,6 +3556,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
 
     AddRipple(self.Instance)
 
+    -- 彩虹边框优化：减少发散距离，平滑颜色过渡
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
@@ -3553,14 +3569,21 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     local borderFlowCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.BorderFlow})
     local flowGradient = Instance.new("UIGradient")
     flowGradient.Rotation = 0
+    -- 增加更多颜色关键帧使过渡更平滑
     flowGradient.Color = ColorSequence.new{
         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.08, Color3.fromRGB(255, 80, 0)),
         ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
-        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
-        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 255, 255)),
-        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(0, 0, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
+        ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(128, 255, 0)),
+        ColorSequenceKeypoint.new(0.41, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 128)),
+        ColorSequenceKeypoint.new(0.58, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 128, 255)),
+        ColorSequenceKeypoint.new(0.75, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(128, 0, 255)),
+        ColorSequenceKeypoint.new(0.91, Color3.fromRGB(255, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 128))
     }
     flowGradient.Parent = self.BorderFlow
     self.BorderStroke = CreateInstance("UIStroke", {
@@ -3569,33 +3592,34 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Transparency = 0,
         Parent = self.BorderFlow
     })
+    -- 减少发散距离：减小后续Stroke厚度
     self.GlowStroke1 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 4,
+        Thickness = 2,
         Transparency = 0.5,
         Parent = self.BorderFlow
     })
     self.GlowStroke2 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 8,
+        Thickness = 4,
         Transparency = 0.7,
         Parent = self.BorderFlow
     })
     self.GlowStroke3 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 14,
+        Thickness = 6,
         Transparency = 0.84,
         Parent = self.BorderFlow
     })
     self.GlowStroke4 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 22,
+        Thickness = 10,
         Transparency = 0.93,
         Parent = self.BorderFlow
     })
     self.GlowStroke5 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 32,
+        Thickness = 15,
         Transparency = 0.97,
         Parent = self.BorderFlow
     })
@@ -3665,7 +3689,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 self.GlowStroke5.Transparency = 0.97
                 flowGradient.Enabled = false
             else
-                self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
+                self.FlowRotation = (self.FlowRotation + deltaTime * 60) % 360  -- 加快流动速度减少阶段感
                 flowGradient.Rotation = self.FlowRotation
                 flowGradient.Enabled = true
                 self.BorderStroke.Transparency = 1
@@ -4646,6 +4670,30 @@ end
     self.Avatar.MouseButton1Up:Connect(function()
         SpringTween(avatarScale, {Scale = 1}, 0.25)
     end)
+    
+    -- 隐私模式相关变量
+    local privacyMode = false
+    local originalUsername = player.Name
+    local originalAvatarImage = ""
+    
+    local function updatePrivacyMode()
+        if privacyMode then
+            self.Avatar.Image = "rbxassetid://0"  -- 空头像或默认图标
+            self.Username.Text = "隐私保护已开启"
+            self.ExecutorLabel.Text = "隐私保护已开启"
+        else
+            loadAvatar()
+            self.Username.Text = "当前用户: " .. originalUsername
+            local executorName = "Unknown Executor"
+            if typeof(getexecutorname) == "function" then
+                executorName = getexecutorname()
+            elseif typeof(getExecutor) == "function" then
+                executorName = getExecutor()
+            end
+            self.ExecutorLabel.Text = "执行器: " .. executorName
+        end
+    end
+    
     self.Avatar.MouseButton1Click:Connect(function()
         if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
             WasUI.SettingsGui:Destroy()
@@ -4653,6 +4701,7 @@ end
             WasUI.SettingsPanel = nil
             return
         end
+        -- 创建设置窗口（代码较长，省略，但包含隐私开关）
         local settingsGui = Instance.new("ScreenGui")
         settingsGui.Name = "WasUI_Settings"
         settingsGui.ResetOnSpawn = false
@@ -4669,7 +4718,7 @@ end
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 300, 0, 350),
+            Size = UDim2.new(0, 300, 0, 380), -- 增加高度容纳隐私开关
             Position = UDim2.new(0.5, -150, 0.5, -200),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
@@ -4838,6 +4887,75 @@ end
             self:SetRainbowMode(newMode)
             rainbowModeButton.Text = newMode
             WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
+        end)
+
+        -- 隐私模式开关
+        local privacyContainer = CreateInstance("Frame", {
+            Name = "PrivacyToggleContainer",
+            Size = UDim2.new(1, 0, 0, 28),
+            BackgroundTransparency = 1,
+            ZIndex = 1003,
+            Parent = contentFrame
+        })
+        local privacyTitle = CreateInstance("TextLabel", {
+            Name = "Title",
+            Size = UDim2.new(0.7, 0, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            ZIndex = 1003,
+            Parent = privacyContainer
+        })
+        WasUI:SetLocalizedText(privacyTitle, "隐私模式")
+        local privacyBg = CreateInstance("ImageButton", {
+            Name = "PrivacyBG",
+            Size = UDim2.new(0, 36, 0, 18),
+            Position = UDim2.new(1, -40, 0.5, -9),
+            BackgroundColor3 = privacyMode and WasUI.CurrentTheme.Success or ((WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)),
+            Image = "",
+            BorderSizePixel = 0,
+            AutoButtonColor = false,
+            ZIndex = 1003,
+            Parent = privacyContainer
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = privacyBg})
+        local privacyKnob = CreateInstance("Frame", {
+            Name = "PrivacyKnob",
+            Size = UDim2.new(0, 16, 0, 16),
+            Position = privacyMode and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1),
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+            BorderSizePixel = 0,
+            ZIndex = 1004,
+            Parent = privacyBg
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = privacyKnob})
+        local function updatePrivacyToggle(newState)
+            privacyMode = newState
+            updatePrivacyMode()
+            if newState then
+                Tween(privacyBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+                SpringTween(privacyKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
+            else
+                local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+                Tween(privacyBg, {BackgroundColor3 = offCol}, 0.2)
+                SpringTween(privacyKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
+            end
+            -- 保存配置
+            if WasUI.ConfigManager then
+                local internalConfig = WasUI.ConfigManager:GetConfig("WasUI内部配置")
+                if internalConfig then
+                    internalConfig:Set("PrivacyMode", privacyMode)
+                    internalConfig:Save()
+                end
+            end
+        end
+        privacyBg.MouseButton1Click:Connect(function()
+            updatePrivacyToggle(not privacyMode)
         end)
 
         local snowContainer = CreateInstance("Frame", {
@@ -5050,6 +5168,18 @@ end
             Parent = settingsFrame
         })
         WasUI:SetLocalizedText(f1Hint, "按F1开关UI")
+        
+        -- 加载隐私模式配置
+        if WasUI.ConfigManager then
+            local internalConfig = WasUI.ConfigManager:GetConfig("WasUI内部配置")
+            if internalConfig then
+                local savedPrivacy = internalConfig:Get("PrivacyMode")
+                if savedPrivacy ~= nil then
+                    privacyMode = savedPrivacy
+                    updatePrivacyToggle(privacyMode)
+                end
+            end
+        end
         
         refreshCanvas()
         Tween(settingsFrame, {BackgroundTransparency = 0.2}, 0.25)
@@ -5349,6 +5479,11 @@ end
         return tabFrame
     end
     function self:SetActiveTab(tabName)
+        -- 切换选项卡时关闭所有打开的下拉菜单
+        for _, dropdown in ipairs(WasUI.OpenDropdowns) do
+            if dropdown.Close then dropdown:Close(true) end
+        end
+        WasUI.OpenDropdowns = {}
         if self.ActiveTab and self.Tabs[self.ActiveTab] then
             local old = self.Tabs[self.ActiveTab]
             if old.Underline then
