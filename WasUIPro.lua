@@ -3622,28 +3622,29 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     local self = setmetatable({}, Panel)
     self.SnowEnabled = snowEnabled or false
     self.BackgroundImage = nil
-    function self:SetBackground(url)
-        if self.BackgroundImage then
-            self.BackgroundImage:Destroy()
+        function self:SetBackground(url)
+            if self.BackgroundImage then
+                self.BackgroundImage:Destroy()
+            end
+            if url and url ~= "" then
+                self.BackgroundImage = CreateInstance("ImageLabel", {
+                    Name = "Background",
+                    Size = UDim2.new(1, 0, 1, 0),
+                    Position = UDim2.new(0, 0, 0, 0),
+                    BackgroundTransparency = 1,
+                    Image = url,
+                    ImageTransparency = 0,
+                    ScaleType = Enum.ScaleType.Crop,
+                    ZIndex = 0,
+                    Parent = self.Instance
+                })
+                pcall(function()
+                    v9:PreloadAsync({url})
+                end)
+            else
+                self.BackgroundImage = nil
+            end
         end
-        if url and url ~= "" then
-            self.BackgroundImage = CreateInstance("ImageLabel", {
-                Name = "Background",
-                Size = UDim2.new(1, 0, 1, 0),
-                Position = UDim2.new(0, 0, 0, 0),
-                BackgroundTransparency = 1,
-                Image = "",
-                ImageTransparency = 0.2,
-                ScaleType = Enum.ScaleType.Crop,
-                ZIndex = 0,
-                Parent = self.Instance
-            })
-            v9:PreloadAsync({url})
-            self.BackgroundImage.Image = url
-        else
-            self.BackgroundImage = nil
-        end
-    end
     if not position then
         local viewport = v7.CurrentCamera and v7.CurrentCamera.ViewportSize or v8:GetScreenSize()
         local width = size.X.Offset
