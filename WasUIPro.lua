@@ -475,7 +475,6 @@ function WasUI:CreateFolder(folderName)
     if not isfolder(path) then makefolder(path) end
     WasUI.ConfigFolderCreated = true
     WasUI.ConfigFolderName = folderName
-
     if not WasUI.InternalConfigManager then
         local internalPath = "WasUI_Configs/WasUI_Internal"
         if not isfolder(internalPath) then makefolder(internalPath) end
@@ -483,28 +482,41 @@ function WasUI:CreateFolder(folderName)
         local function getInternalFilePath(configName)
             return internalPath .. "/" .. configName .. ".json"
         end
-        local function safeCopy(t, visited)
-            visited = visited or {}
-            if visited[t] then return nil end
-            visited[t] = true
-            local new = {}
-            for k, v in pairs(t) do
-                local k_copy = (type(k) == "table") and safeCopy(k, visited) or k
-                if type(v) == "table" then
-                    new[k_copy] = safeCopy(v, visited)
-                elseif type(v) == "number" or type(v) == "string" or type(v) == "boolean" then
-                    new[k_copy] = v
-                elseif type(v) == "Color3" then
-                    new[k_copy] = {R = v.R, G = v.G, B = v.B}
-                elseif type(v) == "Vector3" then
-                    new[k_copy] = {X = v.X, Y = v.Y, Z = v.Z}
-                elseif type(v) == "UDim2" then
-                    new[k_copy] = {X = {Scale = v.X.Scale, Offset = v.X.Offset}, Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}}
-                else
-                    new[k_copy] = tostring(v)
+        local function encodeValue(v, visited)
+            if visited == nil then visited = {} end
+            local t = type(v)
+            if t == "nil" then
+                return nil
+            elseif t == "number" or t == "string" or t == "boolean" then
+                return v
+            elseif t == "table" then
+                if visited[v] then return nil end
+                visited[v] = true
+                local out = {}
+                for k, val in pairs(v) do
+                    local key = encodeValue(k, visited)
+                    if key ~= nil then
+                        out[key] = encodeValue(val, visited)
+                    end
                 end
+                visited[v] = nil
+                return out
+            elseif t == "userdata" then
+                if pcall(function() return v.X end) then
+                    return {X = v.X, Y = v.Y, Z = v.Z}
+                elseif pcall(function() return v.R end) then
+                    return {R = v.R, G = v.G, B = v.B}
+                elseif pcall(function() return v.Scale end) then
+                    return {Scale = v.Scale, Offset = v.Offset}
+                elseif pcall(function() return v.X.Scale end) then
+                    return {X = {Scale = v.X.Scale, Offset = v.X.Offset}, Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}} -- UDim2
+                else
+                    warn("[WasUI] 无法编码的userdata:", v)
+                    return nil
+                end
+            else
+                return nil
             end
-            return new
         end
 
         function internalManager:GetConfig(configName)
@@ -522,27 +534,21 @@ function WasUI:CreateFolder(folderName)
             end
 
             function config:Save()
-                local dataToSave = safeCopy(self.Data)
-                local success, json = pcall(v6.JSONEncode, dataToSave)
+                local toEncode = encodeValue(self.Data)
+                if toEncode == nil then
+                    warn("[WasUI] 配置数据完全无法编码，跳过保存:", configName)
+                    return false
+                end
+                local success, json = pcall(v6.JSONEncode, toEncode)
                 if not success then
-                    warn("[WasUI] JSON编码失败，尝试移除无法序列化的字段:", json)
-                    local cleaned = {}
-                    for k, v in pairs(self.Data) do
-                        if type(v) ~= "userdata" and type(v) ~= "function" and type(v) ~= "thread" then
-                            cleaned[k] = v
-                        end
-                    end
-                    dataToSave = safeCopy(cleaned)
-                    success, json = pcall(v6.JSONEncode, dataToSave)
-                    if not success then
-                        warn("[WasUI] 仍然无法编码配置，跳过保存:", json)
-                        return false
-                    end
+                    warn("[WasUI] JSON编码失败:", json)
+                    return false
                 end
                 writefile(self.Path, json)
                 return true
             end
 
+            -- 其余方法不变
             function config:Load()
                 if not isfile(self.Path) then return false end
                 local success, data = pcall(function()
@@ -586,32 +592,47 @@ function WasUI:CreateFolder(folderName)
         WasUI.InternalConfigManager = internalManager
     end
 
+    -- 用户配置管理器
     WasUI.ConfigManager = {}
     local function getFilePath(configName)
         return path .. "/" .. configName .. ".json"
     end
-    local function safeCopy(t, visited)
-        visited = visited or {}
-        if visited[t] then return nil end
-        visited[t] = true
-        local new = {}
-        for k, v in pairs(t) do
-            local k_copy = (type(k) == "table") and safeCopy(k, visited) or k
-            if type(v) == "table" then
-                new[k_copy] = safeCopy(v, visited)
-            elseif type(v) == "number" or type(v) == "string" or type(v) == "boolean" then
-                new[k_copy] = v
-            elseif type(v) == "Color3" then
-                new[k_copy] = {R = v.R, G = v.G, B = v.B}
-            elseif type(v) == "Vector3" then
-                new[k_copy] = {X = v.X, Y = v.Y, Z = v.Z}
-            elseif type(v) == "UDim2" then
-                new[k_copy] = {X = {Scale = v.X.Scale, Offset = v.X.Offset}, Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}}
-            else
-                new[k_copy] = tostring(v)
+
+    -- 复用相同的编码函数
+    local function encodeValue(v, visited)
+        if visited == nil then visited = {} end
+        local t = type(v)
+        if t == "nil" then
+            return nil
+        elseif t == "number" or t == "string" or t == "boolean" then
+            return v
+        elseif t == "table" then
+            if visited[v] then return nil end
+            visited[v] = true
+            local out = {}
+            for k, val in pairs(v) do
+                local key = encodeValue(k, visited)
+                if key ~= nil then
+                    out[key] = encodeValue(val, visited)
+                end
             end
+            visited[v] = nil
+            return out
+        elseif t == "userdata" then
+            if pcall(function() return v.X end) then
+                return {X = v.X, Y = v.Y, Z = v.Z}
+            elseif pcall(function() return v.R end) then
+                return {R = v.R, G = v.G, B = v.B}
+            elseif pcall(function() return v.Scale end) then
+                return {Scale = v.Scale, Offset = v.Offset}
+            elseif pcall(function() return v.X.Scale end) then
+                return {X = {Scale = v.X.Scale, Offset = v.X.Offset}, Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}}
+            else
+                return nil
+            end
+        else
+            return nil
         end
-        return new
     end
 
     function WasUI.ConfigManager:GetConfig(configName)
@@ -631,22 +652,15 @@ function WasUI:CreateFolder(folderName)
 
         function config:Save()
             if not WasUI.ConfigFolderCreated then return false end
-            local dataToSave = safeCopy(self.Data)
-            local success, json = pcall(v6.JSONEncode, dataToSave)
+            local toEncode = encodeValue(self.Data)
+            if toEncode == nil then
+                warn("[WasUI] 配置数据无法编码，跳过保存:", configName)
+                return false
+            end
+            local success, json = pcall(v6.JSONEncode, toEncode)
             if not success then
-                warn("[WasUI] JSON编码失败，尝试移除无法序列化的字段:", json)
-                local cleaned = {}
-                for k, v in pairs(self.Data) do
-                    if type(v) ~= "userdata" and type(v) ~= "function" and type(v) ~= "thread" then
-                        cleaned[k] = v
-                    end
-                end
-                dataToSave = safeCopy(cleaned)
-                success, json = pcall(v6.JSONEncode, dataToSave)
-                if not success then
-                    warn("[WasUI] 仍然无法编码配置，跳过保存:", json)
-                    return false
-                end
+                warn("[WasUI] JSON编码失败:", json)
+                return false
             end
             writefile(self.Path, json)
             return true
