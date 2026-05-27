@@ -482,7 +482,7 @@ function WasUI:CreateFolder(folderName)
         local function getInternalFilePath(configName)
             return internalPath .. "/" .. configName .. ".json"
         end
-        local function encodeValue(v, visited)
+        local function safeEncode(v, visited)
             if visited == nil then visited = {} end
             local t = type(v)
             if t == "nil" then
@@ -494,24 +494,35 @@ function WasUI:CreateFolder(folderName)
                 visited[v] = true
                 local out = {}
                 for k, val in pairs(v) do
-                    local key = encodeValue(k, visited)
-                    if key ~= nil then
-                        out[key] = encodeValue(val, visited)
+                    if type(k) ~= "function" and k ~= "Parent" and k ~= "Instance" and k ~= "controller" then
+                        local encKey = safeEncode(k, visited)
+                        if encKey ~= nil then
+                            local encVal = safeEncode(val, visited)
+                            if encVal ~= nil then
+                                out[encKey] = encVal
+                            end
+                        end
                     end
                 end
                 visited[v] = nil
                 return out
             elseif t == "userdata" then
                 if pcall(function() return v.X end) then
-                    return {X = v.X, Y = v.Y, Z = v.Z}
+                    if pcall(function() return v.Z end) then
+                        return {X = v.X, Y = v.Y, Z = v.Z} -- Vector3
+                    else
+                        return {X = v.X, Y = v.Y} -- Vector2
+                    end
                 elseif pcall(function() return v.R end) then
-                    return {R = v.R, G = v.G, B = v.B}
+                    return {R = v.R, G = v.G, B = v.B} -- Color3
                 elseif pcall(function() return v.Scale end) then
-                    return {Scale = v.Scale, Offset = v.Offset}
+                    return {Scale = v.Scale, Offset = v.Offset} -- UDim
                 elseif pcall(function() return v.X.Scale end) then
-                    return {X = {Scale = v.X.Scale, Offset = v.X.Offset}, Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}} -- UDim2
+                    return {
+                        X = {Scale = v.X.Scale, Offset = v.X.Offset},
+                        Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}
+                    } -- UDim2
                 else
-                    warn("[WasUI] 无法编码的userdata:", v)
                     return nil
                 end
             else
@@ -529,14 +540,19 @@ function WasUI:CreateFolder(folderName)
             }
 
             function config:Set(key, value)
+                local test = safeEncode({ [key] = value })
+                if test == nil or test[key] == nil then
+                    warn("[WasUI] 拒绝保存不可编码的值，key:", key)
+                    return false
+                end
                 self.Data[key] = value
                 return true
             end
 
             function config:Save()
-                local toEncode = encodeValue(self.Data)
+                local toEncode = safeEncode(self.Data)
                 if toEncode == nil then
-                    warn("[WasUI] 配置数据完全无法编码，跳过保存:", configName)
+                    warn("[WasUI] 配置数据无法编码，跳过保存:", configName)
                     return false
                 end
                 local success, json = pcall(v6.JSONEncode, toEncode)
@@ -548,7 +564,6 @@ function WasUI:CreateFolder(folderName)
                 return true
             end
 
-            -- 其余方法不变
             function config:Load()
                 if not isfile(self.Path) then return false end
                 local success, data = pcall(function()
@@ -592,14 +607,11 @@ function WasUI:CreateFolder(folderName)
         WasUI.InternalConfigManager = internalManager
     end
 
-    -- 用户配置管理器
     WasUI.ConfigManager = {}
     local function getFilePath(configName)
         return path .. "/" .. configName .. ".json"
     end
-
-    -- 复用相同的编码函数
-    local function encodeValue(v, visited)
+    local function safeEncode(v, visited)
         if visited == nil then visited = {} end
         local t = type(v)
         if t == "nil" then
@@ -611,22 +623,34 @@ function WasUI:CreateFolder(folderName)
             visited[v] = true
             local out = {}
             for k, val in pairs(v) do
-                local key = encodeValue(k, visited)
-                if key ~= nil then
-                    out[key] = encodeValue(val, visited)
+                if type(k) ~= "function" and k ~= "Parent" and k ~= "Instance" and k ~= "controller" then
+                    local encKey = safeEncode(k, visited)
+                    if encKey ~= nil then
+                        local encVal = safeEncode(val, visited)
+                        if encVal ~= nil then
+                            out[encKey] = encVal
+                        end
+                    end
                 end
             end
             visited[v] = nil
             return out
         elseif t == "userdata" then
             if pcall(function() return v.X end) then
-                return {X = v.X, Y = v.Y, Z = v.Z}
+                if pcall(function() return v.Z end) then
+                    return {X = v.X, Y = v.Y, Z = v.Z}
+                else
+                    return {X = v.X, Y = v.Y}
+                end
             elseif pcall(function() return v.R end) then
                 return {R = v.R, G = v.G, B = v.B}
             elseif pcall(function() return v.Scale end) then
                 return {Scale = v.Scale, Offset = v.Offset}
             elseif pcall(function() return v.X.Scale end) then
-                return {X = {Scale = v.X.Scale, Offset = v.X.Offset}, Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}}
+                return {
+                    X = {Scale = v.X.Scale, Offset = v.X.Offset},
+                    Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}
+                }
             else
                 return nil
             end
@@ -646,13 +670,18 @@ function WasUI:CreateFolder(folderName)
         }
 
         function config:Set(key, value)
+            local test = safeEncode({ [key] = value })
+            if test == nil or test[key] == nil then
+                warn("[WasUI] 拒绝保存不可编码的值，key:", key)
+                return false
+            end
             self.Data[key] = value
             return true
         end
 
         function config:Save()
             if not WasUI.ConfigFolderCreated then return false end
-            local toEncode = encodeValue(self.Data)
+            local toEncode = safeEncode(self.Data)
             if toEncode == nil then
                 warn("[WasUI] 配置数据无法编码，跳过保存:", configName)
                 return false
@@ -4921,24 +4950,26 @@ end
             self.ExecutorLabel.Text = "执行器: " .. executorName
         end
     end
-    self.SetPrivacyMode = function(newState)
-        if self.PrivacyMode == newState then return end
-        self.PrivacyMode = newState
-        updatePrivacyModeUI()
-        if WasUI.InternalConfigManager then
-            local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
-            internalConfig:Set("PrivacyMode", self.PrivacyMode)
-            internalConfig:Save()
+self.SetPrivacyMode = function(newState)
+    if self.PrivacyMode == newState then return end
+    self.PrivacyMode = newState
+    updatePrivacyModeUI()
+    if self._privacyToggleRef then
+        if self.PrivacyMode then
+            Tween(self._privacyToggleRef.bg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+            SpringTween(self._privacyToggleRef.knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
+        else
+            local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+            Tween(self._privacyToggleRef.bg, {BackgroundColor3 = offCol}, 0.2)
+            SpringTween(self._privacyToggleRef.knob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
         end
     end
     if WasUI.InternalConfigManager then
         local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
-        local savedPrivacy = internalConfig:Get("PrivacyMode")
-        if savedPrivacy ~= nil then
-            self.PrivacyMode = savedPrivacy
-            updatePrivacyModeUI()
-        end
+        internalConfig:Set("PrivacyMode", self.PrivacyMode)
+        internalConfig:Save()
     end
+end
     self.Avatar.MouseButton1Click:Connect(function()
         if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
             WasUI.SettingsGui:Destroy()
@@ -5165,6 +5196,10 @@ end
             ZIndex = 1003,
             Parent = privacyContainer
         })
+self._privacyToggleRef = {
+    bg = privacyBg,
+    knob = privacyKnob
+}
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = privacyBg})
         local privacyKnob = CreateInstance("Frame", {
             Name = "PrivacyKnob",
