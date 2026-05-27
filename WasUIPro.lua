@@ -3559,11 +3559,24 @@ local function AnimateThemeChange(oldTheme, newTheme)
 elseif obj.Type == "Category" then
     local titleLabel = instance:FindFirstChild("Title")
     local line = instance:FindFirstChild("Line")
-    local rightIcon = instance:FindFirstChild("CategoryIcon")
     if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
     if line then Tween(line, {BackgroundColor3 = newTheme.Primary}, duration) end
+    local rightIcon = instance:FindFirstChild("CategoryIcon")
     if rightIcon and not rightIcon:GetAttribute("IgnoreThemeChange") then
         Tween(rightIcon, {ImageColor3 = newTheme.Text}, duration)
+    end
+    if not rightIcon then
+        rightIcon = instance:FindFirstChild("CategoryIcon", true)
+        if rightIcon and not rightIcon:GetAttribute("IgnoreThemeChange") then
+            Tween(rightIcon, {ImageColor3 = newTheme.Text}, duration)
+        end
+    end
+    local leftIconFrame = instance:FindFirstChild("LeftIconFrame")
+    if leftIconFrame then
+        local leftIcon = leftIconFrame:FindFirstChild("LeftIcon")
+        if leftIcon and leftIcon:IsA("ImageLabel") and not leftIcon:GetAttribute("IgnoreThemeChange") then
+            Tween(leftIcon, {ImageColor3 = newTheme.Text}, duration)
+        end
     end
     local leftIcon = instance:FindFirstChild("LeftIcon")
     if leftIcon and leftIcon:IsA("ImageLabel") and not leftIcon:GetAttribute("IgnoreThemeChange") then
