@@ -3479,6 +3479,14 @@ elseif obj.Type == "Category" then
                         Tween(icon, {ImageColor3 = newTheme.Text}, duration)
                     end
                 end
+                
+                local searchButton = titleBar:FindFirstChild("SearchButton")
+                if searchButton then
+                    local searchIcon = searchButton:FindFirstChildOfClass("ImageLabel")
+                    if searchIcon and not searchIcon:GetAttribute("IgnoreThemeChange") then
+                        Tween(searchIcon, {ImageColor3 = newTheme.Text}, duration)
+                    end
+                end
                 local dotContainer = titleBar:FindFirstChild("DotContainer")
                 if dotContainer then
                     local minimizedText = dotContainer:FindFirstChild("MinimizedText")
@@ -4045,7 +4053,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.TitleBar
     })
     local iconColor = (WasUI.CurrentTheme == WasUI.Themes.Light) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-    local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), iconColor, true)
+    local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), iconColor, false)
     if closeIcon then
         closeIcon.Parent = closeButton
         closeIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
@@ -4060,7 +4068,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         ZIndex = 40,
         Parent = self.TitleBar
     })
-    local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), iconColor, true)
+    local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), iconColor, false)
     if searchIcon then
         searchIcon.Parent = searchButton
         searchIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
