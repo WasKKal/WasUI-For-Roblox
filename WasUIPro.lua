@@ -483,27 +483,25 @@ function WasUI:CreateFolder(folderName)
         local function getInternalFilePath(configName)
             return internalPath .. "/" .. configName .. ".json"
         end
-        local function isSerializable(v)
-            local t = type(v)
-            if t == "number" or t == "string" or t == "boolean" then
-                return true
-            elseif t == "table" then
-                for k, v2 in pairs(v) do
-                    if not isSerializable(k) or not isSerializable(v2) then
-                        return false
-                    end
-                end
-                return true
-            end
-            return false
-        end
-        local function deepCopy(t)
+        local function safeCopy(t, visited)
+            visited = visited or {}
+            if visited[t] then return nil end
+            visited[t] = true
             local new = {}
             for k, v in pairs(t) do
+                local k_copy = (type(k) == "table") and safeCopy(k, visited) or k
                 if type(v) == "table" then
-                    new[k] = deepCopy(v)
-                elseif type(v) ~= "userdata" and type(v) ~= "function" and type(v) ~= "thread" then
-                    new[k] = v
+                    new[k_copy] = safeCopy(v, visited)
+                elseif type(v) == "number" or type(v) == "string" or type(v) == "boolean" then
+                    new[k_copy] = v
+                elseif type(v) == "Color3" then
+                    new[k_copy] = {R = v.R, G = v.G, B = v.B}
+                elseif type(v) == "Vector3" then
+                    new[k_copy] = {X = v.X, Y = v.Y, Z = v.Z}
+                elseif type(v) == "UDim2" then
+                    new[k_copy] = {X = {Scale = v.X.Scale, Offset = v.X.Offset}, Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}}
+                else
+                    new[k_copy] = tostring(v)
                 end
             end
             return new
@@ -519,29 +517,27 @@ function WasUI:CreateFolder(folderName)
             }
 
             function config:Set(key, value)
-                if not isSerializable(value) then
-                    warn("[WasUI] 跳过保存不可序列化的值，key:", key, " type:", type(value))
-                    return false
-                end
                 self.Data[key] = value
                 return true
             end
 
             function config:Save()
-                local dataToSave = {}
-                for key, value in pairs(self.Data) do
-                    if type(value) ~= "userdata" and type(value) ~= "function" and type(value) ~= "thread" then
-                        if type(value) == "table" then
-                            dataToSave[key] = deepCopy(value)
-                        else
-                            dataToSave[key] = value
-                        end
-                    end
-                end
+                local dataToSave = safeCopy(self.Data)
                 local success, json = pcall(v6.JSONEncode, dataToSave)
                 if not success then
-                    warn("[WasUI] JSON编码失败:", json)
-                    return false
+                    warn("[WasUI] JSON编码失败，尝试移除无法序列化的字段:", json)
+                    local cleaned = {}
+                    for k, v in pairs(self.Data) do
+                        if type(v) ~= "userdata" and type(v) ~= "function" and type(v) ~= "thread" then
+                            cleaned[k] = v
+                        end
+                    end
+                    dataToSave = safeCopy(cleaned)
+                    success, json = pcall(v6.JSONEncode, dataToSave)
+                    if not success then
+                        warn("[WasUI] 仍然无法编码配置，跳过保存:", json)
+                        return false
+                    end
                 end
                 writefile(self.Path, json)
                 return true
@@ -594,28 +590,25 @@ function WasUI:CreateFolder(folderName)
     local function getFilePath(configName)
         return path .. "/" .. configName .. ".json"
     end
-    local function isSerializable(v)
-        local t = type(v)
-        if t == "number" or t == "string" or t == "boolean" then
-            return true
-        elseif t == "table" then
-            for k, v2 in pairs(v) do
-                if not isSerializable(k) or not isSerializable(v2) then
-                    return false
-                end
-            end
-            return true
-        end
-        return false
-    end
-
-    local function deepCopy(t)
+    local function safeCopy(t, visited)
+        visited = visited or {}
+        if visited[t] then return nil end
+        visited[t] = true
         local new = {}
         for k, v in pairs(t) do
+            local k_copy = (type(k) == "table") and safeCopy(k, visited) or k
             if type(v) == "table" then
-                new[k] = deepCopy(v)
-            elseif type(v) ~= "userdata" and type(v) ~= "function" and type(v) ~= "thread" then
-                new[k] = v
+                new[k_copy] = safeCopy(v, visited)
+            elseif type(v) == "number" or type(v) == "string" or type(v) == "boolean" then
+                new[k_copy] = v
+            elseif type(v) == "Color3" then
+                new[k_copy] = {R = v.R, G = v.G, B = v.B}
+            elseif type(v) == "Vector3" then
+                new[k_copy] = {X = v.X, Y = v.Y, Z = v.Z}
+            elseif type(v) == "UDim2" then
+                new[k_copy] = {X = {Scale = v.X.Scale, Offset = v.X.Offset}, Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}}
+            else
+                new[k_copy] = tostring(v)
             end
         end
         return new
@@ -632,30 +625,28 @@ function WasUI:CreateFolder(folderName)
         }
 
         function config:Set(key, value)
-            if not isSerializable(value) then
-                warn("[WasUI] 跳过保存不可序列化的值，key:", key, " type:", type(value))
-                return false
-            end
             self.Data[key] = value
             return true
         end
 
         function config:Save()
             if not WasUI.ConfigFolderCreated then return false end
-            local dataToSave = {}
-            for key, value in pairs(self.Data) do
-                if type(value) ~= "userdata" and type(value) ~= "function" and type(value) ~= "thread" then
-                    if type(value) == "table" then
-                        dataToSave[key] = deepCopy(value)
-                    else
-                        dataToSave[key] = value
-                    end
-                end
-            end
+            local dataToSave = safeCopy(self.Data)
             local success, json = pcall(v6.JSONEncode, dataToSave)
             if not success then
-                warn("[WasUI] JSON编码失败:", json)
-                return false
+                warn("[WasUI] JSON编码失败，尝试移除无法序列化的字段:", json)
+                local cleaned = {}
+                for k, v in pairs(self.Data) do
+                    if type(v) ~= "userdata" and type(v) ~= "function" and type(v) ~= "thread" then
+                        cleaned[k] = v
+                    end
+                end
+                dataToSave = safeCopy(cleaned)
+                success, json = pcall(v6.JSONEncode, dataToSave)
+                if not success then
+                    warn("[WasUI] 仍然无法编码配置，跳过保存:", json)
+                    return false
+                end
             end
             writefile(self.Path, json)
             return true
