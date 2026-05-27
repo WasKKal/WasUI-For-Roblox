@@ -475,6 +475,7 @@ function WasUI:CreateFolder(folderName)
     if not isfolder(path) then makefolder(path) end
     WasUI.ConfigFolderCreated = true
     WasUI.ConfigFolderName = folderName
+
     if not WasUI.InternalConfigManager then
         local internalPath = "WasUI_Configs/WasUI_Internal"
         if not isfolder(internalPath) then makefolder(internalPath) end
@@ -482,6 +483,32 @@ function WasUI:CreateFolder(folderName)
         local function getInternalFilePath(configName)
             return internalPath .. "/" .. configName .. ".json"
         end
+        local function isSerializable(v)
+            local t = type(v)
+            if t == "number" or t == "string" or t == "boolean" then
+                return true
+            elseif t == "table" then
+                for k, v2 in pairs(v) do
+                    if not isSerializable(k) or not isSerializable(v2) then
+                        return false
+                    end
+                end
+                return true
+            end
+            return false
+        end
+        local function deepCopy(t)
+            local new = {}
+            for k, v in pairs(t) do
+                if type(v) == "table" then
+                    new[k] = deepCopy(v)
+                elseif type(v) ~= "userdata" and type(v) ~= "function" and type(v) ~= "thread" then
+                    new[k] = v
+                end
+            end
+            return new
+        end
+
         function internalManager:GetConfig(configName)
             local filePath = getInternalFilePath(configName)
             local config = {
@@ -490,13 +517,36 @@ function WasUI:CreateFolder(folderName)
                 Data = {},
                 Bindings = {},
             }
+
+            function config:Set(key, value)
+                if not isSerializable(value) then
+                    warn("[WasUI] 跳过保存不可序列化的值，key:", key, " type:", type(value))
+                    return false
+                end
+                self.Data[key] = value
+                return true
+            end
+
             function config:Save()
                 local dataToSave = {}
-                for key, value in pairs(self.Data) do dataToSave[key] = value end
-                local json = v6:JSONEncode(dataToSave)
+                for key, value in pairs(self.Data) do
+                    if type(value) ~= "userdata" and type(value) ~= "function" and type(value) ~= "thread" then
+                        if type(value) == "table" then
+                            dataToSave[key] = deepCopy(value)
+                        else
+                            dataToSave[key] = value
+                        end
+                    end
+                end
+                local success, json = pcall(v6.JSONEncode, dataToSave)
+                if not success then
+                    warn("[WasUI] JSON编码失败:", json)
+                    return false
+                end
                 writefile(self.Path, json)
                 return true
             end
+
             function config:Load()
                 if not isfile(self.Path) then return false end
                 local success, data = pcall(function()
@@ -506,40 +556,71 @@ function WasUI:CreateFolder(folderName)
                     self.Data = data
                     for key, value in pairs(self.Data) do
                         local binding = self.Bindings[key]
-                        if binding and binding.control and binding.update then binding.update(value) end
+                        if binding and binding.control and binding.update then
+                            binding.update(value)
+                        end
                     end
                     return true
                 end
                 return false
             end
+
             function config:Delete()
                 if isfile(self.Path) then delfile(self.Path) end
                 self.Data = {}
                 self.Bindings = {}
                 return true
             end
-            function config:Set(key, value)
-                self.Data[key] = value
-            end
+
             function config:Get(key, defaultValue)
                 local val = self.Data[key]
                 if val == nil then return defaultValue end
                 return val
             end
+
             function config:Bind(key, control, updateFunc)
                 self.Bindings[key] = { control = control, update = updateFunc }
                 local savedValue = self.Data[key]
                 if savedValue ~= nil then updateFunc(savedValue) end
             end
+
             if isfile(filePath) then config:Load() end
             return config
         end
         WasUI.InternalConfigManager = internalManager
     end
+
     WasUI.ConfigManager = {}
     local function getFilePath(configName)
         return path .. "/" .. configName .. ".json"
     end
+    local function isSerializable(v)
+        local t = type(v)
+        if t == "number" or t == "string" or t == "boolean" then
+            return true
+        elseif t == "table" then
+            for k, v2 in pairs(v) do
+                if not isSerializable(k) or not isSerializable(v2) then
+                    return false
+                end
+            end
+            return true
+        end
+        return false
+    end
+
+    local function deepCopy(t)
+        local new = {}
+        for k, v in pairs(t) do
+            if type(v) == "table" then
+                new[k] = deepCopy(v)
+            elseif type(v) ~= "userdata" and type(v) ~= "function" and type(v) ~= "thread" then
+                new[k] = v
+            end
+        end
+        return new
+    end
+
     function WasUI.ConfigManager:GetConfig(configName)
         if not WasUI.ConfigFolderCreated then return nil end
         local filePath = getFilePath(configName)
@@ -549,14 +630,37 @@ function WasUI:CreateFolder(folderName)
             Data = {},
             Bindings = {},
         }
+
+        function config:Set(key, value)
+            if not isSerializable(value) then
+                warn("[WasUI] 跳过保存不可序列化的值，key:", key, " type:", type(value))
+                return false
+            end
+            self.Data[key] = value
+            return true
+        end
+
         function config:Save()
             if not WasUI.ConfigFolderCreated then return false end
             local dataToSave = {}
-            for key, value in pairs(self.Data) do dataToSave[key] = value end
-            local json = v6:JSONEncode(dataToSave)
+            for key, value in pairs(self.Data) do
+                if type(value) ~= "userdata" and type(value) ~= "function" and type(value) ~= "thread" then
+                    if type(value) == "table" then
+                        dataToSave[key] = deepCopy(value)
+                    else
+                        dataToSave[key] = value
+                    end
+                end
+            end
+            local success, json = pcall(v6.JSONEncode, dataToSave)
+            if not success then
+                warn("[WasUI] JSON编码失败:", json)
+                return false
+            end
             writefile(self.Path, json)
             return true
         end
+
         function config:Load()
             if not WasUI.ConfigFolderCreated then return false end
             if not isfile(self.Path) then return false end
@@ -567,12 +671,15 @@ function WasUI:CreateFolder(folderName)
                 self.Data = data
                 for key, value in pairs(self.Data) do
                     local binding = self.Bindings[key]
-                    if binding and binding.control and binding.update then binding.update(value) end
+                    if binding and binding.control and binding.update then
+                        binding.update(value)
+                    end
                 end
                 return true
             end
             return false
         end
+
         function config:Delete()
             if not WasUI.ConfigFolderCreated then return false end
             if isfile(self.Path) then delfile(self.Path) end
@@ -580,22 +687,23 @@ function WasUI:CreateFolder(folderName)
             self.Bindings = {}
             return true
         end
-        function config:Set(key, value)
-            self.Data[key] = value
-        end
+
         function config:Get(key, defaultValue)
             local val = self.Data[key]
             if val == nil then return defaultValue end
             return val
         end
+
         function config:Bind(key, control, updateFunc)
             self.Bindings[key] = { control = control, update = updateFunc }
             local savedValue = self.Data[key]
             if savedValue ~= nil then updateFunc(savedValue) end
         end
+
         if isfile(filePath) then config:Load() end
         return config
     end
+
     function WasUI.ConfigManager:AllConfigs()
         if not WasUI.ConfigFolderCreated then return {} end
         local files = {}
@@ -607,16 +715,19 @@ function WasUI:CreateFolder(folderName)
         end
         return files
     end
+
     function WasUI.ConfigManager:DeleteConfig(configName)
         if not WasUI.ConfigFolderCreated then return false end
         local filePath = getFilePath(configName)
         if isfile(filePath) then delfile(filePath) end
         return true
     end
+
     function WasUI.ConfigManager:GetConfigNames()
         if not WasUI.ConfigFolderCreated then return {} end
         return self:AllConfigs()
     end
+
     function WasUI.ConfigManager:LoadConfigByName(configName)
         local config = self:GetConfig(configName)
         if config then
@@ -625,14 +736,17 @@ function WasUI:CreateFolder(folderName)
         end
         return false
     end
+
     function WasUI.ConfigManager:SaveConfigByName(configName, data)
         local config = self:GetConfig(configName)
         for k, v in pairs(data) do config:Set(k, v) end
         config:Save()
     end
+
     function WasUI.ConfigManager:DeleteConfigByName(configName)
         self:DeleteConfig(configName)
     end
+
     return WasUI.ConfigManager
 end
 
@@ -4645,73 +4759,82 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y and
                not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn)
     end
-    local function startDrag(input, processed)
-        if processed then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local mousePos = input.Position
-            if isPointOverDraggableArea(mousePos) then
-                dragging = true
-                dragStart = input.Position
-                startPos = self.Instance.Position
-                currentDragTouch = nil
-                if dragRenderConn then dragRenderConn:Disconnect() end
-                dragRenderConn = v5.RenderStepped:Connect(function()
-                    if dragging then
-                        local delta = v4:GetMouseLocation() - dragStart
-                        local newX = startPos.X.Offset + delta.X
-                        local newY = startPos.Y.Offset + delta.Y
-                        self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
-                    end
-                end)
-                if not self.IsMinimized and self.SnowEnabled then
-                    self.SnowEnabled = false
-                    if self.SnowContainer then
-                        self.SnowContainer.Visible = false
-                    end
-                end
-            end
-        elseif input.UserInputType == Enum.UserInputType.Touch then
-            local touchPos = input.Position
-            if isPointOverDraggableArea(touchPos) then
-                dragging = true
-                dragStart = input.Position
-                startPos = self.Instance.Position
-                currentDragTouch = input
-                if dragRenderConn then dragRenderConn:Disconnect() end
-                dragRenderConn = v5.RenderStepped:Connect(function()
-                    if dragging and currentDragTouch then
-                        local delta = currentDragTouch.Position - dragStart
-                        local newX = startPos.X.Offset + delta.X
-                        local newY = startPos.Y.Offset + delta.Y
-                        self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
-                    end
-                end)
-                if not self.IsMinimized and self.SnowEnabled then
-                    self.SnowEnabled = false
-                    if self.SnowContainer then
-                        self.SnowContainer.Visible = false
-                    end
-                end
-            end
-        end
-    end
-    local function endDrag(input, processed)
-        if processed then return end
-        local isValid = false
-        if input.UserInputType == Enum.UserInputType.MouseButton1 and dragging and currentDragTouch == nil then
-            isValid = true
-        elseif input.UserInputType == Enum.UserInputType.Touch and dragging and input == currentDragTouch then
-            isValid = true
-        end
-        if isValid then
-            dragging = false
-            if dragRenderConn then
-                dragRenderConn:Disconnect()
-                dragRenderConn = nil
-            end
+local function startDrag(input, processed)
+    if processed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local mousePos = input.Position
+        if isPointOverDraggableArea(mousePos) then
+            dragging = true
+            dragStart = input.Position
+            startPos = self.Instance.Position
             currentDragTouch = nil
+            if dragRenderConn then dragRenderConn:Disconnect() end
+            dragRenderConn = v5.RenderStepped:Connect(function()
+                if dragging then
+                    local delta = v4:GetMouseLocation() - dragStart
+                    local newX = startPos.X.Offset + delta.X
+                    local newY = startPos.Y.Offset + delta.Y
+                    self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
+                end
+            end)
+            if not self.IsMinimized and self.SnowEnabled then
+                self._dragTempSnowDisabled = true
+                self.SnowEnabled = false
+                if self.SnowContainer then
+                    self.SnowContainer.Visible = false
+                end
+            end
+        end
+    elseif input.UserInputType == Enum.UserInputType.Touch then
+        local touchPos = input.Position
+        if isPointOverDraggableArea(touchPos) then
+            dragging = true
+            dragStart = input.Position
+            startPos = self.Instance.Position
+            currentDragTouch = input
+            if dragRenderConn then dragRenderConn:Disconnect() end
+            dragRenderConn = v5.RenderStepped:Connect(function()
+                if dragging and currentDragTouch then
+                    local delta = currentDragTouch.Position - dragStart
+                    local newX = startPos.X.Offset + delta.X
+                    local newY = startPos.Y.Offset + delta.Y
+                    self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
+                end
+            end)
+            if not self.IsMinimized and self.SnowEnabled then
+                self._dragTempSnowDisabled = true
+                self.SnowEnabled = false
+                if self.SnowContainer then
+                    self.SnowContainer.Visible = false
+                end
+            end
         end
     end
+end
+local function endDrag(input, processed)
+    if processed then return end
+    local isValid = false
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and dragging and currentDragTouch == nil then
+        isValid = true
+    elseif input.UserInputType == Enum.UserInputType.Touch and dragging and input == currentDragTouch then
+        isValid = true
+    end
+    if isValid then
+        dragging = false
+        if dragRenderConn then
+            dragRenderConn:Disconnect()
+            dragRenderConn = nil
+        end
+        currentDragTouch = nil
+        if self._dragTempSnowDisabled then
+            self._dragTempSnowDisabled = nil
+            self.SnowEnabled = true
+            if self.SnowContainer then
+                self.SnowContainer.Visible = true
+            end
+        end
+    end
+end
     self.DraggableArea.InputBegan:Connect(startDrag)
     dragEndConn = v4.InputEnded:Connect(endDrag)
     local announcementHeight = 80
