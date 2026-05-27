@@ -3442,19 +3442,19 @@ local function AnimateThemeChange(oldTheme, newTheme)
             end
         elseif obj.Type == "DropdownOption" then
             Tween(instance, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
-        elseif obj.Type == "Category" then
-            local titleLabel = instance:FindFirstChild("Title")
-            local line = instance:FindFirstChild("Line")
-            local icon = instance:FindFirstChild("CategoryIcon")
-            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
-            if line then Tween(line, {BackgroundColor3 = newTheme.Primary}, duration) end
-            if icon and not icon:GetAttribute("IgnoreThemeChange") then
-                Tween(icon, {ImageColor3 = newTheme.Text}, duration)
-            end
-            local leftIcon = instance:FindFirstChild("LeftIcon")
-            if leftIcon and leftIcon:IsA("ImageLabel") and not leftIcon:GetAttribute("IgnoreThemeChange") then
-                Tween(leftIcon, {ImageColor3 = newTheme.Text}, duration)
-            end
+elseif obj.Type == "Category" then
+    local titleLabel = instance:FindFirstChild("Title")
+    local line = instance:FindFirstChild("Line")
+    local rightIcon = instance:FindFirstChild("CategoryIcon")
+    if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+    if line then Tween(line, {BackgroundColor3 = newTheme.Primary}, duration) end
+    if rightIcon and not rightIcon:GetAttribute("IgnoreThemeChange") then
+        Tween(rightIcon, {ImageColor3 = newTheme.Text}, duration)
+    end
+    local leftIcon = instance:FindFirstChild("LeftIcon")
+    if leftIcon and leftIcon:IsA("ImageLabel") and not leftIcon:GetAttribute("IgnoreThemeChange") then
+        Tween(leftIcon, {ImageColor3 = newTheme.Text}, duration)
+    end
         elseif obj.Type == "TextInput" then
             local textBox = instance:FindFirstChild("TextBox")
             if textBox then
