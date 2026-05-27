@@ -692,6 +692,21 @@ local function RefreshRainbowLayout()
     end
 end
 
+local function RebuildRainbowOrderByLength()
+    local sorted = {}
+    for name, data in pairs(WasUI.ActiveRainbowTexts) do
+        table.insert(sorted, {name = name, length = #name})
+    end
+    table.sort(sorted, function(a, b)
+        return a.length > b.length
+    end)
+    WasUI.RainbowOrder = {}
+    for _, item in ipairs(sorted) do
+        table.insert(WasUI.RainbowOrder, item.name)
+    end
+    RefreshRainbowLayout()
+end
+
 local function CreateRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
@@ -716,20 +731,14 @@ local function CreateRainbowTextForFeature(featureName)
         TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
         Parent = screenGui
     })
-    local creationOrder = #WasUI.RainbowOrder + 1
     WasUI.ActiveRainbowTexts[featureName] = {
         ScreenGui = screenGui,
         Connection = nil,
         Label = textLabel,
-        CreationOrder = creationOrder,
         OriginalText = featureName,
         IsMerged = false
     }
-    table.insert(WasUI.RainbowOrder, featureName)
-    local targetY = 10 + (#WasUI.RainbowOrder - 1) * (20 + 5)
-    local targetPos = UDim2.new(1, -190, 0, targetY)
-    textLabel.Position = UDim2.new(1, 10, 0, targetY)
-    Tween(textLabel, {Position = targetPos}, 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    RebuildRainbowOrderByLength()
 end
 
 local function DestroyRainbowTextForFeature(featureName)
@@ -742,24 +751,12 @@ local function DestroyRainbowTextForFeature(featureName)
         task.delay(0.25, function()
             if data.ScreenGui then data.ScreenGui:Destroy() end
             WasUI.ActiveRainbowTexts[featureName] = nil
-            for i, name in ipairs(WasUI.RainbowOrder) do
-                if name == featureName then
-                    table.remove(WasUI.RainbowOrder, i)
-                    break
-                end
-            end
-            RefreshRainbowLayout()
+            RebuildRainbowOrderByLength()
         end)
     else
         if data and data.ScreenGui then data.ScreenGui:Destroy() end
         WasUI.ActiveRainbowTexts[featureName] = nil
-        for i, name in ipairs(WasUI.RainbowOrder) do
-            if name == featureName then
-                table.remove(WasUI.RainbowOrder, i)
-                break
-            end
-        end
-        RefreshRainbowLayout()
+        RebuildRainbowOrderByLength()
     end
 end
 
@@ -840,6 +837,29 @@ local function LoadKeyBinding(key)
     return nil
 end
 
+local dragOverlay = nil
+local function ensureDragOverlay()
+    if not dragOverlay or not dragOverlay.Parent then
+        dragOverlay = Instance.new("Frame")
+        dragOverlay.Name = "DragOverlay"
+        dragOverlay.Size = UDim2.new(1, 0, 1, 0)
+        dragOverlay.BackgroundTransparency = 1
+        dragOverlay.ZIndex = 99999
+        dragOverlay.Active = true
+        dragOverlay.Selectable = true
+        dragOverlay.Parent = v11
+    end
+end
+
+local function showDragOverlay()
+    ensureDragOverlay()
+    dragOverlay.Visible = true
+end
+
+local function hideDragOverlay()
+    if dragOverlay then dragOverlay.Visible = false end
+end
+
 local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
     longPressTime = longPressTime or 0.5
     local timer = nil
@@ -851,8 +871,8 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
         startPos = nil
     end
     local function startPress(input)
-        cleanup()
         if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            cleanup()
             pressed = true
             startPos = input.Position
             timer = task.delay(longPressTime, function()
@@ -1021,9 +1041,11 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragData.dragging = true; dragData.moved = false; dragData.startPos = btnFrame.Position; dragData.startMouse = input.Position; dragData.currentTouch = nil
             SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
+            showDragOverlay()
         elseif input.UserInputType == Enum.UserInputType.Touch then
             dragData.dragging = true; dragData.moved = false; dragData.startPos = btnFrame.Position; dragData.startMouse = input.Position; dragData.currentTouch = input
             SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
+            showDragOverlay()
         end
     end
     local function onInputChanged(input, processed)
@@ -1058,6 +1080,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
                 end
             end
             dragData.dragging = false; dragData.currentTouch = nil; SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+            hideDragOverlay()
         end
     end
     btnFrame.InputBegan:Connect(onInputBegan)
@@ -1322,7 +1345,8 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             if config then config:Set(configKey, self.Toggled); config:Save() end
         end
     end
-    local function setStateSilently(newState)
+    local function setStateSilently(newState, fireCallback)
+        if self.Toggled == newState then return end
         self.Toggled = newState
         self.Background:SetAttribute("Toggled", self.Toggled)
         if self.Toggled then
@@ -1337,6 +1361,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             if self.RainbowName and self.RainbowName ~= "" then DestroyRainbowTextForFeature(self.RainbowName) end
             if iconName then local iconImg = self.Knob:FindFirstChildOfClass("ImageLabel") if iconImg then iconImg.ImageColor3 = WasUI.CurrentTheme.Accent end end
         end
+        if fireCallback and self.ToggleCallback then self.ToggleCallback(self.Toggled) end
         local shortcutKey = GetShortcutKey("toggle", name, self.RainbowName)
         local shortcut = WasUI.ShortcutButtons[shortcutKey]
         if shortcut and shortcut.updateState then shortcut.updateState(self.Toggled) end
@@ -1354,7 +1379,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
-            config:Bind(configKey, self, function(value) setStateSilently(value) end)
+            config:Bind(configKey, self, function(value) setStateSilently(value, true) end)
         end
     end
     local panel = parent
@@ -1859,6 +1884,9 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                 end
                 self:UpdateDisplayText()
                 self:UpdateOptionVisuals()
+                if self.Callback then
+                    if self.MultiSelect then self.Callback(self.SelectedValues) else self.Callback(self.SelectedValue) end
+                end
             end)
         end
     end
@@ -2726,8 +2754,9 @@ function WasUI:ShowPopup(options, callback)
             Parent = tagContainer,
             ZIndex = 1004
         })
-        tagContainer.Size = UDim2.new(0, tagLabel.TextBounds.X + 8, 0, 20)
-        tagLabel.Size = UDim2.new(0, tagLabel.TextBounds.X, 1, 0)
+        local textWidth = v10:GetTextSize(titleTag.text, 12, Enum.Font.GothamSemibold, Vector2.new(1000, 1000)).X
+        tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 20)
+        tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
     end
     local contentLabel = CreateInstance("TextLabel", {
         Name = "Content",
@@ -3158,6 +3187,7 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
             ZIndex = 2,
             Parent = container
         })
+        WasUI:SetLocalizedText(titleLabel, title)
     end
     local button = CreateInstance("TextButton", {
         Name = "Button",
@@ -3174,6 +3204,11 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
         currentColor = color; currentAlpha = alpha or 1
         colorPreview.BackgroundColor3 = color
         colorPreview.BackgroundTransparency = 1 - currentAlpha
+        if callback then callback(color, alpha) end
+        if configKey and WasUI.ConfigManager then
+            local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+            if config then config:Set(configKey, {color = color, alpha = alpha}); config:Save() end
+        end
     end
     local function openColorPicker()
         WasUI:ShowColorPicker({
@@ -3183,11 +3218,6 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
             showAlpha = true
         }, function(color, alpha)
             updatePreview(color, alpha)
-            if callback then callback(color, alpha) end
-            if configKey and WasUI.ConfigManager then
-                local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
-                if config then config:Set(configKey, {color = color, alpha = alpha}); config:Save() end
-            end
         end)
     end
     button.MouseButton1Click:Connect(openColorPicker)
@@ -3421,6 +3451,10 @@ local function AnimateThemeChange(oldTheme, newTheme)
             if icon and not icon:GetAttribute("IgnoreThemeChange") then
                 Tween(icon, {ImageColor3 = newTheme.Text}, duration)
             end
+            local leftIcon = instance:FindFirstChild("LeftIcon")
+            if leftIcon and leftIcon:IsA("ImageLabel") and not leftIcon:GetAttribute("IgnoreThemeChange") then
+                Tween(leftIcon, {ImageColor3 = newTheme.Text}, duration)
+            end
         elseif obj.Type == "TextInput" then
             local textBox = instance:FindFirstChild("TextBox")
             if textBox then
@@ -3443,6 +3477,19 @@ local function AnimateThemeChange(oldTheme, newTheme)
                     local icon = closeBtn:FindFirstChildOfClass("ImageLabel")
                     if icon and not icon:GetAttribute("IgnoreThemeChange") then
                         Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+                    end
+                end
+                local dotContainer = titleBar:FindFirstChild("DotContainer")
+                if dotContainer then
+                    local minimizedText = dotContainer:FindFirstChild("MinimizedText")
+                    if minimizedText and minimizedText:IsA("TextLabel") then
+                        Tween(minimizedText, {TextColor3 = newTheme.Text}, duration)
+                    end
+                end
+                local colorPickerContainers = titleBar:GetDescendants()
+                for _, descendant in ipairs(colorPickerContainers) do
+                    if descendant:IsA("TextLabel") and descendant.Name == "Title" then
+                        Tween(descendant, {TextColor3 = newTheme.Text}, duration)
                     end
                 end
             end
@@ -3499,6 +3546,11 @@ local function AnimateThemeChange(oldTheme, newTheme)
             if underline and underline:IsA("Frame") then
                 Tween(underline, {BackgroundColor3 = newTheme.Accent}, duration)
             end
+        elseif obj.Type == "ColorPickerButton" then
+            local titleLabel = instance:FindFirstChild("Title")
+            if titleLabel then
+                Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
+            end
         end
     end
     if WasUI.DropdownGui then
@@ -3530,6 +3582,11 @@ function WasUI:SetTheme(themeName)
         local oldTheme = self.CurrentTheme; local newTheme = self.Themes[themeName]
         self.CurrentTheme = newTheme; self.CurrentThemeName = themeName
         AnimateThemeChange(oldTheme, newTheme)
+        if WasUI.InternalConfigManager then
+            local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
+            internalConfig:Set("Theme", themeName)
+            internalConfig:Save()
+        end
         return true
     end
     return false
@@ -3579,10 +3636,16 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self.BackgroundImage = nil
         end
     end
+    if not position then
+        local viewport = v7.CurrentCamera and v7.CurrentCamera.ViewportSize or v8:GetScreenSize()
+        local width = size.X.Offset
+        local height = size.Y.Offset
+        position = UDim2.new(0.5, -width/2, 0.5, -height/2)
+    end
     self.Instance = CreateInstance("Frame", {
         Name = name,
         Size = size or UDim2.new(0, 380, 0, 350),
-        Position = position or UDim2.new(0.5, -190, 0.5, -175),
+        Position = position,
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0.3,
         ClipsDescendants = true,
@@ -3696,6 +3759,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self.BorderFlow.Visible = true
             if type(startFlowAnimation) == "function" then
                 startFlowAnimation()
+            end
+            if WasUI.InternalConfigManager then
+                local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
+                internalConfig:Set("RainbowMode", mode)
+                internalConfig:Save()
             end
         end
     end
@@ -3849,7 +3917,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 ZIndex = 11
             })
             task.wait()
-            local textWidth = tagLabel.TextBounds.X
+            local textWidth = v10:GetTextSize(tagText, 11, Enum.Font.GothamSemibold, Vector2.new(1000, 1000)).X
             tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
             tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
             table.insert(tagContainers, tagContainer)
@@ -4708,13 +4776,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         self.PrivacyMode = newState
         updatePrivacyModeUI()
         if WasUI.InternalConfigManager then
-            local internalConfig = WasUI.InternalConfigManager:GetConfig("WasUI内部配置")
+            local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
             internalConfig:Set("PrivacyMode", self.PrivacyMode)
             internalConfig:Save()
         end
     end
     if WasUI.InternalConfigManager then
-        local internalConfig = WasUI.InternalConfigManager:GetConfig("WasUI内部配置")
+        local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
         local savedPrivacy = internalConfig:Get("PrivacyMode")
         if savedPrivacy ~= nil then
             self.PrivacyMode = savedPrivacy
@@ -5026,6 +5094,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 Tween(snowBg, {BackgroundColor3 = offCol}, 0.2)
                 SpringTween(snowKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
             end
+            if WasUI.InternalConfigManager then
+                local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
+                internalConfig:Set("SnowEnabled", newState)
+                internalConfig:Save()
+            end
         end
         snowBg.MouseButton1Click:Connect(function()
             updateSnowToggle(not self.SnowEnabled)
@@ -5084,6 +5157,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 Tween(langBg, {BackgroundColor3 = offCol}, 0.2)
                 SpringTween(langKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
                 WasUI:SetLanguage("中文")
+            end
+            if WasUI.InternalConfigManager then
+                local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
+                internalConfig:Set("Language", WasUI.CurrentLanguage)
+                internalConfig:Save()
             end
         end
         langBg.MouseButton1Click:Connect(function()
@@ -5648,7 +5726,7 @@ function WasUI:CreateWindow(options)
     options = options or {}
     local title = options.Title or "WasUI"
     local size = options.Size or UDim2.new(0, 400, 0, 350)
-    local position = options.Position or UDim2.new(0.5, -200, 0.5, -175)
+    local position = options.Position or nil
     local background = options.Background
     local snowEnabled = options.SnowEnabled or false
     local titleTag = options.TitleTag
@@ -5958,6 +6036,34 @@ function WasUI:CreateWindow(options)
     end
     function windowFacade:SetMinimizedText(text)
         window:SetMinimizedText(text)
+    end
+    local internalConfig = WasUI.InternalConfigManager and WasUI.InternalConfigManager:GetConfig("UI_Settings")
+    if internalConfig then
+        local savedTheme = internalConfig:Get("Theme")
+        if savedTheme and WasUI.Themes[savedTheme] then
+            WasUI:SetTheme(savedTheme)
+        end
+        local savedRainbow = internalConfig:Get("RainbowMode")
+        if savedRainbow then
+            window:SetRainbowMode(savedRainbow)
+        end
+        local savedSnow = internalConfig:Get("SnowEnabled")
+        if savedSnow ~= nil and window.SnowEnabled ~= savedSnow then
+            window.SnowEnabled = savedSnow
+            if window.SnowContainer then
+                window.SnowContainer.Visible = savedSnow
+            end
+        end
+        local savedLanguage = internalConfig:Get("Language")
+        if savedLanguage and savedLanguage ~= WasUI.CurrentLanguage then
+            WasUI:SetLanguage(savedLanguage)
+        end
+        if window.SetPrivacyMode then
+            local savedPrivacy = internalConfig:Get("PrivacyMode")
+            if savedPrivacy ~= nil then
+                window:SetPrivacyMode(savedPrivacy)
+            end
+        end
     end
     return windowFacade
 end
