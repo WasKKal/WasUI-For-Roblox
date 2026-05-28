@@ -494,25 +494,18 @@ local function encodeValue(v, visited)
         if pcall(function() return v.X end) and pcall(function() return v.Y end) then
             if pcall(function() return v.Z end) then
                 return {X = v.X, Y = v.Y, Z = v.Z}
-            elseif pcall(function() return v.Scale end) then
-                return {Scale = v.Scale, Offset = v.Offset}
-            elseif pcall(function() return v.X.Scale end) then
-                return {
-                    X = {Scale = v.X.Scale, Offset = v.X.Offset},
-                    Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}
-                }
             else
                 return {X = v.X, Y = v.Y}
             end
-        elseif pcall(function() return v.R end) then
-            return {R = v.R, G = v.G, B = v.B}
-        elseif pcall(function() return v.Scale end) then
+        elseif pcall(function() return v.Scale end) and pcall(function() return v.Offset end) then
             return {Scale = v.Scale, Offset = v.Offset}
         elseif pcall(function() return v.X.Scale end) then
             return {
                 X = {Scale = v.X.Scale, Offset = v.X.Offset},
                 Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}
             }
+        elseif pcall(function() return v.R end) then
+            return {R = v.R, G = v.G, B = v.B}
         else
             return nil
         end
@@ -551,12 +544,12 @@ function WasUI:CreateFolder(folderName)
             function config:Save()
                 local toEncode = encodeValue(self.Data)
                 if toEncode == nil then
-                    warn("[WasUI] 配置数据无法编码，跳过保存:", configName)
+                    warn("[WasUI] Internal配置数据无法编码，跳过保存:", configName)
                     return false
                 end
                 local success, json = pcall(v6.JSONEncode, toEncode)
                 if not success then
-                    warn("[WasUI] JSON编码失败:", json)
+                    warn("[WasUI] Internal JSON编码失败:", json)
                     return false
                 end
                 writefile(self.Path, json)
