@@ -3829,17 +3829,16 @@ function self:SetRainbowMode(mode)
             self.GlowStroke4.Enabled = true
             self.GlowStroke5.Enabled = true
             flowGradient.Enabled = false
-        else
-            -- 流动模式：使用边框描边，但让颜色快速循环（模拟流动）
-            self.BorderFlow.BackgroundTransparency = 1
-            self.BorderStroke.Enabled = true
-            self.GlowStroke1.Enabled = true
-            self.GlowStroke2.Enabled = true
-            self.GlowStroke3.Enabled = true
-            self.GlowStroke4.Enabled = true
-            self.GlowStroke5.Enabled = true
-            flowGradient.Enabled = false
-        end
+            else
+                self.BorderFlow.BackgroundTransparency = 0.65   -- 调整此值控制光晕强度
+                self.BorderStroke.Enabled = false
+                self.GlowStroke1.Enabled = false
+                self.GlowStroke2.Enabled = false
+                self.GlowStroke3.Enabled = false
+                self.GlowStroke4.Enabled = false
+                self.GlowStroke5.Enabled = false
+                flowGradient.Enabled = true
+            end
         self.BorderFlow.Visible = true
         if type(startFlowAnimation) == "function" then
             startFlowAnimation()
@@ -3871,24 +3870,17 @@ local function startFlowAnimation()
             self.GlowStroke5.Color = color
             self.GlowStroke5.Transparency = 0.97
             flowGradient.Enabled = false
-        else
-            borderTime = borderTime + deltaTime * 6
-            local hue = (borderTime * 0.8) % 1
-            local color = Color3.fromHSV(hue, 0.9, 1)
-            self.BorderStroke.Color = color
-            self.BorderStroke.Transparency = 0
-            self.GlowStroke1.Color = color
-            self.GlowStroke1.Transparency = 0.5
-            self.GlowStroke2.Color = color
-            self.GlowStroke2.Transparency = 0.7
-            self.GlowStroke3.Color = color
-            self.GlowStroke3.Transparency = 0.84
-            self.GlowStroke4.Color = color
-            self.GlowStroke4.Transparency = 0.93
-            self.GlowStroke5.Color = color
-            self.GlowStroke5.Transparency = 0.97
-            flowGradient.Enabled = false
-            self.BorderFlow.BackgroundTransparency = 1
+                else
+            self.FlowRotation = (self.FlowRotation + deltaTime * 60) % 360
+            flowGradient.Rotation = self.FlowRotation
+            flowGradient.Enabled = true
+            self.BorderStroke.Transparency = 1
+            self.GlowStroke1.Transparency = 1
+            self.GlowStroke2.Transparency = 1
+            self.GlowStroke3.Transparency = 1
+            self.GlowStroke4.Transparency = 1
+            self.GlowStroke5.Transparency = 1
+            self.BorderFlow.BackgroundTransparency = 0.65
         end
     end)
 end
