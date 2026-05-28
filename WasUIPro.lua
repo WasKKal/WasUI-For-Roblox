@@ -467,6 +467,48 @@ function WasUI:SetFeatureHotkeys(hotkeys)
     end
 end
 
+local function encodeValue(v, visited)
+    if visited == nil then visited = {} end
+    local t = type(v)
+    if t == "nil" or t == "function" then
+        return nil
+    elseif t == "number" or t == "string" or t == "boolean" then
+        return v
+    elseif t == "table" then
+        if visited[v] then return nil end
+        visited[v] = true
+        local out = {}
+        for k, val in pairs(v) do
+            local key = encodeValue(k, visited)
+            if key ~= nil then
+                local encodedVal = encodeValue(val, visited)
+                if encodedVal ~= nil then
+                    out[key] = encodedVal
+                end
+            end
+        end
+        visited[v] = nil
+        return out
+    elseif t == "userdata" then
+        if pcall(function() return v.X end) then
+            return {X = v.X, Y = v.Y, Z = v.Z}
+        elseif pcall(function() return v.R end) then
+            return {R = v.R, G = v.G, B = v.B}
+        elseif pcall(function() return v.Scale end) then
+            return {Scale = v.Scale, Offset = v.Offset}
+        elseif pcall(function() return v.X.Scale end) then
+            return {
+                X = {Scale = v.X.Scale, Offset = v.X.Offset},
+                Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}
+            }
+        else
+            return nil
+        end
+    else
+        return nil
+    end
+end
+
 function WasUI:CreateFolder(folderName)
     if not folderName or folderName == "" then
         error("CreateWindow: Folder name cannot be empty")
@@ -482,43 +524,6 @@ function WasUI:CreateFolder(folderName)
         local function getInternalFilePath(configName)
             return internalPath .. "/" .. configName .. ".json"
         end
-        local function encodeValue(v, visited)
-            if visited == nil then visited = {} end
-            local t = type(v)
-            if t == "nil" then
-                return nil
-            elseif t == "number" or t == "string" or t == "boolean" then
-                return v
-            elseif t == "table" then
-                if visited[v] then return nil end
-                visited[v] = true
-                local out = {}
-                for k, val in pairs(v) do
-                    local key = encodeValue(k, visited)
-                    if key ~= nil then
-                        out[key] = encodeValue(val, visited)
-                    end
-                end
-                visited[v] = nil
-                return out
-            elseif t == "userdata" then
-                if pcall(function() return v.X end) then
-                    return {X = v.X, Y = v.Y, Z = v.Z}
-                elseif pcall(function() return v.R end) then
-                    return {R = v.R, G = v.G, B = v.B}
-                elseif pcall(function() return v.Scale end) then
-                    return {Scale = v.Scale, Offset = v.Offset}
-                elseif pcall(function() return v.X.Scale end) then
-                    return {X = {Scale = v.X.Scale, Offset = v.X.Offset}, Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}} -- UDim2
-                else
-                    warn("[WasUI] 无法编码的userdata:", v)
-                    return nil
-                end
-            else
-                return nil
-            end
-        end
-
         function internalManager:GetConfig(configName)
             local filePath = getInternalFilePath(configName)
             local config = {
@@ -527,16 +532,14 @@ function WasUI:CreateFolder(folderName)
                 Data = {},
                 Bindings = {},
             }
-
             function config:Set(key, value)
                 self.Data[key] = value
                 return true
             end
-
             function config:Save()
                 local toEncode = encodeValue(self.Data)
                 if toEncode == nil then
-                    warn("[WasUI] 配置数据完全无法编码，跳过保存:", configName)
+                    warn("[WasUI] 配置数据无法编码，跳过保存:", configName)
                     return false
                 end
                 local success, json = pcall(v6.JSONEncode, toEncode)
@@ -547,8 +550,6 @@ function WasUI:CreateFolder(folderName)
                 writefile(self.Path, json)
                 return true
             end
-
-            -- 其余方法不变
             function config:Load()
                 if not isfile(self.Path) then return false end
                 local success, data = pcall(function()
@@ -566,73 +567,31 @@ function WasUI:CreateFolder(folderName)
                 end
                 return false
             end
-
             function config:Delete()
                 if isfile(self.Path) then delfile(self.Path) end
                 self.Data = {}
                 self.Bindings = {}
                 return true
             end
-
             function config:Get(key, defaultValue)
                 local val = self.Data[key]
                 if val == nil then return defaultValue end
                 return val
             end
-
             function config:Bind(key, control, updateFunc)
                 self.Bindings[key] = { control = control, update = updateFunc }
                 local savedValue = self.Data[key]
                 if savedValue ~= nil then updateFunc(savedValue) end
             end
-
             if isfile(filePath) then config:Load() end
             return config
         end
         WasUI.InternalConfigManager = internalManager
     end
 
-    -- 用户配置管理器
     WasUI.ConfigManager = {}
     local function getFilePath(configName)
         return path .. "/" .. configName .. ".json"
-    end
-
-    -- 复用相同的编码函数
-    local function encodeValue(v, visited)
-        if visited == nil then visited = {} end
-        local t = type(v)
-        if t == "nil" then
-            return nil
-        elseif t == "number" or t == "string" or t == "boolean" then
-            return v
-        elseif t == "table" then
-            if visited[v] then return nil end
-            visited[v] = true
-            local out = {}
-            for k, val in pairs(v) do
-                local key = encodeValue(k, visited)
-                if key ~= nil then
-                    out[key] = encodeValue(val, visited)
-                end
-            end
-            visited[v] = nil
-            return out
-        elseif t == "userdata" then
-            if pcall(function() return v.X end) then
-                return {X = v.X, Y = v.Y, Z = v.Z}
-            elseif pcall(function() return v.R end) then
-                return {R = v.R, G = v.G, B = v.B}
-            elseif pcall(function() return v.Scale end) then
-                return {Scale = v.Scale, Offset = v.Offset}
-            elseif pcall(function() return v.X.Scale end) then
-                return {X = {Scale = v.X.Scale, Offset = v.X.Offset}, Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}}
-            else
-                return nil
-            end
-        else
-            return nil
-        end
     end
 
     function WasUI.ConfigManager:GetConfig(configName)
@@ -644,12 +603,10 @@ function WasUI:CreateFolder(folderName)
             Data = {},
             Bindings = {},
         }
-
         function config:Set(key, value)
             self.Data[key] = value
             return true
         end
-
         function config:Save()
             if not WasUI.ConfigFolderCreated then return false end
             local toEncode = encodeValue(self.Data)
@@ -665,7 +622,6 @@ function WasUI:CreateFolder(folderName)
             writefile(self.Path, json)
             return true
         end
-
         function config:Load()
             if not WasUI.ConfigFolderCreated then return false end
             if not isfile(self.Path) then return false end
@@ -684,7 +640,6 @@ function WasUI:CreateFolder(folderName)
             end
             return false
         end
-
         function config:Delete()
             if not WasUI.ConfigFolderCreated then return false end
             if isfile(self.Path) then delfile(self.Path) end
@@ -692,19 +647,16 @@ function WasUI:CreateFolder(folderName)
             self.Bindings = {}
             return true
         end
-
         function config:Get(key, defaultValue)
             local val = self.Data[key]
             if val == nil then return defaultValue end
             return val
         end
-
         function config:Bind(key, control, updateFunc)
             self.Bindings[key] = { control = control, update = updateFunc }
             local savedValue = self.Data[key]
             if savedValue ~= nil then updateFunc(savedValue) end
         end
-
         if isfile(filePath) then config:Load() end
         return config
     end
@@ -799,8 +751,8 @@ function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
 end
 
 local function RefreshRainbowLayout()
-    local startY = 10
-    local spacing = 5
+    local startY = 8
+    local spacing = 2
     for i, featureName in ipairs(WasUI.RainbowOrder) do
         local data = WasUI.ActiveRainbowTexts[featureName]
         if data and data.Label then
@@ -3561,32 +3513,32 @@ local function AnimateThemeChange(oldTheme, newTheme)
             end
         elseif obj.Type == "DropdownOption" then
             Tween(instance, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
-elseif obj.Type == "Category" then
-    local titleLabel = instance:FindFirstChild("Title")
-    local line = instance:FindFirstChild("Line")
-    if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
-    if line then Tween(line, {BackgroundColor3 = newTheme.Primary}, duration) end
-    local rightIcon = instance:FindFirstChild("CategoryIcon")
-    if rightIcon and not rightIcon:GetAttribute("IgnoreThemeChange") then
-        Tween(rightIcon, {ImageColor3 = newTheme.Text}, duration)
-    end
-    if not rightIcon then
-        rightIcon = instance:FindFirstChild("CategoryIcon", true)
-        if rightIcon and not rightIcon:GetAttribute("IgnoreThemeChange") then
-            Tween(rightIcon, {ImageColor3 = newTheme.Text}, duration)
-        end
-    end
-    local leftIconFrame = instance:FindFirstChild("LeftIconFrame")
-    if leftIconFrame then
-        local leftIcon = leftIconFrame:FindFirstChild("LeftIcon")
-        if leftIcon and leftIcon:IsA("ImageLabel") and not leftIcon:GetAttribute("IgnoreThemeChange") then
-            Tween(leftIcon, {ImageColor3 = newTheme.Text}, duration)
-        end
-    end
-    local leftIcon = instance:FindFirstChild("LeftIcon")
-    if leftIcon and leftIcon:IsA("ImageLabel") and not leftIcon:GetAttribute("IgnoreThemeChange") then
-        Tween(leftIcon, {ImageColor3 = newTheme.Text}, duration)
-    end
+        elseif obj.Type == "Category" then
+            local titleLabel = instance:FindFirstChild("Title")
+            local line = instance:FindFirstChild("Line")
+            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+            if line then Tween(line, {BackgroundColor3 = newTheme.Primary}, duration) end
+            local rightIcon = instance:FindFirstChild("CategoryIcon")
+            if rightIcon and not rightIcon:GetAttribute("IgnoreThemeChange") then
+                Tween(rightIcon, {ImageColor3 = newTheme.Text}, duration)
+            end
+            if not rightIcon then
+                rightIcon = instance:FindFirstChild("CategoryIcon", true)
+                if rightIcon and not rightIcon:GetAttribute("IgnoreThemeChange") then
+                    Tween(rightIcon, {ImageColor3 = newTheme.Text}, duration)
+                end
+            end
+            local leftIconFrame = instance:FindFirstChild("LeftIconFrame")
+            if leftIconFrame then
+                local leftIcon = leftIconFrame:FindFirstChild("LeftIcon")
+                if leftIcon and leftIcon:IsA("ImageLabel") and not leftIcon:GetAttribute("IgnoreThemeChange") then
+                    Tween(leftIcon, {ImageColor3 = newTheme.Text}, duration)
+                end
+            end
+            local leftIcon = instance:FindFirstChild("LeftIcon")
+            if leftIcon and leftIcon:IsA("ImageLabel") and not leftIcon:GetAttribute("IgnoreThemeChange") then
+                Tween(leftIcon, {ImageColor3 = newTheme.Text}, duration)
+            end
         elseif obj.Type == "TextInput" then
             local textBox = instance:FindFirstChild("TextBox")
             if textBox then
@@ -3611,7 +3563,6 @@ elseif obj.Type == "Category" then
                         Tween(icon, {ImageColor3 = newTheme.Text}, duration)
                     end
                 end
-                
                 local searchButton = titleBar:FindFirstChild("SearchButton")
                 if searchButton then
                     local searchIcon = searchButton:FindFirstChildOfClass("ImageLabel")
@@ -3754,29 +3705,29 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     local self = setmetatable({}, Panel)
     self.SnowEnabled = snowEnabled or false
     self.BackgroundImage = nil
-        function self:SetBackground(url)
-            if self.BackgroundImage then
-                self.BackgroundImage:Destroy()
-            end
-            if url and url ~= "" then
-                self.BackgroundImage = CreateInstance("ImageLabel", {
-                    Name = "Background",
-                    Size = UDim2.new(1, 0, 1, 0),
-                    Position = UDim2.new(0, 0, 0, 0),
-                    BackgroundTransparency = 1,
-                    Image = url,
-                    ImageTransparency = 0,
-                    ScaleType = Enum.ScaleType.Crop,
-                    ZIndex = 0,
-                    Parent = self.Instance
-                })
-                pcall(function()
-                    v9:PreloadAsync({url})
-                end)
-            else
-                self.BackgroundImage = nil
-            end
+    function self:SetBackground(url)
+        if self.BackgroundImage then
+            self.BackgroundImage:Destroy()
         end
+        if url and url ~= "" then
+            self.BackgroundImage = CreateInstance("ImageLabel", {
+                Name = "Background",
+                Size = UDim2.new(1, 0, 1, 0),
+                Position = UDim2.new(0, 0, 0, 0),
+                BackgroundTransparency = 1,
+                Image = url,
+                ImageTransparency = 0,
+                ScaleType = Enum.ScaleType.Crop,
+                ZIndex = 0,
+                Parent = self.Instance
+            })
+            pcall(function()
+                v9:PreloadAsync({url})
+            end)
+        else
+            self.BackgroundImage = nil
+        end
+    end
     if not position then
         local viewport = v7.CurrentCamera and v7.CurrentCamera.ViewportSize or v8:GetScreenSize()
         local width = size.X.Offset
@@ -4777,82 +4728,82 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y and
                not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn)
     end
-local function startDrag(input, processed)
-    if processed then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local mousePos = input.Position
-        if isPointOverDraggableArea(mousePos) then
-            dragging = true
-            dragStart = input.Position
-            startPos = self.Instance.Position
+    local function startDrag(input, processed)
+        if processed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local mousePos = input.Position
+            if isPointOverDraggableArea(mousePos) then
+                dragging = true
+                dragStart = input.Position
+                startPos = self.Instance.Position
+                currentDragTouch = nil
+                if dragRenderConn then dragRenderConn:Disconnect() end
+                dragRenderConn = v5.RenderStepped:Connect(function()
+                    if dragging then
+                        local delta = v4:GetMouseLocation() - dragStart
+                        local newX = startPos.X.Offset + delta.X
+                        local newY = startPos.Y.Offset + delta.Y
+                        self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
+                    end
+                end)
+                if not self.IsMinimized and self.SnowEnabled then
+                    self._dragTempSnowDisabled = true
+                    self.SnowEnabled = false
+                    if self.SnowContainer then
+                        self.SnowContainer.Visible = false
+                    end
+                end
+            end
+        elseif input.UserInputType == Enum.UserInputType.Touch then
+            local touchPos = input.Position
+            if isPointOverDraggableArea(touchPos) then
+                dragging = true
+                dragStart = input.Position
+                startPos = self.Instance.Position
+                currentDragTouch = input
+                if dragRenderConn then dragRenderConn:Disconnect() end
+                dragRenderConn = v5.RenderStepped:Connect(function()
+                    if dragging and currentDragTouch then
+                        local delta = currentDragTouch.Position - dragStart
+                        local newX = startPos.X.Offset + delta.X
+                        local newY = startPos.Y.Offset + delta.Y
+                        self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
+                    end
+                end)
+                if not self.IsMinimized and self.SnowEnabled then
+                    self._dragTempSnowDisabled = true
+                    self.SnowEnabled = false
+                    if self.SnowContainer then
+                        self.SnowContainer.Visible = false
+                    end
+                end
+            end
+        end
+    end
+    local function endDrag(input, processed)
+        if processed then return end
+        local isValid = false
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and dragging and currentDragTouch == nil then
+            isValid = true
+        elseif input.UserInputType == Enum.UserInputType.Touch and dragging and input == currentDragTouch then
+            isValid = true
+        end
+        if isValid then
+            dragging = false
+            if dragRenderConn then
+                dragRenderConn:Disconnect()
+                dragRenderConn = nil
+            end
             currentDragTouch = nil
-            if dragRenderConn then dragRenderConn:Disconnect() end
-            dragRenderConn = v5.RenderStepped:Connect(function()
-                if dragging then
-                    local delta = v4:GetMouseLocation() - dragStart
-                    local newX = startPos.X.Offset + delta.X
-                    local newY = startPos.Y.Offset + delta.Y
-                    self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
-                end
-            end)
-            if not self.IsMinimized and self.SnowEnabled then
-                self._dragTempSnowDisabled = true
-                self.SnowEnabled = false
+            if self._dragTempSnowDisabled then
+                self._dragTempSnowDisabled = nil
+                self.SnowEnabled = true
                 if self.SnowContainer then
-                    self.SnowContainer.Visible = false
-                end
-            end
-        end
-    elseif input.UserInputType == Enum.UserInputType.Touch then
-        local touchPos = input.Position
-        if isPointOverDraggableArea(touchPos) then
-            dragging = true
-            dragStart = input.Position
-            startPos = self.Instance.Position
-            currentDragTouch = input
-            if dragRenderConn then dragRenderConn:Disconnect() end
-            dragRenderConn = v5.RenderStepped:Connect(function()
-                if dragging and currentDragTouch then
-                    local delta = currentDragTouch.Position - dragStart
-                    local newX = startPos.X.Offset + delta.X
-                    local newY = startPos.Y.Offset + delta.Y
-                    self.Instance.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
-                end
-            end)
-            if not self.IsMinimized and self.SnowEnabled then
-                self._dragTempSnowDisabled = true
-                self.SnowEnabled = false
-                if self.SnowContainer then
-                    self.SnowContainer.Visible = false
+                    self.SnowContainer.Visible = true
                 end
             end
         end
     end
-end
-local function endDrag(input, processed)
-    if processed then return end
-    local isValid = false
-    if input.UserInputType == Enum.UserInputType.MouseButton1 and dragging and currentDragTouch == nil then
-        isValid = true
-    elseif input.UserInputType == Enum.UserInputType.Touch and dragging and input == currentDragTouch then
-        isValid = true
-    end
-    if isValid then
-        dragging = false
-        if dragRenderConn then
-            dragRenderConn:Disconnect()
-            dragRenderConn = nil
-        end
-        currentDragTouch = nil
-        if self._dragTempSnowDisabled then
-            self._dragTempSnowDisabled = nil
-            self.SnowEnabled = true
-            if self.SnowContainer then
-                self.SnowContainer.Visible = true
-            end
-        end
-    end
-end
     self.DraggableArea.InputBegan:Connect(startDrag)
     dragEndConn = v4.InputEnded:Connect(endDrag)
     local announcementHeight = 80
@@ -4925,11 +4876,18 @@ end
         if self.PrivacyMode == newState then return end
         self.PrivacyMode = newState
         updatePrivacyModeUI()
-        if WasUI.InternalConfigManager then
-            local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
-            internalConfig:Set("PrivacyMode", self.PrivacyMode)
-            internalConfig:Save()
-        end
+        task.spawn(function()
+            if WasUI.InternalConfigManager then
+                local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
+                if internalConfig then
+                    internalConfig:Set("PrivacyMode", self.PrivacyMode)
+                    local ok, err = pcall(function() internalConfig:Save() end)
+                    if not ok then
+                        warn("[WasUI] 保存隐私模式设置失败:", err)
+                    end
+                end
+            end
+        end)
     end
     if WasUI.InternalConfigManager then
         local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
@@ -5181,8 +5139,8 @@ end
         }
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = privacyKnob})
         privacyBg.MouseButton1Click:Connect(function()
-            self:SetPrivacyMode(not self.PrivacyMode)
-            if self.PrivacyMode then
+            local newState = not self.PrivacyMode
+            if newState then
                 Tween(privacyBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
                 SpringTween(privacyKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
             else
@@ -5190,6 +5148,9 @@ end
                 Tween(privacyBg, {BackgroundColor3 = offCol}, 0.2)
                 SpringTween(privacyKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
             end
+            task.spawn(function()
+                self:SetPrivacyMode(newState)
+            end)
         end)
         local snowContainer = CreateInstance("Frame", {
             Name = "SnowToggleContainer",
@@ -5900,9 +5861,16 @@ function WasUI:CreateWindow(options)
                 Bindings = {},
             }
             function config:Save()
-                local dataToSave = {}
-                for key, value in pairs(self.Data) do dataToSave[key] = value end
-                local json = v6:JSONEncode(dataToSave)
+                local toEncode = encodeValue(self.Data)
+                if toEncode == nil then
+                    warn("[WasUI] Internal配置数据无法编码，跳过保存:", configName)
+                    return false
+                end
+                local success, json = pcall(v6.JSONEncode, toEncode)
+                if not success then
+                    warn("[WasUI] Internal JSON编码失败:", json)
+                    return false
+                end
                 writefile(self.Path, json)
                 return true
             end
