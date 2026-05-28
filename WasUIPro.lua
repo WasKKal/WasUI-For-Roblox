@@ -36,7 +36,7 @@ WasUI.ActiveNotifications = {}
 WasUI.OpenDropdowns = {}
 WasUI.SettingsPanel = nil
 WasUI.GroupButtonText = "加入WasUI主群"
-WasUI.GroupCopyContent = "786284990"
+WasUI.GroupCopyContent = "https://github.com/WasKKal/OnlyJumpToOther/raw/refs/heads/main/IMG_1793.jpeg"
 WasUI.DefaultFeatureStates = {}
 WasUI.DefaultHotkeys = {}
 
@@ -5313,7 +5313,7 @@ self.Avatar.MouseButton1Click:Connect(function()
     groupButton.MouseButton1Click:Connect(function()
         local copied = copyToClipboard(WasUI.GroupCopyContent)
         if copied then
-            WasUI:Notify({Title = "复制成功", Content = "已复制：" .. WasUI.GroupCopyContent, Duration = 2})
+            WasUI:Notify({Title = "复制成功", Content = "图片链接已复制：" .. WasUI.GroupCopyContent, Duration = 2})
         else
             WasUI:Notify({Title = "复制失败", Content = "当前环境不支持复制到剪贴板", Duration = 2})
         end
