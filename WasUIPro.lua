@@ -530,12 +530,10 @@ function WasUI:CreateFolder(folderName)
             function config:Save()
                 local toEncode = encodeValue(self.Data)
                 if toEncode == nil then
-                    warn("[WasUI] Internal配置数据无法编码，跳过保存:", configName)
                     return false
                 end
                 local success, json = pcall(v6.JSONEncode, toEncode)
                 if not success then
-                    warn("[WasUI] Internal JSON编码失败:", json)
                     return false
                 end
                 writefile(self.Path, json)
@@ -602,12 +600,10 @@ function WasUI:CreateFolder(folderName)
             if not WasUI.ConfigFolderCreated then return false end
             local toEncode = encodeValue(self.Data)
             if toEncode == nil then
-                warn("[WasUI] 配置数据无法编码，跳过保存:", configName)
                 return false
             end
             local success, json = pcall(v6.JSONEncode, toEncode)
             if not success then
-                warn("[WasUI] JSON编码失败:", json)
                 return false
             end
             writefile(self.Path, json)
