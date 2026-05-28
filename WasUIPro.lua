@@ -470,6 +470,7 @@ end
 local function encodeValue(v, visited)
     if visited == nil then visited = {} end
     local t = type(v)
+
     if t == "nil" or t == "function" then
         return nil
     elseif t == "number" or t == "string" or t == "boolean" then
@@ -490,8 +491,19 @@ local function encodeValue(v, visited)
         visited[v] = nil
         return out
     elseif t == "userdata" then
-        if pcall(function() return v.X end) then
-            return {X = v.X, Y = v.Y, Z = v.Z}
+        if pcall(function() return v.X end) and pcall(function() return v.Y end) then
+            if pcall(function() return v.Z end) then
+                return {X = v.X, Y = v.Y, Z = v.Z}
+            elseif pcall(function() return v.Scale end) then
+                return {Scale = v.Scale, Offset = v.Offset}
+            elseif pcall(function() return v.X.Scale end) then
+                return {
+                    X = {Scale = v.X.Scale, Offset = v.X.Offset},
+                    Y = {Scale = v.Y.Scale, Offset = v.Y.Offset}
+                }
+            else
+                return {X = v.X, Y = v.Y}
+            end
         elseif pcall(function() return v.R end) then
             return {R = v.R, G = v.G, B = v.B}
         elseif pcall(function() return v.Scale end) then
@@ -4872,23 +4884,23 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self.ExecutorLabel.Text = "执行器: " .. executorName
         end
     end
-    self.SetPrivacyMode = function(newState)
-        if self.PrivacyMode == newState then return end
-        self.PrivacyMode = newState
-        updatePrivacyModeUI()
-        task.spawn(function()
-            if WasUI.InternalConfigManager then
-                local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
-                if internalConfig then
-                    internalConfig:Set("PrivacyMode", self.PrivacyMode)
-                    local ok, err = pcall(function() internalConfig:Save() end)
-                    if not ok then
-                        warn("[WasUI] 保存隐私模式设置失败:", err)
-                    end
+self.SetPrivacyMode = function(newState)
+    if self.PrivacyMode == newState then return end
+    self.PrivacyMode = newState
+    updatePrivacyModeUI()
+    task.spawn(function()
+        if WasUI.InternalConfigManager then
+            local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
+            if internalConfig then
+                internalConfig:Set("PrivacyMode", self.PrivacyMode)
+                local ok, err = pcall(function() internalConfig:Save() end)
+                if not ok then
+                    warn("[WasUI] 保存隐私模式设置失败:", err)
                 end
             end
-        end)
-    end
+        end
+    end)
+end
     if WasUI.InternalConfigManager then
         local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
         local savedPrivacy = internalConfig:Get("PrivacyMode")
