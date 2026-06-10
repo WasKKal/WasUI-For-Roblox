@@ -726,12 +726,40 @@ end
 local function RefreshRainbowLayout()
     local startY = 8
     local spacing = 2
+    local height = 20
+    
+    local total = #WasUI.RainbowOrder
+    if total == 0 then return end
+    
+    local maxTargetY = (total - 1) * (height + spacing)
+    
     for i, featureName in ipairs(WasUI.RainbowOrder) do
         local data = WasUI.ActiveRainbowTexts[featureName]
         if data and data.Label then
-            local targetY = startY
-            Tween(data.Label, {Position = UDim2.new(1, -190, 0, targetY)}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-            startY = startY + 20 + spacing
+            local targetY = startY + (i-1) * (height + spacing)
+            Tween(data.Label, {Position = UDim2.new(1, -190, 0, targetY)}, 0.3)
+            
+            local ratio = 0
+            if maxTargetY > 0 then
+                ratio = targetY / maxTargetY
+            end
+            
+            local color1 = data.Color1 or WasUI.CurrentTheme.Accent
+            local color2 = data.Color2 or WasUI.CurrentTheme.Text
+            
+            local topColor = color1:Lerp(color2, ratio)
+            
+            local gradient = data.Label:FindFirstChildOfClass("UIGradient")
+            if not gradient then
+                gradient = Instance.new("UIGradient")
+                gradient.Parent = data.Label
+            end
+            gradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, topColor),
+                ColorSequenceKeypoint.new(1, color2)
+            })
+            gradient.Rotation = 270
+            data.Label.TextColor3 = Color3.new(1, 1, 1)
         end
     end
 end
@@ -751,7 +779,7 @@ local function RebuildRainbowOrderByLength()
     RefreshRainbowLayout()
 end
 
-local function CreateRainbowTextForFeature(featureName, color1, color2, ratio)
+local function CreateRainbowTextForFeature(featureName, color1, color2)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
     local screenGui = CreateInstance("ScreenGui", {
@@ -775,24 +803,20 @@ local function CreateRainbowTextForFeature(featureName, color1, color2, ratio)
         TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
         Parent = screenGui
     })
-    if color1 and color2 and ratio then
-        local topColor = color1:Lerp(color2, ratio)
-        local gradient = Instance.new("UIGradient")
-        gradient.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, topColor),
-            ColorSequenceKeypoint.new(1, color2)
-        })
-        gradient.Rotation = 270
-        gradient.Parent = textLabel
-        textLabel.TextColor3 = Color3.new(1, 1, 1)
-    end
+    
+    local c1 = color1 or WasUI.CurrentTheme.Accent
+    local c2 = color2 or WasUI.CurrentTheme.Text
+    
     WasUI.ActiveRainbowTexts[featureName] = {
         ScreenGui = screenGui,
         Connection = nil,
         Label = textLabel,
         OriginalText = featureName,
-        IsMerged = false
+        IsMerged = false,
+        Color1 = c1,
+        Color2 = c2
     }
+    
     RebuildRainbowOrderByLength()
 end
 
@@ -1376,27 +1400,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         end
     end
     if tips then WasUI:CreateTooltip(self.Container, tips) end
-    local ratio = 0
-    local parentContent = self.Container.Parent
-    if parentContent then
-        local siblings = parentContent:GetChildren()
-        local toggleContainers = {}
-        for _, child in ipairs(siblings) do
-            if child:IsA("Frame") and child.Name == "ToggleContainer" then
-                table.insert(toggleContainers, child)
-            end
-        end
-        local total = #toggleContainers
-        if total > 0 then
-            for i, container in ipairs(toggleContainers) do
-                if container == self.Container then
-                    ratio = (i - 1) / (total - 1)
-                    break
-                end
-            end
-        end
-    end
-    self._ratio = ratio
+
     local featureColor1, featureColor2 = nil, nil
     local current = parent
     while current do
@@ -1414,10 +1418,11 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     end
 
     if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then 
-        CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2, self._ratio) 
+        CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2) 
     end
 
     AddRipple(self.Background, 2.5)
+
     local function performToggle(newState)
         self.Toggled = newState
         self.Background:SetAttribute("Toggled", self.Toggled)
@@ -1425,7 +1430,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
             SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
             if self.RainbowName and self.RainbowName ~= "" then 
-                CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2, self._ratio) 
+                CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2) 
             end
             if iconName then local iconImg = self.Knob:FindFirstChildOfClass("ImageLabel") if iconImg then iconImg.ImageColor3 = WasUI.CurrentTheme.Success end end
         else
@@ -1444,6 +1449,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             if config then config:Set(configKey, self.Toggled); config:Save() end
         end
     end
+
     local function setStateSilently(newState, fireCallback)
         if self.Toggled == newState then return end
         self.Toggled = newState
@@ -1452,7 +1458,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
             SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
             if self.RainbowName and self.RainbowName ~= "" then 
-                CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2, self._ratio) 
+                CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2) 
             end
             if iconName then local iconImg = self.Knob:FindFirstChildOfClass("ImageLabel") if iconImg then iconImg.ImageColor3 = WasUI.CurrentTheme.Success end end
         else
@@ -1471,6 +1477,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             if config then config:Set(configKey, self.Toggled); config:Save() end
         end
     end
+
     function self:SetToggle(newState) performToggle(newState) end
     self._setStateSilently = setStateSilently
     self.Background.MouseButton1Click:Connect(function() performToggle(not self.Toggled) end)
@@ -3802,7 +3809,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         c2.Value = featureNameColor[2]
         c2.Parent = colorFolder
     end
-
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
     if backgroundUrl and backgroundUrl ~= "" then
         self:SetBackground(backgroundUrl)
@@ -6031,8 +6037,8 @@ function WasUI:CreateWindow(options)
                 local default = opts.Default or 50
                 local callback = opts.Callback
                 local configKey = opts.ConfigKey
-                local ticks = opts.Ticks
-                return Slider:New("Slider", self._content, title, min, max, default, callback, configKey, ticks)
+                local step = opts.Step
+                return Slider:New("Slider", self._content, title, min, max, default, callback, configKey, step)
             end
             function catFacade:Dropdown(opts)
                 local title = opts.Title or ""
@@ -6107,8 +6113,8 @@ function WasUI:CreateWindow(options)
             local default = opts.Default or 50
             local callback = opts.Callback
             local configKey = opts.ConfigKey
-            local ticks = opts.Ticks
-            return Slider:New("Slider", tabFrame, title, min, max, default, callback, configKey, ticks)
+            local step = opts.Step
+            return Slider:New("Slider", tabFrame, title, min, max, default, callback, configKey, step)
         end
         function tabFacade:Dropdown(opts)
             local title = opts.Title or ""
