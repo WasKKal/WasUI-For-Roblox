@@ -751,7 +751,7 @@ local function RebuildRainbowOrderByLength()
     RefreshRainbowLayout()
 end
 
-local function CreateRainbowTextForFeature(featureName)
+local function CreateRainbowTextForFeature(featureName, color1, color2)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
     local screenGui = CreateInstance("ScreenGui", {
@@ -775,6 +775,16 @@ local function CreateRainbowTextForFeature(featureName)
         TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
         Parent = screenGui
     })
+    if color1 and color2 then
+        local gradient = Instance.new("UIGradient")
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, color1),
+            ColorSequenceKeypoint.new(1, color2)
+        })
+        gradient.Rotation = 270
+        gradient.Parent = textLabel
+        textLabel.TextColor3 = Color3.new(1, 1, 1)
+    end
     WasUI.ActiveRainbowTexts[featureName] = {
         ScreenGui = screenGui,
         Connection = nil,
@@ -813,7 +823,9 @@ local rainbowConnection = v5.Heartbeat:Connect(function(deltaTime)
     local b = (math.sin(rainbowTime + 2*math.pi/3) + 1) / 2
     local color = Color3.new(r, g, b)
     for _, data in pairs(WasUI.ActiveRainbowTexts) do
-        if data.Label then data.Label.TextColor3 = color end
+        if data.Label and not data.Label:FindFirstChild("UIGradient") then
+            data.Label.TextColor3 = color
+        end
     end
 end)
 
@@ -1168,20 +1180,6 @@ function Control:SetVisible(visible)
     if self.Instance then self.Instance.Visible = visible end
 end
 
-local function GetFeatureNameColor(parent)
-    local current = parent
-    while current do
-        if current:IsA("Frame") and current:GetAttribute("FeatureNameColor") then
-            local colorData = current:GetAttribute("FeatureNameColor")
-            if type(colorData) == "table" and #colorData == 2 then
-                return colorData[1], colorData[2]
-            end
-        end
-        current = current.Parent
-    end
-    return Color3.fromRGB(0, 255, 0), Color3.fromRGB(200, 0, 255)
-end
-
 local Button = setmetatable({}, {__index = Control})
 Button.__index = Button
 function Button:New(name, parent, text, onClick, size, iconName, tips)
@@ -1341,14 +1339,6 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             Parent = self.Container
         })
         WasUI:SetLocalizedText(self.TitleLabel, title)
-        local c1, c2 = GetFeatureNameColor(parent)
-        local gradient = Instance.new("UIGradient")
-        gradient.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, c1),
-            ColorSequenceKeypoint.new(1, c2)
-        })
-        gradient.Rotation = 270
-        gradient.Parent = self.TitleLabel
     end
     local offColor = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
     local bgPos = title and UDim2.new(1, -40, 0.5, -9) or UDim2.new(0, 0, 0.5, -9)
@@ -1385,7 +1375,19 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         end
     end
     if tips then WasUI:CreateTooltip(self.Container, tips) end
-    if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then CreateRainbowTextForFeature(self.RainbowName) end
+    local featureColor1, featureColor2 = nil, nil
+    local current = parent
+    while current do
+        if current:GetAttribute("FeatureNameColor") then
+            local colorData = current:GetAttribute("FeatureNameColor")
+            if type(colorData) == "table" and #colorData == 2 then
+                featureColor1, featureColor2 = colorData[1], colorData[2]
+                break
+            end
+        end
+        current = current.Parent
+    end
+    if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2) end
     AddRipple(self.Background, 2.5)
     local function performToggle(newState)
         self.Toggled = newState
@@ -1393,7 +1395,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         if self.Toggled then
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
             SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
-            if self.RainbowName and self.RainbowName ~= "" then CreateRainbowTextForFeature(self.RainbowName) end
+            if self.RainbowName and self.RainbowName ~= "" then CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2) end
             if iconName then local iconImg = self.Knob:FindFirstChildOfClass("ImageLabel") if iconImg then iconImg.ImageColor3 = WasUI.CurrentTheme.Success end end
         else
             local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
@@ -1418,7 +1420,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         if self.Toggled then
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
             SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
-            if self.RainbowName and self.RainbowName ~= "" then CreateRainbowTextForFeature(self.RainbowName) end
+            if self.RainbowName and self.RainbowName ~= "" then CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2) end
             if iconName then local iconImg = self.Knob:FindFirstChildOfClass("ImageLabel") if iconImg then iconImg.ImageColor3 = WasUI.CurrentTheme.Success end end
         else
             local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
@@ -3742,7 +3744,7 @@ local function isPointOverButton(btn, point)
            point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y
 end
 
-function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, titleTag)
+function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, titleTag, featureNameColor)
     local self = setmetatable({}, Panel)
     self.SnowEnabled = snowEnabled or false
     self.BackgroundImage = nil
@@ -3785,6 +3787,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         ZIndex = 1,
         Parent = parent
     })
+    if featureNameColor then
+        self.Instance:SetAttribute("FeatureNameColor", featureNameColor)
+    end
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
     if backgroundUrl and backgroundUrl ~= "" then
         self:SetBackground(backgroundUrl)
@@ -4986,8 +4991,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 280, 0, 340),
-            Position = UDim2.new(0.5, -140, 0.5, -170),
+            Size = UDim2.new(0, 280, 0, 260),
+            Position = UDim2.new(0.5, -140, 0.5, -130),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
@@ -5854,6 +5859,7 @@ function WasUI:CreateWindow(options)
     local background = options.Background
     local snowEnabled = options.SnowEnabled or false
     local titleTag = options.TitleTag
+    local featureNameColor = options.FeatureNameColor
     if not WasUI.InternalConfigManager then
         local internalPath = "WasUI_Configs/WasUI_Internal"
         if not isfolder(internalPath) then makefolder(internalPath) end
@@ -5934,7 +5940,7 @@ function WasUI:CreateWindow(options)
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = self.DefaultDisplayOrder
     screenGui.Parent = v11
-    local window = Panel:New(title, screenGui, size, position, background, snowEnabled, titleTag)
+    local window = Panel:New(title, screenGui, size, position, background, snowEnabled, titleTag, featureNameColor)
     if options.WelcomeText then
         window:SetWelcome(options.WelcomeText)
     end
