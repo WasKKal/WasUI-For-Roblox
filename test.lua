@@ -36,7 +36,7 @@ WasUI.ActiveNotifications = {}
 WasUI.OpenDropdowns = {}
 WasUI.SettingsPanel = nil
 WasUI.GroupButtonText = "加入WasUI主群"
-WasUI.GroupCopyContent = "786284990"
+WasUI.GroupCopyContent = "https://github.com/WasKKal/OnlyJumpToOther/raw/refs/heads/main/IMG_1793.jpeg"
 WasUI.DefaultFeatureStates = {}
 WasUI.DefaultHotkeys = {}
 
@@ -206,9 +206,6 @@ function WasUI:RefreshAllTexts()
     end
 end
 
-function WasUI:RefreshSettingsPanelTexts()
-end
-
 function WasUI:SetDefaultTheme(themeName)
     if self.Themes[themeName] then
         self.DefaultTheme = themeName
@@ -259,19 +256,19 @@ WasUI.Themes = {
         SnowColor = Color3.fromRGB(0, 0, 0)
     },
     Blue = {
-        Primary = Color3.fromRGB(10, 22, 40),
-        Secondary = Color3.fromRGB(23, 42, 69),
-        Background = Color3.fromRGB(26, 43, 74),
-        Text = Color3.fromRGB(224, 230, 237),
-        Accent = Color3.fromRGB(255, 140, 0),
-        Success = Color3.fromRGB(46, 204, 113),
-        Warning = Color3.fromRGB(241, 196, 15),
-        Error = Color3.fromRGB(231, 76, 60),
-        Section = Color3.fromRGB(31, 58, 95),
-        Input = Color3.fromRGB(20, 37, 61),
-        TabBorder = Color3.fromRGB(46, 74, 106),
-        TabButton = Color3.fromRGB(15, 30, 51),
-        SnowColor = Color3.fromRGB(255, 255, 255)
+        Primary = Color3.fromRGB(13, 27, 42),
+        Secondary = Color3.fromRGB(21, 45, 68),
+        Background = Color3.fromRGB(26, 54, 78),
+        Text = Color3.fromRGB(240, 248, 255),
+        Accent = Color3.fromRGB(255, 120, 0),
+        Success = Color3.fromRGB(0, 200, 100),
+        Warning = Color3.fromRGB(255, 180, 50),
+        Error = Color3.fromRGB(255, 70, 70),
+        Section = Color3.fromRGB(34, 67, 92),
+        Input = Color3.fromRGB(22, 48, 72),
+        TabBorder = Color3.fromRGB(50, 90, 120),
+        TabButton = Color3.fromRGB(18, 40, 60),
+        SnowColor = Color3.fromRGB(240, 248, 255)
     }
 }
 WasUI.CurrentTheme = WasUI.Themes[WasUI.DefaultTheme]
@@ -288,12 +285,6 @@ WasUI.ConfigFolderName = nil
 WasUI.ActiveDialogs = {}
 WasUI.ExternalPopupCalled = false
 
-local function RecordOriginalTransparency(instance)
-    if instance and instance:IsA("GuiObject") then
-        instance:SetAttribute("OriginalTransparency", instance.BackgroundTransparency)
-    end
-end
-
 local function EnsureShortcutGui()
     if not WasUI.ShortcutGui or not WasUI.ShortcutGui.Parent then
         WasUI.ShortcutGui = Instance.new("ScreenGui")
@@ -304,6 +295,17 @@ local function EnsureShortcutGui()
     end
 end
 EnsureShortcutGui()
+
+local function EnsureRippleGui()
+    if not WasUI.RippleGui or not WasUI.RippleGui.Parent then
+        WasUI.RippleGui = Instance.new("ScreenGui")
+        WasUI.RippleGui.Name = "WasUI_Ripples"
+        WasUI.RippleGui.ResetOnSpawn = false
+        WasUI.RippleGui.DisplayOrder = 10000
+        WasUI.RippleGui.Parent = v11
+    end
+end
+EnsureRippleGui()
 
 local function EnsureNotificationGui()
     if not WasUI.NotificationGui or not WasUI.NotificationGui.Parent then
@@ -332,6 +334,7 @@ local function CreateInstance(className, properties)
     for prop, value in pairs(properties) do instance[prop] = value end
     return instance
 end
+
 local function Tween(instance, properties, duration, easingStyle, easingDirection)
     if not instance or not instance:IsDescendantOf(game) then return nil end
     easingStyle = easingStyle or Enum.EasingStyle.Quad
@@ -442,20 +445,6 @@ function WasUI:Notify(options)
     end)
 end
 
-local function ensureConfigFolderExists()
-    if not WasUI.ConfigFolderCreated then
-        WasUI:Notify({
-            Title = "配置错误",
-            Content = "当前脚本作者未正确配置 Folder 状态，请先调用 WasUI:CreateFolder('文件夹名')",
-            Duration = 4,
-            BackgroundColor = WasUI.CurrentTheme.Error,
-            BorderColor = WasUI.CurrentTheme.Error
-        })
-        return false
-    end
-    return true
-end
-
 function WasUI:SetDefaultFeatureStates(states)
     self.DefaultFeatureStates = states or {}
     if self.ConfigManager then
@@ -474,22 +463,121 @@ function WasUI:SetFeatureHotkeys(hotkeys)
     end
 end
 
+local function encodeValue(v, visited)
+    if visited == nil then visited = {} end
+    local t = type(v)
+    if t == "nil" or t == "function" or t == "thread" or t == "userdata" then
+        return nil
+    elseif t == "number" then
+        if v ~= v or v == math.huge or v == -math.huge then
+            return nil
+        end
+        return v
+    elseif t == "string" or t == "boolean" then
+        return v
+    elseif t == "table" then
+        if visited[v] then return nil end
+        visited[v] = true
+        local out = {}
+        for k, val in pairs(v) do
+            local key = encodeValue(k, visited)
+            if key ~= nil and (type(key) == "string" or type(key) == "number") then
+                local encodedVal = encodeValue(val, visited)
+                if encodedVal ~= nil then
+                    out[tostring(key)] = encodedVal
+                end
+            end
+        end
+        visited[v] = nil
+        return out
+    else
+        return nil
+    end
+end
+
 function WasUI:CreateFolder(folderName)
     if not folderName or folderName == "" then
-        error("CreateFolder: folderName cannot be empty")
+        error("CreateWindow: Folder name cannot be empty")
     end
     local path = "WasUI_Configs/" .. folderName
     if not isfolder(path) then makefolder(path) end
     WasUI.ConfigFolderCreated = true
     WasUI.ConfigFolderName = folderName
+    if not WasUI.InternalConfigManager then
+        local internalPath = "WasUI_Configs/WasUI_Internal"
+        if not isfolder(internalPath) then makefolder(internalPath) end
+        local internalManager = {}
+        local function getInternalFilePath(configName)
+            return internalPath .. "/" .. configName .. ".json"
+        end
+        function internalManager:GetConfig(configName)
+            local filePath = getInternalFilePath(configName)
+            local config = {
+                Name = configName,
+                Path = filePath,
+                Data = {},
+                Bindings = {},
+            }
+            function config:Set(key, value)
+                self.Data[key] = value
+                return true
+            end
+            function config:Save()
+                local toEncode = encodeValue(self.Data)
+                if toEncode == nil then
+                    return false
+                end
+                local success, json = pcall(v6.JSONEncode, toEncode)
+                if not success then
+                    return false
+                end
+                writefile(self.Path, json)
+                return true
+            end
+            function config:Load()
+                if not isfile(self.Path) then return false end
+                local success, data = pcall(function()
+                    return v6:JSONDecode(readfile(self.Path))
+                end)
+                if success and type(data) == "table" then
+                    self.Data = data
+                    for key, value in pairs(self.Data) do
+                        local binding = self.Bindings[key]
+                        if binding and binding.control and binding.update then
+                            binding.update(value)
+                        end
+                    end
+                    return true
+                end
+                return false
+            end
+            function config:Delete()
+                if isfile(self.Path) then delfile(self.Path) end
+                self.Data = {}
+                self.Bindings = {}
+                return true
+            end
+            function config:Get(key, defaultValue)
+                local val = self.Data[key]
+                if val == nil then return defaultValue end
+                return val
+            end
+            function config:Bind(key, control, updateFunc)
+                self.Bindings[key] = { control = control, update = updateFunc }
+                local savedValue = self.Data[key]
+                if savedValue ~= nil then updateFunc(savedValue) end
+            end
+            if isfile(filePath) then config:Load() end
+            return config
+        end
+        WasUI.InternalConfigManager = internalManager
+    end
     WasUI.ConfigManager = {}
-    
     local function getFilePath(configName)
         return path .. "/" .. configName .. ".json"
     end
-    
     function WasUI.ConfigManager:GetConfig(configName)
-        if not ensureConfigFolderExists() then return nil end
+        if not WasUI.ConfigFolderCreated then return nil end
         local filePath = getFilePath(configName)
         local config = {
             Name = configName,
@@ -497,18 +585,25 @@ function WasUI:CreateFolder(folderName)
             Data = {},
             Bindings = {},
         }
-        
+        function config:Set(key, value)
+            self.Data[key] = value
+            return true
+        end
         function config:Save()
-            if not ensureConfigFolderExists() then return false end
-            local dataToSave = {}
-            for key, value in pairs(self.Data) do dataToSave[key] = value end
-            local json = v6:JSONEncode(dataToSave)
+            if not WasUI.ConfigFolderCreated then return false end
+            local toEncode = encodeValue(self.Data)
+            if toEncode == nil then
+                return false
+            end
+            local success, json = pcall(v6.JSONEncode, toEncode)
+            if not success then
+                return false
+            end
             writefile(self.Path, json)
             return true
         end
-        
         function config:Load()
-            if not ensureConfigFolderExists() then return false end
+            if not WasUI.ConfigFolderCreated then return false end
             if not isfile(self.Path) then return false end
             local success, data = pcall(function()
                 return v6:JSONDecode(readfile(self.Path))
@@ -517,43 +612,36 @@ function WasUI:CreateFolder(folderName)
                 self.Data = data
                 for key, value in pairs(self.Data) do
                     local binding = self.Bindings[key]
-                    if binding and binding.control and binding.update then binding.update(value) end
+                    if binding and binding.control and binding.update then
+                        binding.update(value)
+                    end
                 end
                 return true
             end
             return false
         end
-        
         function config:Delete()
-            if not ensureConfigFolderExists() then return false end
+            if not WasUI.ConfigFolderCreated then return false end
             if isfile(self.Path) then delfile(self.Path) end
             self.Data = {}
             self.Bindings = {}
             return true
         end
-        
-        function config:Set(key, value)
-            self.Data[key] = value
-        end
-        
         function config:Get(key, defaultValue)
             local val = self.Data[key]
             if val == nil then return defaultValue end
             return val
         end
-        
         function config:Bind(key, control, updateFunc)
             self.Bindings[key] = { control = control, update = updateFunc }
             local savedValue = self.Data[key]
             if savedValue ~= nil then updateFunc(savedValue) end
         end
-        
         if isfile(filePath) then config:Load() end
         return config
     end
-    
     function WasUI.ConfigManager:AllConfigs()
-        if not ensureConfigFolderExists() then return {} end
+        if not WasUI.ConfigFolderCreated then return {} end
         local files = {}
         if listfiles then
             for _, file in ipairs(listfiles(path)) do
@@ -563,19 +651,16 @@ function WasUI:CreateFolder(folderName)
         end
         return files
     end
-    
     function WasUI.ConfigManager:DeleteConfig(configName)
-        if not ensureConfigFolderExists() then return false end
+        if not WasUI.ConfigFolderCreated then return false end
         local filePath = getFilePath(configName)
         if isfile(filePath) then delfile(filePath) end
         return true
     end
-    
     function WasUI.ConfigManager:GetConfigNames()
-        if not ensureConfigFolderExists() then return {} end
+        if not WasUI.ConfigFolderCreated then return {} end
         return self:AllConfigs()
     end
-    
     function WasUI.ConfigManager:LoadConfigByName(configName)
         local config = self:GetConfig(configName)
         if config then
@@ -584,18 +669,14 @@ function WasUI:CreateFolder(folderName)
         end
         return false
     end
-    
     function WasUI.ConfigManager:SaveConfigByName(configName, data)
         local config = self:GetConfig(configName)
         for k, v in pairs(data) do config:Set(k, v) end
         config:Save()
     end
-    
     function WasUI.ConfigManager:DeleteConfigByName(configName)
         self:DeleteConfig(configName)
     end
-    
-    WasUI:Notify({Title = "配置系统", Content = "已创建配置文件夹: " .. folderName, Duration = 2})
     return WasUI.ConfigManager
 end
 
@@ -643,17 +724,33 @@ function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
 end
 
 local function RefreshRainbowLayout()
-    local startY = 10
-    local spacing = 5
+    local startY = 8
+    local spacing = 2
     for i, featureName in ipairs(WasUI.RainbowOrder) do
         local data = WasUI.ActiveRainbowTexts[featureName]
         if data and data.Label then
-            data.Label.Position = UDim2.new(1, -190, 0, startY)
-            data.Label.Size = UDim2.new(0, 180, 0, 20)
+            local targetY = startY
+            Tween(data.Label, {Position = UDim2.new(1, -190, 0, targetY)}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
             startY = startY + 20 + spacing
         end
     end
 end
+
+local function RebuildRainbowOrderByLength()
+    local sorted = {}
+    for name, data in pairs(WasUI.ActiveRainbowTexts) do
+        table.insert(sorted, {name = name, length = #name})
+    end
+    table.sort(sorted, function(a, b)
+        return a.length > b.length
+    end)
+    WasUI.RainbowOrder = {}
+    for _, item in ipairs(sorted) do
+        table.insert(WasUI.RainbowOrder, item.name)
+    end
+    RefreshRainbowLayout()
+end
+
 local function CreateRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
@@ -678,35 +775,32 @@ local function CreateRainbowTextForFeature(featureName)
         TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
         Parent = screenGui
     })
-    local creationOrder = #WasUI.RainbowOrder + 1
     WasUI.ActiveRainbowTexts[featureName] = {
         ScreenGui = screenGui,
         Connection = nil,
         Label = textLabel,
-        CreationOrder = creationOrder,
         OriginalText = featureName,
         IsMerged = false
     }
-    table.insert(WasUI.RainbowOrder, featureName)
-    local targetY = 10 + (#WasUI.RainbowOrder - 1) * (20 + 5)
-    local targetPos = UDim2.new(1, -190, 0, targetY)
-    textLabel.Position = UDim2.new(1, 10, 0, targetY)
-    Tween(textLabel, {Position = targetPos}, 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    RebuildRainbowOrderByLength()
 end
 
 local function DestroyRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     local data = WasUI.ActiveRainbowTexts[featureName]
-    if data then
-        if data.ScreenGui then data.ScreenGui:Destroy() end
+    if data and data.Label then
+        local startPos = data.Label.Position
+        local exitPos = UDim2.new(1, 10, 0, startPos.Y.Offset)
+        Tween(data.Label, {Position = exitPos, TextTransparency = 1}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+        task.delay(0.25, function()
+            if data.ScreenGui then data.ScreenGui:Destroy() end
+            WasUI.ActiveRainbowTexts[featureName] = nil
+            RebuildRainbowOrderByLength()
+        end)
+    else
+        if data and data.ScreenGui then data.ScreenGui:Destroy() end
         WasUI.ActiveRainbowTexts[featureName] = nil
-        for i, name in ipairs(WasUI.RainbowOrder) do
-            if name == featureName then
-                table.remove(WasUI.RainbowOrder, i)
-                break
-            end
-        end
-        RefreshRainbowLayout()
+        RebuildRainbowOrderByLength()
     end
 end
 
@@ -787,6 +881,29 @@ local function LoadKeyBinding(key)
     return nil
 end
 
+local dragOverlay = nil
+local function ensureDragOverlay()
+    if not dragOverlay or not dragOverlay.Parent then
+        dragOverlay = Instance.new("Frame")
+        dragOverlay.Name = "DragOverlay"
+        dragOverlay.Size = UDim2.new(1, 0, 1, 0)
+        dragOverlay.BackgroundTransparency = 1
+        dragOverlay.ZIndex = 99999
+        dragOverlay.Active = true
+        dragOverlay.Selectable = true
+        dragOverlay.Parent = v11
+    end
+end
+
+local function showDragOverlay()
+    ensureDragOverlay()
+    dragOverlay.Visible = true
+end
+
+local function hideDragOverlay()
+    if dragOverlay then dragOverlay.Visible = false end
+end
+
 local function AddLongPressToControl(controlInstance, onLongPress, longPressTime)
     longPressTime = longPressTime or 0.5
     local timer = nil
@@ -798,8 +915,8 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
         startPos = nil
     end
     local function startPress(input)
-        cleanup()
         if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            cleanup()
             pressed = true
             startPos = input.Position
             timer = task.delay(longPressTime, function()
@@ -841,29 +958,36 @@ end)
 local function AddRipple(instance, scaleFactor)
     scaleFactor = scaleFactor or 1.5
     local function createRipple(input)
+        EnsureRippleGui()
         local ripple = Instance.new("Frame")
         ripple.Name = "Ripple"
         ripple.Size = UDim2.new(0, 0, 0, 0)
         ripple.BackgroundColor3 = WasUI.CurrentTheme.Accent
         ripple.BackgroundTransparency = 0.6
         ripple.BorderSizePixel = 0
-        ripple.ZIndex = 10
+        ripple.ZIndex = 100000
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(1, 0)
         corner.Parent = ripple
-        ripple.Parent = instance
-        local mousePos = input.Position
+        ripple.Parent = WasUI.RippleGui
+        local clickPos = input.Position
         local btnPos = instance.AbsolutePosition
-        local x = mousePos.X - btnPos.X
-        local y = mousePos.Y - btnPos.Y
-        ripple.Position = UDim2.new(0, x, 0, y)
+        local relX = clickPos.X - btnPos.X
+        local relY = clickPos.Y - btnPos.Y
+        ripple.Position = UDim2.new(0, clickPos.X, 0, clickPos.Y)
         ripple.AnchorPoint = Vector2.new(0.5, 0.5)
         local maxSize = math.max(instance.AbsoluteSize.X, instance.AbsoluteSize.Y) * scaleFactor
         Tween(ripple, {Size = UDim2.new(0, maxSize, 0, maxSize), BackgroundTransparency = 1}, 0.5)
-        task.delay(0.5, function() ripple:Destroy() end)
+        task.delay(0.5, function()
+            if ripple and ripple.Parent then
+                ripple:Destroy()
+            end
+        end)
     end
     instance.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then createRipple(input) end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            createRipple(input)
+        end
     end)
 end
 
@@ -961,9 +1085,11 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragData.dragging = true; dragData.moved = false; dragData.startPos = btnFrame.Position; dragData.startMouse = input.Position; dragData.currentTouch = nil
             SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
+            showDragOverlay()
         elseif input.UserInputType == Enum.UserInputType.Touch then
             dragData.dragging = true; dragData.moved = false; dragData.startPos = btnFrame.Position; dragData.startMouse = input.Position; dragData.currentTouch = input
             SpringTween(btnFrame, {BackgroundTransparency = 0.1}, 0.1)
+            showDragOverlay()
         end
     end
     local function onInputChanged(input, processed)
@@ -998,6 +1124,7 @@ local function CreateShortcutButton(displayName, isToggle, initialState, onToggl
                 end
             end
             dragData.dragging = false; dragData.currentTouch = nil; SpringTween(btnFrame, {BackgroundTransparency = 0.2}, 0.1)
+            hideDragOverlay()
         end
     end
     btnFrame.InputBegan:Connect(onInputBegan)
@@ -1039,6 +1166,20 @@ end
 function Control:SetVisible(visible)
     self.Visible = visible
     if self.Instance then self.Instance.Visible = visible end
+end
+
+local function GetFeatureNameColor(parent)
+    local current = parent
+    while current do
+        if current:IsA("Frame") and current:GetAttribute("FeatureNameColor") then
+            local colorData = current:GetAttribute("FeatureNameColor")
+            if type(colorData) == "table" and #colorData == 2 then
+                return colorData[1], colorData[2]
+            end
+        end
+        current = current.Parent
+    end
+    return Color3.fromRGB(0, 255, 0), Color3.fromRGB(200, 0, 255)
 end
 
 local Button = setmetatable({}, {__index = Control})
@@ -1200,6 +1341,14 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             Parent = self.Container
         })
         WasUI:SetLocalizedText(self.TitleLabel, title)
+        local c1, c2 = GetFeatureNameColor(parent)
+        local gradient = Instance.new("UIGradient")
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, c1),
+            ColorSequenceKeypoint.new(1, c2)
+        })
+        gradient.Rotation = 270
+        gradient.Parent = self.TitleLabel
     end
     local offColor = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
     local bgPos = title and UDim2.new(1, -40, 0.5, -9) or UDim2.new(0, 0, 0.5, -9)
@@ -1262,7 +1411,8 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             if config then config:Set(configKey, self.Toggled); config:Save() end
         end
     end
-    local function setStateSilently(newState)
+    local function setStateSilently(newState, fireCallback)
+        if self.Toggled == newState then return end
         self.Toggled = newState
         self.Background:SetAttribute("Toggled", self.Toggled)
         if self.Toggled then
@@ -1277,6 +1427,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             if self.RainbowName and self.RainbowName ~= "" then DestroyRainbowTextForFeature(self.RainbowName) end
             if iconName then local iconImg = self.Knob:FindFirstChildOfClass("ImageLabel") if iconImg then iconImg.ImageColor3 = WasUI.CurrentTheme.Accent end end
         end
+        if fireCallback and self.ToggleCallback then self.ToggleCallback(self.Toggled) end
         local shortcutKey = GetShortcutKey("toggle", name, self.RainbowName)
         local shortcut = WasUI.ShortcutButtons[shortcutKey]
         if shortcut and shortcut.updateState then shortcut.updateState(self.Toggled) end
@@ -1294,7 +1445,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
-            config:Bind(configKey, self, function(value) setStateSilently(value) end)
+            config:Bind(configKey, self, function(value) setStateSilently(value, true) end)
         end
     end
     local panel = parent
@@ -1357,7 +1508,6 @@ end
 local Category = setmetatable({}, {__index = Control})
 Category.__index = Category
 function Category:New(name, parent, title, iconName)
-    local actualIcon = iconName or "chevron-down"
     local self = Control:New(name, parent)
     self.Collapsed = false
     self.ContentHeight = 0
@@ -1368,23 +1518,32 @@ function Category:New(name, parent, title, iconName)
         Parent = parent,
         ZIndex = 2
     })
-    local titleContainer = CreateInstance("Frame", {
-        Name = "TitleContainer",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Parent = self.Header
-    })
-    local titleLayout = CreateInstance("UIListLayout", {
-        FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Left,
-        VerticalAlignment = Enum.VerticalAlignment.Center,
-        Padding = UDim.new(0, 6),
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = titleContainer
-    })
-    local titleLabel = CreateInstance("TextLabel", {
+    local leftIcon = nil
+    local leftIconWidth = 0
+    if iconName and iconName ~= "" then
+        local leftIconFrame = CreateInstance("Frame", {
+            Name = "LeftIconFrame",
+            Size = UDim2.new(0, 24, 1, 0),
+            Position = UDim2.new(0, 4, 0, 0),
+            BackgroundTransparency = 1,
+            Parent = self.Header,
+            ZIndex = 2
+        })
+        leftIcon = WasUI:CreateIcon(iconName, UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
+        if leftIcon then
+            leftIcon.Name = "LeftIcon"
+            leftIcon.Parent = leftIconFrame
+            leftIcon.Position = UDim2.new(0, 0, 0.5, -9)
+            leftIcon.ZIndex = 3
+        end
+        leftIconWidth = 28
+    end
+    local titlePosX = leftIconWidth
+    local titleSizeX = -(26 + leftIconWidth)
+    self.TitleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(0, 0, 1, 0),
+        Size = UDim2.new(1, titleSizeX, 1, 0),
+        Position = UDim2.new(0, titlePosX, 0, 0),
         BackgroundTransparency = 1,
         Text = "",
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -1392,21 +1551,20 @@ function Category:New(name, parent, title, iconName)
         TextSize = 16,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
-        AutomaticSize = Enum.AutomaticSize.X,
-        LayoutOrder = 2,
         ZIndex = 2,
-        Parent = titleContainer
+        Parent = self.Header
     })
-    WasUI:SetLocalizedText(titleLabel, title)
-    table.insert(WasUI.Objects, {Object = titleLabel, Type = "CategoryTitle"})
-    local icon = WasUI:CreateIcon(actualIcon, UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text)
-    if icon then
-        icon.Name = "CategoryIcon"
-        icon.Parent = titleContainer
-        icon.LayoutOrder = 1
-        icon.ZIndex = 3
-        icon.Rotation = 0
-        self.Icon = icon
+    WasUI:SetLocalizedText(self.TitleLabel, title)
+    table.insert(WasUI.Objects, {Object = self.TitleLabel, Type = "CategoryTitle"})
+    local rightIcon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text, true)
+    if rightIcon then
+        rightIcon.Name = "CategoryIcon"
+        rightIcon.Parent = self.Header
+        rightIcon.Position = UDim2.new(1, -26, 0.5, -9)
+        rightIcon.ZIndex = 3
+        rightIcon.Rotation = 0
+        rightIcon:SetAttribute("InternalIcon", true)
+        self.Icon = rightIcon
     end
     local line = CreateInstance("Frame", {
         Name = "Line",
@@ -1440,31 +1598,21 @@ function Category:New(name, parent, title, iconName)
             if layout then parentScroller.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8) end
         end
     end
-    local function setChildrenVisible(visible)
-        for _, child in ipairs(self.Content:GetChildren()) do
-            if child:IsA("GuiObject") and child.Name ~= "UIListLayout" and child.Name ~= "UIPadding" then
-                child.Visible = visible
-            end
+    local function updateLayout(animate)
+        local targetHeight = self.Collapsed and 0 or getContentHeight()
+        if animate then
+            local tween = Tween(self.Content, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.25)
+            if self.Icon then Tween(self.Icon, {Rotation = self.Collapsed and 180 or 0}, 0.25) end
+            tween.Completed:Connect(function() updateParentScroller() end)
+        else
+            self.Content.Size = UDim2.new(1, 0, 0, targetHeight)
+            if self.Icon then self.Icon.Rotation = self.Collapsed and 180 or 0 end
+            updateParentScroller()
         end
     end
     local function toggleCollapsed()
         self.Collapsed = not self.Collapsed
-        if self.Collapsed then
-            local tween = Tween(self.Content, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-            if self.Icon then Tween(self.Icon, {Rotation = -90}, 0.25) end
-            tween.Completed:Connect(function()
-                setChildrenVisible(false)
-                updateParentScroller()
-            end)
-        else
-            setChildrenVisible(true)
-            local targetHeight = getContentHeight()
-            local tween = Tween(self.Content, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.25)
-            if self.Icon then Tween(self.Icon, {Rotation = 0}, 0.25) end
-            tween.Completed:Connect(function()
-                updateParentScroller()
-            end)
-        end
+        updateLayout(true)
     end
     local toggleButton = CreateInstance("TextButton", {
         Name = "ToggleButton",
@@ -1485,11 +1633,7 @@ function Category:New(name, parent, title, iconName)
             end
         end
     end)
-    self.Content.ChildAdded:Connect(function(child)
-        if self.Collapsed and child:IsA("GuiObject") and child.Name ~= "UIListLayout" and child.Name ~= "UIPadding" then
-            child.Visible = false
-        end
-    end)
+    updateLayout(false)
     local panel = parent
     while panel do
         if type(panel) == "table" and panel.GetActiveTab then break end
@@ -1637,10 +1781,27 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                 if self.MultiSelect then
                     local index = nil
                     for i, v in ipairs(self.SelectedValues) do if v == option then index = i; break end end
-                    if index then table.remove(self.SelectedValues, index)
-                    else table.insert(self.SelectedValues, option) end
+                    if index then
+                        table.remove(self.SelectedValues, index)
+                    else
+                        table.insert(self.SelectedValues, option)
+                    end
                     self:UpdateDisplayText()
                     self:UpdateOptionVisuals()
+                    local btn = self.OptionButtons[option]
+                    if btn then
+                        local isSelected = false
+                        for _, v in ipairs(self.SelectedValues) do if v == option then isSelected = true break end end
+                        if isSelected then
+                            btn.BackgroundColor3 = WasUI.CurrentTheme.Accent
+                            btn.BackgroundTransparency = 0.3
+                            btn.TextColor3 = Color3.new(1, 1, 1)
+                        else
+                            btn.BackgroundColor3 = WasUI.CurrentTheme.Input
+                            btn.BackgroundTransparency = 0.3
+                            btn.TextColor3 = WasUI.CurrentTheme.Text
+                        end
+                    end
                     if self.Callback then self.Callback(self.SelectedValues) end
                     if configKey and WasUI.ConfigManager then
                         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
@@ -1691,10 +1852,8 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         local viewportSize = v7.CurrentCamera and v7.CurrentCamera.ViewportSize or v8:GetScreenSize()
         local rawHeight = self._rawHeight or self.OptionsContainer.CanvasSize.Y.Offset
         local menuWidth = self.OptionsContainer.AbsoluteSize.X
-
         local spaceBelow = viewportSize.Y - (btnPos.Y + btnSize.Y) - 5
         local spaceAbove = btnPos.Y - 5
-
         local y, finalHeight
         if rawHeight <= spaceBelow then
             y = btnPos.Y + btnSize.Y
@@ -1712,11 +1871,9 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
             end
             finalHeight = math.max(20, finalHeight)
         end
-
         local x = btnPos.X
         if x + menuWidth > viewportSize.X then x = viewportSize.X - menuWidth - 5 end
         if x < 0 then x = 5 end
-
         self.OptionsContainer.Size = UDim2.new(0.35, 0, 0, finalHeight)
         self.OptionsContainer.CanvasSize = UDim2.new(0, 0, 0, rawHeight)
         self.OptionsContainer.Position = UDim2.new(0, x, 0, y)
@@ -1793,6 +1950,9 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                 end
                 self:UpdateDisplayText()
                 self:UpdateOptionVisuals()
+                if self.Callback then
+                    if self.MultiSelect then self.Callback(self.SelectedValues) else self.Callback(self.SelectedValue) end
+                end
             end)
         end
     end
@@ -1830,7 +1990,7 @@ end)
 
 local Slider = setmetatable({}, {__index = Control})
 Slider.__index = Slider
-function Slider:New(name, parent, title, min, max, defaultValue, callback, configKey)
+function Slider:New(name, parent, title, min, max, defaultValue, callback, configKey, tickValues)
     local self = Control:New(name, parent)
     self.Min = min or 0
     self.Max = max or 100
@@ -2030,6 +2190,52 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     function self:SetValue(newValue)
         newValue = math.clamp(newValue, self.Min, self.Max)
         setValueImmediately(newValue)
+    end
+    if tickValues then
+        local tickContainer = CreateInstance("Frame", {
+            Name = "TickContainer",
+            Size = UDim2.new(1, 0, 0, 12),
+            Position = UDim2.new(0, 2, 0, 20),
+            BackgroundTransparency = 1,
+            ZIndex = 2,
+            Parent = self.Container
+        })
+        local tickList = {}
+        if type(tickValues) == "number" then
+            for v = self.Min, self.Max, tickValues do
+                table.insert(tickList, v)
+            end
+        elseif type(tickValues) == "table" then
+            for _, v in ipairs(tickValues) do
+                table.insert(tickList, v)
+            end
+        end
+        for _, v in ipairs(tickList) do
+            local t = (v - self.Min) / (self.Max - self.Min)
+            local tick = CreateInstance("Frame", {
+                Name = "Tick",
+                Size = UDim2.new(0, 2, 0, 6),
+                Position = UDim2.new(t, 0, 0.5, 0),
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundColor3 = WasUI.CurrentTheme.Text,
+                BackgroundTransparency = 0.5,
+                ZIndex = 2,
+                Parent = tickContainer
+            })
+            local tickLabel = CreateInstance("TextLabel", {
+                Name = "TickLabel",
+                Size = UDim2.new(0, 20, 0, 10),
+                Position = UDim2.new(t, 0, 1, 0),
+                AnchorPoint = Vector2.new(0.5, 0),
+                BackgroundTransparency = 1,
+                Text = tostring(v),
+                TextColor3 = WasUI.CurrentTheme.Text,
+                TextSize = 8,
+                Font = Enum.Font.Gotham,
+                ZIndex = 2,
+                Parent = tickContainer
+            })
+        end
     end
     AddRipple(self.SliderTrack)
     if configKey and WasUI.ConfigManager then
@@ -2579,36 +2785,49 @@ function WasUI:ShowPopup(options, callback)
     })
     local dialogFrame = CreateInstance("Frame", {
         Name = "Dialog",
-        Size = UDim2.new(0, 380, 0, 0),
+        Size = UDim2.new(0, 360, 0, 0),
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ClipsDescendants = true,
+        AutomaticSize = Enum.AutomaticSize.Y,
         Parent = overlay,
         ZIndex = 1000
     })
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 12), Parent = dialogFrame})
+    local dialogLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Vertical,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 10),
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        Parent = dialogFrame
+    })
     local titleContainer = CreateInstance("Frame", {
         Name = "TitleContainer",
         Size = UDim2.new(1, -20, 0, 36),
-        Position = UDim2.new(0, 10, 0, 10),
         BackgroundTransparency = 1,
         Parent = dialogFrame,
-        ZIndex = 1001
+        ZIndex = 1001,
+        LayoutOrder = 1
     })
+    local titleLayout = Instance.new("UIListLayout")
+    titleLayout.FillDirection = Enum.FillDirection.Horizontal
+    titleLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    titleLayout.Padding = UDim.new(0, 8)
+    titleLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    titleLayout.Parent = titleContainer
     local titleIconImage = nil
     if titleIcon then
         titleIconImage = WasUI:CreateIcon(titleIcon, UDim2.new(0, 20, 0, 20), WasUI.CurrentTheme.Text)
         if titleIconImage then
             titleIconImage.Parent = titleContainer
-            titleIconImage.Position = UDim2.new(0, 0, 0.5, -10)
+            titleIconImage.LayoutOrder = 1
             titleIconImage.ZIndex = 1002
         end
     end
     local titleLabel = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(1, (titleIconImage and -24 or 0), 0, 24),
-        Position = UDim2.new(titleIconImage and 0.06 or 0, 0, 0.5, -12),
+        Size = UDim2.new(0, 0, 0, 24),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -2616,6 +2835,8 @@ function WasUI:ShowPopup(options, callback)
         TextSize = 18,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
+        AutomaticSize = Enum.AutomaticSize.X,
+        LayoutOrder = 2,
         Parent = titleContainer,
         ZIndex = 1002
     })
@@ -2623,12 +2844,12 @@ function WasUI:ShowPopup(options, callback)
         local tagContainer = CreateInstance("Frame", {
             Name = "TagContainer",
             Size = UDim2.new(0, 0, 0, 20),
-            Position = UDim2.new(1, 4, 0.5, -10),
             BackgroundColor3 = titleTag.backgroundColor or WasUI.CurrentTheme.Accent,
             BackgroundTransparency = 0.2,
             BorderSizePixel = 0,
             Parent = titleContainer,
-            ZIndex = 1003
+            ZIndex = 1003,
+            LayoutOrder = 3
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tagContainer})
         local tagLabel = CreateInstance("TextLabel", {
@@ -2645,13 +2866,13 @@ function WasUI:ShowPopup(options, callback)
             Parent = tagContainer,
             ZIndex = 1004
         })
-        tagContainer.Size = UDim2.new(0, tagLabel.TextBounds.X + 8, 0, 20)
-        tagLabel.Size = UDim2.new(0, tagLabel.TextBounds.X, 1, 0)
+        local textWidth = v10:GetTextSize(titleTag.text, 12, Enum.Font.GothamSemibold, Vector2.new(1000, 1000)).X
+        tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 20)
+        tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
     end
     local contentLabel = CreateInstance("TextLabel", {
         Name = "Content",
         Size = UDim2.new(1, -20, 0, 0),
-        Position = UDim2.new(0, 10, 0, 56),
         BackgroundTransparency = 1,
         Text = content,
         TextColor3 = WasUI.CurrentTheme.Text,
@@ -2662,20 +2883,27 @@ function WasUI:ShowPopup(options, callback)
         TextWrapped = true,
         AutomaticSize = Enum.AutomaticSize.Y,
         Parent = dialogFrame,
-        ZIndex = 1001
+        ZIndex = 1001,
+        LayoutOrder = 2
     })
     local buttonContainer = CreateInstance("Frame", {
         Name = "ButtonContainer",
         Size = UDim2.new(1, -20, 0, 40),
-        Position = UDim2.new(0, 10, 0, 56 + contentLabel.TextBounds.Y + 24),
         BackgroundTransparency = 1,
         Parent = dialogFrame,
-        ZIndex = 1001
+        ZIndex = 1001,
+        LayoutOrder = 3
+    })
+    local buttonLayout = CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 10),
+        Parent = buttonContainer
     })
     local cancelButton = CreateInstance("TextButton", {
         Name = "CancelButton",
-        Size = UDim2.new(0.5, -5, 1, 0),
-        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0, 120, 0, 36),
         BackgroundColor3 = WasUI.CurrentTheme.Section,
         BackgroundTransparency = 0.3,
         Text = cancelText,
@@ -2686,11 +2914,10 @@ function WasUI:ShowPopup(options, callback)
         Parent = buttonContainer,
         ZIndex = 1002
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = cancelButton})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 18), Parent = cancelButton})
     local confirmButton = CreateInstance("TextButton", {
         Name = "ConfirmButton",
-        Size = UDim2.new(0.5, -5, 1, 0),
-        Position = UDim2.new(0.5, 5, 0, 0),
+        Size = UDim2.new(0, 120, 0, 36),
         BackgroundColor3 = WasUI.CurrentTheme.Accent,
         BackgroundTransparency = 0.3,
         Text = confirmText,
@@ -2701,7 +2928,7 @@ function WasUI:ShowPopup(options, callback)
         Parent = buttonContainer,
         ZIndex = 1002
     })
-    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = confirmButton})
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0, 18), Parent = confirmButton})
     local arrowIcon = WasUI:CreateIcon("arrow-right", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text, true)
     if arrowIcon then
         arrowIcon.Parent = confirmButton
@@ -2713,12 +2940,16 @@ function WasUI:ShowPopup(options, callback)
         padding.PaddingLeft = UDim.new(0, 12)
         padding.Parent = confirmButton
     end
-
-    local totalHeight = 56 + contentLabel.TextBounds.Y + 24 + 40 + 15
-    dialogFrame.Size = UDim2.new(0, 380, 0, totalHeight)
+    local bottomSpacer = CreateInstance("Frame", {
+        Name = "BottomSpacer",
+        Size = UDim2.new(1, 0, 0, 10),
+        BackgroundTransparency = 1,
+        LayoutOrder = 4,
+        Parent = dialogFrame
+    })
     local function updatePosition()
         if dialogFrame and dialogFrame.Parent then
-            local parentSize = dialogGui.AbsoluteSize
+            local parentSize = overlay.AbsoluteSize
             local frameSize = dialogFrame.AbsoluteSize
             dialogFrame.Position = UDim2.new(0.5, -frameSize.X/2, 0.5, -frameSize.Y/2)
         end
@@ -3068,6 +3299,7 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
             ZIndex = 2,
             Parent = container
         })
+        WasUI:SetLocalizedText(titleLabel, title)
     end
     local button = CreateInstance("TextButton", {
         Name = "Button",
@@ -3084,8 +3316,13 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
         currentColor = color; currentAlpha = alpha or 1
         colorPreview.BackgroundColor3 = color
         colorPreview.BackgroundTransparency = 1 - currentAlpha
+        if callback then callback(color, alpha) end
+        if configKey and WasUI.ConfigManager then
+            local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
+            if config then config:Set(configKey, {color = color, alpha = alpha}); config:Save() end
+        end
     end
-    button.MouseButton1Click:Connect(function()
+    local function openColorPicker()
         WasUI:ShowColorPicker({
             title = title or "选择颜色",
             defaultColor = currentColor,
@@ -3093,12 +3330,13 @@ function WasUI:CreateColorPickerButton(parent, title, defaultColor, callback, co
             showAlpha = true
         }, function(color, alpha)
             updatePreview(color, alpha)
-            if callback then callback(color, alpha) end
-            if configKey and WasUI.ConfigManager then
-                local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
-                if config then config:Set(configKey, {color = color, alpha = alpha}); config:Save() end
-            end
         end)
+    end
+    button.MouseButton1Click:Connect(openColorPicker)
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            openColorPicker()
+        end
     end)
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
@@ -3122,7 +3360,6 @@ function Paragraph:New(name, parent, options)
         Size = UDim2.new(1, 0, 0, 0),
         BackgroundTransparency = 1,
         AutomaticSize = Enum.AutomaticSize.Y,
-        ZIndex = 2,
         Parent = parent
     })
     local padding = CreateInstance("UIPadding", {
@@ -3136,6 +3373,7 @@ function Paragraph:New(name, parent, options)
         FillDirection = Enum.FillDirection.Horizontal,
         VerticalAlignment = Enum.VerticalAlignment.Top,
         Padding = UDim.new(0, 8),
+        SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = self.Container
     })
     self.IconFrame = CreateInstance("Frame", {
@@ -3143,6 +3381,7 @@ function Paragraph:New(name, parent, options)
         Size = UDim2.new(0, 20, 0, 20),
         BackgroundTransparency = 1,
         Visible = false,
+        LayoutOrder = 1,
         Parent = self.Container
     })
     self.Icon = nil
@@ -3151,12 +3390,14 @@ function Paragraph:New(name, parent, options)
         Size = UDim2.new(1, -28, 0, 0),
         BackgroundTransparency = 1,
         AutomaticSize = Enum.AutomaticSize.Y,
+        LayoutOrder = 2,
         Parent = self.Container
     })
     local textLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Vertical,
         VerticalAlignment = Enum.VerticalAlignment.Top,
         Padding = UDim.new(0, 2),
+        SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = textFrame
     })
     self.TitleLabel = CreateInstance("TextLabel", {
@@ -3170,7 +3411,7 @@ function Paragraph:New(name, parent, options)
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
         AutomaticSize = Enum.AutomaticSize.Y,
-        ZIndex = 2,
+        LayoutOrder = 1,
         Parent = textFrame
     })
     self.ContentLabel = CreateInstance("TextLabel", {
@@ -3185,7 +3426,7 @@ function Paragraph:New(name, parent, options)
         TextXAlignment = Enum.TextXAlignment.Left,
         AutomaticSize = Enum.AutomaticSize.Y,
         Visible = false,
-        ZIndex = 2,
+        LayoutOrder = 2,
         Parent = textFrame
     })
     function self:SetTitle(text)
@@ -3204,7 +3445,6 @@ function Paragraph:New(name, parent, options)
         if iconName then
             self.Icon = WasUI:CreateIcon(iconName, UDim2.new(0, 20, 0, 20), WasUI.CurrentTheme.Text)
             if self.Icon then
-                self.Icon.Position = UDim2.new(0, 0, 0, 0)
                 self.Icon.Parent = self.IconFrame
                 self.IconFrame.Visible = true
             end
@@ -3215,9 +3455,9 @@ function Paragraph:New(name, parent, options)
         textFrame.Size = UDim2.new(1, -iconWidth, 0, 0)
     end
     if options.Title then self:SetTitle(options.Title) end
-    if options.Content then self:SetContent(options.Content) end
+    local contentText = options.Content or options.Desc
+    if contentText then self:SetContent(contentText) end
     if options.Icon then self:SetIcon(options.Icon) end
-
     table.insert(WasUI.Objects, {Object = self.Container, Type = "Paragraph"})
     return self
 end
@@ -3230,78 +3470,168 @@ local function AnimateThemeChange(oldTheme, newTheme)
     local duration = 0.35
     for i = #WasUI.Objects, 1, -1 do
         local obj = WasUI.Objects[i]
-        if not obj.Object or not obj.Object:IsDescendantOf(game) then table.remove(WasUI.Objects, i) end
+        if not obj.Object or not obj.Object:IsDescendantOf(game) then
+            table.remove(WasUI.Objects, i)
+        end
+    end
+    local function updateTextColor(obj)
+        if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+            if not obj:GetAttribute("IgnoreThemeColor") then
+                Tween(obj, {TextColor3 = newTheme.Text}, duration)
+                if obj:IsA("TextBox") and obj.PlaceholderColor3 then
+                    obj.PlaceholderColor3 = newTheme.Text
+                end
+            end
+        end
     end
     for _, obj in ipairs(WasUI.Objects) do
         local instance = obj.Object
         if not instance then continue end
+        updateTextColor(instance)
         if obj.Type == "Button" then
-            Tween(instance, {BackgroundColor3 = newTheme.Primary, TextColor3 = newTheme.Text}, duration)
+            Tween(instance, {BackgroundColor3 = newTheme.Primary}, duration)
             local icon = instance:FindFirstChildOfClass("ImageLabel")
-            if icon and not icon:GetAttribute("IgnoreThemeChange") then Tween(icon, {ImageColor3 = newTheme.Text}, duration) end
+            if icon and not icon:GetAttribute("IgnoreThemeChange") then
+                Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+            end
         elseif obj.Type == "Toggle" then
             local toggled = instance:GetAttribute("Toggled")
-            if toggled then Tween(instance, {BackgroundColor3 = newTheme.Success}, duration)
-            else local offCol = (newTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180); Tween(instance, {BackgroundColor3 = offCol}, duration) end
+            if toggled then
+                Tween(instance, {BackgroundColor3 = newTheme.Success}, duration)
+            else
+                local offCol = (newTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+                Tween(instance, {BackgroundColor3 = offCol}, duration)
+            end
             local container = instance.Parent
             if container and container:IsA("Frame") then
                 local titleLabel = container:FindFirstChild("Title")
-                if titleLabel and titleLabel:IsA("TextLabel") then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+                if titleLabel then
+                    Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
+                end
             end
         elseif obj.Type == "ToggleKnob" then
             local knobIcon = instance:FindFirstChildOfClass("ImageLabel")
-            if knobIcon and not knobIcon:GetAttribute("IgnoreThemeChange") then Tween(knobIcon, {ImageColor3 = newTheme.Text}, duration) end
-        elseif obj.Type == "Label" then Tween(instance, {TextColor3 = newTheme.Text}, duration)
-        elseif obj.Type == "Line" then Tween(instance, {BackgroundColor3 = newTheme.Primary}, duration)
+            if knobIcon and not knobIcon:GetAttribute("IgnoreThemeChange") then
+                Tween(knobIcon, {ImageColor3 = newTheme.Text}, duration)
+            end
         elseif obj.Type == "Slider" then
-            local titleLabel = instance:FindFirstChild("Title"); local valueLabel = instance:FindFirstChild("Value"); local track = instance:FindFirstChild("Track")
-            if titleLabel and titleLabel:IsA("TextLabel") then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
-            if valueLabel and valueLabel:IsA("TextLabel") then Tween(valueLabel, {TextColor3 = newTheme.Text}, duration) end
-            if track and track:IsA("Frame") then
+            local titleLabel = instance:FindFirstChild("Title")
+            local valueLabel = instance:FindFirstChild("Value")
+            local track = instance:FindFirstChild("Track")
+            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+            if valueLabel then Tween(valueLabel, {TextColor3 = newTheme.Text}, duration) end
+            if track then
                 Tween(track, {BackgroundColor3 = newTheme.Input}, duration)
-                local fill = track:FindFirstChild("Fill"); if fill and fill:IsA("Frame") then Tween(fill, {BackgroundColor3 = newTheme.Accent}, duration) end
-                local knob = track:FindFirstChild("Knob"); if knob and knob:IsA("Frame") then local knobCircle = knob:FindFirstChildOfClass("Frame"); if knobCircle then Tween(knobCircle, {BackgroundColor3 = newTheme.Accent}, duration) end end
+                local fill = track:FindFirstChild("Fill")
+                if fill then Tween(fill, {BackgroundColor3 = newTheme.Accent}, duration) end
+                local knob = track:FindFirstChild("Knob")
+                if knob then
+                    local knobCircle = knob:FindFirstChildOfClass("Frame")
+                    if knobCircle then Tween(knobCircle, {BackgroundColor3 = newTheme.Accent}, duration) end
+                end
             end
         elseif obj.Type == "ProgressBar" then
-            local titleLabel = instance:FindFirstChild("Title"); local track = instance:FindFirstChild("Track"); local statusLabel = instance:FindFirstChild("StatusLabel")
+            local titleLabel = instance:FindFirstChild("Title")
+            local track = instance:FindFirstChild("Track")
+            local statusLabel = instance:FindFirstChild("StatusLabel")
             if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
             if statusLabel then Tween(statusLabel, {TextColor3 = newTheme.Text}, duration) end
             if track then
                 Tween(track, {BackgroundColor3 = newTheme.Input}, duration)
-                local fill = track:FindFirstChild("Fill"); if fill then Tween(fill, {BackgroundColor3 = newTheme.Success}, duration) end
+                local fill = track:FindFirstChild("Fill")
+                if fill then Tween(fill, {BackgroundColor3 = newTheme.Success}, duration) end
             end
         elseif obj.Type == "Dropdown" then
-            local titleLabel = instance:FindFirstChild("Title"); local dropdownButton = instance:FindFirstChild("DropdownButton")
-            if titleLabel and titleLabel:IsA("TextLabel") then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
-            if dropdownButton and dropdownButton:IsA("TextButton") then Tween(dropdownButton, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration) end
-            local arrow = dropdownButton:FindFirstChild("ArrowIcon")
-            if arrow and arrow:IsA("ImageLabel") and not arrow:GetAttribute("IgnoreThemeChange") then Tween(arrow, {ImageColor3 = newTheme.Text}, duration) end
-        elseif obj.Type == "DropdownOption" then Tween(instance, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+            local titleLabel = instance:FindFirstChild("Title")
+            local dropdownButton = instance:FindFirstChild("DropdownButton")
+            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+            if dropdownButton then
+                Tween(dropdownButton, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+                local arrow = dropdownButton:FindFirstChild("ArrowIcon")
+                if arrow and not arrow:GetAttribute("IgnoreThemeChange") then
+                    Tween(arrow, {ImageColor3 = newTheme.Text}, duration)
+                end
+            end
+        elseif obj.Type == "DropdownOption" then
+            Tween(instance, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
         elseif obj.Type == "Category" then
-            local titleLabel = instance:FindFirstChild("TitleContainer"):FindFirstChild("Title"); local line = instance:FindFirstChild("Line")
-            local icon = instance:FindFirstChild("TitleContainer"):FindFirstChild("CategoryIcon")
-            if titleLabel and titleLabel:IsA("TextLabel") then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
-            if line and line:IsA("Frame") then Tween(line, {BackgroundColor3 = newTheme.Primary}, duration) end
-            if icon and icon:IsA("ImageLabel") and not icon:GetAttribute("IgnoreThemeChange") then Tween(icon, {ImageColor3 = newTheme.Text}, duration) end
+            local titleLabel = instance:FindFirstChild("Title")
+            local line = instance:FindFirstChild("Line")
+            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+            if line then Tween(line, {BackgroundColor3 = newTheme.Primary}, duration) end
+            local rightIcon = instance:FindFirstChild("CategoryIcon")
+            if rightIcon and not rightIcon:GetAttribute("IgnoreThemeChange") then
+                Tween(rightIcon, {ImageColor3 = newTheme.Text}, duration)
+            end
+            if not rightIcon then
+                rightIcon = instance:FindFirstChild("CategoryIcon", true)
+                if rightIcon and not rightIcon:GetAttribute("IgnoreThemeChange") then
+                    Tween(rightIcon, {ImageColor3 = newTheme.Text}, duration)
+                end
+            end
+            local leftIconFrame = instance:FindFirstChild("LeftIconFrame")
+            if leftIconFrame then
+                local leftIcon = leftIconFrame:FindFirstChild("LeftIcon")
+                if leftIcon and leftIcon:IsA("ImageLabel") and not leftIcon:GetAttribute("IgnoreThemeChange") then
+                    Tween(leftIcon, {ImageColor3 = newTheme.Text}, duration)
+                end
+            end
+            local leftIcon = instance:FindFirstChild("LeftIcon")
+            if leftIcon and leftIcon:IsA("ImageLabel") and not leftIcon:GetAttribute("IgnoreThemeChange") then
+                Tween(leftIcon, {ImageColor3 = newTheme.Text}, duration)
+            end
         elseif obj.Type == "TextInput" then
             local textBox = instance:FindFirstChild("TextBox")
-            if textBox and textBox:IsA("TextBox") then Tween(textBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration); textBox.PlaceholderColor3 = newTheme.Text end
+            if textBox then
+                Tween(textBox, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+                textBox.PlaceholderColor3 = newTheme.Text
+            end
         elseif obj.Type == "Panel" then
             Tween(instance, {BackgroundColor3 = newTheme.Background}, duration)
             local titleBar = instance:FindFirstChild("TitleBar")
             if titleBar then
                 Tween(titleBar, {BackgroundColor3 = newTheme.Primary}, duration)
                 local title = titleBar:FindFirstChild("Title")
-                if not title then local titleContainer = titleBar:FindFirstChild("TitleContainer"); if titleContainer then title = titleContainer:FindFirstChild("Title") end end
-                if title and title:IsA("TextLabel") then Tween(title, {TextColor3 = newTheme.Text}, duration) end
+                if not title then
+                    local titleContainer = titleBar:FindFirstChild("TitleContainer")
+                    if titleContainer then title = titleContainer:FindFirstChild("Title") end
+                end
+                if title then Tween(title, {TextColor3 = newTheme.Text}, duration) end
                 local closeBtn = titleBar:FindFirstChild("CloseButton")
-                if closeBtn and closeBtn:IsA("ImageButton") then local icon = closeBtn:FindFirstChildOfClass("ImageLabel"); if icon and not icon:GetAttribute("IgnoreThemeChange") then Tween(icon, {ImageColor3 = newTheme.Text}, duration) end end
+                if closeBtn then
+                    local icon = closeBtn:FindFirstChildOfClass("ImageLabel")
+                    if icon and not icon:GetAttribute("IgnoreThemeChange") then
+                        Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+                    end
+                end
+                local searchButton = titleBar:FindFirstChild("SearchButton")
+                if searchButton then
+                    local searchIcon = searchButton:FindFirstChildOfClass("ImageLabel")
+                    if searchIcon and not searchIcon:GetAttribute("IgnoreThemeChange") then
+                        Tween(searchIcon, {ImageColor3 = newTheme.Text}, duration)
+                    end
+                end
+                local dotContainer = titleBar:FindFirstChild("DotContainer")
+                if dotContainer then
+                    local minimizedText = dotContainer:FindFirstChild("MinimizedText")
+                    if minimizedText and minimizedText:IsA("TextLabel") then
+                        Tween(minimizedText, {TextColor3 = newTheme.Text}, duration)
+                    end
+                end
+                local colorPickerContainers = titleBar:GetDescendants()
+                for _, descendant in ipairs(colorPickerContainers) do
+                    if descendant:IsA("TextLabel") and descendant.Name == "Title" then
+                        Tween(descendant, {TextColor3 = newTheme.Text}, duration)
+                    end
+                end
             end
             local announcementBar = instance:FindFirstChild("AnnouncementBar")
             if announcementBar then
                 Tween(announcementBar, {BackgroundColor3 = newTheme.Section}, duration)
-                local username = announcementBar:FindFirstChild("Username"); local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
-                local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel"); local settingsHint = announcementBar:FindFirstChild("SettingsHint")
+                local username = announcementBar:FindFirstChild("Username")
+                local executorLabel = announcementBar:FindFirstChild("ExecutorLabel")
+                local welcomeLabel = announcementBar:FindFirstChild("WelcomeLabel")
+                local settingsHint = announcementBar:FindFirstChild("SettingsHint")
                 if username then Tween(username, {TextColor3 = newTheme.Text}, duration) end
                 if executorLabel then Tween(executorLabel, {TextColor3 = newTheme.Text}, duration) end
                 if welcomeLabel then Tween(welcomeLabel, {TextColor3 = newTheme.Text}, duration) end
@@ -3311,25 +3641,59 @@ local function AnimateThemeChange(oldTheme, newTheme)
             if tabBar then
                 Tween(tabBar, {BackgroundColor3 = newTheme.Primary}, duration)
                 local tabContainer = tabBar:FindFirstChild("TabContainer")
-                if tabContainer then for _, btn in ipairs(tabContainer:GetChildren()) do if btn:IsA("TextButton") then
-                    Tween(btn, {BackgroundColor3 = newTheme.TabButton, TextColor3 = newTheme.Text}, duration)
-                    local underline = btn:FindFirstChild("Underline")
-                    if underline then Tween(underline, {BackgroundColor3 = newTheme.Accent}, duration) end
-                end end end
+                if tabContainer then
+                    for _, btn in ipairs(tabContainer:GetChildren()) do
+                        if btn:IsA("TextButton") then
+                            Tween(btn, {BackgroundColor3 = newTheme.TabButton, TextColor3 = newTheme.Text}, duration)
+                        end
+                    end
+                end
             end
-        elseif obj.Type == "TabArrow" then Tween(instance, {ImageColor3 = newTheme.Text}, duration)
+            local dotContainer = instance:FindFirstChild("DotContainer")
+            if dotContainer then
+                local minimizedText = dotContainer:FindFirstChild("MinimizedText")
+                if minimizedText and minimizedText:IsA("TextLabel") then
+                    Tween(minimizedText, {TextColor3 = newTheme.Text}, duration)
+                end
+            end
+        elseif obj.Type == "TabArrow" then
+            Tween(instance, {ImageColor3 = newTheme.Text}, duration)
         elseif obj.Type == "Paragraph" then
-            local titleLabel = instance:FindFirstChild("TextFrame") and instance.TextFrame:FindFirstChild("Title")
-            local contentLabel = instance:FindFirstChild("TextFrame") and instance.TextFrame:FindFirstChild("Content")
-            if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
-            if contentLabel then Tween(contentLabel, {TextColor3 = newTheme.Text}, duration) end
+            local textFrame = instance:FindFirstChild("TextFrame")
+            if textFrame then
+                local titleLabel = textFrame:FindFirstChild("Title")
+                local contentLabel = textFrame:FindFirstChild("Content")
+                if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
+                if contentLabel then Tween(contentLabel, {TextColor3 = newTheme.Text}, duration) end
+            end
+            local iconFrame = instance:FindFirstChild("IconFrame")
+            if iconFrame then
+                local icon = iconFrame:FindFirstChildOfClass("ImageLabel")
+                if icon and not icon:GetAttribute("IgnoreThemeChange") then
+                    Tween(icon, {ImageColor3 = newTheme.Text}, duration)
+                end
+            end
+        elseif obj.Type == "TabButton" then
+            local underline = instance:FindFirstChild("Underline")
+            if underline and underline:IsA("Frame") then
+                Tween(underline, {BackgroundColor3 = newTheme.Accent}, duration)
+            end
+        elseif obj.Type == "ColorPickerButton" then
+            local titleLabel = instance:FindFirstChild("Title")
+            if titleLabel then
+                Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
+            end
         end
     end
     if WasUI.DropdownGui then
         for _, container in ipairs(WasUI.DropdownGui:GetChildren()) do
             if container:IsA("ScrollingFrame") then
                 Tween(container, {BackgroundColor3 = newTheme.Background}, duration)
-                for _, btn in ipairs(container:GetChildren()) do if btn:IsA("TextButton") then Tween(btn, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration) end end
+                for _, btn in ipairs(container:GetChildren()) do
+                    if btn:IsA("TextButton") then
+                        Tween(btn, {BackgroundColor3 = newTheme.Input, TextColor3 = newTheme.Text}, duration)
+                    end
+                end
             end
         end
     end
@@ -3337,7 +3701,8 @@ local function AnimateThemeChange(oldTheme, newTheme)
         local frame = data.Frame
         if frame then
             Tween(frame, {BackgroundColor3 = newTheme.Section}, duration)
-            local titleLabel = frame:FindFirstChild("Title"); local contentLabel = frame:FindFirstChild("Content")
+            local titleLabel = frame:FindFirstChild("Title")
+            local contentLabel = frame:FindFirstChild("Content")
             if titleLabel then Tween(titleLabel, {TextColor3 = newTheme.Text}, duration) end
             if contentLabel then Tween(contentLabel, {TextColor3 = newTheme.Text}, duration) end
         end
@@ -3349,6 +3714,11 @@ function WasUI:SetTheme(themeName)
         local oldTheme = self.CurrentTheme; local newTheme = self.Themes[themeName]
         self.CurrentTheme = newTheme; self.CurrentThemeName = themeName
         AnimateThemeChange(oldTheme, newTheme)
+        if WasUI.InternalConfigManager then
+            local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
+            internalConfig:Set("Theme", themeName)
+            internalConfig:Save()
+        end
         return true
     end
     return false
@@ -3386,22 +3756,29 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 Size = UDim2.new(1, 0, 1, 0),
                 Position = UDim2.new(0, 0, 0, 0),
                 BackgroundTransparency = 1,
-                Image = "",
-                ImageTransparency = 0.2,
+                Image = url,
+                ImageTransparency = 0,
                 ScaleType = Enum.ScaleType.Crop,
                 ZIndex = 0,
                 Parent = self.Instance
             })
-            v9:PreloadAsync({url})
-            self.BackgroundImage.Image = url
+            pcall(function()
+                v9:PreloadAsync({url})
+            end)
         else
             self.BackgroundImage = nil
         end
     end
+    if not position then
+        local viewport = v7.CurrentCamera and v7.CurrentCamera.ViewportSize or v8:GetScreenSize()
+        local width = size.X.Offset
+        local height = size.Y.Offset
+        position = UDim2.new(0.5, -width/2, 0.5, -height/2)
+    end
     self.Instance = CreateInstance("Frame", {
         Name = name,
         Size = size or UDim2.new(0, 380, 0, 350),
-        Position = position or UDim2.new(0.5, -190, 0.5, -175),
+        Position = position,
         BackgroundColor3 = WasUI.CurrentTheme.Background,
         BackgroundTransparency = 0.3,
         ClipsDescendants = true,
@@ -3412,9 +3789,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     if backgroundUrl and backgroundUrl ~= "" then
         self:SetBackground(backgroundUrl)
     end
-
     AddRipple(self.Instance)
-
     self.BorderFlow = CreateInstance("Frame", {
         Name = "BorderFlow",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
@@ -3429,12 +3804,18 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     flowGradient.Rotation = 0
     flowGradient.Color = ColorSequence.new{
         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.08, Color3.fromRGB(255, 80, 0)),
         ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
-        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
-        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 255, 255)),
-        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(0, 0, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
+        ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(128, 255, 0)),
+        ColorSequenceKeypoint.new(0.41, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 128)),
+        ColorSequenceKeypoint.new(0.58, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 128, 255)),
+        ColorSequenceKeypoint.new(0.75, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(128, 0, 255)),
+        ColorSequenceKeypoint.new(0.91, Color3.fromRGB(255, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 128))
     }
     flowGradient.Parent = self.BorderFlow
     self.BorderStroke = CreateInstance("UIStroke", {
@@ -3445,36 +3826,35 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     })
     self.GlowStroke1 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 4,
+        Thickness = 2,
         Transparency = 0.5,
         Parent = self.BorderFlow
     })
     self.GlowStroke2 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 8,
+        Thickness = 4,
         Transparency = 0.7,
         Parent = self.BorderFlow
     })
     self.GlowStroke3 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 14,
+        Thickness = 6,
         Transparency = 0.84,
         Parent = self.BorderFlow
     })
     self.GlowStroke4 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 22,
+        Thickness = 10,
         Transparency = 0.93,
         Parent = self.BorderFlow
     })
     self.GlowStroke5 = CreateInstance("UIStroke", {
         Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 32,
+        Thickness = 15,
         Transparency = 0.97,
         Parent = self.BorderFlow
     })
     self.BorderFlow.Visible = false
-
     local function updateBorder()
         if not self.Instance or not self.BorderFlow then return end
         self.BorderFlow.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
@@ -3483,12 +3863,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
     self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
     updateBorder()
-
     local borderTime = 0
     self.RainbowMode = WasUI.DefaultRainbowMode
     self.FlowRotation = 0
     self.BorderConnection = nil
-
     function self:SetRainbowMode(mode)
         if mode == "整体" or mode == "流动" then
             self.RainbowMode = mode
@@ -3502,7 +3880,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 self.GlowStroke5.Enabled = true
                 flowGradient.Enabled = false
             else
-                self.BorderFlow.BackgroundTransparency = 0
+                self.BorderFlow.BackgroundTransparency = 0.65
                 self.BorderStroke.Enabled = false
                 self.GlowStroke1.Enabled = false
                 self.GlowStroke2.Enabled = false
@@ -3515,9 +3893,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             if type(startFlowAnimation) == "function" then
                 startFlowAnimation()
             end
+            if WasUI.InternalConfigManager then
+                local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
+                internalConfig:Set("RainbowMode", mode)
+                internalConfig:Save()
+            end
         end
     end
-
     local function startFlowAnimation()
         if self.BorderConnection then self.BorderConnection:Disconnect() end
         self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
@@ -3539,7 +3921,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 self.GlowStroke5.Transparency = 0.97
                 flowGradient.Enabled = false
             else
-                self.FlowRotation = (self.FlowRotation + deltaTime * 45) % 360
+                self.FlowRotation = (self.FlowRotation + deltaTime * 60) % 360
                 flowGradient.Rotation = self.FlowRotation
                 flowGradient.Enabled = true
                 self.BorderStroke.Transparency = 1
@@ -3548,10 +3930,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 self.GlowStroke3.Transparency = 1
                 self.GlowStroke4.Transparency = 1
                 self.GlowStroke5.Transparency = 1
+                self.BorderFlow.BackgroundTransparency = 0.65
             end
         end)
     end
-
     function self:SetRainbowEnabled(enabled)
         self.BorderFlow.Visible = enabled
         if enabled then
@@ -3561,10 +3943,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self.BorderConnection = nil
         end
     end
-
     startFlowAnimation()
     self:SetRainbowMode(self.RainbowMode)
-
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
         Size = UDim2.new(1, 0, 0, 26),
@@ -3579,7 +3959,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         CornerRadius = UDim.new(0, 14),
         Parent = self.TitleBar
     })
-
     self.DraggableArea = CreateInstance("TextButton", {
         Name = "DraggableArea",
         Size = UDim2.new(1, 0, 1, 0),
@@ -3608,7 +3987,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = self.TitleBar
     })
     WasUI:SetLocalizedText(self.Title, name)
-    
     local titleTagsList = {}
     if type(titleTag) == "table" then
         if titleTag[1] then
@@ -3619,73 +3997,70 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     elseif titleTag then
         titleTagsList = {titleTag}
     end
-if #titleTagsList > 0 then
-    local titleContainer = CreateInstance("Frame", {
-        Name = "TitleContainer",
-        Size = UDim2.new(1, -140, 1, 0),
-        Position = UDim2.new(0, 54, 0, 0),
-        BackgroundTransparency = 1,
-        Parent = self.TitleBar,
-        ZIndex = 2
-    })
-    self.TitleContainer = titleContainer
-
-    local titleLayout = CreateInstance("UIListLayout", {
-        FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Left,
-        VerticalAlignment = Enum.VerticalAlignment.Center,
-        Padding = UDim.new(0, 6),
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = titleContainer
-    })
-
-    self.Title.Parent = titleContainer
-    self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
-    self.Title.TextXAlignment = Enum.TextXAlignment.Left
-    self.Title.Position = UDim2.new(0, 0, 0, 0)
-    self.Title.AutomaticSize = Enum.AutomaticSize.X
-    local tagContainers = {}
-    for _, tag in ipairs(titleTagsList) do
-        local tagText = tag.text
-        if not tagText or tagText == "" then
-            tagText = "你没有配置Text"
-        end
-        local tagContainer = CreateInstance("Frame", {
-            Name = "TitleTagContainer",
-            Size = UDim2.new(0, 0, 0, 18),
-            BackgroundColor3 = tag.backgroundColor or WasUI.CurrentTheme.Accent,
-            BackgroundTransparency = 0.2,
-            BorderSizePixel = 0,
-            Parent = titleContainer,
-            ZIndex = 10
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
-        local tagLabel = CreateInstance("TextLabel", {
-            Name = "TagLabel",
-            Size = UDim2.new(1, -6, 1, 0),
-            Position = UDim2.new(0, 3, 0, 0),
+    if #titleTagsList > 0 then
+        local titleContainer = CreateInstance("Frame", {
+            Name = "TitleContainer",
+            Size = UDim2.new(1, -140, 1, 0),
+            Position = UDim2.new(0, 54, 0, 0),
             BackgroundTransparency = 1,
-            Text = tagText,
-            TextColor3 = tag.textColor or WasUI.CurrentTheme.Text,
-            Font = Enum.Font.GothamSemibold,
-            TextSize = 11,
-            TextXAlignment = Enum.TextXAlignment.Center,
-            TextYAlignment = Enum.TextYAlignment.Center,
-            Parent = tagContainer,
-            ZIndex = 11
+            Parent = self.TitleBar,
+            ZIndex = 2
         })
-        task.wait()
-        local textWidth = tagLabel.TextBounds.X
-        tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
-        tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
-        table.insert(tagContainers, tagContainer)
+        self.TitleContainer = titleContainer
+        local titleLayout = CreateInstance("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            HorizontalAlignment = Enum.HorizontalAlignment.Left,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            Padding = UDim.new(0, 6),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Parent = titleContainer
+        })
+        self.Title.Parent = titleContainer
+        self.Title.Size = UDim2.new(0, self.Title.TextBounds.X, 1, 0)
+        self.Title.TextXAlignment = Enum.TextXAlignment.Left
+        self.Title.Position = UDim2.new(0, 0, 0, 0)
+        self.Title.AutomaticSize = Enum.AutomaticSize.X
+        local tagContainers = {}
+        for _, tag in ipairs(titleTagsList) do
+            local tagText = tag.text
+            if not tagText or tagText == "" then
+                tagText = "你没有配置Text"
+            end
+            local tagContainer = CreateInstance("Frame", {
+                Name = "TitleTagContainer",
+                Size = UDim2.new(0, 0, 0, 18),
+                BackgroundColor3 = tag.backgroundColor or WasUI.CurrentTheme.Accent,
+                BackgroundTransparency = 0.2,
+                BorderSizePixel = 0,
+                Parent = titleContainer,
+                ZIndex = 10
+            })
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tagContainer})
+            local tagLabel = CreateInstance("TextLabel", {
+                Name = "TagLabel",
+                Size = UDim2.new(1, -6, 1, 0),
+                Position = UDim2.new(0, 3, 0, 0),
+                BackgroundTransparency = 1,
+                Text = tagText,
+                TextColor3 = tag.textColor or WasUI.CurrentTheme.Text,
+                Font = Enum.Font.GothamSemibold,
+                TextSize = 11,
+                TextXAlignment = Enum.TextXAlignment.Center,
+                TextYAlignment = Enum.TextYAlignment.Center,
+                Parent = tagContainer,
+                ZIndex = 11
+            })
+            task.wait()
+            local textWidth = v10:GetTextSize(tagText, 11, Enum.Font.GothamSemibold, Vector2.new(1000, 1000)).X
+            tagContainer.Size = UDim2.new(0, textWidth + 8, 0, 18)
+            tagLabel.Size = UDim2.new(0, textWidth, 1, 0)
+            table.insert(tagContainers, tagContainer)
+        end
+        self.TitleTagContainers = tagContainers
+    else
+        self.Title.Size = UDim2.new(1, -140, 1, 0)
+        self.Title.Position = UDim2.new(0, 54, 0, 0)
     end
-    self.TitleTagContainers = tagContainers
-else
-    self.Title.Size = UDim2.new(1, -140, 1, 0)
-    self.Title.Position = UDim2.new(0, 54, 0, 0)
-end
-
     self.DotContainer = CreateInstance("Frame", {
         Name = "DotContainer",
         Size = UDim2.new(0, 60, 1, 0),
@@ -3736,7 +4111,6 @@ end
     for _, dot in ipairs({self.CloseDot, self.MinimizeDot, self.MaximizeDot}) do
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = dot})
     end
-
     self.MinimizedTextLabel = CreateInstance("TextLabel", {
         Name = "MinimizedText",
         Size = UDim2.new(1, 0, 1, 0),
@@ -3805,7 +4179,7 @@ end
         Parent = self.TitleBar
     })
     local iconColor = (WasUI.CurrentTheme == WasUI.Themes.Light) and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-    local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), iconColor, true)
+    local closeIcon = WasUI:CreateIcon("circle-x", UDim2.new(0, 18, 0, 18), iconColor, false)
     if closeIcon then
         closeIcon.Parent = closeButton
         closeIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
@@ -3820,7 +4194,7 @@ end
         ZIndex = 40,
         Parent = self.TitleBar
     })
-    local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), iconColor, true)
+    local searchIcon = WasUI:CreateIcon("search", UDim2.new(0, 18, 0, 18), iconColor, false)
     if searchIcon then
         searchIcon.Parent = searchButton
         searchIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
@@ -3863,7 +4237,9 @@ end
         end
         for _, moved in ipairs(movedControls) do
             if moved.control and moved.control.Parent ~= moved.originalParent then
-                moved.control.Parent = moved.originalParent
+                pcall(function()
+                    moved.control.Parent = moved.originalParent
+                end)
                 moved.control.Visible = true
             end
         end
@@ -3906,12 +4282,14 @@ end
                                 searchText = child.Text
                             end
                             if searchText and searchText ~= "" then
-                                table.insert(controls, {
-                                    Instance = child,
-                                    SearchText = searchText,
-                                    TabName = tabName,
-                                    OriginalParent = child.Parent
-                                })
+                                if child:IsDescendantOf(game) then
+                                    table.insert(controls, {
+                                        Instance = child,
+                                        SearchText = searchText,
+                                        TabName = tabName,
+                                        OriginalParent = child.Parent
+                                    })
+                                end
                             end
                         end
                         if child:IsA("Frame") and child.Name ~= "Spacing" and not child:IsA("ScrollingFrame") then
@@ -4201,7 +4579,6 @@ end
         if self.DotContainer then self.DotContainer.Visible = true end
         if self.SnowContainer then self.SnowContainer.Visible = true end
     end
-
     self.DotAreaButton.Activated:Connect(function()
         if self.IsMinimized then
             self:RestoreFromDots()
@@ -4209,7 +4586,6 @@ end
             self:MinimizeToDots()
         end
     end)
-
     closeButton.MouseButton1Click:Connect(function()
         local overlay = CreateInstance("Frame", {
             Name = "Overlay",
@@ -4378,14 +4754,12 @@ end
         end
         overlay.InputBegan:Connect(onOverlayClick)
     end)
-    
     local dragging = false
     local dragRenderConn = nil
     local dragEndConn = nil
     local dragStart = Vector2.new()
     local startPos = UDim2.new()
     local currentDragTouch = nil
-    
     local function isPointOverDraggableArea(point)
         local targetArea = self.IsMinimized and self.DotContainer or self.DraggableArea
         if not targetArea or not targetArea.Parent then return false end
@@ -4400,7 +4774,6 @@ end
                point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y and
                not (hitCloseDot or hitMinimizeDot or hitMaximizeDot or hitCloseBtn or hitSearchBtn)
     end
-    
     local function startDrag(input, processed)
         if processed then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -4420,6 +4793,7 @@ end
                     end
                 end)
                 if not self.IsMinimized and self.SnowEnabled then
+                    self._dragTempSnowDisabled = true
                     self.SnowEnabled = false
                     if self.SnowContainer then
                         self.SnowContainer.Visible = false
@@ -4443,6 +4817,7 @@ end
                     end
                 end)
                 if not self.IsMinimized and self.SnowEnabled then
+                    self._dragTempSnowDisabled = true
                     self.SnowEnabled = false
                     if self.SnowContainer then
                         self.SnowContainer.Visible = false
@@ -4451,7 +4826,6 @@ end
             end
         end
     end
-    
     local function endDrag(input, processed)
         if processed then return end
         local isValid = false
@@ -4467,12 +4841,17 @@ end
                 dragRenderConn = nil
             end
             currentDragTouch = nil
+            if self._dragTempSnowDisabled then
+                self._dragTempSnowDisabled = nil
+                self.SnowEnabled = true
+                if self.SnowContainer then
+                    self.SnowContainer.Visible = true
+                end
+            end
         end
     end
-    
     self.DraggableArea.InputBegan:Connect(startDrag)
     dragEndConn = v4.InputEnded:Connect(endDrag)
-    
     local announcementHeight = 80
     self.AnnouncementBar = CreateInstance("Frame", {
         Name = "AnnouncementBar",
@@ -4520,6 +4899,70 @@ end
     self.Avatar.MouseButton1Up:Connect(function()
         SpringTween(avatarScale, {Scale = 1}, 0.25)
     end)
+    local originalUsername = player.Name
+    self.Username = CreateInstance("TextLabel", {
+        Name = "Username",
+        Size = UDim2.new(0.6, 0, 0, 18),
+        Position = UDim2.new(0, 62, 0.12, 0),
+        BackgroundTransparency = 1,
+        Text = "当前用户: " .. player.Name,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 2,
+        Parent = self.AnnouncementBar
+    })
+    local executorName = "Unknown Executor"
+    if typeof(getexecutorname) == "function" then
+        executorName = getexecutorname()
+    elseif typeof(getExecutor) == "function" then
+        executorName = getExecutor()
+    end
+    self.ExecutorLabel = CreateInstance("TextLabel", {
+        Name = "ExecutorLabel",
+        Size = UDim2.new(0.6, 0, 0, 16),
+        Position = UDim2.new(0, 62, 0.35, 0),
+        BackgroundTransparency = 1,
+        Text = "执行器: " .. executorName,
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 2,
+        Parent = self.AnnouncementBar
+    })
+    self.WelcomeLabel = CreateInstance("TextLabel", {
+        Name = "WelcomeLabel",
+        Size = UDim2.new(0.6, 0, 0, 14),
+        Position = UDim2.new(0, 62, 0.55, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 2,
+        Parent = self.AnnouncementBar
+    })
+    WasUI:SetLocalizedText(self.WelcomeLabel, "欢迎使用 WasUI")
+    table.insert(WasUI.Objects, {Object = self.WelcomeLabel, Type = "Label"})
+    self.SettingsHint = CreateInstance("TextLabel", {
+        Name = "SettingsHint",
+        Size = UDim2.new(0.6, 0, 0, 14),
+        Position = UDim2.new(0, 10, 0.75, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        TextColor3 = WasUI.CurrentTheme.Text,
+        TextTransparency = 0.3,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 2,
+        Parent = self.AnnouncementBar
+    })
+    WasUI:SetLocalizedText(self.SettingsHint, "点我打开设置")
+    table.insert(WasUI.Objects, {Object = self.SettingsHint, Type = "Label"})
     self.Avatar.MouseButton1Click:Connect(function()
         if WasUI.SettingsGui and WasUI.SettingsGui.Parent then
             WasUI.SettingsGui:Destroy()
@@ -4543,8 +4986,8 @@ end
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 300, 0, 350),
-            Position = UDim2.new(0.5, -150, 0.5, -200),
+            Size = UDim2.new(0, 280, 0, 340),
+            Position = UDim2.new(0.5, -140, 0.5, -170),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
@@ -4613,14 +5056,14 @@ end
         })
         local contentLayout = CreateInstance("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 8),
+            Padding = UDim.new(0, 4),
             Parent = contentFrame
         })
         local contentPadding = CreateInstance("UIPadding", {
             PaddingLeft = UDim.new(0, 4),
             PaddingRight = UDim.new(0, 4),
-            PaddingTop = UDim.new(0, 4),
-            PaddingBottom = UDim.new(0, 4),
+            PaddingTop = UDim.new(0, 2),
+            PaddingBottom = UDim.new(0, 2),
             Parent = contentFrame
         })
         local function refreshCanvas()
@@ -4629,12 +5072,12 @@ end
         contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshCanvas)
         local themeLabel = CreateInstance("TextLabel", {
             Name = "ThemeLabel",
-            Size = UDim2.new(1, 0, 0, 24),
+            Size = UDim2.new(1, 0, 0, 20),
             BackgroundTransparency = 1,
             Text = "",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
-            TextSize = 14,
+            TextSize = 13,
             TextXAlignment = Enum.TextXAlignment.Left,
             ZIndex = 1002,
             Parent = contentFrame
@@ -4642,8 +5085,8 @@ end
         WasUI:SetLocalizedText(themeLabel, "窗口风格")
         local themeDropdown = CreateInstance("TextButton", {
             Name = "ThemeDropdown",
-            Size = UDim2.new(0, 120, 0, 28),
-            Position = UDim2.new(1, -130, 0, -2),
+            Size = UDim2.new(0, 100, 0, 24),
+            Position = UDim2.new(1, -110, 0, -2),
             BackgroundColor3 = WasUI.CurrentTheme.Input,
             BackgroundTransparency = 0.3,
             Text = "",
@@ -4678,15 +5121,14 @@ end
             WasUI.SettingsPanel = nil
             WasUI:SetTheme(newThemeName)
         end)
-
         local rainbowModeLabel = CreateInstance("TextLabel", {
             Name = "RainbowModeLabel",
-            Size = UDim2.new(1, 0, 0, 24),
+            Size = UDim2.new(1, 0, 0, 20),
             BackgroundTransparency = 1,
             Text = "",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
-            TextSize = 14,
+            TextSize = 13,
             TextXAlignment = Enum.TextXAlignment.Left,
             ZIndex = 1002,
             Parent = contentFrame
@@ -4694,8 +5136,8 @@ end
         WasUI:SetLocalizedText(rainbowModeLabel, "彩虹边框模式")
         local rainbowModeButton = CreateInstance("TextButton", {
             Name = "RainbowModeButton",
-            Size = UDim2.new(0, 120, 0, 28),
-            Position = UDim2.new(1, -130, 0, -2),
+            Size = UDim2.new(0, 100, 0, 24),
+            Position = UDim2.new(1, -110, 0, -2),
             BackgroundColor3 = WasUI.CurrentTheme.Input,
             BackgroundTransparency = 0.3,
             Text = self.RainbowMode,
@@ -4713,10 +5155,9 @@ end
             rainbowModeButton.Text = newMode
             WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
         end)
-
         local snowContainer = CreateInstance("Frame", {
             Name = "SnowToggleContainer",
-            Size = UDim2.new(1, 0, 0, 28),
+            Size = UDim2.new(1, 0, 0, 24),
             BackgroundTransparency = 1,
             ZIndex = 1003,
             Parent = contentFrame
@@ -4760,13 +5201,95 @@ end
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowKnob})
         local function updateSnowToggle(newState)
             self.SnowEnabled = newState
-            if self.SnowContainer then
-                self.SnowContainer.Visible = newState
-            end
             if newState then
+                if not self.SnowContainer then
+                    self.SnowContainer = CreateInstance("Frame", {
+                        Name = "SnowContainer",
+                        Size = self.Instance.Size,
+                        Position = self.Instance.Position,
+                        BackgroundTransparency = 1,
+                        ZIndex = 100000,
+                        Parent = parent
+                    })
+                    local function updateSnowContainer()
+                        if self.SnowContainer and self.Instance then
+                            self.SnowContainer.Position = self.Instance.Position
+                            self.SnowContainer.Size = self.Instance.Size
+                        end
+                    end
+                    self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
+                    self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
+                    self.Snowflakes = {}
+                    self.SnowTimer = 0
+                    self.SnowChangeTimer = 0
+                    self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
+                        if not self.Instance.Visible then return end
+                        if not self.SnowContainer.Visible then return end
+                        self.SnowTimer = self.SnowTimer + deltaTime
+                        self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
+                        if self.SnowTimer >= 0.08 and #self.Snowflakes < 30 then
+                            self.SnowTimer = 0
+                            local size = math.random(4, 10)
+                            local flake = CreateInstance("Frame", {
+                                Size = UDim2.new(0, size, 0, size),
+                                Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.1, 0),
+                                BackgroundColor3 = WasUI.CurrentTheme.SnowColor,
+                                BackgroundTransparency = 0,
+                                BorderSizePixel = 0,
+                                ZIndex = 100001,
+                                Parent = self.SnowContainer
+                            })
+                            CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
+                            local speedY = math.random(150, 200) / 100
+                            local speedX = (math.random() - 0.5) * 0.7
+                            table.insert(self.Snowflakes, {
+                                Instance = flake,
+                                SpeedY = speedY,
+                                SpeedX = speedX,
+                                Age = 0,
+                                Size = size
+                            })
+                        end
+                        if self.SnowChangeTimer >= 1.25 then
+                            self.SnowChangeTimer = 0
+                            for _, data in ipairs(self.Snowflakes) do
+                                data.SpeedX = (math.random() - 0.5) * 0.8
+                                data.SpeedY = math.random(150, 200) / 100
+                            end
+                        end
+                        for i = #self.Snowflakes, 1, -1 do
+                            local data = self.Snowflakes[i]
+                            local flake = data.Instance
+                            if not flake or not flake.Parent then
+                                table.remove(self.Snowflakes, i)
+                                continue
+                            end
+                            data.Age = data.Age + deltaTime
+                            local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
+                            local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
+                            local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
+                            local newSize = data.Size * (1 - data.Age / 3.2)
+                            flake.Position = UDim2.new(newX, 0, 0, newY)
+                            flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
+                            flake.BackgroundTransparency = 1 - alpha
+                            if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
+                                flake:Destroy()
+                                table.remove(self.Snowflakes, i)
+                            end
+                        end
+                    end)
+                end
+                self.SnowContainer.Visible = true
                 Tween(snowBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
                 SpringTween(snowKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
             else
+                if self.SnowContainer then
+                    self.SnowContainer.Visible = false
+                end
+                if self.SnowConnection then
+                    self.SnowConnection:Disconnect()
+                    self.SnowConnection = nil
+                end
                 local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
                 Tween(snowBg, {BackgroundColor3 = offCol}, 0.2)
                 SpringTween(snowKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
@@ -4775,10 +5298,9 @@ end
         snowBg.MouseButton1Click:Connect(function()
             updateSnowToggle(not self.SnowEnabled)
         end)
-
         local langContainer = CreateInstance("Frame", {
             Name = "LanguageToggleContainer",
-            Size = UDim2.new(1, 0, 0, 28),
+            Size = UDim2.new(1, 0, 0, 24),
             BackgroundTransparency = 1,
             ZIndex = 1003,
             Parent = contentFrame
@@ -4835,10 +5357,9 @@ end
         langBg.MouseButton1Click:Connect(function()
             updateLangToggle(WasUI.CurrentLanguage ~= "English")
         end)
-
         local refreshThemeButton = CreateInstance("TextButton", {
             Name = "RefreshThemeButton",
-            Size = UDim2.new(1, 0, 0, 32),
+            Size = UDim2.new(1, 0, 0, 28),
             BackgroundColor3 = WasUI.CurrentTheme.Primary,
             BackgroundTransparency = 0.3,
             Text = "",
@@ -4850,7 +5371,7 @@ end
             Parent = contentFrame
         })
         WasUI:SetLocalizedText(refreshThemeButton, "刷新所有控件状态")
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = refreshThemeButton})
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = refreshThemeButton})
         refreshThemeButton.MouseEnter:Connect(function()
             Tween(refreshThemeButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
         end)
@@ -4865,10 +5386,9 @@ end
             end
             WasUI:Notify({Title = "刷新完毕", Content = "已刷新所有控件状态", Duration = 1.5})
         end)
-
         local groupButton = CreateInstance("TextButton", {
             Name = "GroupButton",
-            Size = UDim2.new(1, 0, 0, 32),
+            Size = UDim2.new(1, 0, 0, 28),
             BackgroundColor3 = WasUI.CurrentTheme.Primary,
             BackgroundTransparency = 0.3,
             Text = WasUI.GroupButtonText,
@@ -4879,7 +5399,7 @@ end
             ZIndex = 1002,
             Parent = contentFrame
         })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = groupButton})
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = groupButton})
         groupButton.MouseEnter:Connect(function()
             Tween(groupButton, {BackgroundColor3 = WasUI.CurrentTheme.Secondary}, 0.2)
         end)
@@ -4889,42 +5409,39 @@ end
         groupButton.MouseButton1Click:Connect(function()
             local copied = copyToClipboard(WasUI.GroupCopyContent)
             if copied then
-                WasUI:Notify({Title = "复制成功", Content = "已复制：" .. WasUI.GroupCopyContent, Duration = 2})
+                WasUI:Notify({Title = "复制成功", Content = "图片链接已复制：" .. WasUI.GroupCopyContent, Duration = 2})
             else
                 WasUI:Notify({Title = "复制失败", Content = "当前环境不支持复制到剪贴板", Duration = 2})
             end
         end)
-        
         local shortcutHint = CreateInstance("TextLabel", {
             Name = "ShortcutHint",
-            Size = UDim2.new(1, -20, 0, 20),
-            Position = UDim2.new(0, 10, 1, -20.4),
+            Size = UDim2.new(1, -20, 0, 18),
+            Position = UDim2.new(0, 10, 1, -18),
             BackgroundTransparency = 1,
             Text = "",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
-            TextSize = 11,
+            TextSize = 10,
             TextXAlignment = Enum.TextXAlignment.Center,
             ZIndex = 1002,
             Parent = settingsFrame
         })
         WasUI:SetLocalizedText(shortcutHint, "长按控件可创建快捷键")
-        
         local f1Hint = CreateInstance("TextLabel", {
             Name = "F1Hint",
-            Size = UDim2.new(1, -20, 0, 20),
-            Position = UDim2.new(0, 10, 1, -4.4),
+            Size = UDim2.new(1, -20, 0, 18),
+            Position = UDim2.new(0, 10, 1, -2),
             BackgroundTransparency = 1,
             Text = "",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
-            TextSize = 11,
+            TextSize = 10,
             TextXAlignment = Enum.TextXAlignment.Center,
             ZIndex = 1002,
             Parent = settingsFrame
         })
         WasUI:SetLocalizedText(f1Hint, "按F1开关UI")
-        
         refreshCanvas()
         Tween(settingsFrame, {BackgroundTransparency = 0.2}, 0.25)
         local function onScreenClick(input)
@@ -4946,71 +5463,6 @@ end
         end
         clickCatcher.InputBegan:Connect(onScreenClick)
     end)
-    self.Username = CreateInstance("TextLabel", {
-        Name = "Username",
-        Size = UDim2.new(0.6, 0, 0, 18),
-        Position = UDim2.new(0, 62, 0.12, 0),
-        BackgroundTransparency = 1,
-        Text = "当前用户: " .. player.Name,
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.GothamSemibold,
-        TextSize = 13,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 2,
-        Parent = self.AnnouncementBar
-    })
-    local executorName = "Unknown Executor"
-    if typeof(getexecutorname) == "function" then
-        executorName = getexecutorname()
-    elseif typeof(getExecutor) == "function" then
-        executorName = getExecutor()
-    end
-    self.ExecutorLabel = CreateInstance("TextLabel", {
-        Name = "ExecutorLabel",
-        Size = UDim2.new(0.6, 0, 0, 16),
-        Position = UDim2.new(0, 62, 0.35, 0),
-        BackgroundTransparency = 1,
-        Text = "执行器: " .. executorName,
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 2,
-        Parent = self.AnnouncementBar
-    })
-    self.WelcomeLabel = CreateInstance("TextLabel", {
-        Name = "WelcomeLabel",
-        Size = UDim2.new(0.6, 0, 0, 14),
-        Position = UDim2.new(0, 62, 0.55, 0),
-        BackgroundTransparency = 1,
-        Text = "",
-        TextColor3 = WasUI.CurrentTheme.Text,
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 2,
-        Parent = self.AnnouncementBar
-    })
-    WasUI:SetLocalizedText(self.WelcomeLabel, "欢迎使用 WasUI")
-    table.insert(WasUI.Objects, {Object = self.WelcomeLabel, Type = "Label"})
-
-    self.SettingsHint = CreateInstance("TextLabel", {
-        Name = "SettingsHint",
-        Size = UDim2.new(0.6, 0, 0, 14),
-        Position = UDim2.new(0, 10, 0.75, 0),
-        BackgroundTransparency = 1,
-        Text = "",
-        TextColor3 = WasUI.CurrentTheme.Text,
-        TextTransparency = 0.3,
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 2,
-        Parent = self.AnnouncementBar
-    })
-    WasUI:SetLocalizedText(self.SettingsHint, "点我打开设置")
-    table.insert(WasUI.Objects, {Object = self.SettingsHint, Type = "Label"})
-
     self.TabBar = CreateInstance("Frame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 0),
@@ -5044,7 +5496,6 @@ end
         ZIndex = 2,
         Parent = self.TabBar
     })
-    
     local leftArrow, rightArrow
     local function updateArrowVisibility()
         if not self.TabContainer then return end
@@ -5059,7 +5510,6 @@ end
         if leftArrow then leftArrow.Visible = canvasPos > 5 end
         if rightArrow then rightArrow.Visible = canvasPos < canvasSize - containerSize - 5 end
     end
-
     leftArrow = WasUI:CreateIcon("chevron-left", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
     if leftArrow then
         leftArrow.Name = "LeftArrow"
@@ -5070,7 +5520,6 @@ end
         leftArrow.Parent = self.TabBar
         table.insert(WasUI.Objects, {Object = leftArrow, Type = "TabArrow"})
     end
-
     rightArrow = WasUI:CreateIcon("chevron-right", UDim2.new(0, 16, 0, 16), WasUI.CurrentTheme.Text)
     if rightArrow then
         rightArrow.Name = "RightArrow"
@@ -5081,11 +5530,9 @@ end
         rightArrow.Parent = self.TabBar
         table.insert(WasUI.Objects, {Object = rightArrow, Type = "TabArrow"})
     end
-
     self.TabContainer:GetPropertyChangedSignal("CanvasPosition"):Connect(updateArrowVisibility)
     self.TabContainer:GetPropertyChangedSignal("CanvasSize"):Connect(updateArrowVisibility)
     self.TabContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateArrowVisibility)
-    
     local function delayedUpdate()
         task.wait()
         updateArrowVisibility()
@@ -5093,7 +5540,6 @@ end
     self.TabContainer.ChildAdded:Connect(delayedUpdate)
     self.TabContainer.ChildRemoved:Connect(delayedUpdate)
     task.defer(updateArrowVisibility)
-    
     local tabListLayout = CreateInstance("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
@@ -5223,6 +5669,10 @@ end
         return tabFrame
     end
     function self:SetActiveTab(tabName)
+        for _, dropdown in ipairs(WasUI.OpenDropdowns) do
+            if dropdown.Close then dropdown:Close(true) end
+        end
+        WasUI.OpenDropdowns = {}
         if self.ActiveTab and self.Tabs[self.ActiveTab] then
             local old = self.Tabs[self.ActiveTab]
             if old.Underline then
@@ -5260,7 +5710,6 @@ end
     function self:SetWelcome(text)
         WasUI:SetLocalizedText(self.WelcomeLabel, text)
     end
-
     self.HotkeyConnection = nil
     function self:EnableHotkeyToggle(keyCode)
         if self.HotkeyConnection then
@@ -5284,7 +5733,6 @@ end
             self.HotkeyConnection = nil
         end
     end
-
     self.CurrentCategory = nil
     function self:SetCurrentCategory(categoryName)
         self.CurrentCategory = categoryName
@@ -5292,7 +5740,6 @@ end
     function self:GetCurrentCategory()
         return self.CurrentCategory
     end
-
     if self.SnowEnabled then
         self.SnowContainer = CreateInstance("Frame", {
             Name = "SnowContainer",
@@ -5369,9 +5816,6 @@ end
                 end
             end
         end)
-    else
-        self.SnowContainer = nil
-        self.SnowConnection = nil
     end
     local originalSize = self.Instance.Size
     local originalPos = self.Instance.Position
@@ -5402,107 +5846,329 @@ end
     return self
 end
 
-function WasUI:CreateWindow(title, size, position, backgroundUrl, snowEnabled, titleTag)
+function WasUI:CreateWindow(options)
+    options = options or {}
+    local title = options.Title or "WasUI"
+    local size = options.Size or UDim2.new(0, 400, 0, 350)
+    local position = options.Position or nil
+    local background = options.Background
+    local snowEnabled = options.SnowEnabled or false
+    local titleTag = options.TitleTag
+    if not WasUI.InternalConfigManager then
+        local internalPath = "WasUI_Configs/WasUI_Internal"
+        if not isfolder(internalPath) then makefolder(internalPath) end
+        local internalManager = {}
+        local function getInternalFilePath(configName)
+            return internalPath .. "/" .. configName .. ".json"
+        end
+        function internalManager:GetConfig(configName)
+            local filePath = getInternalFilePath(configName)
+            local config = {
+                Name = configName,
+                Path = filePath,
+                Data = {},
+                Bindings = {},
+            }
+            function config:Save()
+                return true
+            end
+            function config:Load()
+                if not isfile(self.Path) then return false end
+                local success, data = pcall(function()
+                    return v6:JSONDecode(readfile(self.Path))
+                end)
+                if success and type(data) == "table" then
+                    self.Data = data
+                    for key, value in pairs(self.Data) do
+                        local binding = self.Bindings[key]
+                        if binding and binding.control and binding.update then binding.update(value) end
+                    end
+                    return true
+                end
+                return false
+            end
+            function config:Delete()
+                if isfile(self.Path) then delfile(self.Path) end
+                self.Data = {}
+                self.Bindings = {}
+                return true
+            end
+            function config:Set(key, value)
+                self.Data[key] = value
+            end
+            function config:Get(key, defaultValue)
+                local val = self.Data[key]
+                if val == nil then return defaultValue end
+                return val
+            end
+            function config:Bind(key, control, updateFunc)
+                self.Bindings[key] = { control = control, update = updateFunc }
+                local savedValue = self.Data[key]
+                if savedValue ~= nil then updateFunc(savedValue) end
+            end
+            if isfile(filePath) then config:Load() end
+            return config
+        end
+        WasUI.InternalConfigManager = internalManager
+    end
+    if options.Folder and type(options.Folder) == "string" and options.Folder ~= "" then
+        self:CreateFolder(options.Folder)
+    end
+    if options.Theme then
+        self:SetTheme(options.Theme)
+    end
+    if options.RainbowMode then
+        self.DefaultRainbowMode = options.RainbowMode
+    end
+    if options.DialogTitle then
+        self.DialogTitle = options.DialogTitle
+    end
+    if options.GroupText then
+        self.GroupButtonText = options.GroupText
+    end
+    if options.GroupCopy then
+        self.GroupCopyContent = options.GroupCopy
+    end
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "WasUI_Main"
     screenGui.ResetOnSpawn = false
-    screenGui.DisplayOrder = WasUI.DefaultDisplayOrder
+    screenGui.DisplayOrder = self.DefaultDisplayOrder
     screenGui.Parent = v11
-    local internalName = title
-    local window = Panel:New(internalName, screenGui, size or UDim2.new(0, 400, 0, 350), position, backgroundUrl, snowEnabled, titleTag)
-    window:SetTitle(title)
-    RecordOriginalTransparency(window.Instance)
-    window:EnableHotkeyToggle(Enum.KeyCode.F1)
-
-    local configFilePath = "WasUI_Configs/" .. (WasUI.ConfigFolderName or "") .. "/user_settings.json"
-    local hasConfig = WasUI.ConfigFolderCreated and isfile(configFilePath)
+    local window = Panel:New(title, screenGui, size, position, background, snowEnabled, titleTag)
+    if options.WelcomeText then
+        window:SetWelcome(options.WelcomeText)
+    end
+    if options.MinimizedText then
+        window:SetMinimizedText(options.MinimizedText)
+    end
+    window:SetRainbowMode(self.DefaultRainbowMode)
+    local hasConfig = false
+    if self.ConfigManager then
+        local config = self.ConfigManager:GetConfig("user_settings")
+        if config then
+            hasConfig = true
+        end
+    end
     if hasConfig then
-        if WasUI.ExternalPopupCalled then
-            local config = WasUI.ConfigManager:GetConfig("user_settings")
+        if self.ExternalPopupCalled then
+            local config = self.ConfigManager:GetConfig("user_settings")
             if config then config:Load() end
         else
-            WasUI:ShowPopup({
+            self:ShowPopup({
                 title = "找到配置文件",
                 titleIcon = "file-cog",
                 content = "是否加载上次保存的配置？",
                 confirmText = "加载",
                 cancelText = "跳过",
                 onConfirm = function()
-                    local config = WasUI.ConfigManager:GetConfig("user_settings")
+                    local config = self.ConfigManager:GetConfig("user_settings")
                     if config then config:Load() end
                 end,
                 onCancel = function() end
             })
         end
     end
-
-    return window
+    local windowFacade = {
+        _panel = window,
+        _tabs = {},
+    }
+    function windowFacade:Tab(tabOptions)
+        local tabName = tabOptions.Title or "Tab"
+        local tabFrame = window:AddTab(tabName)
+        local tabFacade = {
+            _frame = tabFrame,
+            _categories = {},
+        }
+        function tabFacade:Category(catOptions)
+            local catTitle = catOptions.Title or "Category"
+            local catIcon = catOptions.IconName
+            local categoryObj = Category:New("Category", tabFrame, catTitle, catIcon)
+            local catFacade = {
+                _category = categoryObj,
+                _content = categoryObj.Content,
+            }
+            function catFacade:Toggle(opts)
+                local title = opts.Title or ""
+                local value = opts.Value or false
+                local callback = opts.Callback
+                local featureName = opts.FeatureName
+                local icon = opts.Icon
+                local configKey = opts.ConfigKey
+                local tooltip = opts.Tooltip
+                return ToggleSwitch:New("Toggle", self._content, title, value, callback, featureName, featureName, icon, configKey, tooltip)
+            end
+            function catFacade:Button(opts)
+                local text = opts.Text or "按钮"
+                local callback = opts.Callback
+                local size = opts.Size
+                local icon = opts.Icon
+                local tooltip = opts.Tooltip
+                return Button:New("Button", self._content, text, callback, size, icon, tooltip)
+            end
+            function catFacade:Slider(opts)
+                local title = opts.Title or ""
+                local min = opts.Min or 0
+                local max = opts.Max or 100
+                local default = opts.Default or 50
+                local callback = opts.Callback
+                local configKey = opts.ConfigKey
+                local ticks = opts.Ticks
+                return Slider:New("Slider", self._content, title, min, max, default, callback, configKey, ticks)
+            end
+            function catFacade:Dropdown(opts)
+                local title = opts.Title or ""
+                local values = opts.Values or {}
+                local value = opts.Value
+                local callback = opts.Callback
+                local multi = opts.Multi or false
+                local configKey = opts.ConfigKey
+                return Dropdown:New("Dropdown", self._content, title, values, value, callback, multi, configKey)
+            end
+            function catFacade:TextInput(opts)
+                local placeholder = opts.Placeholder or ""
+                local value = opts.Value or ""
+                local callback = opts.Callback
+                local configKey = opts.ConfigKey
+                return TextInput:New("TextInput", self._content, placeholder, value, callback, configKey)
+            end
+            function catFacade:ProgressBar(opts)
+                local title = opts.Title or ""
+                local min = opts.Min or 0
+                local max = opts.Max or 100
+                local default = opts.Default or 0
+                local callback = opts.Callback
+                local segments = opts.Segments
+                return ProgressBar:New("ProgressBar", self._content, title, min, max, default, callback, segments)
+            end
+            function catFacade:ColorPickerButton(opts)
+                local title = opts.Title
+                local defaultColor = opts.Default or Color3.fromRGB(255,255,255)
+                local callback = opts.Callback
+                local configKey = opts.ConfigKey
+                return WasUI:CreateColorPickerButton(self._content, title, defaultColor, callback, configKey)
+            end
+            function catFacade:Paragraph(opts)
+                return Paragraph:New("Paragraph", self._content, opts)
+            end
+            function catFacade:Spacing(height)
+                local spacing = Instance.new("Frame")
+                spacing.Name = "Spacing"
+                spacing.Size = UDim2.new(1, 0, 0, height or 4)
+                spacing.BackgroundTransparency = 1
+                spacing.Parent = self._content
+                return spacing
+            end
+            return catFacade
+        end
+        function tabFacade:Paragraph(opts)
+            return Paragraph:New("Paragraph", tabFrame, opts)
+        end
+        function tabFacade:Button(opts)
+            local text = opts.Text or "按钮"
+            local callback = opts.Callback
+            local size = opts.Size
+            local icon = opts.Icon
+            local tooltip = opts.Tooltip
+            return Button:New("Button", tabFrame, text, callback, size, icon, tooltip)
+        end
+        function tabFacade:Toggle(opts)
+            local title = opts.Title or ""
+            local value = opts.Value or false
+            local callback = opts.Callback
+            local featureName = opts.FeatureName
+            local icon = opts.Icon
+            local configKey = opts.ConfigKey
+            local tooltip = opts.Tooltip
+            return ToggleSwitch:New("Toggle", tabFrame, title, value, callback, featureName, featureName, icon, configKey, tooltip)
+        end
+        function tabFacade:Slider(opts)
+            local title = opts.Title or ""
+            local min = opts.Min or 0
+            local max = opts.Max or 100
+            local default = opts.Default or 50
+            local callback = opts.Callback
+            local configKey = opts.ConfigKey
+            local ticks = opts.Ticks
+            return Slider:New("Slider", tabFrame, title, min, max, default, callback, configKey, ticks)
+        end
+        function tabFacade:Dropdown(opts)
+            local title = opts.Title or ""
+            local values = opts.Values or {}
+            local value = opts.Value
+            local callback = opts.Callback
+            local multi = opts.Multi or false
+            local configKey = opts.ConfigKey
+            return Dropdown:New("Dropdown", tabFrame, title, values, value, callback, multi, configKey)
+        end
+        function tabFacade:TextInput(opts)
+            local placeholder = opts.Placeholder or ""
+            local value = opts.Value or ""
+            local callback = opts.Callback
+            local configKey = opts.ConfigKey
+            return TextInput:New("TextInput", tabFrame, placeholder, value, callback, configKey)
+        end
+        function tabFacade:ProgressBar(opts)
+            local title = opts.Title or ""
+            local min = opts.Min or 0
+            local max = opts.Max or 100
+            local default = opts.Default or 0
+            local callback = opts.Callback
+            local segments = opts.Segments
+            return ProgressBar:New("ProgressBar", tabFrame, title, min, max, default, callback, segments)
+        end
+        function tabFacade:ColorPickerButton(opts)
+            local title = opts.Title
+            local defaultColor = opts.Default or Color3.fromRGB(255,255,255)
+            local callback = opts.Callback
+            local configKey = opts.ConfigKey
+            return WasUI:CreateColorPickerButton(tabFrame, title, defaultColor, callback, configKey)
+        end
+        windowFacade._tabs[tabName] = tabFacade
+        return tabFacade
+    end
+    function windowFacade:SetVisible(visible)
+        window:SetVisible(visible)
+    end
+    function windowFacade:SetTitle(text)
+        window:SetTitle(text)
+    end
+    function windowFacade:SetWelcome(text)
+        window:SetWelcome(text)
+    end
+    function windowFacade:EnableHotkeyToggle(keyCode)
+        window:EnableHotkeyToggle(keyCode)
+    end
+    function windowFacade:DisableHotkeyToggle()
+        window:DisableHotkeyToggle()
+    end
+    function windowFacade:Minimize()
+        window:MinimizeToDots()
+    end
+    function windowFacade:Restore()
+        window:RestoreFromDots()
+    end
+    function windowFacade:Destroy()
+        if window.BorderConnection then window.BorderConnection:Disconnect() end
+        if window.BorderFlow then window.BorderFlow:Destroy() end
+        if window.Instance then window.Instance:Destroy() end
+        if window.SnowContainer then window.SnowContainer:Destroy() end
+    end
+    function windowFacade:SetRainbowMode(mode)
+        window:SetRainbowMode(mode)
+    end
+    function windowFacade:SetMinimizedText(text)
+        window:SetMinimizedText(text)
+    end
+    return windowFacade
 end
 
 function WasUI:Popup(options, callback)
     WasUI.ExternalPopupCalled = true
-    if WasUI.ConfigFolderCreated then WasUI:ShowPopup(options, callback)
-    else WasUI.PendingPopup = {options = options, callback = callback} end
-end
-
-function WasUI:CreateButton(parent, text, onClick, size, iconName, tips)
-    return Button:New("Button", parent, text, onClick, size, iconName, tips)
-end
-
-function WasUI:CreateToggle(parent, initialState, onToggle, featureName, rainbowName, configKey, tips)
-    return self:CreateToggleWithTitle(parent, featureName or "", initialState, onToggle, featureName, rainbowName, nil, configKey, tips)
-end
-
-function WasUI:CreateToggleWithTitle(parent, title, initialState, onToggle, featureName, rainbowName, iconName, configKey, tips)
-    return ToggleSwitch:New("Toggle", parent, title, initialState, onToggle, featureName, rainbowName, iconName, configKey, tips)
-end
-
-function WasUI:CreateLabel(parent, text, textColor)
-    return Label:New("Label", parent, text, textColor)
-end
-
-function WasUI:CreateCategory(parent, title, iconName)
-    return Category:New("Category", parent, title, iconName)
-end
-
-function WasUI:CreateDropdown(parent, title, options, defaultValue, callback, multiSelect, configKey)
-    return Dropdown:New("Dropdown", parent, title, options, defaultValue, callback, multiSelect, configKey)
-end
-
-function WasUI:CreateSlider(parent, title, min, max, defaultValue, callback, configKey)
-    return Slider:New("Slider", parent, title, min, max, defaultValue, callback, configKey)
-end
-
-function WasUI:CreateTextInput(parent, placeholder, defaultValue, callback, configKey)
-    return TextInput:New("TextInput", parent, placeholder, defaultValue, callback, configKey)
-end
-
-function WasUI:AddSpacing(parent, height)
-    local spacing = Instance.new("Frame")
-    spacing.Name = "Spacing"
-    spacing.Size = UDim2.new(1, 0, 0, height or 4)
-    spacing.BackgroundTransparency = 1
-    spacing.Parent = parent
-end
-
-function WasUI:SetGroupButtonText(text)
-    WasUI.GroupButtonText = text
-    if WasUI.SettingsPanel then
-        local btn = WasUI.SettingsPanel:FindFirstChild("Content") and WasUI.SettingsPanel.Content:FindFirstChild("GroupButton")
-        if btn then btn.Text = text end
+    if WasUI.ConfigFolderCreated then
+        WasUI:ShowPopup(options, callback)
+    else
+        WasUI.PendingPopup = {options = options, callback = callback}
     end
-end
-
-function WasUI:SetGroupCopyContent(content)
-    WasUI.GroupCopyContent = content
-end
-
-function WasUI:CreateParagraph(parent, options)
-    return Paragraph:New("Paragraph", parent, options)
-end
-
-function WasUI:CreateProgressBar(parent, title, min, max, defaultValue, callback, segments)
-    return ProgressBar:New("ProgressBar", parent, title, min, max, defaultValue, callback, segments)
 end
 
 task.spawn(function()
