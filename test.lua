@@ -751,7 +751,7 @@ local function RebuildRainbowOrderByLength()
     RefreshRainbowLayout()
 end
 
-local function CreateRainbowTextForFeature(featureName, color1, color2)
+local function CreateRainbowTextForFeature(featureName, color1, color2, ratio)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
     local screenGui = CreateInstance("ScreenGui", {
@@ -775,10 +775,11 @@ local function CreateRainbowTextForFeature(featureName, color1, color2)
         TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
         Parent = screenGui
     })
-    if color1 and color2 then
+    if color1 and color2 and ratio then
+        local topColor = color1:Lerp(color2, ratio)
         local gradient = Instance.new("UIGradient")
         gradient.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, color1),
+            ColorSequenceKeypoint.new(0, topColor),
             ColorSequenceKeypoint.new(1, color2)
         })
         gradient.Rotation = 270
@@ -1375,6 +1376,27 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         end
     end
     if tips then WasUI:CreateTooltip(self.Container, tips) end
+    local ratio = 0
+    local parentContent = self.Container.Parent
+    if parentContent then
+        local siblings = parentContent:GetChildren()
+        local toggleContainers = {}
+        for _, child in ipairs(siblings) do
+            if child:IsA("Frame") and child.Name == "ToggleContainer" then
+                table.insert(toggleContainers, child)
+            end
+        end
+        local total = #toggleContainers
+        if total > 0 then
+            for i, container in ipairs(toggleContainers) do
+                if container == self.Container then
+                    ratio = (i - 1) / (total - 1)
+                    break
+                end
+            end
+        end
+    end
+    self._ratio = ratio
     local featureColor1, featureColor2 = nil, nil
     local current = parent
     while current do
@@ -1392,7 +1414,7 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     end
 
     if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then 
-        CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2) 
+        CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2, self._ratio) 
     end
 
     AddRipple(self.Background, 2.5)
@@ -1402,7 +1424,9 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         if self.Toggled then
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
             SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
-            if self.RainbowName and self.RainbowName ~= "" then CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2) end
+            if self.RainbowName and self.RainbowName ~= "" then 
+                CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2, self._ratio) 
+            end
             if iconName then local iconImg = self.Knob:FindFirstChildOfClass("ImageLabel") if iconImg then iconImg.ImageColor3 = WasUI.CurrentTheme.Success end end
         else
             local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
@@ -1427,7 +1451,9 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         if self.Toggled then
             Tween(self.Background, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
             SpringTween(self.Knob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
-            if self.RainbowName and self.RainbowName ~= "" then CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2) end
+            if self.RainbowName and self.RainbowName ~= "" then 
+                CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2, self._ratio) 
+            end
             if iconName then local iconImg = self.Knob:FindFirstChildOfClass("ImageLabel") if iconImg then iconImg.ImageColor3 = WasUI.CurrentTheme.Success end end
         else
             local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
