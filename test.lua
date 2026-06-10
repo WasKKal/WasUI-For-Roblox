@@ -1999,10 +1999,11 @@ end)
 
 local Slider = setmetatable({}, {__index = Control})
 Slider.__index = Slider
-function Slider:New(name, parent, title, min, max, defaultValue, callback, configKey, tickValues)
+function Slider:New(name, parent, title, min, max, defaultValue, callback, configKey, step)
     local self = Control:New(name, parent)
     self.Min = min or 0
     self.Max = max or 100
+    self.Step = step or 0.1
     self.Value = math.clamp(defaultValue or self.Min, self.Min, self.Max)
     self.Callback = callback
     self.AnimationTween = nil
@@ -2095,6 +2096,11 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     local tooltipCorner = Instance.new("UICorner")
     tooltipCorner.CornerRadius = UDim.new(1, 0)
     tooltipCorner.Parent = tooltip
+
+    local function roundToStep(val)
+        return math.floor(val / self.Step + 0.5) * self.Step
+    end
+
     local function showTooltip(val)
         tooltip.Text = string.format("%.1f", val)
         tooltip.Visible = true
@@ -2105,8 +2111,10 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     local function stopAnimation()
         if self.AnimationTween then self.AnimationTween:Cancel(); self.AnimationTween = nil end
     end
+
     local function setValueImmediately(newValue)
         newValue = math.clamp(newValue, self.Min, self.Max)
+        newValue = roundToStep(newValue)
         if newValue == self.Value then return end
         self.Value = newValue
         self.ValueLabel.Text = string.format("%.1f", self.Value)
@@ -2119,8 +2127,10 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             if config then config:Set(configKey, self.Value); config:Save() end
         end
     end
+
     local function animateToValue(targetValue)
         targetValue = math.clamp(targetValue, self.Min, self.Max)
+        targetValue = roundToStep(targetValue)
         if targetValue == self.Value then return end
         local targetT = (targetValue - self.Min) / (self.Max - self.Min)
         stopAnimation()
@@ -2140,6 +2150,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         knobTween:Play()
         self.AnimationTween = fillTween
     end
+
     local dragging = false
     local function updateFromMousePosition(inputX)
         local trackPos = self.SliderTrack.AbsolutePosition
@@ -2147,9 +2158,10 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         if trackSize <= 0 then return end
         local t = math.clamp((inputX - trackPos.X) / trackSize, 0, 1)
         local newValue = self.Min + t * (self.Max - self.Min)
-        newValue = math.round(newValue * 10) / 10
+        newValue = roundToStep(newValue)
         return newValue
     end
+
     local parentScrollingFrame = self.Container.Parent
     while parentScrollingFrame and not parentScrollingFrame:IsA("ScrollingFrame") do parentScrollingFrame = parentScrollingFrame.Parent end
     local originalScrollingEnabled = parentScrollingFrame and parentScrollingFrame.ScrollingEnabled
@@ -2198,53 +2210,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     end
     function self:SetValue(newValue)
         newValue = math.clamp(newValue, self.Min, self.Max)
+        newValue = roundToStep(newValue)
         setValueImmediately(newValue)
-    end
-    if tickValues then
-        local tickContainer = CreateInstance("Frame", {
-            Name = "TickContainer",
-            Size = UDim2.new(1, 0, 0, 12),
-            Position = UDim2.new(0, 2, 0, 20),
-            BackgroundTransparency = 1,
-            ZIndex = 2,
-            Parent = self.Container
-        })
-        local tickList = {}
-        if type(tickValues) == "number" then
-            for v = self.Min, self.Max, tickValues do
-                table.insert(tickList, v)
-            end
-        elseif type(tickValues) == "table" then
-            for _, v in ipairs(tickValues) do
-                table.insert(tickList, v)
-            end
-        end
-        for _, v in ipairs(tickList) do
-            local t = (v - self.Min) / (self.Max - self.Min)
-            local tick = CreateInstance("Frame", {
-                Name = "Tick",
-                Size = UDim2.new(0, 2, 0, 6),
-                Position = UDim2.new(t, 0, 0.5, 0),
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                BackgroundColor3 = WasUI.CurrentTheme.Text,
-                BackgroundTransparency = 0.5,
-                ZIndex = 2,
-                Parent = tickContainer
-            })
-            local tickLabel = CreateInstance("TextLabel", {
-                Name = "TickLabel",
-                Size = UDim2.new(0, 20, 0, 10),
-                Position = UDim2.new(t, 0, 1, 0),
-                AnchorPoint = Vector2.new(0.5, 0),
-                BackgroundTransparency = 1,
-                Text = tostring(v),
-                TextColor3 = WasUI.CurrentTheme.Text,
-                TextSize = 8,
-                Font = Enum.Font.Gotham,
-                ZIndex = 2,
-                Parent = tickContainer
-            })
-        end
     end
     AddRipple(self.SliderTrack)
     if configKey and WasUI.ConfigManager then
