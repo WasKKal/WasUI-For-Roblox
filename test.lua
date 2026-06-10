@@ -1378,16 +1378,23 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     local featureColor1, featureColor2 = nil, nil
     local current = parent
     while current do
-        if current:GetAttribute("FeatureNameColor") then
-            local colorData = current:GetAttribute("FeatureNameColor")
-            if type(colorData) == "table" and #colorData == 2 then
-                featureColor1, featureColor2 = colorData[1], colorData[2]
+        local colorFolder = current:FindFirstChild("WasUI_FeatureColor")
+        if colorFolder then
+            local c1 = colorFolder:FindFirstChild("Color1")
+            local c2 = colorFolder:FindFirstChild("Color2")
+            if c1 and c2 then
+                featureColor1 = c1.Value
+                featureColor2 = c2.Value
                 break
             end
         end
         current = current.Parent
     end
-    if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2) end
+
+    if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then 
+        CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2) 
+    end
+
     AddRipple(self.Background, 2.5)
     local function performToggle(newState)
         self.Toggled = newState
@@ -3788,8 +3795,21 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Parent = parent
     })
     if featureNameColor then
-        self.Instance:SetAttribute("FeatureNameColor", featureNameColor)
+        local colorFolder = Instance.new("Folder")
+        colorFolder.Name = "WasUI_FeatureColor"
+        colorFolder.Parent = self.Instance
+        
+        local c1 = Instance.new("Color3Value")
+        c1.Name = "Color1"
+        c1.Value = featureNameColor[1]
+        c1.Parent = colorFolder
+        
+        local c2 = Instance.new("Color3Value")
+        c2.Name = "Color2"
+        c2.Value = featureNameColor[2]
+        c2.Parent = colorFolder
     end
+
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
     if backgroundUrl and backgroundUrl ~= "" then
         self:SetBackground(backgroundUrl)
