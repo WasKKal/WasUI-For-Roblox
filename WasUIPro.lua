@@ -1,4 +1,5 @@
-print("test")local WasUI = {}
+print("test")
+local WasUI = {}
 WasUI.__index = WasUI
 
 local v1 = game:GetService("Players")
