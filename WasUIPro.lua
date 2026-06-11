@@ -724,55 +724,138 @@ function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
 end
 
 local function RefreshRainbowLayout()
-    local startY = 8
-    local spacing = 4
-    local height = 20
-    local total = #WasUI.RainbowOrder
-    if total == 0 then return end
-    local linesInfo = {}
-    for _, featureName in ipairs(WasUI.RainbowOrder) do
-        local data = WasUI.ActiveRainbowTexts[featureName]
-        if data and data.Label then
-            local text = data.OriginalText
-            local bounds = v10:GetTextSize(text, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))
-            table.insert(linesInfo, {
-                name = featureName,
-                data = data,
-                width = bounds.X,
-                height = bounds.Y
-            })
-        end
+    if not WasUI.RainbowGui or not WasUI.RainbowGui.Parent then
+        WasUI.RainbowGui = Instance.new("ScreenGui")
+        WasUI.RainbowGui.Name = "WasUI_RainbowList"
+        WasUI.RainbowGui.ResetOnSpawn = false
+        WasUI.RainbowGui.DisplayOrder = 100
+        WasUI.RainbowGui.Parent = v11
     end
-    table.sort(linesInfo, function(a, b)
-        return a.width > b.width
-    end)
-    local currentY = startY
-    for i, info in ipairs(linesInfo) do
-        local row = info.data.Row
-        local label = info.data.Label
-        local rowWidth = info.width + 12
-        row.Size = UDim2.new(0, rowWidth, 0, height)
-        row.Position = UDim2.new(1, -rowWidth - 10, 0, currentY)
-        label.Size = UDim2.new(1, 0, 1, 0)
-        local ratio = 0
-        if #linesInfo > 1 then
-            ratio = (i - 1) / (#linesInfo - 1)
+    if not WasUI.RainbowMainContainer or not WasUI.RainbowMainContainer.Parent then
+        WasUI.RainbowMainContainer = Instance.new("Frame")
+        WasUI.RainbowMainContainer.Name = "RainbowMainContainer"
+        WasUI.RainbowMainContainer.Size = UDim2.new(0, 300, 1, 0)
+        WasUI.RainbowMainContainer.Position = UDim2.new(1, -300, 0, 0)
+        WasUI.RainbowMainContainer.BackgroundTransparency = 1
+        WasUI.RainbowMainContainer.Parent = WasUI.RainbowGui
+    end
+    local startY = 8
+    local spacing = 1
+    local total = #WasUI.RainbowOrder
+    if total == 0 then
+        for _, data in pairs(WasUI.ActiveRainbowTexts) do
+            if data.Container and data.Container.Parent then
+                data.Container:Destroy()
+            end
         end
-        local color1 = info.data.Color1 or WasUI.CurrentTheme.Accent
-        local color2 = info.data.Color2 or WasUI.CurrentTheme.Text
-        local color = color1:Lerp(color2, ratio)
-        label.TextColor3 = color
-        currentY = currentY + height + spacing
+        return
+    end
+    local currentY = startY
+    for i, featureName in ipairs(WasUI.RainbowOrder) do
+        local data = WasUI.ActiveRainbowTexts[featureName]
+        if not data then continue end
+        local textBounds = v10:GetTextSize(data.OriginalText, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))
+        local textWidth = math.ceil(textBounds.X + 24)
+        local textHeight = math.ceil(textBounds.Y)
+        local verticalPadding = math.ceil(textHeight * 0.08)
+        local lineHeight = textHeight + verticalPadding * 2
+        local ratio = 0
+        if total > 1 then
+            ratio = (i - 1) / (total - 1)
+        end
+        local color1 = data.Color1 or WasUI.CurrentTheme.Accent
+        local color2 = data.Color2 or WasUI.CurrentTheme.Text
+        local textColor = color1:Lerp(color2, ratio)
+        if not data.Container or not data.Container.Parent then
+            local container = CreateInstance("Frame", {
+                Name = "RainbowContainer_" .. featureName,
+                Size = UDim2.new(0, textWidth, 0, lineHeight),
+                Position = UDim2.new(1, 0, 0, currentY),
+                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                BackgroundTransparency = -1,
+                BorderSizePixel = 0,
+                Parent = WasUI.RainbowMainContainer
+            })
+            CreateInstance("UIGradient", {
+                Transparency = NumberSequence.new({
+                    NumberSequenceKeypoint.new(0, 0.6),
+                    NumberSequenceKeypoint.new(0.95, 0.8),
+                    NumberSequenceKeypoint.new(1, 0.8),
+                }),
+                Parent = container
+            })
+            local sideBar = CreateInstance("Frame", {
+                Name = "SideBar",
+                Size = UDim2.new(0, 3, 1, 0),
+                Position = UDim2.new(0, 0, 0, 0),
+                BackgroundColor3 = textColor,
+                BorderSizePixel = 0,
+                Parent = container
+            })
+            local label = CreateInstance("TextLabel", {
+                Name = "Label",
+                Text = data.OriginalText,
+                Font = Enum.Font.GothamBold,
+                TextSize = 14,
+                Position = UDim2.new(0, 14, 0, verticalPadding),
+                Size = UDim2.new(1, -20, 1, -verticalPadding * 2),
+                BackgroundTransparency = 1,
+                TextStrokeTransparency = 0.7,
+                TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+                TextXAlignment = Enum.TextXAlignment.Right,
+                TextYAlignment = Enum.TextYAlignment.Center,
+                TextColor3 = textColor,
+                Parent = container
+            })
+            data.Container = container
+            data.Label = label
+            data.SideBar = sideBar
+            local targetPos = UDim2.new(1, -textWidth, 0, currentY)
+            Tween(container, {Position = targetPos}, 0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        else
+            local targetPos = UDim2.new(1, -textWidth, 0, currentY)
+            Tween(data.Container, {Position = targetPos, Size = UDim2.new(0, textWidth, 0, lineHeight)}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            data.Label.TextColor3 = textColor
+            if data.SideBar then
+                data.SideBar.BackgroundColor3 = textColor
+            end
+        end
+        currentY = currentY + lineHeight + spacing
+    end
+    for name, data in pairs(WasUI.ActiveRainbowTexts) do
+        local found = false
+        for _, orderName in ipairs(WasUI.RainbowOrder) do
+            if orderName == name then
+                found = true
+                break
+            end
+        end
+        if not found and data.Container and data.Container.Parent then
+            Tween(data.Container, {BackgroundTransparency = 1, Position = UDim2.new(1, 0, 0, data.Container.Position.Y.Offset)}, 0.2)
+            task.delay(0.2, function()
+                if data.Container and data.Container.Parent then
+                    data.Container:Destroy()
+                end
+            end)
+        end
     end
 end
 
 local function RebuildRainbowOrderByLength()
     local sorted = {}
     for name, data in pairs(WasUI.ActiveRainbowTexts) do
-        table.insert(sorted, {name = name, length = #name})
+        local textBounds = v10:GetTextSize(data.OriginalText, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))
+        local width = math.ceil(textBounds.X + 12)
+        table.insert(sorted, {name = name, charCount = #data.OriginalText, visualWidth = width})
     end
     table.sort(sorted, function(a, b)
-        return a.length > b.length
+        if a.visualWidth ~= b.visualWidth then
+            return a.visualWidth > b.visualWidth
+        elseif a.charCount ~= b.charCount then
+            return a.charCount > b.charCount
+        else
+            return a.name < b.name
+        end
     end)
     WasUI.RainbowOrder = {}
     for _, item in ipairs(sorted) do
@@ -787,49 +870,17 @@ end
 local function CreateRainbowTextForFeature(featureName, color1, color2)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "RainbowText_" .. featureName,
-        ResetOnSpawn = false,
-        DisplayOrder = 100,
-        Parent = v11
-    })
-    local rowFrame = CreateInstance("Frame", {
-        Name = "Row_" .. featureName,
-        Size = UDim2.new(0, 0, 0, 20),
-        BackgroundTransparency = 1,
-        Parent = screenGui
-    })
-    local textLabel = CreateInstance("TextLabel", {
-        Name = "Label",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Text = featureName,
-        TextColor3 = Color3.new(1, 1, 1),
-        Font = Enum.Font.GothamBold,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        TextWrapped = true,
-        Parent = rowFrame
-    })
-    local c1 = color1 or WasUI.CurrentTheme.Accent
-    local c2 = color2 or WasUI.CurrentTheme.Text
-    textLabel.TextColor3 = c1
     WasUI.ActiveRainbowTexts[featureName] = {
-        ScreenGui = screenGui,
-        Label = textLabel,
-        Row = rowFrame,
         OriginalText = featureName,
-        Color1 = c1,
-        Color2 = c2
+        Color1 = color1 or WasUI.CurrentTheme.Accent,
+        Color2 = color2 or WasUI.CurrentTheme.Text,
+        Container = nil,
+        Label = nil,
+        SideBar = nil
     }
-    local success1, err1 = pcall(RebuildRainbowOrderByLength)
-    if not success1 then
-        warn("WasUI Rainbow Error: " .. tostring(err1))
-    end
-    local success2, err2 = pcall(RefreshRainbowLayout)
-    if not success2 then
-        warn("WasUI Rainbow Error: " .. tostring(err2))
+    local success, err = pcall(RebuildRainbowOrderByLength)
+    if not success then
+        warn("WasUI Rainbow Error: " .. tostring(err))
     end
 end
 
@@ -838,39 +889,27 @@ local function DestroyRainbowTextForFeature(featureName)
     local data = WasUI.ActiveRainbowTexts[featureName]
     if data then
         WasUI.ActiveRainbowTexts[featureName] = nil
-        if data.Label then
-            Tween(data.Label, {TextTransparency = 1}, 0.2)
+        if data.Container and data.Container.Parent then
+            Tween(data.Container, {BackgroundTransparency = 1, Position = UDim2.new(1, 0, 0, data.Container.Position.Y.Offset)}, 0.2)
+            task.delay(0.2, function()
+                if data.Container and data.Container.Parent then
+                    data.Container:Destroy()
+                end
+                local success, err = pcall(RebuildRainbowOrderByLength)
+                if not success then
+                    warn("WasUI Rainbow Error: " .. tostring(err))
+                end
+            end)
+        else
+            local success, err = pcall(RebuildRainbowOrderByLength)
+            if not success then
+                warn("WasUI Rainbow Error: " .. tostring(err))
+            end
         end
-        task.delay(0.2, function()
-            if data.ScreenGui then
-                data.ScreenGui:Destroy()
-            end
-            local success1, err1 = pcall(RebuildRainbowOrderByLength)
-            if not success1 then
-                warn("WasUI Rainbow Error: " .. tostring(err1))
-            end
-            local success2, err2 = pcall(RefreshRainbowLayout)
-            if not success2 then
-                warn("WasUI Rainbow Error: " .. tostring(err2))
-            end
-        end)
     end
 end
 
-local rainbowTime = 0
-local rainbowSpeed = 2
-local rainbowConnection = v5.Heartbeat:Connect(function(deltaTime)
-    rainbowTime = rainbowTime + deltaTime * rainbowSpeed
-    local r = (math.sin(rainbowTime) + 1) / 2
-    local g = (math.sin(rainbowTime + math.pi/3) + 1) / 2
-    local b = (math.sin(rainbowTime + 2*math.pi/3) + 1) / 2
-    local color = Color3.new(r, g, b)
-    for _, data in pairs(WasUI.ActiveRainbowTexts) do
-        if data.Label and not data.Label:FindFirstChild("UIGradient") then
-            data.Label.TextColor3 = color
-        end
-    end
-end)
+
 
 local function GetShortcutKey(controlType, controlId, rainbowName)
     local base = ""
@@ -4756,7 +4795,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 self.BorderFlow:Destroy()
             end
             for _, data in pairs(WasUI.ActiveRainbowTexts) do
-                if data.ScreenGui then data.ScreenGui:Destroy() end
+                if data.Container and data.Container.Parent then data.Container:Destroy() end
             end
             WasUI.ActiveRainbowTexts = {}
             WasUI.RainbowOrder = {}
@@ -5035,8 +5074,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 280, 0, 350),
-            Position = UDim2.new(0.5, -140, 0.5, -175),
+            Size = UDim2.new(0, 280, 0, 220),
+            Position = UDim2.new(0.5, -140, 0.5, -110),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
