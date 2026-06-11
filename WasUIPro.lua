@@ -3826,16 +3826,17 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         self:SetBackground(backgroundUrl)
     end
     AddRipple(self.Instance)
-    self.BorderFlow = CreateInstance("Frame", {
+    self.BorderFlow = CreateInstance("ImageLabel", {
         Name = "BorderFlow",
         Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
         Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
         BackgroundTransparency = 1,
-        BorderSizePixel = 0,
+        Image = "rbxassetid://12187365364",
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(5, 5, 5, 5),
         ZIndex = -1,
         Parent = self.Instance.Parent
     })
-    local borderFlowCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.BorderFlow})
     local flowGradient = Instance.new("UIGradient")
     flowGradient.Rotation = 0
     flowGradient.Color = ColorSequence.new{
@@ -3854,42 +3855,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 128))
     }
     flowGradient.Parent = self.BorderFlow
-    self.BorderStroke = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 1.5,
-        Transparency = 0,
-        Parent = self.BorderFlow
-    })
-    self.GlowStroke1 = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 2,
-        Transparency = 0.5,
-        Parent = self.BorderFlow
-    })
-    self.GlowStroke2 = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 4,
-        Transparency = 0.7,
-        Parent = self.BorderFlow
-    })
-    self.GlowStroke3 = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 6,
-        Transparency = 0.84,
-        Parent = self.BorderFlow
-    })
-    self.GlowStroke4 = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 10,
-        Transparency = 0.93,
-        Parent = self.BorderFlow
-    })
-    self.GlowStroke5 = CreateInstance("UIStroke", {
-        Color = Color3.fromRGB(255, 0, 0),
-        Thickness = 15,
-        Transparency = 0.97,
-        Parent = self.BorderFlow
-    })
     self.BorderFlow.Visible = false
     local function updateBorder()
         if not self.Instance or not self.BorderFlow then return end
