@@ -723,6 +723,49 @@ function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
     return imageLabel
 end
 
+local function RefreshRainbowLayout()
+    local startY = 8
+    local spacing = 4
+    local height = 20
+    local total = #WasUI.RainbowOrder
+    if total == 0 then return end
+    local linesInfo = {}
+    for _, featureName in ipairs(WasUI.RainbowOrder) do
+        local data = WasUI.ActiveRainbowTexts[featureName]
+        if data and data.Label then
+            local text = data.OriginalText
+            local bounds = v10:GetTextSize(text, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))
+            table.insert(linesInfo, {
+                name = featureName,
+                data = data,
+                width = bounds.X,
+                height = bounds.Y
+            })
+        end
+    end
+    table.sort(linesInfo, function(a, b)
+        return a.width > b.width
+    end)
+    local currentY = startY
+    for i, info in ipairs(linesInfo) do
+        local row = info.data.Row
+        local label = info.data.Label
+        local rowWidth = info.width + 12
+        row.Size = UDim2.new(0, rowWidth, 0, height)
+        row.Position = UDim2.new(1, -rowWidth - 10, 0, currentY)
+        label.Size = UDim2.new(1, 0, 1, 0)
+        local ratio = 0
+        if #linesInfo > 1 then
+            ratio = (i - 1) / (#linesInfo - 1)
+        end
+        local color1 = info.data.Color1 or WasUI.CurrentTheme.Accent
+        local color2 = info.data.Color2 or WasUI.CurrentTheme.Text
+        local color = color1:Lerp(color2, ratio)
+        label.TextColor3 = color
+        currentY = currentY + height + spacing
+    end
+end
+
 local function RebuildRainbowOrderByLength()
     local sorted = {}
     for name, data in pairs(WasUI.ActiveRainbowTexts) do
@@ -735,10 +778,11 @@ local function RebuildRainbowOrderByLength()
     for _, item in ipairs(sorted) do
         table.insert(WasUI.RainbowOrder, item.name)
     end
-    RefreshRainbowLayout()
+    local success, err = pcall(RefreshRainbowLayout)
+    if not success then
+        warn("WasUI Rainbow Error: " .. tostring(err))
+    end
 end
-
-local function RefreshRainbowLayout()
     local startY = 8
     local spacing = 4
     local height = 20
@@ -820,8 +864,14 @@ local function CreateRainbowTextForFeature(featureName, color1, color2)
         Color1 = c1,
         Color2 = c2
     }
-    RebuildRainbowOrderByLength()
-    RefreshRainbowLayout()
+    local success1, err1 = pcall(RebuildRainbowOrderByLength)
+    if not success1 then
+        warn("WasUI Rainbow Error: " .. tostring(err1))
+    end
+    local success2, err2 = pcall(RefreshRainbowLayout)
+    if not success2 then
+        warn("WasUI Rainbow Error: " .. tostring(err2))
+    end
 end
 
 local function DestroyRainbowTextForFeature(featureName)
@@ -836,8 +886,14 @@ local function DestroyRainbowTextForFeature(featureName)
             if data.ScreenGui then
                 data.ScreenGui:Destroy()
             end
-            RebuildRainbowOrderByLength()
-            RefreshRainbowLayout()
+            local success1, err1 = pcall(RebuildRainbowOrderByLength)
+            if not success1 then
+                warn("WasUI Rainbow Error: " .. tostring(err1))
+            end
+            local success2, err2 = pcall(RefreshRainbowLayout)
+            if not success2 then
+                warn("WasUI Rainbow Error: " .. tostring(err2))
+            end
         end)
     end
 end
@@ -1595,7 +1651,7 @@ function Category:New(name, parent, title, iconName)
     })
     WasUI:SetLocalizedText(self.TitleLabel, title)
     table.insert(WasUI.Objects, {Object = self.TitleLabel, Type = "CategoryTitle"})
-    local rightIcon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text, true)
+    local rightIcon = WasUI:CreateIcon("chevron-down", UDim2.new(0, 18, 0, 18), WasUI.CurrentTheme.Text, false)
     if rightIcon then
         rightIcon.Name = "CategoryIcon"
         rightIcon.Parent = self.Header
