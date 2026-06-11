@@ -1,5 +1,4 @@
-print("test")
-local WasUI = {}
+print("test")local WasUI = {}
 WasUI.__index = WasUI
 
 local v1 = game:GetService("Players")
@@ -727,6 +726,7 @@ end
 local function CreateRainbowTextForFeature(featureName, color1, color2)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
+    if not v10 then return end
     local screenGui = CreateInstance("ScreenGui", {
         Name = "RainbowText_" .. featureName,
         ResetOnSpawn = false,
@@ -796,7 +796,7 @@ local function RefreshRainbowLayout()
         local data = WasUI.ActiveRainbowTexts[featureName]
         if data and data.Label then
             local text = data.OriginalText
-            local bounds = v10:GetTextSize(text, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))
+            local bounds = (v10 and v10:GetTextSize(text, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))) or Vector2.new(60, 20)
             table.insert(linesInfo, {
                 name = featureName,
                 data = data,
@@ -3805,71 +3805,174 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     end
     AddRipple(self.Instance)
     self.FrameColors = frameColors or nil
-    local strokeColor = Color3.new(1, 1, 1)
-    if self.FrameColors and #self.FrameColors > 0 then
-        strokeColor = self.FrameColors[1]
-    end
-    self.FlowStroke = CreateInstance("UIStroke", {
-        Thickness = 2,
-        Color = strokeColor,
-        Transparency = 0.5,
-        Parent = self.Instance
-    })
-    self.FlowGradient = nil
-    if not self.FrameColors then
-        local gradient = Instance.new("UIGradient")
-        gradient.Rotation = 0
-        gradient.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-            ColorSequenceKeypoint.new(0.1, Color3.fromRGB(255, 128, 0)),
-            ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 255, 0)),
-            ColorSequenceKeypoint.new(0.4, Color3.fromRGB(128, 255, 0)),
-            ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 128)),
-            ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 128, 255)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(128, 0, 255))
-        })
-        gradient.Parent = self.FlowStroke
-        self.FlowGradient = gradient
-    end
     self.RainbowMode = WasUI.DefaultRainbowMode
+    self.BorderFlow = nil
+    self.BorderStroke = nil
+    self.GlowStroke1 = nil
+    self.GlowStroke2 = nil
+    self.GlowStroke3 = nil
+    self.GlowStroke4 = nil
+    self.GlowStroke5 = nil
+    self.FlowGradient = nil
+    self.FlowStroke = nil
     self.FlowRotation = 0
     self.BorderConnection = nil
-    local function startFrameAnimation()
-        if self.BorderConnection then self.BorderConnection:Disconnect() end
-        self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
-            if self.FrameColors and #self.FrameColors > 0 then
-                local t = tick() / 4
-                local len = #self.FrameColors
-                local idx = (t % len) + 1
-                local idxNext = (idx % len) + 1
-                local frac = (t % 1)
-                local c1 = self.FrameColors[idx]
-                local c2 = self.FrameColors[idxNext]
-                local color = c1:Lerp(c2, frac)
-                self.FlowStroke.Color = color
-                self.FlowStroke.Transparency = 0.5
-            else
-                if self.RainbowMode == "整体" then
-                    local hue = (tick() / 20) % 1
-                    local color = Color3.fromHSV(hue, 0.8, 1)
-                    self.FlowStroke.Color = color
-                    self.FlowStroke.Transparency = 0
-                else
-                    self.FlowRotation = (self.FlowRotation + deltaTime * 60) % 360
-                    if self.FlowGradient then
-                        self.FlowGradient.Rotation = self.FlowRotation
-                    end
-                    self.FlowStroke.Color = Color3.new(1, 1, 1)
-                    self.FlowStroke.Transparency = 0.5
-                end
-            end
-        end)
+
+    local function createFlowBorder()
+        if self.FlowStroke then self.FlowStroke:Destroy() end
+        self.FlowStroke = CreateInstance("UIStroke", {
+            Thickness = 2,
+            Color = Color3.new(1,1,1),
+            Transparency = 0.5,
+            Parent = self.Instance
+        })
+        self.FlowGradient = Instance.new("UIGradient")
+        self.FlowGradient.Rotation = 0
+        self.FlowGradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+            ColorSequenceKeypoint.new(0.1, Color3.fromRGB(255,128,0)),
+            ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255,255,0)),
+            ColorSequenceKeypoint.new(0.4, Color3.fromRGB(128,255,0)),
+            ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0,255,128)),
+            ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0,128,255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(128,0,255))
+        })
+        self.FlowGradient.Parent = self.FlowStroke
     end
-    startFrameAnimation()
+
+    local function createSolidGlowBorder()
+        if self.BorderFlow then self.BorderFlow:Destroy() end
+        self.BorderFlow = CreateInstance("Frame", {
+            Name = "BorderFlow",
+            Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
+            Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            ZIndex = -1,
+            Parent = self.Instance.Parent
+        })
+        local borderFlowCorner = Instance.new("UICorner")
+        borderFlowCorner.CornerRadius = UDim.new(0, 16)
+        borderFlowCorner.Parent = self.BorderFlow
+
+        local flowGradient = Instance.new("UIGradient")
+        flowGradient.Rotation = 0
+        flowGradient.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+            ColorSequenceKeypoint.new(0.08, Color3.fromRGB(255, 80, 0)),
+            ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
+            ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 255, 0)),
+            ColorSequenceKeypoint.new(0.33, Color3.fromRGB(128, 255, 0)),
+            ColorSequenceKeypoint.new(0.41, Color3.fromRGB(0, 255, 0)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 128)),
+            ColorSequenceKeypoint.new(0.58, Color3.fromRGB(0, 255, 255)),
+            ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 128, 255)),
+            ColorSequenceKeypoint.new(0.75, Color3.fromRGB(0, 0, 255)),
+            ColorSequenceKeypoint.new(0.83, Color3.fromRGB(128, 0, 255)),
+            ColorSequenceKeypoint.new(0.91, Color3.fromRGB(255, 0, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 128))
+        }
+        flowGradient.Parent = self.BorderFlow
+
+        self.BorderStroke = Instance.new("UIStroke")
+        self.BorderStroke.Color = Color3.fromRGB(255, 0, 0)
+        self.BorderStroke.Thickness = 1.5
+        self.BorderStroke.Transparency = 0
+        self.BorderStroke.Parent = self.BorderFlow
+
+        self.GlowStroke1 = Instance.new("UIStroke")
+        self.GlowStroke1.Color = Color3.fromRGB(255, 0, 0)
+        self.GlowStroke1.Thickness = 2
+        self.GlowStroke1.Transparency = 0.5
+        self.GlowStroke1.Parent = self.BorderFlow
+
+        self.GlowStroke2 = Instance.new("UIStroke")
+        self.GlowStroke2.Color = Color3.fromRGB(255, 0, 0)
+        self.GlowStroke2.Thickness = 4
+        self.GlowStroke2.Transparency = 0.7
+        self.GlowStroke2.Parent = self.BorderFlow
+
+        self.GlowStroke3 = Instance.new("UIStroke")
+        self.GlowStroke3.Color = Color3.fromRGB(255, 0, 0)
+        self.GlowStroke3.Thickness = 6
+        self.GlowStroke3.Transparency = 0.84
+        self.GlowStroke3.Parent = self.BorderFlow
+
+        self.GlowStroke4 = Instance.new("UIStroke")
+        self.GlowStroke4.Color = Color3.fromRGB(255, 0, 0)
+        self.GlowStroke4.Thickness = 10
+        self.GlowStroke4.Transparency = 0.93
+        self.GlowStroke4.Parent = self.BorderFlow
+
+        self.GlowStroke5 = Instance.new("UIStroke")
+        self.GlowStroke5.Color = Color3.fromRGB(255, 0, 0)
+        self.GlowStroke5.Thickness = 15
+        self.GlowStroke5.Transparency = 0.97
+        self.GlowStroke5.Parent = self.BorderFlow
+
+        local function updateBorderPosition()
+            if not self.Instance or not self.BorderFlow then return end
+            self.BorderFlow.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
+            self.BorderFlow.Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4)
+        end
+        self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorderPosition)
+        self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorderPosition)
+        updateBorderPosition()
+    end
+
+    local function updateBorderMode()
+        if self.BorderConnection then
+            self.BorderConnection:Disconnect()
+            self.BorderConnection = nil
+        end
+        if self.RainbowMode == "整体" then
+            if self.FlowStroke then self.FlowStroke.Enabled = false end
+            if self.BorderFlow then
+                self.BorderFlow.Visible = true
+            else
+                createSolidGlowBorder()
+            end
+            local borderTime = 0
+            self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
+                borderTime = borderTime + deltaTime * 2.5
+                local hue = (borderTime * 0.3) % 1
+                local color = Color3.fromHSV(hue, 0.8, 1)
+                if self.BorderStroke then self.BorderStroke.Color = color end
+                if self.GlowStroke1 then self.GlowStroke1.Color = color end
+                if self.GlowStroke2 then self.GlowStroke2.Color = color end
+                if self.GlowStroke3 then self.GlowStroke3.Color = color end
+                if self.GlowStroke4 then self.GlowStroke4.Color = color end
+                if self.GlowStroke5 then self.GlowStroke5.Color = color end
+            end)
+        else
+            if self.BorderFlow then self.BorderFlow.Visible = false end
+            if not self.FlowStroke then
+                createFlowBorder()
+            else
+                self.FlowStroke.Enabled = true
+            end
+            self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
+                self.FlowRotation = (self.FlowRotation + deltaTime * 60) % 360
+                if self.FlowGradient then
+                    self.FlowGradient.Rotation = self.FlowRotation
+                end
+                self.FlowStroke.Color = Color3.new(1,1,1)
+                self.FlowStroke.Transparency = 0.5
+            end)
+        end
+    end
+
+    if self.FrameColors and #self.FrameColors > 0 then
+        self.RainbowMode = nil
+    else
+        updateBorderMode()
+    end
+
     function self:SetRainbowMode(mode)
         if self.FrameColors then return end
         if mode == "整体" or mode == "流动" then
             self.RainbowMode = mode
+            updateBorderMode()
             if WasUI.InternalConfigManager then
                 local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
                 internalConfig:Set("RainbowMode", mode)
@@ -3877,6 +3980,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             end
         end
     end
+
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
         Size = UDim2.new(1, 0, 0, 26),
@@ -5631,6 +5735,9 @@ function self:SetVisible(visible)
         if self.FlowStroke then
             self.FlowStroke.Enabled = visible
         end
+        if self.BorderFlow then
+            self.BorderFlow.Visible = visible
+        end
     end
 
     function self:SetTitle(text)
@@ -5755,6 +5862,9 @@ function self:SetVisible(visible)
 if self.FlowStroke then
         self.FlowStroke.Enabled = false
     end
+    if self.BorderFlow then
+        self.BorderFlow.Visible = false
+    end
     if self.SnowContainer then
         self.SnowContainer.Visible = false
     end
@@ -5767,8 +5877,11 @@ if self.FlowStroke then
         if self.SnowContainer then
             self.SnowContainer.Visible = true
         end
+        if self.BorderFlow then
+            self.BorderFlow.Visible = (self.RainbowMode == "整体")
+        end
         if self.FlowStroke then
-            self.FlowStroke.Enabled = true
+            self.FlowStroke.Enabled = (self.RainbowMode == "流动")
         end
     end)
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel", PanelData = self})
@@ -6081,6 +6194,7 @@ function WasUI:CreateWindow(options)
     function windowFacade:Destroy()
         if window.BorderConnection then window.BorderConnection:Disconnect() end
         if window.FlowStroke then window.FlowStroke:Destroy() end
+        if window.BorderFlow then window.BorderFlow:Destroy() end
         if window.Instance then window.Instance:Destroy() end
         if window.SnowContainer then window.SnowContainer:Destroy() end
     end
