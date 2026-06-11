@@ -1,4 +1,4 @@
-print("测试")
+print("DebugMode = Ture")
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -822,11 +822,13 @@ local function CreateRainbowTextForFeature(featureName, color1, color2)
         Color1 = c1,
         Color2 = c2
     }
-    if type(RebuildRainbowOrderByLength) == "function" then
-        RebuildRainbowOrderByLength()
+    local ok1, err1 = pcall(RebuildRainbowOrderByLength)
+    if not ok1 then
+        warn("[WasUI] RebuildRainbowOrderByLength failed:", err1)
     end
-    if type(RefreshRainbowLayout) == "function" then
-        RefreshRainbowLayout()
+    local ok2, err2 = pcall(RefreshRainbowLayout)
+    if not ok2 then
+        warn("[WasUI] RefreshRainbowLayout failed:", err2)
     end
 end
 
@@ -842,12 +844,8 @@ local function DestroyRainbowTextForFeature(featureName)
             if data.ScreenGui then
                 data.ScreenGui:Destroy()
             end
-            if type(RebuildRainbowOrderByLength) == "function" then
-                RebuildRainbowOrderByLength()
-            end
-            if type(RefreshRainbowLayout) == "function" then
-                RefreshRainbowLayout()
-            end
+            pcall(RebuildRainbowOrderByLength)
+            pcall(RefreshRainbowLayout)
         end)
     end
 end
@@ -5999,30 +5997,10 @@ function WasUI:CreateWindow(options)
         window:SetMinimizedText(options.MinimizedText)
     end
     window:SetRainbowMode(self.DefaultRainbowMode)
-    local hasConfig = false
     if self.ConfigManager then
         local config = self.ConfigManager:GetConfig("user_settings")
         if config then
-            hasConfig = true
-        end
-    end
-    if hasConfig then
-        if self.ExternalPopupCalled then
-            local config = self.ConfigManager:GetConfig("user_settings")
-            if config then config:Load() end
-        else
-            self:ShowPopup({
-                title = "找到配置文件",
-                titleIcon = "file-cog",
-                content = "是否加载上次保存的配置？",
-                confirmText = "加载",
-                cancelText = "跳过",
-                onConfirm = function()
-                    local config = self.ConfigManager:GetConfig("user_settings")
-                    if config then config:Load() end
-                end,
-                onCancel = function() end
-            })
+            config:Load()
         end
     end
     local windowFacade = {
