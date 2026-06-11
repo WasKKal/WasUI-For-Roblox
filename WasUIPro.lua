@@ -1,4 +1,4 @@
-print("这是一个测试输出,你看到这条输出时,记得让福瑞删掉")
+print("这是测试输出,你看到这条输出时,记得让福瑞删掉")
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -5752,8 +5752,8 @@ function self:SetVisible(visible)
     self.Instance.BackgroundTransparency = 1
     self.Instance.Size = UDim2.new(0, 0, 0, 0)
     self.Instance.Position = UDim2.new(0.5, 0, 0.5, 0)
-    if self.FlowStroke then
-        self.FlowStroke.Visible = false
+if self.FlowStroke then
+        self.FlowStroke.Enabled = false
     end
     if self.SnowContainer then
         self.SnowContainer.Visible = false
@@ -5766,6 +5766,9 @@ function self:SetVisible(visible)
     windowTween.Completed:Connect(function()
         if self.SnowContainer then
             self.SnowContainer.Visible = true
+        end
+        if self.FlowStroke then
+            self.FlowStroke.Enabled = true
         end
     end)
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel", PanelData = self})
