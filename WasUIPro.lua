@@ -3826,48 +3826,52 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         self:SetBackground(backgroundUrl)
     end
     AddRipple(self.Instance)
-    self.BorderFlow = CreateInstance("ImageLabel", {
-        Name = "BorderFlow",
-        Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
-        Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://12187365364",
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(5, 5, 5, 5),
-        ZIndex = -1,
-        Parent = self.Instance.Parent
-    })
-    local flowGradient = Instance.new("UIGradient")
-    flowGradient.Rotation = 0
-    flowGradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-        ColorSequenceKeypoint.new(0.08, Color3.fromRGB(255, 80, 0)),
-        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
-        ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 255, 0)),
-        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(128, 255, 0)),
-        ColorSequenceKeypoint.new(0.41, Color3.fromRGB(0, 255, 0)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 128)),
-        ColorSequenceKeypoint.new(0.58, Color3.fromRGB(0, 255, 255)),
-        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 128, 255)),
-        ColorSequenceKeypoint.new(0.75, Color3.fromRGB(0, 0, 255)),
-        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(128, 0, 255)),
-        ColorSequenceKeypoint.new(0.91, Color3.fromRGB(255, 0, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 128))
-    }
-    flowGradient.Parent = self.BorderFlow
-    self.BorderFlow.Visible = false
-    local function updateBorder()
-        if not self.Instance or not self.BorderFlow then return end
-        self.BorderFlow.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
-        self.BorderFlow.Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4)
-    end
-    self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
-    self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
-    updateBorder()
-    local borderTime = 0
-    self.RainbowMode = WasUI.DefaultRainbowMode
-    self.FlowRotation = 0
-    self.BorderConnection = nil
+
+self.BorderFlow = CreateInstance("ImageLabel", {
+    Name = "BorderFlow",
+    Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
+    Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://12187365364",
+    ScaleType = Enum.ScaleType.Slice,
+    SliceCenter = Rect.new(5, 5, 5, 5),
+    ZIndex = -1,
+    Parent = self.Instance.Parent
+})
+local flowGradient = Instance.new("UIGradient")
+flowGradient.Rotation = 0
+flowGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.08, Color3.fromRGB(255, 80, 0)),
+    ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
+    ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 255, 0)),
+    ColorSequenceKeypoint.new(0.33, Color3.fromRGB(128, 255, 0)),
+    ColorSequenceKeypoint.new(0.41, Color3.fromRGB(0, 255, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 128)),
+    ColorSequenceKeypoint.new(0.58, Color3.fromRGB(0, 255, 255)),
+    ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 128, 255)),
+    ColorSequenceKeypoint.new(0.75, Color3.fromRGB(0, 0, 255)),
+    ColorSequenceKeypoint.new(0.83, Color3.fromRGB(128, 0, 255)),
+    ColorSequenceKeypoint.new(0.91, Color3.fromRGB(255, 0, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 128))
+}
+flowGradient.Parent = self.BorderFlow
+
+self.BorderFlow.Visible = false
+
+local function updateBorder()
+    if not self.Instance or not self.BorderFlow then return end
+    self.BorderFlow.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
+    self.BorderFlow.Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4)
+end
+self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
+self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
+updateBorder()
+
+local borderTime = 0
+self.RainbowMode = WasUI.DefaultRainbowMode
+self.FlowRotation = 0
+self.BorderConnection = nil
 
 function self:SetRainbowMode(mode)
     if mode == "整体" or mode == "流动" then
