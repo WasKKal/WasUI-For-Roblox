@@ -730,8 +730,15 @@ local function RefreshRainbowLayout()
     
     local total = #WasUI.RainbowOrder
     if total == 0 then return end
-    
     local maxTargetY = (total - 1) * (height + spacing)
+    local spanFactor = 1.0
+    if total <= 3 then
+        spanFactor = 1.0
+    elseif total >= 10 then
+        spanFactor = 0.3
+    else
+        spanFactor = 1.0 - (total - 3) / (10 - 3) * (1.0 - 0.3)
+    end
     
     for i, featureName in ipairs(WasUI.RainbowOrder) do
         local data = WasUI.ActiveRainbowTexts[featureName]
@@ -746,8 +753,8 @@ local function RefreshRainbowLayout()
             
             local color1 = data.Color1 or WasUI.CurrentTheme.Accent
             local color2 = data.Color2 or WasUI.CurrentTheme.Text
-            
-            local topColor = color1:Lerp(color2, ratio)
+            local adjustedRatio = ratio * spanFactor
+            local topColor = color1:Lerp(color2, adjustedRatio)
             
             local gradient = data.Label:FindFirstChildOfClass("UIGradient")
             if not gradient then
