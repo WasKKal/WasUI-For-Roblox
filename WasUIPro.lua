@@ -783,47 +783,6 @@ local function RebuildRainbowOrderByLength()
         warn("WasUI Rainbow Error: " .. tostring(err))
     end
 end
-    local startY = 8
-    local spacing = 4
-    local height = 20
-    local total = #WasUI.RainbowOrder
-    if total == 0 then return end
-    local linesInfo = {}
-    for _, featureName in ipairs(WasUI.RainbowOrder) do
-        local data = WasUI.ActiveRainbowTexts[featureName]
-        if data and data.Label then
-            local text = data.OriginalText
-            local bounds = v10:GetTextSize(text, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))
-            table.insert(linesInfo, {
-                name = featureName,
-                data = data,
-                width = bounds.X,
-                height = bounds.Y
-            })
-        end
-    end
-    table.sort(linesInfo, function(a, b)
-        return a.width > b.width
-    end)
-    local currentY = startY
-    for i, info in ipairs(linesInfo) do
-        local row = info.data.Row
-        local label = info.data.Label
-        local rowWidth = info.width + 12
-        row.Size = UDim2.new(0, rowWidth, 0, height)
-        row.Position = UDim2.new(1, -rowWidth - 10, 0, currentY)
-        label.Size = UDim2.new(1, 0, 1, 0)
-        local ratio = 0
-        if #linesInfo > 1 then
-            ratio = (i - 1) / (#linesInfo - 1)
-        end
-        local color1 = info.data.Color1 or WasUI.CurrentTheme.Accent
-        local color2 = info.data.Color2 or WasUI.CurrentTheme.Text
-        local color = color1:Lerp(color2, ratio)
-        label.TextColor3 = color
-        currentY = currentY + height + spacing
-    end
-end
 
 local function CreateRainbowTextForFeature(featureName, color1, color2)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
