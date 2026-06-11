@@ -5624,15 +5624,17 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
         self.ActiveTab = tabName
     end
+
 function self:SetVisible(visible)
         self.Instance.Visible = visible
         if self.FlowStroke then
-            self.FlowStroke.Enabled = visible
+            self.FlowStroke.Enabled = 
         end
         if self.SnowContainer then
             self.SnowContainer.Visible = visible
         end
     end
+
     function self:SetTitle(text)
         WasUI:SetLocalizedText(self.Title, text)
     end
