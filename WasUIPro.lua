@@ -5628,7 +5628,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
 function self:SetVisible(visible)
         self.Instance.Visible = visible
         if self.FlowStroke then
-            self.FlowStroke.Enabled = 
+            self.FlowStroke.Enabled = visible
         end
         if self.SnowContainer then
             self.SnowContainer.Visible = visible
