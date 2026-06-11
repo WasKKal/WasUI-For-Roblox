@@ -5630,9 +5630,6 @@ function self:SetVisible(visible)
         if self.FlowStroke then
             self.FlowStroke.Enabled = visible
         end
-        if self.SnowContainer then
-            self.SnowContainer.Visible = visible
-        end
     end
 
     function self:SetTitle(text)
@@ -5766,9 +5763,6 @@ function self:SetVisible(visible)
         Position = originalPos
     }, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     windowTween.Completed:Connect(function()
-        if self.FlowStroke then
-            self.FlowStroke.Visible = true
-        end
         if self.SnowContainer then
             self.SnowContainer.Visible = true
         end
