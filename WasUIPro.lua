@@ -3827,17 +3827,18 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     end
     AddRipple(self.Instance)
 
-self.BorderFlow = CreateInstance("ImageLabel", {
+self.BorderFlow = CreateInstance("Frame", {
     Name = "BorderFlow",
     Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
     Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
     BackgroundTransparency = 1,
-    Image = "rbxassetid://12187365364",
-    ScaleType = Enum.ScaleType.Slice,
-    SliceCenter = Rect.new(5, 5, 5, 5),
+    BorderSizePixel = 0,
     ZIndex = -1,
     Parent = self.Instance.Parent
 })
+
+local borderFlowCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.BorderFlow})
+
 local flowGradient = Instance.new("UIGradient")
 flowGradient.Rotation = 0
 flowGradient.Color = ColorSequence.new{
@@ -3856,6 +3857,43 @@ flowGradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 128))
 }
 flowGradient.Parent = self.BorderFlow
+
+self.BorderStroke = CreateInstance("UIStroke", {
+    Color = Color3.fromRGB(255, 0, 0),
+    Thickness = 1.5,
+    Transparency = 0,
+    Parent = self.BorderFlow
+})
+self.GlowStroke1 = CreateInstance("UIStroke", {
+    Color = Color3.fromRGB(255, 0, 0),
+    Thickness = 2,
+    Transparency = 0.5,
+    Parent = self.BorderFlow
+})
+self.GlowStroke2 = CreateInstance("UIStroke", {
+    Color = Color3.fromRGB(255, 0, 0),
+    Thickness = 4,
+    Transparency = 0.7,
+    Parent = self.BorderFlow
+})
+self.GlowStroke3 = CreateInstance("UIStroke", {
+    Color = Color3.fromRGB(255, 0, 0),
+    Thickness = 6,
+    Transparency = 0.84,
+    Parent = self.BorderFlow
+})
+self.GlowStroke4 = CreateInstance("UIStroke", {
+    Color = Color3.fromRGB(255, 0, 0),
+    Thickness = 10,
+    Transparency = 0.93,
+    Parent = self.BorderFlow
+})
+self.GlowStroke5 = CreateInstance("UIStroke", {
+    Color = Color3.fromRGB(255, 0, 0),
+    Thickness = 15,
+    Transparency = 0.97,
+    Parent = self.BorderFlow
+})
 
 self.BorderFlow.Visible = false
 
@@ -3877,15 +3915,29 @@ function self:SetRainbowMode(mode)
     if mode == "整体" or mode == "流动" then
         self.RainbowMode = mode
         self.BorderFlow.BackgroundTransparency = 1
-        local gradient = self.BorderFlow:FindFirstChildOfClass("UIGradient")
-        if not gradient then return end
-        
-        gradient.Enabled = true
-        
         if mode == "整体" then
-            gradient.Rotation = 0
+            self.BorderStroke.Enabled = true
+            self.GlowStroke1.Enabled = true
+            self.GlowStroke2.Enabled = true
+            self.GlowStroke3.Enabled = true
+            self.GlowStroke4.Enabled = true
+            self.GlowStroke5.Enabled = true
+            flowGradient.Enabled = false
+            self.BorderStroke.Transparency = 0
+            self.GlowStroke1.Transparency = 0.5
+            self.GlowStroke2.Transparency = 0.7
+            self.GlowStroke3.Transparency = 0.84
+            self.GlowStroke4.Transparency = 0.93
+            self.GlowStroke5.Transparency = 0.97
         else
-            gradient.Rotation = self.FlowRotation
+            self.BorderStroke.Enabled = false
+            self.GlowStroke1.Enabled = false
+            self.GlowStroke2.Enabled = false
+            self.GlowStroke3.Enabled = false
+            self.GlowStroke4.Enabled = false
+            self.GlowStroke5.Enabled = false
+            flowGradient.Enabled = true
+            flowGradient.Rotation = self.FlowRotation
         end
         
         self.BorderFlow.Visible = true
