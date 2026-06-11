@@ -3952,14 +3952,19 @@ end
 local function startFlowAnimation()
     if self.BorderConnection then self.BorderConnection:Disconnect() end
     self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
-        local gradient = self.BorderFlow:FindFirstChildOfClass("UIGradient")
-        if not gradient then return end
-        
         if self.RainbowMode == "整体" then
-            gradient.Rotation = 0
+            borderTime = borderTime + deltaTime * 2.5
+            local hue = (borderTime * 0.3) % 1
+            local color = Color3.fromHSV(hue, 0.8, 1)
+            self.BorderStroke.Color = color
+            self.GlowStroke1.Color = color
+            self.GlowStroke2.Color = color
+            self.GlowStroke3.Color = color
+            self.GlowStroke4.Color = color
+            self.GlowStroke5.Color = color
         else
             self.FlowRotation = (self.FlowRotation + deltaTime * 60) % 360
-            gradient.Rotation = self.FlowRotation
+            flowGradient.Rotation = self.FlowRotation
         end
     end)
 end
