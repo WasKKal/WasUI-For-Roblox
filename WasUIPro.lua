@@ -730,7 +730,9 @@ local function RefreshRainbowLayout()
     
     local total = #WasUI.RainbowOrder
     if total == 0 then return end
+    
     local maxTargetY = (total - 1) * (height + spacing)
+    if maxTargetY == 0 then maxTargetY = 1 end
     local spanFactor = 1.0
     if total <= 3 then
         spanFactor = 1.0
@@ -746,13 +748,10 @@ local function RefreshRainbowLayout()
             local targetY = startY + (i-1) * (height + spacing)
             Tween(data.Label, {Position = UDim2.new(1, -190, 0, targetY)}, 0.3)
             
-            local ratio = 0
-            if maxTargetY > 0 then
-                ratio = targetY / maxTargetY
-            end
-            
+            local ratio = targetY / maxTargetY
             local color1 = data.Color1 or WasUI.CurrentTheme.Accent
             local color2 = data.Color2 or WasUI.CurrentTheme.Text
+            
             local adjustedRatio = ratio * spanFactor
             local topColor = color1:Lerp(color2, adjustedRatio)
             
