@@ -1,4 +1,4 @@
-print("test1")
+print("测试完成")
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -724,66 +724,19 @@ function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
     return imageLabel
 end
 
-local function CreateRainbowTextForFeature(featureName, color1, color2)
-    featureName = type(featureName) == "string" and featureName or tostring(featureName)
-    if WasUI.ActiveRainbowTexts[featureName] then return end
-    if not v10 then return end
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "RainbowText_" .. featureName,
-        ResetOnSpawn = false,
-        DisplayOrder = 100,
-        Parent = v11
-    })
-    local rowFrame = CreateInstance("Frame", {
-        Name = "Row_" .. featureName,
-        Size = UDim2.new(0, 0, 0, 20),
-        BackgroundTransparency = 1,
-        Parent = screenGui
-    })
-    local textLabel = CreateInstance("TextLabel", {
-        Name = "Label",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Text = featureName,
-        TextColor3 = Color3.new(1, 1, 1),
-        Font = Enum.Font.GothamBold,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        TextWrapped = true,
-        Parent = rowFrame
-    })
-    local c1 = color1 or WasUI.CurrentTheme.Accent
-    local c2 = color2 or WasUI.CurrentTheme.Text
-    textLabel.TextColor3 = c1
-    WasUI.ActiveRainbowTexts[featureName] = {
-        ScreenGui = screenGui,
-        Label = textLabel,
-        Row = rowFrame,
-        OriginalText = featureName,
-        Color1 = c1,
-        Color2 = c2
-    }
-    RebuildRainbowOrderByLength()
-    RefreshRainbowLayout()
-end
-
-local function DestroyRainbowTextForFeature(featureName)
-    featureName = type(featureName) == "string" and featureName or tostring(featureName)
-    local data = WasUI.ActiveRainbowTexts[featureName]
-    if data then
-        WasUI.ActiveRainbowTexts[featureName] = nil
-        if data.Label then
-            Tween(data.Label, {TextTransparency = 1}, 0.2)
-        end
-        task.delay(0.2, function()
-            if data.ScreenGui then
-                data.ScreenGui:Destroy()
-            end
-            RebuildRainbowOrderByLength()
-            RefreshRainbowLayout()
-        end)
+local function RebuildRainbowOrderByLength()
+    local sorted = {}
+    for name, data in pairs(WasUI.ActiveRainbowTexts) do
+        table.insert(sorted, {name = name, length = #name})
     end
+    table.sort(sorted, function(a, b)
+        return a.length > b.length
+    end)
+    WasUI.RainbowOrder = {}
+    for _, item in ipairs(sorted) do
+        table.insert(WasUI.RainbowOrder, item.name)
+    end
+    RefreshRainbowLayout()
 end
 
 local function RefreshRainbowLayout()
@@ -829,19 +782,74 @@ local function RefreshRainbowLayout()
     end
 end
 
-local function RebuildRainbowOrderByLength()
-    local sorted = {}
-    for name, data in pairs(WasUI.ActiveRainbowTexts) do
-        table.insert(sorted, {name = name, length = #name})
+local function CreateRainbowTextForFeature(featureName, color1, color2)
+    featureName = type(featureName) == "string" and featureName or tostring(featureName)
+    if WasUI.ActiveRainbowTexts[featureName] then return end
+    if not v10 then return end
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "RainbowText_" .. featureName,
+        ResetOnSpawn = false,
+        DisplayOrder = 100,
+        Parent = v11
+    })
+    local rowFrame = CreateInstance("Frame", {
+        Name = "Row_" .. featureName,
+        Size = UDim2.new(0, 0, 0, 20),
+        BackgroundTransparency = 1,
+        Parent = screenGui
+    })
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "Label",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = featureName,
+        TextColor3 = Color3.new(1, 1, 1),
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        TextWrapped = true,
+        Parent = rowFrame
+    })
+    local c1 = color1 or WasUI.CurrentTheme.Accent
+    local c2 = color2 or WasUI.CurrentTheme.Text
+    textLabel.TextColor3 = c1
+    WasUI.ActiveRainbowTexts[featureName] = {
+        ScreenGui = screenGui,
+        Label = textLabel,
+        Row = rowFrame,
+        OriginalText = featureName,
+        Color1 = c1,
+        Color2 = c2
+    }
+    if type(RebuildRainbowOrderByLength) == "function" then
+        RebuildRainbowOrderByLength()
     end
-    table.sort(sorted, function(a, b)
-        return a.length > b.length
-    end)
-    WasUI.RainbowOrder = {}
-    for _, item in ipairs(sorted) do
-        table.insert(WasUI.RainbowOrder, item.name)
+    if type(RefreshRainbowLayout) == "function" then
+        RefreshRainbowLayout()
     end
-    RefreshRainbowLayout()
+end
+
+local function DestroyRainbowTextForFeature(featureName)
+    featureName = type(featureName) == "string" and featureName or tostring(featureName)
+    local data = WasUI.ActiveRainbowTexts[featureName]
+    if data then
+        WasUI.ActiveRainbowTexts[featureName] = nil
+        if data.Label then
+            Tween(data.Label, {TextTransparency = 1}, 0.2)
+        end
+        task.delay(0.2, function()
+            if data.ScreenGui then
+                data.ScreenGui:Destroy()
+            end
+            if type(RebuildRainbowOrderByLength) == "function" then
+                RebuildRainbowOrderByLength()
+            end
+            if type(RefreshRainbowLayout) == "function" then
+                RefreshRainbowLayout()
+            end
+        end)
+    end
 end
 
 local rainbowTime = 0
