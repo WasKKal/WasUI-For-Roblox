@@ -1,3 +1,4 @@
+print("这是一个测试输出,你看到这条输出时,记得让福瑞删掉")
 local WasUI = {}
 WasUI.__index = WasUI
 
