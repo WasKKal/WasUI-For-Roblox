@@ -1,4 +1,4 @@
-print("测试完成")
+print("测试")
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -5266,6 +5266,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                     self.Snowflakes = {}
                     self.SnowTimer = 0
                     self.SnowChangeTimer = 0
+                    if self.SnowConnection then
+                        self.SnowConnection:Disconnect()
+                        self.SnowConnection = nil
+                    end
                     self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
                         if not self.Instance.Visible then return end
                         if not self.SnowContainer.Visible then return end
@@ -6235,6 +6239,10 @@ task.spawn(function()
     else
         warn("[WasUI] 远程翻译表加载失败,无法切换English")
     end
+end)
+
+return WasUI
+
 end)
 
 return WasUI
