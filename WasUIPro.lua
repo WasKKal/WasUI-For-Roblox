@@ -723,58 +723,107 @@ function WasUI:CreateIcon(iconName, size, color, ignoreTheme)
     return imageLabel
 end
 
+local function CreateRainbowTextForFeature(featureName, color1, color2)
+    featureName = type(featureName) == "string" and featureName or tostring(featureName)
+    if WasUI.ActiveRainbowTexts[featureName] then return end
+    local screenGui = CreateInstance("ScreenGui", {
+        Name = "RainbowText_" .. featureName,
+        ResetOnSpawn = false,
+        DisplayOrder = 100,
+        Parent = v11
+    })
+    local rowFrame = CreateInstance("Frame", {
+        Name = "Row_" .. featureName,
+        Size = UDim2.new(0, 0, 0, 20),
+        BackgroundTransparency = 1,
+        Parent = screenGui
+    })
+    local textLabel = CreateInstance("TextLabel", {
+        Name = "Label",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = featureName,
+        TextColor3 = Color3.new(1, 1, 1),
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        TextWrapped = true,
+        Parent = rowFrame
+    })
+    local c1 = color1 or WasUI.CurrentTheme.Accent
+    local c2 = color2 or WasUI.CurrentTheme.Text
+    textLabel.TextColor3 = c1
+    WasUI.ActiveRainbowTexts[featureName] = {
+        ScreenGui = screenGui,
+        Label = textLabel,
+        Row = rowFrame,
+        OriginalText = featureName,
+        Color1 = c1,
+        Color2 = c2
+    }
+    RebuildRainbowOrderByLength()
+    RefreshRainbowLayout()
+end
+
+local function DestroyRainbowTextForFeature(featureName)
+    featureName = type(featureName) == "string" and featureName or tostring(featureName)
+    local data = WasUI.ActiveRainbowTexts[featureName]
+    if data then
+        WasUI.ActiveRainbowTexts[featureName] = nil
+        if data.Label then
+            Tween(data.Label, {TextTransparency = 1}, 0.2)
+        end
+        task.delay(0.2, function()
+            if data.ScreenGui then
+                data.ScreenGui:Destroy()
+            end
+            RebuildRainbowOrderByLength()
+            RefreshRainbowLayout()
+        end)
+    end
+end
+
 local function RefreshRainbowLayout()
     local startY = 8
-    local spacing = 2
+    local spacing = 4
     local height = 20
-    
     local total = #WasUI.RainbowOrder
     if total == 0 then return end
-    
-    local maxTargetY = (total - 1) * (height + spacing)
-    if maxTargetY == 0 then maxTargetY = 1 end
-    
-    for i, featureName in ipairs(WasUI.RainbowOrder) do
+    local linesInfo = {}
+    for _, featureName in ipairs(WasUI.RainbowOrder) do
         local data = WasUI.ActiveRainbowTexts[featureName]
         if data and data.Label then
-            local targetY = startY + (i-1) * (height + spacing)
-            Tween(data.Label, {Position = UDim2.new(1, -190, 0, targetY)}, 0.3)
-            
-            local ratio = targetY / maxTargetY
-            ratio = math.clamp(ratio, 0, 1)
-            
-            local color1 = data.Color1 or WasUI.CurrentTheme.Accent
-            local color2 = data.Color2 or WasUI.CurrentTheme.Text
-            color1 = Color3.new(math.clamp(color1.R, 0, 1), math.clamp(color1.G, 0, 1), math.clamp(color1.B, 0, 1))
-            color2 = Color3.new(math.clamp(color2.R, 0, 1), math.clamp(color2.G, 0, 1), math.clamp(color2.B, 0, 1))
-            local spanFactor = 1.0
-            if total <= 3 then
-                spanFactor = 1.0
-            elseif total >= 10 then
-                spanFactor = 0.3
-            else
-                spanFactor = 1.0 - (total - 3) / (7) * (0.7)
-            end
-            
-            -- 对于底部文本(ratio接近1)，给一个小的偏移量防止变成纯色
-            local adjustedRatio = ratio * spanFactor
-            if adjustedRatio > 0.95 then adjustedRatio = 0.95 end
-            
-            local topColor = color1:Lerp(color2, adjustedRatio)
-            topColor = Color3.new(math.clamp(topColor.R, 0, 1), math.clamp(topColor.G, 0, 1), math.clamp(topColor.B, 0, 1))
-            
-            local gradient = data.Label:FindFirstChildOfClass("UIGradient")
-            if not gradient then
-                gradient = Instance.new("UIGradient")
-                gradient.Parent = data.Label
-            end
-            gradient.Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, topColor),
-                ColorSequenceKeypoint.new(1, color2)
+            local text = data.OriginalText
+            local bounds = v10:GetTextSize(text, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))
+            table.insert(linesInfo, {
+                name = featureName,
+                data = data,
+                width = bounds.X,
+                height = bounds.Y
             })
-            gradient.Rotation = 270
-            data.Label.TextColor3 = Color3.new(1, 1, 1)
         end
+    end
+    table.sort(linesInfo, function(a, b)
+        return a.width > b.width
+    end)
+    local currentY = startY
+    for i, info in ipairs(linesInfo) do
+        local row = info.data.Row
+        local label = info.data.Label
+        local rowWidth = info.width + 12
+        row.Size = UDim2.new(0, rowWidth, 0, height)
+        row.Position = UDim2.new(1, -rowWidth - 10, 0, currentY)
+        label.Size = UDim2.new(1, 0, 1, 0)
+        local ratio = 0
+        if #linesInfo > 1 then
+            ratio = (i - 1) / (#linesInfo - 1)
+        end
+        local color1 = info.data.Color1 or WasUI.CurrentTheme.Accent
+        local color2 = info.data.Color2 or WasUI.CurrentTheme.Text
+        local color = color1:Lerp(color2, ratio)
+        label.TextColor3 = color
+        currentY = currentY + height + spacing
     end
 end
 
@@ -791,64 +840,6 @@ local function RebuildRainbowOrderByLength()
         table.insert(WasUI.RainbowOrder, item.name)
     end
     RefreshRainbowLayout()
-end
-
-local function CreateRainbowTextForFeature(featureName, color1, color2)
-    featureName = type(featureName) == "string" and featureName or tostring(featureName)
-    if WasUI.ActiveRainbowTexts[featureName] then return end
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "RainbowText_" .. featureName,
-        ResetOnSpawn = false,
-        DisplayOrder = 100,
-        Parent = v11
-    })
-    local textLabel = CreateInstance("TextLabel", {
-        Name = "Text",
-        Size = UDim2.new(0, 180, 0, 20),
-        Position = UDim2.new(1, 10, 0, 0),
-        BackgroundTransparency = 1,
-        Text = featureName,
-        TextColor3 = Color3.fromRGB(255, 0, 0),
-        Font = Enum.Font.GothamBold,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        TextWrapped = true,
-        TextStrokeTransparency = 0.5,
-        TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
-        Parent = screenGui
-    })
-    
-    local c1 = color1 or WasUI.CurrentTheme.Accent
-    local c2 = color2 or WasUI.CurrentTheme.Text
-    
-    WasUI.ActiveRainbowTexts[featureName] = {
-        ScreenGui = screenGui,
-        Connection = nil,
-        Label = textLabel,
-        OriginalText = featureName,
-        IsMerged = false,
-        Color1 = c1,
-        Color2 = c2
-    }
-    
-    RebuildRainbowOrderByLength()
-end
-
-local function DestroyRainbowTextForFeature(featureName)
-    featureName = type(featureName) == "string" and featureName or tostring(featureName)
-    local data = WasUI.ActiveRainbowTexts[featureName]
-    if data and data.Label then
-        Tween(data.Label, {TextTransparency = 1}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-        task.delay(0.25, function()
-            if data.ScreenGui then data.ScreenGui:Destroy() end
-            WasUI.ActiveRainbowTexts[featureName] = nil
-            RebuildRainbowOrderByLength()
-        end)
-    else
-        if data and data.ScreenGui then data.ScreenGui:Destroy() end
-        WasUI.ActiveRainbowTexts[featureName] = nil
-        RebuildRainbowOrderByLength()
-    end
 end
 
 local rainbowTime = 0
@@ -1412,7 +1403,6 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         end
     end
     if tips then WasUI:CreateTooltip(self.Container, tips) end
-
     local featureColor1, featureColor2 = nil, nil
     local current = parent
     while current do
@@ -1428,13 +1418,10 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
         end
         current = current.Parent
     end
-
     if self.Toggled and self.RainbowName ~= nil and self.RainbowName ~= "" then 
         CreateRainbowTextForFeature(self.RainbowName, featureColor1, featureColor2) 
     end
-
     AddRipple(self.Background, 2.5)
-
     local function performToggle(newState)
         self.Toggled = newState
         self.Background:SetAttribute("Toggled", self.Toggled)
@@ -1461,7 +1448,6 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             if config then config:Set(configKey, self.Toggled); config:Save() end
         end
     end
-
     local function setStateSilently(newState, fireCallback)
         if self.Toggled == newState then return end
         self.Toggled = newState
@@ -1489,7 +1475,6 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
             if config then config:Set(configKey, self.Toggled); config:Save() end
         end
     end
-
     function self:SetToggle(newState) performToggle(newState) end
     self._setStateSilently = setStateSilently
     self.Background.MouseButton1Click:Connect(function() performToggle(not self.Toggled) end)
@@ -2141,11 +2126,9 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     local tooltipCorner = Instance.new("UICorner")
     tooltipCorner.CornerRadius = UDim.new(1, 0)
     tooltipCorner.Parent = tooltip
-
     local function roundToStep(val)
         return math.floor(val / self.Step + 0.5) * self.Step
     end
-
     local function showTooltip(val)
         tooltip.Text = string.format("%.1f", val)
         tooltip.Visible = true
@@ -2156,7 +2139,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     local function stopAnimation()
         if self.AnimationTween then self.AnimationTween:Cancel(); self.AnimationTween = nil end
     end
-
     local function setValueImmediately(newValue)
         newValue = math.clamp(newValue, self.Min, self.Max)
         newValue = roundToStep(newValue)
@@ -2172,7 +2154,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             if config then config:Set(configKey, self.Value); config:Save() end
         end
     end
-
     local function animateToValue(targetValue)
         targetValue = math.clamp(targetValue, self.Min, self.Max)
         targetValue = roundToStep(targetValue)
@@ -2195,7 +2176,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         knobTween:Play()
         self.AnimationTween = fillTween
     end
-
     local dragging = false
     local function updateFromMousePosition(inputX)
         local trackPos = self.SliderTrack.AbsolutePosition
@@ -2206,7 +2186,6 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         newValue = roundToStep(newValue)
         return newValue
     end
-
     local parentScrollingFrame = self.Container.Parent
     while parentScrollingFrame and not parentScrollingFrame:IsA("ScrollingFrame") do parentScrollingFrame = parentScrollingFrame.Parent end
     local originalScrollingEnabled = parentScrollingFrame and parentScrollingFrame.ScrollingEnabled
@@ -3763,7 +3742,7 @@ local function isPointOverButton(btn, point)
            point.Y >= absPos.Y and point.Y <= absPos.Y + absSize.Y
 end
 
-function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, titleTag, featureNameColor)
+function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, titleTag, featureNameColor, frameColors)
     local self = setmetatable({}, Panel)
     self.SnowEnabled = snowEnabled or false
     self.BackgroundImage = nil
@@ -3810,12 +3789,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         local colorFolder = Instance.new("Folder")
         colorFolder.Name = "WasUI_FeatureColor"
         colorFolder.Parent = self.Instance
-        
         local c1 = Instance.new("Color3Value")
         c1.Name = "Color1"
         c1.Value = featureNameColor[1]
         c1.Parent = colorFolder
-        
         local c2 = Instance.new("Color3Value")
         c2.Name = "Color2"
         c2.Value = featureNameColor[2]
@@ -3826,160 +3803,79 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         self:SetBackground(backgroundUrl)
     end
     AddRipple(self.Instance)
-
-self.BorderFlow = CreateInstance("Frame", {
-    Name = "BorderFlow",
-    Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4),
-    Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2),
-    BackgroundTransparency = 1,
-    BorderSizePixel = 0,
-    ZIndex = -1,
-    Parent = self.Instance.Parent
-})
-
-local borderFlowCorner = CreateInstance("UICorner", {CornerRadius = UDim.new(0, 16), Parent = self.BorderFlow})
-
-local flowGradient = Instance.new("UIGradient")
-flowGradient.Rotation = 0
-flowGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-    ColorSequenceKeypoint.new(0.08, Color3.fromRGB(255, 80, 0)),
-    ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
-    ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 255, 0)),
-    ColorSequenceKeypoint.new(0.33, Color3.fromRGB(128, 255, 0)),
-    ColorSequenceKeypoint.new(0.41, Color3.fromRGB(0, 255, 0)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 128)),
-    ColorSequenceKeypoint.new(0.58, Color3.fromRGB(0, 255, 255)),
-    ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 128, 255)),
-    ColorSequenceKeypoint.new(0.75, Color3.fromRGB(0, 0, 255)),
-    ColorSequenceKeypoint.new(0.83, Color3.fromRGB(128, 0, 255)),
-    ColorSequenceKeypoint.new(0.91, Color3.fromRGB(255, 0, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 128))
-}
-flowGradient.Parent = self.BorderFlow
-
-self.BorderStroke = CreateInstance("UIStroke", {
-    Color = Color3.fromRGB(255, 0, 0),
-    Thickness = 1.5,
-    Transparency = 0,
-    Parent = self.BorderFlow
-})
-self.GlowStroke1 = CreateInstance("UIStroke", {
-    Color = Color3.fromRGB(255, 0, 0),
-    Thickness = 2,
-    Transparency = 0.5,
-    Parent = self.BorderFlow
-})
-self.GlowStroke2 = CreateInstance("UIStroke", {
-    Color = Color3.fromRGB(255, 0, 0),
-    Thickness = 4,
-    Transparency = 0.7,
-    Parent = self.BorderFlow
-})
-self.GlowStroke3 = CreateInstance("UIStroke", {
-    Color = Color3.fromRGB(255, 0, 0),
-    Thickness = 6,
-    Transparency = 0.84,
-    Parent = self.BorderFlow
-})
-self.GlowStroke4 = CreateInstance("UIStroke", {
-    Color = Color3.fromRGB(255, 0, 0),
-    Thickness = 10,
-    Transparency = 0.93,
-    Parent = self.BorderFlow
-})
-self.GlowStroke5 = CreateInstance("UIStroke", {
-    Color = Color3.fromRGB(255, 0, 0),
-    Thickness = 15,
-    Transparency = 0.97,
-    Parent = self.BorderFlow
-})
-
-self.BorderFlow.Visible = false
-
-local function updateBorder()
-    if not self.Instance or not self.BorderFlow then return end
-    self.BorderFlow.Position = UDim2.new(0, self.Instance.AbsolutePosition.X - 2, 0, self.Instance.AbsolutePosition.Y - 2)
-    self.BorderFlow.Size = UDim2.new(0, self.Instance.AbsoluteSize.X + 4, 0, self.Instance.AbsoluteSize.Y + 4)
-end
-self.Instance:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateBorder)
-self.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateBorder)
-updateBorder()
-
-local borderTime = 0
-self.RainbowMode = WasUI.DefaultRainbowMode
-self.FlowRotation = 0
-self.BorderConnection = nil
-
-function self:SetRainbowMode(mode)
-    if mode == "整体" or mode == "流动" then
-        self.RainbowMode = mode
-        self.BorderFlow.BackgroundTransparency = 1
-        if mode == "整体" then
-            self.BorderStroke.Enabled = true
-            self.GlowStroke1.Enabled = true
-            self.GlowStroke2.Enabled = true
-            self.GlowStroke3.Enabled = true
-            self.GlowStroke4.Enabled = true
-            self.GlowStroke5.Enabled = true
-            flowGradient.Enabled = false
-            self.BorderStroke.Transparency = 0
-            self.GlowStroke1.Transparency = 0.5
-            self.GlowStroke2.Transparency = 0.7
-            self.GlowStroke3.Transparency = 0.84
-            self.GlowStroke4.Transparency = 0.93
-            self.GlowStroke5.Transparency = 0.97
-        else
-            self.BorderStroke.Enabled = false
-            self.GlowStroke1.Enabled = false
-            self.GlowStroke2.Enabled = false
-            self.GlowStroke3.Enabled = false
-            self.GlowStroke4.Enabled = false
-            self.GlowStroke5.Enabled = false
-            flowGradient.Enabled = true
-            flowGradient.Rotation = self.FlowRotation
-        end
-        
-        self.BorderFlow.Visible = true
-        if WasUI.InternalConfigManager then
-            local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
-            internalConfig:Set("RainbowMode", mode)
-            internalConfig:Save()
+    self.FrameColors = frameColors or nil
+    local strokeColor = Color3.new(1, 1, 1)
+    if self.FrameColors and #self.FrameColors > 0 then
+        strokeColor = self.FrameColors[1]
+    end
+    self.FlowStroke = CreateInstance("UIStroke", {
+        Thickness = 2,
+        Color = strokeColor,
+        Transparency = 0.5,
+        Parent = self.Instance
+    })
+    self.FlowGradient = nil
+    if not self.FrameColors then
+        local gradient = Instance.new("UIGradient")
+        gradient.Rotation = 0
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+            ColorSequenceKeypoint.new(0.1, Color3.fromRGB(255, 128, 0)),
+            ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 255, 0)),
+            ColorSequenceKeypoint.new(0.4, Color3.fromRGB(128, 255, 0)),
+            ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 128)),
+            ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 128, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(128, 0, 255))
+        })
+        gradient.Parent = self.FlowStroke
+        self.FlowGradient = gradient
+    end
+    self.RainbowMode = WasUI.DefaultRainbowMode
+    self.FlowRotation = 0
+    self.BorderConnection = nil
+    local function startFrameAnimation()
+        if self.BorderConnection then self.BorderConnection:Disconnect() end
+        self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
+            if self.FrameColors and #self.FrameColors > 0 then
+                local t = tick() / 4
+                local len = #self.FrameColors
+                local idx = (t % len) + 1
+                local idxNext = (idx % len) + 1
+                local frac = (t % 1)
+                local c1 = self.FrameColors[idx]
+                local c2 = self.FrameColors[idxNext]
+                local color = c1:Lerp(c2, frac)
+                self.FlowStroke.Color = color
+                self.FlowStroke.Transparency = 0.5
+            else
+                if self.RainbowMode == "整体" then
+                    local hue = (tick() / 20) % 1
+                    local color = Color3.fromHSV(hue, 0.8, 1)
+                    self.FlowStroke.Color = color
+                    self.FlowStroke.Transparency = 0
+                else
+                    self.FlowRotation = (self.FlowRotation + deltaTime * 60) % 360
+                    if self.FlowGradient then
+                        self.FlowGradient.Rotation = self.FlowRotation
+                    end
+                    self.FlowStroke.Color = Color3.new(1, 1, 1)
+                    self.FlowStroke.Transparency = 0.5
+                end
+            end
+        end)
+    end
+    startFrameAnimation()
+    function self:SetRainbowMode(mode)
+        if self.FrameColors then return end
+        if mode == "整体" or mode == "流动" then
+            self.RainbowMode = mode
+            if WasUI.InternalConfigManager then
+                local internalConfig = WasUI.InternalConfigManager:GetConfig("UI_Settings")
+                internalConfig:Set("RainbowMode", mode)
+                internalConfig:Save()
+            end
         end
     end
-end
-
-local function startFlowAnimation()
-    if self.BorderConnection then self.BorderConnection:Disconnect() end
-    self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
-        if self.RainbowMode == "整体" then
-            borderTime = borderTime + deltaTime * 2.5
-            local hue = (borderTime * 0.3) % 1
-            local color = Color3.fromHSV(hue, 0.8, 1)
-            self.BorderStroke.Color = color
-            self.GlowStroke1.Color = color
-            self.GlowStroke2.Color = color
-            self.GlowStroke3.Color = color
-            self.GlowStroke4.Color = color
-            self.GlowStroke5.Color = color
-        else
-            self.FlowRotation = (self.FlowRotation + deltaTime * 60) % 360
-            flowGradient.Rotation = self.FlowRotation
-        end
-    end)
-end
-
-    function self:SetRainbowEnabled(enabled)
-        self.BorderFlow.Visible = enabled
-        if enabled then
-            startFlowAnimation()
-        elseif self.BorderConnection then
-            self.BorderConnection:Disconnect()
-            self.BorderConnection = nil
-        end
-    end
-    startFlowAnimation()
-    self:SetRainbowMode(self.RainbowMode)
     self.TitleBar = CreateInstance("Frame", {
         Name = "TitleBar",
         Size = UDim2.new(1, 0, 0, 26),
@@ -4777,8 +4673,7 @@ end
                 local mousePos = input.Position
                 local framePos = dialogFrame.AbsolutePosition
                 local frameSize = dialogFrame.AbsoluteSize
-                local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
-                                mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
+                local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
                 if not inPanel then
                     Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
                     Tween(overlay, {BackgroundTransparency = 1}, 0.2)
@@ -5021,8 +4916,8 @@ end
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 280, 0, 290),
-            Position = UDim2.new(0.5, -140, 0.5, -130),
+            Size = UDim2.new(0, 280, 0, 350),
+            Position = UDim2.new(0.5, -140, 0.5, -175),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
@@ -5484,8 +5379,7 @@ end
             local mousePos = input.Position
             local framePos = settingsFrame.AbsolutePosition
             local frameSize = settingsFrame.AbsoluteSize
-            local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and
-                            mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
+            local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
             if not inPanel then
                 Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
                 task.wait(0.2)
@@ -5732,8 +5626,8 @@ end
     end
     function self:SetVisible(visible)
         self.Instance.Visible = visible
-        if self.BorderFlow then
-            self.BorderFlow.Visible = visible
+        if self.FlowStroke then
+            self.FlowStroke.Visible = visible
         end
         if self.SnowContainer then
             self.SnowContainer.Visible = visible
@@ -5858,8 +5752,8 @@ end
     self.Instance.BackgroundTransparency = 1
     self.Instance.Size = UDim2.new(0, 0, 0, 0)
     self.Instance.Position = UDim2.new(0.5, 0, 0.5, 0)
-    if self.BorderFlow then
-        self.BorderFlow.Visible = false
+    if self.FlowStroke then
+        self.FlowStroke.Visible = false
     end
     if self.SnowContainer then
         self.SnowContainer.Visible = false
@@ -5870,8 +5764,8 @@ end
         Position = originalPos
     }, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     windowTween.Completed:Connect(function()
-        if self.BorderFlow then
-            self.BorderFlow.Visible = true
+        if self.FlowStroke then
+            self.FlowStroke.Visible = true
         end
         if self.SnowContainer then
             self.SnowContainer.Visible = true
@@ -5890,6 +5784,7 @@ function WasUI:CreateWindow(options)
     local snowEnabled = options.SnowEnabled or false
     local titleTag = options.TitleTag
     local featureNameColor = options.FeatureNameColor
+    local frameColors = options.FrameColor
     if not WasUI.InternalConfigManager then
         local internalPath = "WasUI_Configs/WasUI_Internal"
         if not isfolder(internalPath) then makefolder(internalPath) end
@@ -5970,7 +5865,7 @@ function WasUI:CreateWindow(options)
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = self.DefaultDisplayOrder
     screenGui.Parent = v11
-    local window = Panel:New(title, screenGui, size, position, background, snowEnabled, titleTag, featureNameColor)
+    local window = Panel:New(title, screenGui, size, position, background, snowEnabled, titleTag, featureNameColor, frameColors)
     if options.WelcomeText then
         window:SetWelcome(options.WelcomeText)
     end
@@ -6185,7 +6080,7 @@ function WasUI:CreateWindow(options)
     end
     function windowFacade:Destroy()
         if window.BorderConnection then window.BorderConnection:Disconnect() end
-        if window.BorderFlow then window.BorderFlow:Destroy() end
+        if window.FlowStroke then window.FlowStroke:Destroy() end
         if window.Instance then window.Instance:Destroy() end
         if window.SnowContainer then window.SnowContainer:Destroy() end
     end
