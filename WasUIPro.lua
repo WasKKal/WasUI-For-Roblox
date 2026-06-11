@@ -1,4 +1,3 @@
-print("DebugMode = Ture")
 local WasUI = {}
 WasUI.__index = WasUI
 
@@ -750,7 +749,7 @@ local function RefreshRainbowLayout()
         local data = WasUI.ActiveRainbowTexts[featureName]
         if data and data.Label then
             local text = data.OriginalText
-            local bounds = (v10 and v10:GetTextSize(text, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))) or Vector2.new(60, 20)
+            local bounds = v10:GetTextSize(text, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))
             table.insert(linesInfo, {
                 name = featureName,
                 data = data,
@@ -785,7 +784,6 @@ end
 local function CreateRainbowTextForFeature(featureName, color1, color2)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
-    if not v10 then return end
     local screenGui = CreateInstance("ScreenGui", {
         Name = "RainbowText_" .. featureName,
         ResetOnSpawn = false,
@@ -822,14 +820,8 @@ local function CreateRainbowTextForFeature(featureName, color1, color2)
         Color1 = c1,
         Color2 = c2
     }
-    local ok1, err1 = pcall(RebuildRainbowOrderByLength)
-    if not ok1 then
-        warn("[WasUI] RebuildRainbowOrderByLength failed:", err1)
-    end
-    local ok2, err2 = pcall(RefreshRainbowLayout)
-    if not ok2 then
-        warn("[WasUI] RefreshRainbowLayout failed:", err2)
-    end
+    RebuildRainbowOrderByLength()
+    RefreshRainbowLayout()
 end
 
 local function DestroyRainbowTextForFeature(featureName)
@@ -844,8 +836,8 @@ local function DestroyRainbowTextForFeature(featureName)
             if data.ScreenGui then
                 data.ScreenGui:Destroy()
             end
-            pcall(RebuildRainbowOrderByLength)
-            pcall(RefreshRainbowLayout)
+            RebuildRainbowOrderByLength()
+            RefreshRainbowLayout()
         end)
     end
 end
