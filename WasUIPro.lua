@@ -27,7 +27,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.4"
+WasUI.Version = "1.1.3"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -5624,10 +5624,10 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
         self.ActiveTab = tabName
     end
-    function self:SetVisible(visible)
+function self:SetVisible(visible)
         self.Instance.Visible = visible
         if self.FlowStroke then
-            self.FlowStroke.Visible = visible
+            self.FlowStroke.Enabled = visible
         end
         if self.SnowContainer then
             self.SnowContainer.Visible = visible
