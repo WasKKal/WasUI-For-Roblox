@@ -5024,7 +5024,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 280, 0, 260),
+            Size = UDim2.new(0, 280, 0, 290),
             Position = UDim2.new(0.5, -140, 0.5, -130),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
