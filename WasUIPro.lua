@@ -733,14 +733,6 @@ local function RefreshRainbowLayout()
     
     local maxTargetY = (total - 1) * (height + spacing)
     if maxTargetY == 0 then maxTargetY = 1 end
-    local spanFactor = 1.0
-    if total <= 3 then
-        spanFactor = 1.0
-    elseif total >= 10 then
-        spanFactor = 0.3
-    else
-        spanFactor = 1.0 - (total - 3) / (10 - 3) * (1.0 - 0.3)
-    end
     
     for i, featureName in ipairs(WasUI.RainbowOrder) do
         local data = WasUI.ActiveRainbowTexts[featureName]
@@ -749,11 +741,27 @@ local function RefreshRainbowLayout()
             Tween(data.Label, {Position = UDim2.new(1, -190, 0, targetY)}, 0.3)
             
             local ratio = targetY / maxTargetY
+            ratio = math.clamp(ratio, 0, 1)
+            
             local color1 = data.Color1 or WasUI.CurrentTheme.Accent
             local color2 = data.Color2 or WasUI.CurrentTheme.Text
+            color1 = Color3.new(math.clamp(color1.R, 0, 1), math.clamp(color1.G, 0, 1), math.clamp(color1.B, 0, 1))
+            color2 = Color3.new(math.clamp(color2.R, 0, 1), math.clamp(color2.G, 0, 1), math.clamp(color2.B, 0, 1))
+            local spanFactor = 1.0
+            if total <= 3 then
+                spanFactor = 1.0
+            elseif total >= 10 then
+                spanFactor = 0.3
+            else
+                spanFactor = 1.0 - (total - 3) / (7) * (0.7)
+            end
             
+            -- 对于底部文本(ratio接近1)，给一个小的偏移量防止变成纯色
             local adjustedRatio = ratio * spanFactor
+            if adjustedRatio > 0.95 then adjustedRatio = 0.95 end
+            
             local topColor = color1:Lerp(color2, adjustedRatio)
+            topColor = Color3.new(math.clamp(topColor.R, 0, 1), math.clamp(topColor.G, 0, 1), math.clamp(topColor.B, 0, 1))
             
             local gradient = data.Label:FindFirstChildOfClass("UIGradient")
             if not gradient then
