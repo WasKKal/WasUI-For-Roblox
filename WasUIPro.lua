@@ -838,9 +838,7 @@ local function DestroyRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     local data = WasUI.ActiveRainbowTexts[featureName]
     if data and data.Label then
-        local startPos = data.Label.Position
-        local exitPos = UDim2.new(1, 10, 0, startPos.Y.Offset)
-        Tween(data.Label, {Position = exitPos, TextTransparency = 1}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+        Tween(data.Label, {TextTransparency = 1}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
         task.delay(0.25, function()
             if data.ScreenGui then data.ScreenGui:Destroy() end
             WasUI.ActiveRainbowTexts[featureName] = nil
