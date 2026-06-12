@@ -27,7 +27,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.3"
+WasUI.Version = "1.1.5"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -758,6 +758,9 @@ local function RefreshRainbowLayout()
         end
         return
     end
+    local function smoothstep(t)
+        return t * t * (3 - 2 * t)
+    end
     local currentY = startY
     for i, featureName in ipairs(WasUI.RainbowOrder) do
         local data = WasUI.ActiveRainbowTexts[featureName]
@@ -769,7 +772,7 @@ local function RefreshRainbowLayout()
             local lineHeight = textHeight + verticalPadding * 2
             local ratio = 0
             if total > 1 then
-                ratio = (i - 1) / (total - 1)
+                ratio = smoothstep((i - 1) / (total - 1))
             end
             local color1 = data.Color1 or WasUI.CurrentTheme.Accent
             local color2 = data.Color2 or WasUI.CurrentTheme.Text
@@ -789,7 +792,7 @@ local function RefreshRainbowLayout()
                     Size = UDim2.new(0, textWidth, 0, lineHeight),
                     Position = UDim2.new(1, 0, 0, currentY),
                     BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                    BackgroundTransparency = -1,
+                    BackgroundTransparency = 0,
                     BorderSizePixel = 0,
                     Parent = WasUI.RainbowMainContainer
                 })
@@ -799,6 +802,11 @@ local function RefreshRainbowLayout()
                         NumberSequenceKeypoint.new(0.95, 0.8),
                         NumberSequenceKeypoint.new(1, 0.8),
                     }),
+                    Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, color1),
+                        ColorSequenceKeypoint.new(1, color2),
+                    }),
+                    Rotation = 90,
                     Parent = container
                 })
                 local sideBar = CreateInstance("Frame", {
@@ -817,11 +825,11 @@ local function RefreshRainbowLayout()
                     Position = UDim2.new(0, 14, 0, verticalPadding),
                     Size = UDim2.new(1, -20, 1, -verticalPadding * 2),
                     BackgroundTransparency = 1,
-                    TextStrokeTransparency = 0.7,
+                    TextStrokeTransparency = 0.4,
                     TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
                     TextXAlignment = Enum.TextXAlignment.Right,
                     TextYAlignment = Enum.TextYAlignment.Center,
-                    TextColor3 = textColor,
+                    TextColor3 = Color3.fromRGB(255, 255, 255),
                     Parent = container
                 })
                 data.Container = container
@@ -832,7 +840,13 @@ local function RefreshRainbowLayout()
             else
                 local targetPos = UDim2.new(1, -textWidth, 0, currentY)
                 Tween(data.Container, {Position = targetPos, Size = UDim2.new(0, textWidth, 0, lineHeight)}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-                data.Label.TextColor3 = textColor
+                local gradient = data.Container:FindFirstChildOfClass("UIGradient")
+                if gradient then
+                    gradient.Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, color1),
+                        ColorSequenceKeypoint.new(1, color2),
+                    })
+                end
                 if data.SideBar then
                     data.SideBar.BackgroundColor3 = textColor
                 end
@@ -854,11 +868,11 @@ local function RefreshRainbowLayout()
                 if data.Container and data.Container.Parent then
                     data.Container:Destroy()
                 end
+                RebuildRainbowOrderByLength()
             end)
         end
     end
 end
-
 local function RebuildRainbowOrderByLength()
     local sorted = {}
     for name, data in pairs(WasUI.ActiveRainbowTexts) do
@@ -5940,7 +5954,7 @@ function self:SetVisible(visible)
     self.Instance.BackgroundTransparency = 1
     self.Instance.Size = UDim2.new(0, 0, 0, 0)
     self.Instance.Position = UDim2.new(0.5, 0, 0.5, 0)
-if self.FlowStroke then
+    if self.FlowStroke then
         self.FlowStroke.Enabled = false
     end
     if self.BorderFlow then
@@ -5949,12 +5963,28 @@ if self.FlowStroke then
     if self.SnowContainer then
         self.SnowContainer.Visible = false
     end
+    local syncOverlay = CreateInstance("Frame", {
+        Name = "SyncOverlay",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = self.Instance.BackgroundColor3,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 100000,
+        Parent = self.Instance
+    })
     local windowTween = Tween(self.Instance, {
         BackgroundTransparency = originalTransparency,
         Size = originalSize,
         Position = originalPos
     }, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    Tween(syncOverlay, {BackgroundTransparency = 0}, 0.01)
     windowTween.Completed:Connect(function()
+        Tween(syncOverlay, {BackgroundTransparency = 1}, 0.15)
+        task.delay(0.15, function()
+            if syncOverlay and syncOverlay.Parent then
+                syncOverlay:Destroy()
+            end
+        end)
         if self.SnowContainer then
             self.SnowContainer.Visible = true
         end
