@@ -19,7 +19,7 @@ local function copyToClipboard(text)
     if type(setclipboard) == "function" then
         setclipboard(text)
         return true
-    elseif pcall(function() v12:SetTextAsync(text) end) then
+    elseif v12:SetTextAsync(text) then
         return true
     end
     return false
@@ -27,7 +27,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.4"
+WasUI.Version = "1.1.5"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -527,7 +527,7 @@ function WasUI:CreateFolder(folderName)
                 if toEncode == nil then
                     return false
                 end
-                local success, json = pcall(v6.JSONEncode, toEncode)
+                local success, json = v6:JSONEncode(toEncode)
                 if not success then
                     return false
                 end
@@ -536,10 +536,7 @@ function WasUI:CreateFolder(folderName)
             end
             function config:Load()
                 if not isfile(self.Path) then return false end
-                local success, data = pcall(function()
-                    return v6:JSONDecode(readfile(self.Path))
-                end)
-                if success and type(data) == "table" then
+                local data = v6:JSONDecode(readfile(self.Path))                if type(data) == "table" then
                     self.Data = data
                     for key, value in pairs(self.Data) do
                         local binding = self.Bindings[key]
@@ -589,26 +586,25 @@ function WasUI:CreateFolder(folderName)
             self.Data[key] = value
             return true
         end
-        function config:Save()
-            if not WasUI.ConfigFolderCreated then return false end
-            local toEncode = encodeValue(self.Data)
-            if toEncode == nil then
-                return false
-            end
-            local success, json = pcall(v6.JSONEncode, toEncode)
-            if not success then
-                return false
-            end
-            writefile(self.Path, json)
-            return true
-        end
+function config:Save()
+    if not WasUI.ConfigFolderCreated then return false end
+    local toEncode = encodeValue(self.Data)
+    if toEncode == nil then
+        return false
+    end
+    local success, json = pcall(function()
+        return v6:JSONEncode(toEncode)
+    end)
+    if not success then
+        return false
+    end
+    writefile(self.Path, json)
+    return true
+end
         function config:Load()
             if not WasUI.ConfigFolderCreated then return false end
             if not isfile(self.Path) then return false end
-            local success, data = pcall(function()
-                return v6:JSONDecode(readfile(self.Path))
-            end)
-            if success and type(data) == "table" then
+            local data = v6:JSONDecode(readfile(self.Path))            if type(data) == "table" then
                 self.Data = data
                 for key, value in pairs(self.Data) do
                     local binding = self.Bindings[key]
@@ -680,14 +676,26 @@ function WasUI:CreateFolder(folderName)
     return WasUI.ConfigManager
 end
 
-WasUI.LucideManager = { Module = nil, Loaded = false }
 function WasUI:LoadLucide()
+    if not self.LucideManager then
+        self.LucideManager = { Module = nil, Loaded = false }
+    end
     if self.LucideManager.Loaded then return self.LucideManager.Module end
-    local success, module = pcall(function()
-        local url = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
-        return loadstring(game:HttpGet(url))()
-    end)
-    if success and module then
+    
+    local success, content = pcall(game.HttpGet, game, "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua")
+    if not success or not content or content == "" then
+        warn("[WasUI] 无法加载 Lucide 图标库")
+        return nil
+    end
+    
+    local func, err = loadstring(content)
+    if not func then
+        warn("[WasUI] Lucide 加载失败: " .. tostring(err))
+        return nil
+    end
+    
+    local module = func()
+    if module then
         self.LucideManager.Module = module
         self.LucideManager.Loaded = true
         return module
@@ -698,8 +706,8 @@ end
 function WasUI:GetIcon(iconName)
     local lucide = self:LoadLucide()
     if lucide then
-        local success, icon = pcall(lucide.GetAsset, iconName)
-        if success and icon then return icon end
+        local icon = lucide.GetAsset(iconName)
+        if icon then return icon end
     end
     return nil
 end
@@ -740,7 +748,7 @@ local function RefreshRainbowLayout()
         WasUI.RainbowMainContainer.Parent = WasUI.RainbowGui
     end
     local startY = 8
-    local spacing = 4
+    local spacing = 1
     local total = #WasUI.RainbowOrder
     if total == 0 then
         for _, data in pairs(WasUI.ActiveRainbowTexts) do
@@ -750,77 +758,114 @@ local function RefreshRainbowLayout()
         end
         return
     end
+    local function smoothstep(t)
+        return t * t * (3 - 2 * t)
+    end
     local currentY = startY
     for i, featureName in ipairs(WasUI.RainbowOrder) do
         local data = WasUI.ActiveRainbowTexts[featureName]
-        if not data then continue end
-        local textBounds = v10:GetTextSize(data.OriginalText, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))
-        local textWidth = math.ceil(textBounds.X + 12)
-        local textHeight = math.ceil(textBounds.Y)
-        local verticalPadding = math.ceil(textHeight * 0.08)
-        local lineHeight = textHeight + verticalPadding * 2
-        local ratio = 0
-        if total > 1 then
-            ratio = (i - 1) / (total - 1)
-        end
-        local color1 = data.Color1 or WasUI.CurrentTheme.Accent
-        local color2 = data.Color2 or WasUI.CurrentTheme.Text
-        local textColor = color1:Lerp(color2, ratio)
-        if not data.Container or not data.Container.Parent then
-            local container = CreateInstance("Frame", {
-                Name = "RainbowContainer_" .. featureName,
-                Size = UDim2.new(0, textWidth, 0, lineHeight),
-                Position = UDim2.new(1, 0, 0, currentY),
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                BackgroundTransparency = -1,
-                BorderSizePixel = 0,
-                Parent = WasUI.RainbowMainContainer
-            })
-            CreateInstance("UIGradient", {
-                Transparency = NumberSequence.new({
-                    NumberSequenceKeypoint.new(0, 0.6),
-                    NumberSequenceKeypoint.new(0.95, 0.8),
-                    NumberSequenceKeypoint.new(1, 0.8),
-                }),
-                Parent = container
-            })
-            local sideBar = CreateInstance("Frame", {
-                Name = "SideBar",
-                Size = UDim2.new(0, 3, 1, 0),
-                Position = UDim2.new(0, 0, 0, 0),
-                BackgroundColor3 = textColor,
-                BorderSizePixel = 0,
-                Parent = container
-            })
-            local label = CreateInstance("TextLabel", {
-                Name = "Label",
-                Text = data.OriginalText,
-                Font = Enum.Font.GothamBold,
-                TextSize = 14,
-                Position = UDim2.new(0, 10, 0, verticalPadding),
-                Size = UDim2.new(1, -20, 1, -verticalPadding * 2),
-                BackgroundTransparency = 1,
-                TextStrokeTransparency = 0.7,
-                TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
-                TextXAlignment = Enum.TextXAlignment.Right,
-                TextYAlignment = Enum.TextYAlignment.Center,
-                TextColor3 = textColor,
-                Parent = container
-            })
-            data.Container = container
-            data.Label = label
-            data.SideBar = sideBar
-            local targetPos = UDim2.new(1, -textWidth, 0, currentY)
-            Tween(container, {Position = targetPos}, 1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        else
-            local targetPos = UDim2.new(1, -textWidth, 0, currentY)
-            Tween(data.Container, {Position = targetPos, Size = UDim2.new(0, textWidth, 0, lineHeight)}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-            data.Label.TextColor3 = textColor
-            if data.SideBar then
-                data.SideBar.BackgroundColor3 = textColor
+        if data then
+            local textBounds = v10:GetTextSize(data.OriginalText, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))
+            local textWidth = math.ceil(textBounds.X + 24)
+            local textHeight = math.ceil(textBounds.Y)
+            local verticalPadding = math.ceil(textHeight * 0.08)
+            local lineHeight = textHeight + verticalPadding * 2
+            local ratio = 0
+            if total > 1 then
+                ratio = smoothstep((i - 1) / (total - 1))
             end
+            local color1 = data.Color1 or WasUI.CurrentTheme.Accent
+            local color2 = data.Color2 or WasUI.CurrentTheme.Text
+            local h1, s1, v1 = Color3.toHSV(color1)
+            local h2, s2, v2 = Color3.toHSV(color2)
+            local hDiff = h2 - h1
+            if math.abs(hDiff) > 0.5 then
+                if hDiff > 0 then h1 = h1 + 1 else h2 = h2 + 1 end
+            end
+            local h = (h1 + (h2 - h1) * ratio) % 1
+            local s = s1 + (s2 - s1) * ratio
+            local v = v1 + (v2 - v1) * ratio
+            local textColor = Color3.fromHSV(h, s, v)
+            if not data.Container or not data.Container.Parent then
+                local container = CreateInstance("Frame", {
+                    Name = "RainbowContainer_" .. featureName,
+                    Size = UDim2.new(0, textWidth, 0, lineHeight),
+                    Position = UDim2.new(1, 0, 0, currentY),
+                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                    BackgroundTransparency = 0,
+                    BorderSizePixel = 0,
+                    Parent = WasUI.RainbowMainContainer
+                })
+                local gradient = CreateInstance("UIGradient", {
+                    Transparency = NumberSequence.new({
+                        NumberSequenceKeypoint.new(0, 0.6),
+                        NumberSequenceKeypoint.new(0.95, 0.8),
+                        NumberSequenceKeypoint.new(1, 0.8),
+                    }),
+                    Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, color1),
+                        ColorSequenceKeypoint.new(0.5, color2),
+                        ColorSequenceKeypoint.new(1, color1),
+                    }),
+                    Rotation = 90,
+                    Parent = container
+                })
+                data.Gradient = gradient
+                local sideBar = CreateInstance("Frame", {
+                    Name = "SideBar",
+                    Size = UDim2.new(0, 3, 1, 0),
+                    Position = UDim2.new(0, 0, 0, 0),
+                    BackgroundColor3 = textColor,
+                    BorderSizePixel = 0,
+                    Parent = container
+                })
+                local label = CreateInstance("TextLabel", {
+                    Name = "Label",
+                    Text = data.OriginalText,
+                    Font = Enum.Font.GothamBold,
+                    TextSize = 14,
+                    Position = UDim2.new(0, 14, 0, verticalPadding),
+                    Size = UDim2.new(1, -20, 1, -verticalPadding * 2),
+                    BackgroundTransparency = 1,
+                    TextStrokeTransparency = 0.4,
+                    TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+                    TextXAlignment = Enum.TextXAlignment.Right,
+                    TextYAlignment = Enum.TextYAlignment.Center,
+                    TextColor3 = textColor,
+                    Parent = container
+                })
+                data.Container = container
+                data.Label = label
+                data.SideBar = sideBar
+                data.Gradient = gradient
+                local initT = WasUI.RainbowFlowTime or 0
+                local initPhase = (initT + i * 0.12) % 1
+                local initCycleT = math.abs(initPhase * 2 - 1)
+                local initColor = (data.Color1 or WasUI.CurrentTheme.Accent):Lerp(data.Color2 or WasUI.CurrentTheme.Text, initCycleT)
+                label.TextColor3 = initColor
+                sideBar.BackgroundColor3 = initColor
+                gradient.Offset = Vector2.new(0, -initPhase)
+                local targetPos = UDim2.new(1, -textWidth, 0, currentY)
+                Tween(container, {Position = targetPos}, 0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            else
+                local targetPos = UDim2.new(1, -textWidth, 0, currentY)
+                Tween(data.Container, {Position = targetPos, Size = UDim2.new(0, textWidth, 0, lineHeight)}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+                local gradient = data.Container:FindFirstChildOfClass("UIGradient")
+                if gradient then
+                    gradient.Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, color1),
+                        ColorSequenceKeypoint.new(1, color2),
+                    })
+                end
+                if data.Label then
+                    data.Label.TextColor3 = textColor
+                end
+                if data.SideBar then
+                    data.SideBar.BackgroundColor3 = textColor
+                end
+            end
+            currentY = currentY + lineHeight + spacing
         end
-        currentY = currentY + lineHeight + spacing
     end
     for name, data in pairs(WasUI.ActiveRainbowTexts) do
         local found = false
@@ -836,11 +881,11 @@ local function RefreshRainbowLayout()
                 if data.Container and data.Container.Parent then
                     data.Container:Destroy()
                 end
+                RebuildRainbowOrderByLength()
             end)
         end
     end
 end
-
 local function RebuildRainbowOrderByLength()
     local sorted = {}
     for name, data in pairs(WasUI.ActiveRainbowTexts) do
@@ -861,10 +906,7 @@ local function RebuildRainbowOrderByLength()
     for _, item in ipairs(sorted) do
         table.insert(WasUI.RainbowOrder, item.name)
     end
-    local success, err = pcall(RefreshRainbowLayout)
-    if not success then
-        warn("WasUI Rainbow Error: " .. tostring(err))
-    end
+RefreshRainbowLayout()
 end
 
 local function CreateRainbowTextForFeature(featureName, color1, color2)
@@ -876,15 +918,39 @@ local function CreateRainbowTextForFeature(featureName, color1, color2)
         Color2 = color2 or WasUI.CurrentTheme.Text,
         Container = nil,
         Label = nil,
-        SideBar = nil
+        SideBar = nil,
+        Gradient = nil
     }
-    local success, err = pcall(RebuildRainbowOrderByLength)
-    if not success then
-        warn("WasUI Rainbow Error: " .. tostring(err))
+    if not WasUI.RainbowFlowConnection then
+        if WasUI.RainbowFlowTime == nil then
+            WasUI.RainbowFlowTime = 0
+        end
+        WasUI.RainbowFlowConnection = v5.Heartbeat:Connect(function(deltaTime)
+            WasUI.RainbowFlowTime = (WasUI.RainbowFlowTime + deltaTime * 0.6) % 1
+            local flowT = WasUI.RainbowFlowTime
+            for idx, name in ipairs(WasUI.RainbowOrder) do
+                local data = WasUI.ActiveRainbowTexts[name]
+                if data then
+                    local phase = (flowT + idx * 0.12) % 1
+                    if data.Gradient then
+                        data.Gradient.Offset = Vector2.new(0, -phase)
+                    end
+                    local c1 = data.Color1 or WasUI.CurrentTheme.Accent
+                    local c2 = data.Color2 or WasUI.CurrentTheme.Text
+                    local cycleT = math.abs(phase * 2 - 1)
+                    local currentColor = c1:Lerp(c2, cycleT)
+                    if data.Label then
+                        data.Label.TextColor3 = currentColor
+                    end
+                    if data.SideBar then
+                        data.SideBar.BackgroundColor3 = currentColor
+                    end
+                end
+            end
+        end)
     end
-end
-
-local function DestroyRainbowTextForFeature(featureName)
+    RebuildRainbowOrderByLength()
+endlocal function DestroyRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     local data = WasUI.ActiveRainbowTexts[featureName]
     if data then
@@ -895,22 +961,17 @@ local function DestroyRainbowTextForFeature(featureName)
                 if data.Container and data.Container.Parent then
                     data.Container:Destroy()
                 end
-                local success, err = pcall(RebuildRainbowOrderByLength)
-                if not success then
-                    warn("WasUI Rainbow Error: " .. tostring(err))
-                end
+                RebuildRainbowOrderByLength()
             end)
         else
-            local success, err = pcall(RebuildRainbowOrderByLength)
-            if not success then
-                warn("WasUI Rainbow Error: " .. tostring(err))
-            end
+            RebuildRainbowOrderByLength()
+        end
+        if next(WasUI.ActiveRainbowTexts) == nil and WasUI.RainbowFlowConnection then
+            WasUI.RainbowFlowConnection:Disconnect()
+            WasUI.RainbowFlowConnection = nil
         end
     end
 end
-
-
-
 local function GetShortcutKey(controlType, controlId, rainbowName)
     local base = ""
     local safeRainbowName = (type(rainbowName) == "string" and rainbowName ~= "") and rainbowName or nil
@@ -1004,7 +1065,7 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
     local pressed = false
     local startPos = nil
     local function cleanup()
-        if timer then pcall(function() task.cancel(timer) end); timer = nil end
+        if timer then task.cancel(timer); timer = nil end
         pressed = false
         startPos = nil
     end
@@ -1538,7 +1599,9 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
-            config:Bind(configKey, self, function(value) setStateSilently(value, true) end)
+            config:Bind(configKey, self, function(value)
+                if type(value) == "boolean" then setStateSilently(value, true) end
+            end)
         end
     end
     local panel = parent
@@ -1834,7 +1897,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     local optionsPadding = CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8), Parent = self.OptionsContainer})
     self.OptionButtons = {}
     local function rebuildOptions()
-        for _, btn in pairs(self.OptionButtons) do if btn and btn.Destroy then pcall(btn.Destroy, btn) end end
+        for _, btn in pairs(self.OptionButtons) do if btn and btn.Destroy then btn.Destroy(btn) end end
         self.OptionButtons = {}
         for i, option in ipairs(self.Options) do
             local optionButton = CreateInstance("TextButton", {
@@ -2034,6 +2097,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
             config:Bind(configKey, self, function(value)
+                if value == nil then return end
                 if self.MultiSelect then
                     if type(value) == "table" then self.SelectedValues = value
                     elseif type(value) == "string" then self.SelectedValues = { value } end
@@ -2068,15 +2132,16 @@ v4.InputBegan:Connect(function(input, processed)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         for i = #WasUI.OpenDropdowns, 1, -1 do
             local dropdown = WasUI.OpenDropdowns[i]
-            if not dropdown or not dropdown.IsOpen then continue end
-            local mousePos = input.Position
-            local menuPos = dropdown.OptionsContainer.AbsolutePosition
-            local menuSize = dropdown.OptionsContainer.AbsoluteSize
-            local btnPos = dropdown.DropdownButton.AbsolutePosition
-            local btnSize = dropdown.DropdownButton.AbsoluteSize
-            local inMenu = mousePos.X >= menuPos.X and mousePos.X <= menuPos.X + menuSize.X and mousePos.Y >= menuPos.Y and mousePos.Y <= menuPos.Y + menuSize.Y
-            local inButton = mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y
-            if not inMenu and not inButton then dropdown:Close() end
+            if dropdown and dropdown.IsOpen then
+                local mousePos = input.Position
+                local menuPos = dropdown.OptionsContainer.AbsolutePosition
+                local menuSize = dropdown.OptionsContainer.AbsoluteSize
+                local btnPos = dropdown.DropdownButton.AbsolutePosition
+                local btnSize = dropdown.DropdownButton.AbsoluteSize
+                local inMenu = mousePos.X >= menuPos.X and mousePos.X <= menuPos.X + menuSize.X and mousePos.Y >= menuPos.Y and mousePos.Y <= menuPos.Y + menuSize.Y
+                local inButton = mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y
+                if not inMenu and not inButton then dropdown:Close() end
+            end
         end
     end
 end)
@@ -2354,7 +2419,9 @@ function TextInput:New(name, parent, placeholder, defaultValue, callback, config
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
-            config:Bind(configKey, self, function(value) self.TextBox.Text = value end)
+            config:Bind(configKey, self, function(value)
+                if value ~= nil then self.TextBox.Text = tostring(value) end
+            end)
         end
     end
     local panel = parent
@@ -2793,21 +2860,26 @@ function WasUI:ShowConfirmDialog(options, callback)
 end
 
 function WasUI:CreateConfirmButton(parent, text, confirmOptions, onClick, size, iconName)
-    return self:CreateButton(parent, text, function()
-        self:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
+    return Button:New("ConfirmButton", parent, text, function()
+        WasUI:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
             if confirmed and onClick then onClick(inputValue) end
         end)
     end, size, iconName)
 end
 
 function WasUI:CreateConfirmToggle(parent, title, initialState, confirmOptions, onToggle, featureName, rainbowName, iconName, configKey)
-    local toggle = self:CreateToggleWithTitle(parent, title, initialState, function(state)
+    local toggle = ToggleSwitch:New("ConfirmToggle", parent, title, initialState, function(state)
         if state then
-            self:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
-                if confirmed then if onToggle then onToggle(state) end
-                else toggle._setStateSilently(false) end
+            WasUI:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
+                if confirmed then
+                    if onToggle then onToggle(state) end
+                else
+                    toggle._setStateSilently(false)
+                end
             end)
-        else if onToggle then onToggle(state) end end
+        else
+            if onToggle then onToggle(state) end
+        end
     end, featureName, rainbowName, iconName, configKey)
     return toggle
 end
@@ -3285,8 +3357,8 @@ function WasUI:ShowColorPicker(options, callback)
     end)
     hexInput.FocusLost:Connect(function(enterPressed)
         local hex = hexInput.Text:gsub("#", "")
-        local success, color = pcall(Color3.fromHex, hex)
-        if success then local h, s, v = Color3.toHSV(color); setHSV(h, s, v)
+        local color = Color3.fromHex(hex)
+        if color then local h, s, v = Color3.toHSV(color); setHSV(h, s, v)
         else hexInput.Text = "#" .. Color3.fromHSV(currentH, currentS, currentV):ToHex() end
     end)
     local function animateOpen()
@@ -3408,7 +3480,8 @@ local Paragraph = setmetatable({}, {__index = Control})
 Paragraph.__index = Paragraph
 function Paragraph:New(name, parent, options)
     local self = Control:New(name, parent)
-    self.Options = options or {}
+    options = options or {}
+    self.Options = options
     self.Container = CreateInstance("Frame", {
         Name = "Paragraph",
         Size = UDim2.new(1, 0, 0, 0),
@@ -3540,9 +3613,9 @@ local function AnimateThemeChange(oldTheme, newTheme)
     end
     for _, obj in ipairs(WasUI.Objects) do
         local instance = obj.Object
-        if not instance then continue end
-        updateTextColor(instance)
-        if obj.Type == "Button" then
+        if instance then
+            updateTextColor(instance)
+            if obj.Type == "Button" then
             Tween(instance, {BackgroundColor3 = newTheme.Primary}, duration)
             local icon = instance:FindFirstChildOfClass("ImageLabel")
             if icon and not icon:GetAttribute("IgnoreThemeChange") then
@@ -3738,6 +3811,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
                 Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
             end
         end
+        end
     end
     if WasUI.DropdownGui then
         for _, container in ipairs(WasUI.DropdownGui:GetChildren()) do
@@ -3785,7 +3859,7 @@ function Panel.__index(self, key)
     if key == "orderFlow" then
         return rawget(self, "BorderFlow")
     end
-    return Panel[key]
+    return rawget(Panel, key)
 end
 
 local function isPointOverButton(btn, point)
@@ -3798,6 +3872,7 @@ end
 
 function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, titleTag, featureNameColor, frameColors)
     local self = setmetatable({}, Panel)
+    self._destroyed = false
     self.SnowEnabled = snowEnabled or false
     self.BackgroundImage = nil
     function self:SetBackground(url)
@@ -3816,9 +3891,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 ZIndex = 0,
                 Parent = self.Instance
             })
-            pcall(function()
-                v9:PreloadAsync({url})
-            end)
+            v9:PreloadAsync({url})
         else
             self.BackgroundImage = nil
         end
@@ -4326,9 +4399,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
         for _, moved in ipairs(movedControls) do
             if moved.control and moved.control.Parent ~= moved.originalParent then
-                pcall(function()
-                    moved.control.Parent = moved.originalParent
-                end)
+                moved.control.Parent = moved.originalParent
                 moved.control.Visible = true
             end
         end
@@ -4819,6 +4890,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 WasUI.NotificationGui:Destroy()
                 WasUI.NotificationGui = nil
             end
+            if self.SnowConnection then
+                self.SnowConnection:Disconnect()
+                self.SnowConnection = nil
+            end
+            if self.SnowContainer then
+                self.SnowContainer:Destroy()
+                self.SnowContainer = nil
+            end
         end)
         cancelButton.MouseButton1Click:Connect(function()
             Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
@@ -5074,8 +5153,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 280, 0, 350),
-            Position = UDim2.new(0.5, -140, 0.5, -175),
+            Size = UDim2.new(0, 280, 0, 220),
+            Position = UDim2.new(0.5, -140, 0.5, -110),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
@@ -5287,106 +5366,108 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = snowBg
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowKnob})
-        local function updateSnowToggle(newState)
-            self.SnowEnabled = newState
-            if newState then
-                if not self.SnowContainer then
-                    self.SnowContainer = CreateInstance("Frame", {
-                        Name = "SnowContainer",
-                        Size = self.Instance.Size,
-                        Position = self.Instance.Position,
-                        BackgroundTransparency = 1,
-                        ZIndex = 100000,
-                        Parent = parent
-                    })
-                    local function updateSnowContainer()
-                        if self.SnowContainer and self.Instance then
-                            self.SnowContainer.Position = self.Instance.Position
-                            self.SnowContainer.Size = self.Instance.Size
-                        end
-                    end
-                    self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
-                    self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
-                    self.Snowflakes = {}
-                    self.SnowTimer = 0
-                    self.SnowChangeTimer = 0
-                    if self.SnowConnection then
-                        self.SnowConnection:Disconnect()
-                        self.SnowConnection = nil
-                    end
-                    self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
-                        if not self.Instance.Visible then return end
-                        if not self.SnowContainer.Visible then return end
-                        self.SnowTimer = self.SnowTimer + deltaTime
-                        self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
-                        if self.SnowTimer >= 0.08 and #self.Snowflakes < 30 then
-                            self.SnowTimer = 0
-                            local size = math.random(4, 10)
-                            local flake = CreateInstance("Frame", {
-                                Size = UDim2.new(0, size, 0, size),
-                                Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.1, 0),
-                                BackgroundColor3 = WasUI.CurrentTheme.SnowColor,
-                                BackgroundTransparency = 0,
-                                BorderSizePixel = 0,
-                                ZIndex = 100001,
-                                Parent = self.SnowContainer
-                            })
-                            CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
-                            local speedY = math.random(150, 200) / 100
-                            local speedX = (math.random() - 0.5) * 0.7
-                            table.insert(self.Snowflakes, {
-                                Instance = flake,
-                                SpeedY = speedY,
-                                SpeedX = speedX,
-                                Age = 0,
-                                Size = size
-                            })
-                        end
-                        if self.SnowChangeTimer >= 1.25 then
-                            self.SnowChangeTimer = 0
-                            for _, data in ipairs(self.Snowflakes) do
-                                data.SpeedX = (math.random() - 0.5) * 0.8
-                                data.SpeedY = math.random(150, 200) / 100
-                            end
-                        end
-                        for i = #self.Snowflakes, 1, -1 do
-                            local data = self.Snowflakes[i]
-                            local flake = data.Instance
-                            if not flake or not flake.Parent then
-                                table.remove(self.Snowflakes, i)
-                                continue
-                            end
-                            data.Age = data.Age + deltaTime
-                            local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
-                            local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
-                            local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
-                            local newSize = data.Size * (1 - data.Age / 3.2)
-                            flake.Position = UDim2.new(newX, 0, 0, newY)
-                            flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
-                            flake.BackgroundTransparency = 1 - alpha
-                            if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
-                                flake:Destroy()
-                                table.remove(self.Snowflakes, i)
-                            end
-                        end
-                    end)
+
+local function updateSnowToggle(newState)
+    self.SnowEnabled = newState
+    if newState then
+        if not self.SnowContainer then
+            self.SnowContainer = CreateInstance("Frame", {
+                Name = "SnowContainer",
+                Size = self.Instance.Size,
+                Position = self.Instance.Position,
+                BackgroundTransparency = 1,
+                ZIndex = 100000,
+                Parent = parent
+            })
+            local function updateSnowContainer()
+                if self.SnowContainer and self.Instance then
+                    self.SnowContainer.Position = self.Instance.Position
+                    self.SnowContainer.Size = self.Instance.Size
                 end
-                self.SnowContainer.Visible = true
-                Tween(snowBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-                SpringTween(snowKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
-            else
-                if self.SnowContainer then
-                    self.SnowContainer.Visible = false
-                end
-                if self.SnowConnection then
-                    self.SnowConnection:Disconnect()
-                    self.SnowConnection = nil
-                end
-                local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
-                Tween(snowBg, {BackgroundColor3 = offCol}, 0.2)
-                SpringTween(snowKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
             end
+            self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
+            self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
         end
+        self.Snowflakes = {}
+        self.SnowTimer = 0
+        self.SnowChangeTimer = 0
+        if self.SnowConnection then
+            self.SnowConnection:Disconnect()
+            self.SnowConnection = nil
+        end
+        self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
+            if not self.Instance.Visible then return end
+            if not self.SnowContainer.Visible then return end
+            self.SnowTimer = self.SnowTimer + deltaTime
+            self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
+            if self.SnowTimer >= 0.08 and #self.Snowflakes < 30 then
+                self.SnowTimer = 0
+                local size = math.random(4, 10)
+                local flake = CreateInstance("Frame", {
+                    Size = UDim2.new(0, size, 0, size),
+                    Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.1, 0),
+                    BackgroundColor3 = WasUI.CurrentTheme.SnowColor,
+                    BackgroundTransparency = 0,
+                    BorderSizePixel = 0,
+                    ZIndex = 100001,
+                    Parent = self.SnowContainer
+                })
+                CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
+                local speedY = math.random(150, 200) / 100
+                local speedX = (math.random() - 0.5) * 0.7
+                table.insert(self.Snowflakes, {
+                    Instance = flake,
+                    SpeedY = speedY,
+                    SpeedX = speedX,
+                    Age = 0,
+                    Size = size
+                })
+            end
+            if self.SnowChangeTimer >= 1.25 then
+                self.SnowChangeTimer = 0
+                for _, data in ipairs(self.Snowflakes) do
+                    data.SpeedX = (math.random() - 0.5) * 0.8
+                    data.SpeedY = math.random(150, 200) / 100
+                end
+            end
+            for i = #self.Snowflakes, 1, -1 do
+                local data = self.Snowflakes[i]
+                local flake = data.Instance
+                if flake and flake.Parent then
+                    data.Age = data.Age + deltaTime
+                    local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
+                    local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
+                    local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
+                    local newSize = data.Size * (1 - data.Age / 3.2)
+                    flake.Position = UDim2.new(newX, 0, 0, newY)
+                    flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
+                    flake.BackgroundTransparency = 1 - alpha
+                    if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
+                        flake:Destroy()
+                        table.remove(self.Snowflakes, i)
+                    end
+                else
+                    table.remove(self.Snowflakes, i)
+                end
+            end
+        end)
+        self.SnowContainer.Visible = true
+        Tween(snowBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+        SpringTween(snowKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
+    else
+        if self.SnowContainer then
+            self.SnowContainer.Visible = false
+        end
+        if self.SnowConnection then
+            self.SnowConnection:Disconnect()
+            self.SnowConnection = nil
+        end
+        local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+        Tween(snowBg, {BackgroundColor3 = offCol}, 0.2)
+        SpringTween(snowKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
+    end
+end
+
         snowBg.MouseButton1Click:Connect(function()
             updateSnowToggle(not self.SnowEnabled)
         end)
@@ -5891,20 +5972,20 @@ function self:SetVisible(visible)
             for i = #self.Snowflakes, 1, -1 do
                 local data = self.Snowflakes[i]
                 local flake = data.Instance
-                if not flake or not flake.Parent then
-                    table.remove(self.Snowflakes, i)
-                    continue
-                end
-                data.Age = data.Age + deltaTime
-                local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
-                local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
-                local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
-                local newSize = data.Size * (1 - data.Age / 3.2)
-                flake.Position = UDim2.new(newX, 0, 0, newY)
-                flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
-                flake.BackgroundTransparency = 1 - alpha
-                if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
-                    flake:Destroy()
+                if flake and flake.Parent then
+                    data.Age = data.Age + deltaTime
+                    local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
+                    local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
+                    local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
+                    local newSize = data.Size * (1 - data.Age / 3.2)
+                    flake.Position = UDim2.new(newX, 0, 0, newY)
+                    flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
+                    flake.BackgroundTransparency = 1 - alpha
+                    if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
+                        flake:Destroy()
+                        table.remove(self.Snowflakes, i)
+                    end
+                else
                     table.remove(self.Snowflakes, i)
                 end
             end
@@ -5916,7 +5997,7 @@ function self:SetVisible(visible)
     self.Instance.BackgroundTransparency = 1
     self.Instance.Size = UDim2.new(0, 0, 0, 0)
     self.Instance.Position = UDim2.new(0.5, 0, 0.5, 0)
-if self.FlowStroke then
+    if self.FlowStroke then
         self.FlowStroke.Enabled = false
     end
     if self.BorderFlow then
@@ -5925,12 +6006,47 @@ if self.FlowStroke then
     if self.SnowContainer then
         self.SnowContainer.Visible = false
     end
+    local syncOverlay = CreateInstance("Frame", {
+        Name = "SyncOverlay",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = self.Instance.BackgroundColor3,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 100000,
+        Parent = self.Instance
+    })
+    local function hideAllInternal()
+        if self.TitleBar then self.TitleBar.Visible = false end
+        if self.AnnouncementBar then self.AnnouncementBar.Visible = false end
+        if self.TabBar then self.TabBar.Visible = false end
+        if self.ContentArea then self.ContentArea.Visible = false end
+        if closeButton then closeButton.Visible = false end
+        if searchButton then searchButton.Visible = false end
+        if searchContainer then searchContainer.Visible = false end
+    end
+    local function showAllInternal()
+        if self.TitleBar then self.TitleBar.Visible = true end
+        if self.AnnouncementBar then self.AnnouncementBar.Visible = true end
+        if self.TabBar then self.TabBar.Visible = true end
+        if self.ContentArea then self.ContentArea.Visible = true end
+        if closeButton then closeButton.Visible = true end
+        if searchButton then searchButton.Visible = true end
+    end
+    hideAllInternal()
     local windowTween = Tween(self.Instance, {
         BackgroundTransparency = originalTransparency,
         Size = originalSize,
         Position = originalPos
     }, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    Tween(syncOverlay, {BackgroundTransparency = 0}, 0.01)
     windowTween.Completed:Connect(function()
+        showAllInternal()
+        Tween(syncOverlay, {BackgroundTransparency = 1}, 0.15)
+        task.delay(0.15, function()
+            if syncOverlay and syncOverlay.Parent then
+                syncOverlay:Destroy()
+            end
+        end)
         if self.SnowContainer then
             self.SnowContainer.Visible = true
         end
@@ -5975,10 +6091,7 @@ function WasUI:CreateWindow(options)
             end
             function config:Load()
                 if not isfile(self.Path) then return false end
-                local success, data = pcall(function()
-                    return v6:JSONDecode(readfile(self.Path))
-                end)
-                if success and type(data) == "table" then
+                local data = v6:JSONDecode(readfile(self.Path))                if type(data) == "table" then
                     self.Data = data
                     for key, value in pairs(self.Data) do
                         local binding = self.Bindings[key]
@@ -6208,37 +6321,53 @@ function WasUI:CreateWindow(options)
         return tabFacade
     end
     function windowFacade:SetVisible(visible)
+        if window._destroyed then return end
         window:SetVisible(visible)
     end
     function windowFacade:SetTitle(text)
+        if window._destroyed then return end
         window:SetTitle(text)
     end
     function windowFacade:SetWelcome(text)
+        if window._destroyed then return end
         window:SetWelcome(text)
     end
     function windowFacade:EnableHotkeyToggle(keyCode)
+        if window._destroyed then return end
         window:EnableHotkeyToggle(keyCode)
     end
     function windowFacade:DisableHotkeyToggle()
+        if window._destroyed then return end
         window:DisableHotkeyToggle()
     end
     function windowFacade:Minimize()
+        if window._destroyed then return end
         window:MinimizeToDots()
     end
     function windowFacade:Restore()
+        if window._destroyed then return end
         window:RestoreFromDots()
     end
     function windowFacade:Destroy()
+        if window._destroyed then return end
+        window._destroyed = true
         if window.BorderConnection then window.BorderConnection:Disconnect() end
         if window.FlowStroke then window.FlowStroke:Destroy() end
         if window.BorderFlow then window.BorderFlow:Destroy() end
         if window.Instance then window.Instance:Destroy() end
         if window.SnowContainer then window.SnowContainer:Destroy() end
+        for i = #WasUI.Objects, 1, -1 do
+            if WasUI.Objects[i].PanelData == window then
+                table.remove(WasUI.Objects, i)
+            end
+        end
     end
     function windowFacade:SetRainbowMode(mode)
+        if window._destroyed then return end
         window:SetRainbowMode(mode)
     end
     function windowFacade:SetMinimizedText(text)
+        if window._destroyed then return end
         window:SetMinimizedText(text)
     end
     return windowFacade
@@ -6254,10 +6383,8 @@ function WasUI:Popup(options, callback)
 end
 
 task.spawn(function()
-    local success, langTable = pcall(function()
-        return loadstring(game:HttpGet("https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/CnToEng.lua"))()
-    end)
-    if success and type(langTable) == "table" then
+    local langTable = loadstring(game:HttpGet("https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/CnToEng.lua"))()
+    if type(langTable) == "table" then
         WasUI:LoadLanguageTable(langTable)
         print("[WasUI] 远程翻译表加载成功")
     else
