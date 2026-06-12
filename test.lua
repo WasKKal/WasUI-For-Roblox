@@ -1,6 +1,132 @@
 local WasUI = {}
 WasUI.__index = WasUI
 
+
+
+
+if not math.clamp then
+	function math.clamp(value, min, max)
+		if value < min then return min end
+		if value > max then return max end
+		return value
+	end
+end
+
+
+if not typeof then
+	function typeof(v)
+		local t = type(v)
+		if t == "userdata" then
+			local success, result = pcall(function()
+				return v.ClassName or v:IsA("Instance")
+			end)
+			if success then
+				return "Instance"
+			end
+		end
+		return t
+	end
+end
+
+
+if not Color3.fromHex then
+	function Color3.fromHex(hex)
+		hex = tostring(hex):gsub("#", "")
+		if #hex == 3 then
+			hex = hex:gsub(".", function(c) return c .. c end)
+		end
+		local r = tonumber(hex:sub(1, 2), 16) or 255
+		local g = tonumber(hex:sub(3, 4), 16) or 255
+		local b = tonumber(hex:sub(5, 6), 16) or 255
+		return Color3.fromRGB(r, g, b)
+	end
+end
+
+
+if not task then
+	task = {}
+	local function makeHandle()
+		return {_cancelled = false, _conn = nil}
+	end
+	function task.wait(n)
+		return wait(n or 0)
+	end
+	function task.delay(duration, callback)
+		local handle = makeHandle()
+		handle._conn = delay(duration or 0, function()
+			if not handle._cancelled then
+				local success, err = pcall(callback)
+				if not success then
+					warn("task.delay error: " .. tostring(err))
+				end
+			end
+		end)
+		return handle
+	end
+	function task.spawn(fn, ...)
+		local args = {...}
+		return spawn(function() fn(unpack(args)) end)
+	end
+	function task.defer(fn, ...)
+		local args = {...}
+		return spawn(function() fn(unpack(args)) end)
+	end
+	function task.cancel(handle)
+		if type(handle) == "table" and handle._cancelled ~= nil then
+			handle._cancelled = true
+			if handle._conn and typeof(handle._conn) == "RBXScriptConnection" then
+				pcall(function() handle._conn:Disconnect() end)
+			end
+		elseif type(handle) == "thread" then
+			
+			pcall(function() 
+				if task_cancel_native then task_cancel_native(handle) end
+			end)
+		end
+	end
+end
+
+
+if not Instance.new("Folder"):GetAttribute then
+	local _folder = Instance.new("Folder")
+	local attributesSupported = false
+	pcall(function()
+		_folder:SetAttribute("__test", true)
+		attributesSupported = _folder:GetAttribute("__test") == true
+		_folder:SetAttribute("__test", nil)
+	end)
+	if not attributesSupported then
+		local attrStorage = {}
+		function Instance:GetAttribute(name)
+			local key = tostring(self) .. "_" .. tostring(name)
+			return attrStorage[key]
+		end
+		function Instance:SetAttribute(name, value)
+			local key = tostring(self) .. "_" .. tostring(name)
+			if value == nil then
+				attrStorage[key] = nil
+			else
+				attrStorage[key] = value
+			end
+		end
+		function Instance:GetAttributes()
+			local result = {}
+			local prefix = tostring(self) .. "_"
+			for key, value in pairs(attrStorage) do
+				if key:sub(1, #prefix) == prefix then
+					local attrName = key:sub(#prefix + 1)
+					result[attrName] = value
+				end
+			end
+			return result
+		end
+	end
+end
+
+
+
+
+
 local v1 = game:GetService("Players")
 local v2 = game:GetService("ReplicatedStorage")
 local v3 = game:GetService("TweenService")
@@ -527,7 +653,7 @@ function WasUI:CreateFolder(folderName)
                 if toEncode == nil then
                     return false
                 end
-                local success, json = pcall(v6.JSONEncode, toEncode)
+                local success, json = pcall(function() return v6:JSONEncode(toEncode) end)
                 if not success then
                     return false
                 end
@@ -595,7 +721,7 @@ function WasUI:CreateFolder(folderName)
             if toEncode == nil then
                 return false
             end
-            local success, json = pcall(v6.JSONEncode, toEncode)
+            local success, json = pcall(function() return v6:JSONEncode(toEncode) end)
             if not success then
                 return false
             end
@@ -740,7 +866,7 @@ local function RefreshRainbowLayout()
         WasUI.RainbowMainContainer.Parent = WasUI.RainbowGui
     end
     local startY = 8
-    local spacing = 4
+    local spacing = 1
     local total = #WasUI.RainbowOrder
     if total == 0 then
         for _, data in pairs(WasUI.ActiveRainbowTexts) do
@@ -753,74 +879,84 @@ local function RefreshRainbowLayout()
     local currentY = startY
     for i, featureName in ipairs(WasUI.RainbowOrder) do
         local data = WasUI.ActiveRainbowTexts[featureName]
-        if not data then continue end
-        local textBounds = v10:GetTextSize(data.OriginalText, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))
-        local textWidth = math.ceil(textBounds.X + 12)
-        local textHeight = math.ceil(textBounds.Y)
-        local verticalPadding = math.ceil(textHeight * 0.08)
-        local lineHeight = textHeight + verticalPadding * 2
-        local ratio = 0
-        if total > 1 then
-            ratio = (i - 1) / (total - 1)
-        end
-        local color1 = data.Color1 or WasUI.CurrentTheme.Accent
-        local color2 = data.Color2 or WasUI.CurrentTheme.Text
-        local textColor = color1:Lerp(color2, ratio)
-        if not data.Container or not data.Container.Parent then
-            local container = CreateInstance("Frame", {
-                Name = "RainbowContainer_" .. featureName,
-                Size = UDim2.new(0, textWidth, 0, lineHeight),
-                Position = UDim2.new(1, 0, 0, currentY),
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                BackgroundTransparency = -1,
-                BorderSizePixel = 0,
-                Parent = WasUI.RainbowMainContainer
-            })
-            CreateInstance("UIGradient", {
-                Transparency = NumberSequence.new({
-                    NumberSequenceKeypoint.new(0, 0.6),
-                    NumberSequenceKeypoint.new(0.95, 0.8),
-                    NumberSequenceKeypoint.new(1, 0.8),
-                }),
-                Parent = container
-            })
-            local sideBar = CreateInstance("Frame", {
-                Name = "SideBar",
-                Size = UDim2.new(0, 3, 1, 0),
-                Position = UDim2.new(0, 0, 0, 0),
-                BackgroundColor3 = textColor,
-                BorderSizePixel = 0,
-                Parent = container
-            })
-            local label = CreateInstance("TextLabel", {
-                Name = "Label",
-                Text = data.OriginalText,
-                Font = Enum.Font.GothamBold,
-                TextSize = 14,
-                Position = UDim2.new(0, 10, 0, verticalPadding),
-                Size = UDim2.new(1, -20, 1, -verticalPadding * 2),
-                BackgroundTransparency = 1,
-                TextStrokeTransparency = 0.7,
-                TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
-                TextXAlignment = Enum.TextXAlignment.Right,
-                TextYAlignment = Enum.TextYAlignment.Center,
-                TextColor3 = textColor,
-                Parent = container
-            })
-            data.Container = container
-            data.Label = label
-            data.SideBar = sideBar
-            local targetPos = UDim2.new(1, -textWidth, 0, currentY)
-            Tween(container, {Position = targetPos}, 1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        else
-            local targetPos = UDim2.new(1, -textWidth, 0, currentY)
-            Tween(data.Container, {Position = targetPos, Size = UDim2.new(0, textWidth, 0, lineHeight)}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-            data.Label.TextColor3 = textColor
-            if data.SideBar then
-                data.SideBar.BackgroundColor3 = textColor
+        if data then
+            local textBounds = v10:GetTextSize(data.OriginalText, 14, Enum.Font.GothamBold, Vector2.new(1000, math.huge))
+            local textWidth = math.ceil(textBounds.X + 24)
+            local textHeight = math.ceil(textBounds.Y)
+            local verticalPadding = math.ceil(textHeight * 0.08)
+            local lineHeight = textHeight + verticalPadding * 2
+            local ratio = 0
+            if total > 1 then
+                ratio = (i - 1) / (total - 1)
             end
+            local color1 = data.Color1 or WasUI.CurrentTheme.Accent
+            local color2 = data.Color2 or WasUI.CurrentTheme.Text
+            local h1, s1, v1 = Color3.toHSV(color1)
+            local h2, s2, v2 = Color3.toHSV(color2)
+            local hDiff = h2 - h1
+            if math.abs(hDiff) > 0.5 then
+                if hDiff > 0 then h1 = h1 + 1 else h2 = h2 + 1 end
+            end
+            local h = (h1 + (h2 - h1) * ratio) % 1
+            local s = s1 + (s2 - s1) * ratio
+            local v = v1 + (v2 - v1) * ratio
+            local textColor = Color3.fromHSV(h, s, v)
+            if not data.Container or not data.Container.Parent then
+                local container = CreateInstance("Frame", {
+                    Name = "RainbowContainer_" .. featureName,
+                    Size = UDim2.new(0, textWidth, 0, lineHeight),
+                    Position = UDim2.new(1, 0, 0, currentY),
+                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                    BackgroundTransparency = -1,
+                    BorderSizePixel = 0,
+                    Parent = WasUI.RainbowMainContainer
+                })
+                CreateInstance("UIGradient", {
+                    Transparency = NumberSequence.new({
+                        NumberSequenceKeypoint.new(0, 0.6),
+                        NumberSequenceKeypoint.new(0.95, 0.8),
+                        NumberSequenceKeypoint.new(1, 0.8),
+                    }),
+                    Parent = container
+                })
+                local sideBar = CreateInstance("Frame", {
+                    Name = "SideBar",
+                    Size = UDim2.new(0, 3, 1, 0),
+                    Position = UDim2.new(0, 0, 0, 0),
+                    BackgroundColor3 = textColor,
+                    BorderSizePixel = 0,
+                    Parent = container
+                })
+                local label = CreateInstance("TextLabel", {
+                    Name = "Label",
+                    Text = data.OriginalText,
+                    Font = Enum.Font.GothamBold,
+                    TextSize = 14,
+                    Position = UDim2.new(0, 14, 0, verticalPadding),
+                    Size = UDim2.new(1, -20, 1, -verticalPadding * 2),
+                    BackgroundTransparency = 1,
+                    TextStrokeTransparency = 0.7,
+                    TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+                    TextXAlignment = Enum.TextXAlignment.Right,
+                    TextYAlignment = Enum.TextYAlignment.Center,
+                    TextColor3 = textColor,
+                    Parent = container
+                })
+                data.Container = container
+                data.Label = label
+                data.SideBar = sideBar
+                local targetPos = UDim2.new(1, -textWidth, 0, currentY)
+                Tween(container, {Position = targetPos}, 0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            else
+                local targetPos = UDim2.new(1, -textWidth, 0, currentY)
+                Tween(data.Container, {Position = targetPos, Size = UDim2.new(0, textWidth, 0, lineHeight)}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+                data.Label.TextColor3 = textColor
+                if data.SideBar then
+                    data.SideBar.BackgroundColor3 = textColor
+                end
+            end
+            currentY = currentY + lineHeight + spacing
         end
-        currentY = currentY + lineHeight + spacing
     end
     for name, data in pairs(WasUI.ActiveRainbowTexts) do
         local found = false
@@ -2068,7 +2204,7 @@ v4.InputBegan:Connect(function(input, processed)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         for i = #WasUI.OpenDropdowns, 1, -1 do
             local dropdown = WasUI.OpenDropdowns[i]
-            if not dropdown or not dropdown.IsOpen then continue end
+            if dropdown and dropdown.IsOpen then
             local mousePos = input.Position
             local menuPos = dropdown.OptionsContainer.AbsolutePosition
             local menuSize = dropdown.OptionsContainer.AbsoluteSize
@@ -3540,9 +3676,9 @@ local function AnimateThemeChange(oldTheme, newTheme)
     end
     for _, obj in ipairs(WasUI.Objects) do
         local instance = obj.Object
-        if not instance then continue end
-        updateTextColor(instance)
-        if obj.Type == "Button" then
+        if instance then
+            updateTextColor(instance)
+            if obj.Type == "Button" then
             Tween(instance, {BackgroundColor3 = newTheme.Primary}, duration)
             local icon = instance:FindFirstChildOfClass("ImageLabel")
             if icon and not icon:GetAttribute("IgnoreThemeChange") then
@@ -3737,6 +3873,7 @@ local function AnimateThemeChange(oldTheme, newTheme)
             if titleLabel then
                 Tween(titleLabel, {TextColor3 = newTheme.Text}, duration)
             end
+        end
         end
     end
     if WasUI.DropdownGui then
@@ -4819,6 +4956,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 WasUI.NotificationGui:Destroy()
                 WasUI.NotificationGui = nil
             end
+            if self.SnowConnection then
+                self.SnowConnection:Disconnect()
+                self.SnowConnection = nil
+            end
+            if self.SnowContainer then
+                self.SnowContainer:Destroy()
+                self.SnowContainer = nil
+            end
         end)
         cancelButton.MouseButton1Click:Connect(function()
             Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
@@ -5074,8 +5219,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 280, 0, 350),
-            Position = UDim2.new(0.5, -140, 0.5, -175),
+            Size = UDim2.new(0, 280, 0, 220),
+            Position = UDim2.new(0.5, -140, 0.5, -110),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
@@ -5307,14 +5452,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                     end
                     self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
                     self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
-                    self.Snowflakes = {}
-                    self.SnowTimer = 0
-                    self.SnowChangeTimer = 0
-                    if self.SnowConnection then
-                        self.SnowConnection:Disconnect()
-                        self.SnowConnection = nil
-                    end
-                    self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
+                end
+                self.Snowflakes = {}
+                self.SnowTimer = 0
+                self.SnowChangeTimer = 0
+                if self.SnowConnection then
+                    self.SnowConnection:Disconnect()
+                    self.SnowConnection = nil
+                end
+                self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
                         if not self.Instance.Visible then return end
                         if not self.SnowContainer.Visible then return end
                         self.SnowTimer = self.SnowTimer + deltaTime
@@ -5352,20 +5498,20 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                         for i = #self.Snowflakes, 1, -1 do
                             local data = self.Snowflakes[i]
                             local flake = data.Instance
-                            if not flake or not flake.Parent then
-                                table.remove(self.Snowflakes, i)
-                                continue
-                            end
-                            data.Age = data.Age + deltaTime
-                            local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
-                            local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
-                            local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
-                            local newSize = data.Size * (1 - data.Age / 3.2)
-                            flake.Position = UDim2.new(newX, 0, 0, newY)
-                            flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
-                            flake.BackgroundTransparency = 1 - alpha
-                            if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
-                                flake:Destroy()
+                            if flake and flake.Parent then
+                                data.Age = data.Age + deltaTime
+                                local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
+                                local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
+                                local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
+                                local newSize = data.Size * (1 - data.Age / 3.2)
+                                flake.Position = UDim2.new(newX, 0, 0, newY)
+                                flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
+                                flake.BackgroundTransparency = 1 - alpha
+                                if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
+                                    flake:Destroy()
+                                    table.remove(self.Snowflakes, i)
+                                end
+                            else
                                 table.remove(self.Snowflakes, i)
                             end
                         end
@@ -5891,20 +6037,20 @@ function self:SetVisible(visible)
             for i = #self.Snowflakes, 1, -1 do
                 local data = self.Snowflakes[i]
                 local flake = data.Instance
-                if not flake or not flake.Parent then
-                    table.remove(self.Snowflakes, i)
-                    continue
-                end
-                data.Age = data.Age + deltaTime
-                local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
-                local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
-                local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
-                local newSize = data.Size * (1 - data.Age / 3.2)
-                flake.Position = UDim2.new(newX, 0, 0, newY)
-                flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
-                flake.BackgroundTransparency = 1 - alpha
-                if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
-                    flake:Destroy()
+                if flake and flake.Parent then
+                    data.Age = data.Age + deltaTime
+                    local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
+                    local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
+                    local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
+                    local newSize = data.Size * (1 - data.Age / 3.2)
+                    flake.Position = UDim2.new(newX, 0, 0, newY)
+                    flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
+                    flake.BackgroundTransparency = 1 - alpha
+                    if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
+                        flake:Destroy()
+                        table.remove(self.Snowflakes, i)
+                    end
+                else
                     table.remove(self.Snowflakes, i)
                 end
             end
