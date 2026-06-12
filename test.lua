@@ -829,7 +829,7 @@ local function RefreshRainbowLayout()
                     TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
                     TextXAlignment = Enum.TextXAlignment.Right,
                     TextYAlignment = Enum.TextYAlignment.Center,
-                    TextColor3 = Color3.fromRGB(255, 255, 255),
+                    TextColor3 = textColor,
                     Parent = container
                 })
                 data.Container = container
@@ -846,6 +846,9 @@ local function RefreshRainbowLayout()
                         ColorSequenceKeypoint.new(0, color1),
                         ColorSequenceKeypoint.new(1, color2),
                     })
+                end
+                if data.Label then
+                    data.Label.TextColor3 = textColor
                 end
                 if data.SideBar then
                     data.SideBar.BackgroundColor3 = textColor
@@ -5972,6 +5975,24 @@ function self:SetVisible(visible)
         ZIndex = 100000,
         Parent = self.Instance
     })
+    local function hideAllInternal()
+        if self.TitleBar then self.TitleBar.Visible = false end
+        if self.AnnouncementBar then self.AnnouncementBar.Visible = false end
+        if self.TabBar then self.TabBar.Visible = false end
+        if self.ContentArea then self.ContentArea.Visible = false end
+        if closeButton then closeButton.Visible = false end
+        if searchButton then searchButton.Visible = false end
+        if searchContainer then searchContainer.Visible = false end
+    end
+    local function showAllInternal()
+        if self.TitleBar then self.TitleBar.Visible = true end
+        if self.AnnouncementBar then self.AnnouncementBar.Visible = true end
+        if self.TabBar then self.TabBar.Visible = true end
+        if self.ContentArea then self.ContentArea.Visible = true end
+        if closeButton then closeButton.Visible = true end
+        if searchButton then searchButton.Visible = true end
+    end
+    hideAllInternal()
     local windowTween = Tween(self.Instance, {
         BackgroundTransparency = originalTransparency,
         Size = originalSize,
@@ -5979,6 +6000,7 @@ function self:SetVisible(visible)
     }, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     Tween(syncOverlay, {BackgroundTransparency = 0}, 0.01)
     windowTween.Completed:Connect(function()
+        showAllInternal()
         Tween(syncOverlay, {BackgroundTransparency = 1}, 0.15)
         task.delay(0.15, function()
             if syncOverlay and syncOverlay.Parent then
