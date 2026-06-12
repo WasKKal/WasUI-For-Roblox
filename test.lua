@@ -2066,14 +2066,15 @@ v4.InputBegan:Connect(function(input, processed)
         for i = #WasUI.OpenDropdowns, 1, -1 do
             local dropdown = WasUI.OpenDropdowns[i]
             if dropdown and dropdown.IsOpen then
-            local mousePos = input.Position
-            local menuPos = dropdown.OptionsContainer.AbsolutePosition
-            local menuSize = dropdown.OptionsContainer.AbsoluteSize
-            local btnPos = dropdown.DropdownButton.AbsolutePosition
-            local btnSize = dropdown.DropdownButton.AbsoluteSize
-            local inMenu = mousePos.X >= menuPos.X and mousePos.X <= menuPos.X + menuSize.X and mousePos.Y >= menuPos.Y and mousePos.Y <= menuPos.Y + menuSize.Y
-            local inButton = mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y
-            if not inMenu and not inButton then dropdown:Close() end
+                local mousePos = input.Position
+                local menuPos = dropdown.OptionsContainer.AbsolutePosition
+                local menuSize = dropdown.OptionsContainer.AbsoluteSize
+                local btnPos = dropdown.DropdownButton.AbsolutePosition
+                local btnSize = dropdown.DropdownButton.AbsoluteSize
+                local inMenu = mousePos.X >= menuPos.X and mousePos.X <= menuPos.X + menuSize.X and mousePos.Y >= menuPos.Y and mousePos.Y <= menuPos.Y + menuSize.Y
+                local inButton = mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y
+                if not inMenu and not inButton then dropdown:Close() end
+            end
         end
     end
 end)
