@@ -950,7 +950,8 @@ local function CreateRainbowTextForFeature(featureName, color1, color2)
         end)
     end
     RebuildRainbowOrderByLength()
-endlocal function DestroyRainbowTextForFeature(featureName)
+end
+local function DestroyRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     local data = WasUI.ActiveRainbowTexts[featureName]
     if data then
