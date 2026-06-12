@@ -5776,6 +5776,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         tabInnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshOuterCanvas)
         tabButton.MouseButton1Click:Connect(function()
+            self:SetActiveTab(tabName)
+        end)
+
         self.Tabs[tabName] = {
             Button = tabButton,
             Underline = tabUnderline,
