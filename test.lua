@@ -804,7 +804,8 @@ local function RefreshRainbowLayout()
                     }),
                     Color = ColorSequence.new({
                         ColorSequenceKeypoint.new(0, color1),
-                        ColorSequenceKeypoint.new(1, color2),
+                        ColorSequenceKeypoint.new(0.5, color2),
+                        ColorSequenceKeypoint.new(1, color1),
                     }),
                     Rotation = 90,
                     Parent = container
@@ -838,9 +839,12 @@ local function RefreshRainbowLayout()
                 data.SideBar = sideBar
                 data.Gradient = gradient
                 local initT = WasUI.RainbowFlowTime or 0
-                local initColor = (data.Color1 or WasUI.CurrentTheme.Accent):Lerp(data.Color2 or WasUI.CurrentTheme.Text, initT)
+                local initPhase = (initT + i * 0.12) % 1
+                local initCycleT = math.abs(initPhase * 2 - 1)
+                local initColor = (data.Color1 or WasUI.CurrentTheme.Accent):Lerp(data.Color2 or WasUI.CurrentTheme.Text, initCycleT)
                 label.TextColor3 = initColor
                 sideBar.BackgroundColor3 = initColor
+                gradient.Offset = Vector2.new(0, -initPhase)
                 local targetPos = UDim2.new(1, -textWidth, 0, currentY)
                 Tween(container, {Position = targetPos}, 0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
             else
@@ -922,27 +926,31 @@ local function CreateRainbowTextForFeature(featureName, color1, color2)
             WasUI.RainbowFlowTime = 0
         end
         WasUI.RainbowFlowConnection = v5.Heartbeat:Connect(function(deltaTime)
-            WasUI.RainbowFlowTime = (WasUI.RainbowFlowTime + deltaTime * 0.8) % 1
+            WasUI.RainbowFlowTime = (WasUI.RainbowFlowTime + deltaTime * 0.6) % 1
             local flowT = WasUI.RainbowFlowTime
-            for _, data in pairs(WasUI.ActiveRainbowTexts) do
-                if data.Gradient then
-                    data.Gradient.Offset = Vector2.new(0, -flowT)
-                end
-                local c1 = data.Color1 or WasUI.CurrentTheme.Accent
-                local c2 = data.Color2 or WasUI.CurrentTheme.Text
-                local currentColor = c1:Lerp(c2, flowT)
-                if data.Label then
-                    data.Label.TextColor3 = currentColor
-                end
-                if data.SideBar then
-                    data.SideBar.BackgroundColor3 = currentColor
+            for idx, name in ipairs(WasUI.RainbowOrder) do
+                local data = WasUI.ActiveRainbowTexts[name]
+                if data then
+                    local phase = (flowT + idx * 0.12) % 1
+                    if data.Gradient then
+                        data.Gradient.Offset = Vector2.new(0, -phase)
+                    end
+                    local c1 = data.Color1 or WasUI.CurrentTheme.Accent
+                    local c2 = data.Color2 or WasUI.CurrentTheme.Text
+                    local cycleT = math.abs(phase * 2 - 1)
+                    local currentColor = c1:Lerp(c2, cycleT)
+                    if data.Label then
+                        data.Label.TextColor3 = currentColor
+                    end
+                    if data.SideBar then
+                        data.SideBar.BackgroundColor3 = currentColor
+                    end
                 end
             end
         end)
     end
     RebuildRainbowOrderByLength()
-end
-local function DestroyRainbowTextForFeature(featureName)
+endlocal function DestroyRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     local data = WasUI.ActiveRainbowTexts[featureName]
     if data then
