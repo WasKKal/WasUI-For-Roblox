@@ -543,7 +543,7 @@ function WasUI:CreateFolder(folderName)
                     self.Data = data
                     for key, value in pairs(self.Data) do
                         local binding = self.Bindings[key]
-                        if binding and binding.control and binding.update then
+                        if binding and binding.control and binding.update and value ~= nil then
                             binding.update(value)
                         end
                     end
@@ -612,7 +612,7 @@ function WasUI:CreateFolder(folderName)
                 self.Data = data
                 for key, value in pairs(self.Data) do
                     local binding = self.Bindings[key]
-                    if binding and binding.control and binding.update then
+                    if binding and binding.control and binding.update and value ~= nil then
                         binding.update(value)
                     end
                 end
@@ -1548,7 +1548,9 @@ function ToggleSwitch:New(name, parent, title, initialState, onToggle, featureNa
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
-            config:Bind(configKey, self, function(value) setStateSilently(value, true) end)
+            config:Bind(configKey, self, function(value)
+                if type(value) == "boolean" then setStateSilently(value, true) end
+            end)
         end
     end
     local panel = parent
@@ -2044,6 +2046,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
             config:Bind(configKey, self, function(value)
+                if value == nil then return end
                 if self.MultiSelect then
                     if type(value) == "table" then self.SelectedValues = value
                     elseif type(value) == "string" then self.SelectedValues = { value } end
@@ -2364,7 +2367,9 @@ function TextInput:New(name, parent, placeholder, defaultValue, callback, config
     if configKey and WasUI.ConfigManager then
         local config = WasUI.ConfigManager:GetConfig(WasUI.ConfigFolderName .. "_settings")
         if config then
-            config:Bind(configKey, self, function(value) self.TextBox.Text = value end)
+            config:Bind(configKey, self, function(value)
+                if value ~= nil then self.TextBox.Text = tostring(value) end
+            end)
         end
     end
     local panel = parent
@@ -2803,21 +2808,26 @@ function WasUI:ShowConfirmDialog(options, callback)
 end
 
 function WasUI:CreateConfirmButton(parent, text, confirmOptions, onClick, size, iconName)
-    return self:CreateButton(parent, text, function()
-        self:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
+    return Button:New("ConfirmButton", parent, text, function()
+        WasUI:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
             if confirmed and onClick then onClick(inputValue) end
         end)
     end, size, iconName)
 end
 
 function WasUI:CreateConfirmToggle(parent, title, initialState, confirmOptions, onToggle, featureName, rainbowName, iconName, configKey)
-    local toggle = self:CreateToggleWithTitle(parent, title, initialState, function(state)
+    local toggle = ToggleSwitch:New("ConfirmToggle", parent, title, initialState, function(state)
         if state then
-            self:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
-                if confirmed then if onToggle then onToggle(state) end
-                else toggle._setStateSilently(false) end
+            WasUI:ShowConfirmDialog(confirmOptions, function(confirmed, inputValue)
+                if confirmed then
+                    if onToggle then onToggle(state) end
+                else
+                    toggle._setStateSilently(false)
+                end
             end)
-        else if onToggle then onToggle(state) end end
+        else
+            if onToggle then onToggle(state) end
+        end
     end, featureName, rainbowName, iconName, configKey)
     return toggle
 end
@@ -3418,7 +3428,8 @@ local Paragraph = setmetatable({}, {__index = Control})
 Paragraph.__index = Paragraph
 function Paragraph:New(name, parent, options)
     local self = Control:New(name, parent)
-    self.Options = options or {}
+    options = options or {}
+    self.Options = options
     self.Container = CreateInstance("Frame", {
         Name = "Paragraph",
         Size = UDim2.new(1, 0, 0, 0),
@@ -3796,7 +3807,7 @@ function Panel.__index(self, key)
     if key == "orderFlow" then
         return rawget(self, "BorderFlow")
     end
-    return Panel[key]
+    return rawget(Panel, key)
 end
 
 local function isPointOverButton(btn, point)
@@ -3809,6 +3820,7 @@ end
 
 function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, titleTag, featureNameColor, frameColors)
     local self = setmetatable({}, Panel)
+    self._destroyed = false
     self.SnowEnabled = snowEnabled or false
     self.BackgroundImage = nil
     function self:SetBackground(url)
@@ -6228,37 +6240,53 @@ function WasUI:CreateWindow(options)
         return tabFacade
     end
     function windowFacade:SetVisible(visible)
+        if window._destroyed then return end
         window:SetVisible(visible)
     end
     function windowFacade:SetTitle(text)
+        if window._destroyed then return end
         window:SetTitle(text)
     end
     function windowFacade:SetWelcome(text)
+        if window._destroyed then return end
         window:SetWelcome(text)
     end
     function windowFacade:EnableHotkeyToggle(keyCode)
+        if window._destroyed then return end
         window:EnableHotkeyToggle(keyCode)
     end
     function windowFacade:DisableHotkeyToggle()
+        if window._destroyed then return end
         window:DisableHotkeyToggle()
     end
     function windowFacade:Minimize()
+        if window._destroyed then return end
         window:MinimizeToDots()
     end
     function windowFacade:Restore()
+        if window._destroyed then return end
         window:RestoreFromDots()
     end
     function windowFacade:Destroy()
+        if window._destroyed then return end
+        window._destroyed = true
         if window.BorderConnection then window.BorderConnection:Disconnect() end
         if window.FlowStroke then window.FlowStroke:Destroy() end
         if window.BorderFlow then window.BorderFlow:Destroy() end
         if window.Instance then window.Instance:Destroy() end
         if window.SnowContainer then window.SnowContainer:Destroy() end
+        for i = #WasUI.Objects, 1, -1 do
+            if WasUI.Objects[i].PanelData == window then
+                table.remove(WasUI.Objects, i)
+            end
+        end
     end
     function windowFacade:SetRainbowMode(mode)
+        if window._destroyed then return end
         window:SetRainbowMode(mode)
     end
     function windowFacade:SetMinimizedText(text)
+        if window._destroyed then return end
         window:SetMinimizedText(text)
     end
     return windowFacade
