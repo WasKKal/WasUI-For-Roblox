@@ -1,132 +1,6 @@
 local WasUI = {}
 WasUI.__index = WasUI
 
-
-
-
-if not math.clamp then
-	function math.clamp(value, min, max)
-		if value < min then return min end
-		if value > max then return max end
-		return value
-	end
-end
-
-
-if not typeof then
-	function typeof(v)
-		local t = type(v)
-		if t == "userdata" then
-			local success, result = pcall(function()
-				return v.ClassName or v:IsA("Instance")
-			end)
-			if success then
-				return "Instance"
-			end
-		end
-		return t
-	end
-end
-
-
-if not Color3.fromHex then
-	function Color3.fromHex(hex)
-		hex = tostring(hex):gsub("#", "")
-		if #hex == 3 then
-			hex = hex:gsub(".", function(c) return c .. c end)
-		end
-		local r = tonumber(hex:sub(1, 2), 16) or 255
-		local g = tonumber(hex:sub(3, 4), 16) or 255
-		local b = tonumber(hex:sub(5, 6), 16) or 255
-		return Color3.fromRGB(r, g, b)
-	end
-end
-
-
-if not task then
-	task = {}
-	local function makeHandle()
-		return {_cancelled = false, _conn = nil}
-	end
-	function task.wait(n)
-		return wait(n or 0)
-	end
-	function task.delay(duration, callback)
-		local handle = makeHandle()
-		handle._conn = delay(duration or 0, function()
-			if not handle._cancelled then
-				local success, err = pcall(callback)
-				if not success then
-					warn("task.delay error: " .. tostring(err))
-				end
-			end
-		end)
-		return handle
-	end
-	function task.spawn(fn, ...)
-		local args = {...}
-		return spawn(function() fn(unpack(args)) end)
-	end
-	function task.defer(fn, ...)
-		local args = {...}
-		return spawn(function() fn(unpack(args)) end)
-	end
-	function task.cancel(handle)
-		if type(handle) == "table" and handle._cancelled ~= nil then
-			handle._cancelled = true
-			if handle._conn and typeof(handle._conn) == "RBXScriptConnection" then
-				pcall(function() handle._conn:Disconnect() end)
-			end
-		elseif type(handle) == "thread" then
-			
-			pcall(function() 
-				if task_cancel_native then task_cancel_native(handle) end
-			end)
-		end
-	end
-end
-
-
-if not Instance.new("Folder"):GetAttribute then
-	local _folder = Instance.new("Folder")
-	local attributesSupported = false
-	pcall(function()
-		_folder:SetAttribute("__test", true)
-		attributesSupported = _folder:GetAttribute("__test") == true
-		_folder:SetAttribute("__test", nil)
-	end)
-	if not attributesSupported then
-		local attrStorage = {}
-		function Instance:GetAttribute(name)
-			local key = tostring(self) .. "_" .. tostring(name)
-			return attrStorage[key]
-		end
-		function Instance:SetAttribute(name, value)
-			local key = tostring(self) .. "_" .. tostring(name)
-			if value == nil then
-				attrStorage[key] = nil
-			else
-				attrStorage[key] = value
-			end
-		end
-		function Instance:GetAttributes()
-			local result = {}
-			local prefix = tostring(self) .. "_"
-			for key, value in pairs(attrStorage) do
-				if key:sub(1, #prefix) == prefix then
-					local attrName = key:sub(#prefix + 1)
-					result[attrName] = value
-				end
-			end
-			return result
-		end
-	end
-end
-
-
-
-
-
 local v1 = game:GetService("Players")
 local v2 = game:GetService("ReplicatedStorage")
 local v3 = game:GetService("TweenService")
@@ -653,7 +527,7 @@ function WasUI:CreateFolder(folderName)
                 if toEncode == nil then
                     return false
                 end
-                local success, json = pcall(function() return v6:JSONEncode(toEncode) end)
+                local success, json = pcall(v6.JSONEncode, toEncode)
                 if not success then
                     return false
                 end
@@ -721,7 +595,7 @@ function WasUI:CreateFolder(folderName)
             if toEncode == nil then
                 return false
             end
-            local success, json = pcall(function() return v6:JSONEncode(toEncode) end)
+            local success, json = pcall(v6.JSONEncode, toEncode)
             if not success then
                 return false
             end
