@@ -679,8 +679,20 @@ function WasUI:LoadLucide()
         self.LucideManager = { Module = nil, Loaded = false }
     end
     if self.LucideManager.Loaded then return self.LucideManager.Module end
-    local url = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
-    local module = loadstring(game:HttpGet(url))()
+    
+    local success, content = pcall(game.HttpGet, game, "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua")
+    if not success or not content or content == "" then
+        warn("[WasUI] 无法加载 Lucide 图标库")
+        return nil
+    end
+    
+    local func, err = loadstring(content)
+    if not func then
+        warn("[WasUI] Lucide 加载失败: " .. tostring(err))
+        return nil
+    end
+    
+    local module = func()
     if module then
         self.LucideManager.Module = module
         self.LucideManager.Loaded = true
