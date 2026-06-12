@@ -796,7 +796,7 @@ local function RefreshRainbowLayout()
                     BorderSizePixel = 0,
                     Parent = WasUI.RainbowMainContainer
                 })
-                CreateInstance("UIGradient", {
+                local gradient = CreateInstance("UIGradient", {
                     Transparency = NumberSequence.new({
                         NumberSequenceKeypoint.new(0, 0.6),
                         NumberSequenceKeypoint.new(0.95, 0.8),
@@ -809,6 +809,7 @@ local function RefreshRainbowLayout()
                     Rotation = 90,
                     Parent = container
                 })
+                data.Gradient = gradient
                 local sideBar = CreateInstance("Frame", {
                     Name = "SideBar",
                     Size = UDim2.new(0, 3, 1, 0),
@@ -835,6 +836,11 @@ local function RefreshRainbowLayout()
                 data.Container = container
                 data.Label = label
                 data.SideBar = sideBar
+                data.Gradient = gradient
+                local initT = WasUI.RainbowFlowTime or 0
+                local initColor = (data.Color1 or WasUI.CurrentTheme.Accent):Lerp(data.Color2 or WasUI.CurrentTheme.Text, initT)
+                label.TextColor3 = initColor
+                sideBar.BackgroundColor3 = initColor
                 local targetPos = UDim2.new(1, -textWidth, 0, currentY)
                 Tween(container, {Position = targetPos}, 0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
             else
@@ -908,12 +914,34 @@ local function CreateRainbowTextForFeature(featureName, color1, color2)
         Color2 = color2 or WasUI.CurrentTheme.Text,
         Container = nil,
         Label = nil,
-        SideBar = nil
+        SideBar = nil,
+        Gradient = nil
     }
-RebuildRainbowOrderByLength()
-end
-
-local function DestroyRainbowTextForFeature(featureName)
+    if not WasUI.RainbowFlowConnection then
+        if WasUI.RainbowFlowTime == nil then
+            WasUI.RainbowFlowTime = 0
+        end
+        WasUI.RainbowFlowConnection = v5.Heartbeat:Connect(function(deltaTime)
+            WasUI.RainbowFlowTime = (WasUI.RainbowFlowTime + deltaTime * 0.8) % 1
+            local flowT = WasUI.RainbowFlowTime
+            for _, data in pairs(WasUI.ActiveRainbowTexts) do
+                if data.Gradient then
+                    data.Gradient.Offset = Vector2.new(0, -flowT)
+                end
+                local c1 = data.Color1 or WasUI.CurrentTheme.Accent
+                local c2 = data.Color2 or WasUI.CurrentTheme.Text
+                local currentColor = c1:Lerp(c2, flowT)
+                if data.Label then
+                    data.Label.TextColor3 = currentColor
+                end
+                if data.SideBar then
+                    data.SideBar.BackgroundColor3 = currentColor
+                end
+            end
+        end)
+    end
+    RebuildRainbowOrderByLength()
+endlocal function DestroyRainbowTextForFeature(featureName)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     local data = WasUI.ActiveRainbowTexts[featureName]
     if data then
@@ -929,9 +957,12 @@ local function DestroyRainbowTextForFeature(featureName)
         else
             RebuildRainbowOrderByLength()
         end
+        if next(WasUI.ActiveRainbowTexts) == nil and WasUI.RainbowFlowConnection then
+            WasUI.RainbowFlowConnection:Disconnect()
+            WasUI.RainbowFlowConnection = nil
+        end
     end
 end
-
 local function GetShortcutKey(controlType, controlId, rainbowName)
     local base = ""
     local safeRainbowName = (type(rainbowName) == "string" and rainbowName ~= "") and rainbowName or nil
