@@ -918,8 +918,6 @@ local function DestroyRainbowTextForFeature(featureName)
     end
 end
 
-
-
 local function GetShortcutKey(controlType, controlId, rainbowName)
     local base = ""
     local safeRainbowName = (type(rainbowName) == "string" and rainbowName ~= "") and rainbowName or nil
@@ -3988,7 +3986,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self.BorderConnection = nil
         end
         if self.RainbowMode == "整体" then
-            if self.FlowStroke then self.FlowStroke.Enabled = false end
+            if self.FlowStroke then self.FlowStroke.Visible = false end
             if self.BorderFlow then
                 self.BorderFlow.Visible = true
             else
@@ -4011,7 +4009,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             if not self.FlowStroke then
                 createFlowBorder()
             else
-                self.FlowStroke.Enabled = true
+                self.FlowStroke.Visible = true
             end
             self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
                 self.FlowRotation = (self.FlowRotation + deltaTime * 60) % 360
@@ -5808,7 +5806,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
 function self:SetVisible(visible)
         self.Instance.Visible = visible
         if self.FlowStroke then
-            self.FlowStroke.Enabled = visible
+            self.FlowStroke.Visible = visible
         end
         if self.BorderFlow then
             self.BorderFlow.Visible = visible
@@ -5935,7 +5933,7 @@ function self:SetVisible(visible)
     self.Instance.Size = UDim2.new(0, 0, 0, 0)
     self.Instance.Position = UDim2.new(0.5, 0, 0.5, 0)
 if self.FlowStroke then
-        self.FlowStroke.Enabled = false
+        self.FlowStroke.Visible = false
     end
     if self.BorderFlow then
         self.BorderFlow.Visible = false
@@ -5956,7 +5954,7 @@ if self.FlowStroke then
             self.BorderFlow.Visible = (self.RainbowMode == "整体")
         end
         if self.FlowStroke then
-            self.FlowStroke.Enabled = (self.RainbowMode == "流动")
+            self.FlowStroke.Visible = (self.RainbowMode == "流动")
         end
     end)
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel", PanelData = self})
@@ -6149,14 +6147,6 @@ function WasUI:CreateWindow(options)
             function catFacade:Paragraph(opts)
                 return Paragraph:New("Paragraph", self._content, opts)
             end
-            function catFacade:Spacing(height)
-                local spacing = Instance.new("Frame")
-                spacing.Name = "Spacing"
-                spacing.Size = UDim2.new(1, 0, 0, height or 4)
-                spacing.BackgroundTransparency = 1
-                spacing.Parent = self._content
-                return spacing
-            end
             return catFacade
         end
         function tabFacade:Paragraph(opts)
@@ -6284,3 +6274,4 @@ task.spawn(function()
 end)
 
 return WasUI
+print("测试")
