@@ -765,7 +765,16 @@ local function RefreshRainbowLayout()
         end
         local color1 = data.Color1 or WasUI.CurrentTheme.Accent
         local color2 = data.Color2 or WasUI.CurrentTheme.Text
-        local textColor = color1:Lerp(color2, ratio)
+        local h1, s1, v1 = Color3.toHSV(color1)
+        local h2, s2, v2 = Color3.toHSV(color2)
+        local hDiff = h2 - h1
+        if math.abs(hDiff) > 0.5 then
+            if hDiff > 0 then h1 = h1 + 1 else h2 = h2 + 1 end
+        end
+        local h = (h1 + (h2 - h1) * ratio) % 1
+        local s = s1 + (s2 - s1) * ratio
+        local v = v1 + (v2 - v1) * ratio
+        local textColor = Color3.fromHSV(h, s, v)
         if not data.Container or not data.Container.Parent then
             local container = CreateInstance("Frame", {
                 Name = "RainbowContainer_" .. featureName,
@@ -4819,6 +4828,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 WasUI.NotificationGui:Destroy()
                 WasUI.NotificationGui = nil
             end
+            if self.SnowConnection then
+                self.SnowConnection:Disconnect()
+                self.SnowConnection = nil
+            end
+            if self.SnowContainer then
+                self.SnowContainer:Destroy()
+                self.SnowContainer = nil
+            end
         end)
         cancelButton.MouseButton1Click:Connect(function()
             Tween(dialogFrame, {BackgroundTransparency = 1}, 0.2)
@@ -5307,14 +5324,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                     end
                     self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
                     self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
-                    self.Snowflakes = {}
-                    self.SnowTimer = 0
-                    self.SnowChangeTimer = 0
-                    if self.SnowConnection then
-                        self.SnowConnection:Disconnect()
-                        self.SnowConnection = nil
-                    end
-                    self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
+                end
+                self.Snowflakes = {}
+                self.SnowTimer = 0
+                self.SnowChangeTimer = 0
+                if self.SnowConnection then
+                    self.SnowConnection:Disconnect()
+                    self.SnowConnection = nil
+                end
+                self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
                         if not self.Instance.Visible then return end
                         if not self.SnowContainer.Visible then return end
                         self.SnowTimer = self.SnowTimer + deltaTime
