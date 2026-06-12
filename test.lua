@@ -869,7 +869,7 @@ local function RebuildRainbowOrderByLength()
     end
 end
 
-local function CreateRainbowTextForFeature(featureName(color1, color2)
+local function CreateRainbowTextForFeature(featureName, color1, color2)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
     WasUI.ActiveRainbowTexts[featureName] = {
