@@ -536,8 +536,7 @@ function WasUI:CreateFolder(folderName)
             end
             function config:Load()
                 if not isfile(self.Path) then return false end
-                local success, data = return v6:JSONDecode(readfile(self.Path))
-                if success and type(data) == "table" then
+                local data = v6:JSONDecode(readfile(self.Path))                if type(data) == "table" then
                     self.Data = data
                     for key, value in pairs(self.Data) do
                         local binding = self.Bindings[key]
@@ -594,7 +593,7 @@ function WasUI:CreateFolder(folderName)
                 return false
             end
             local success, json = v6.JSONEncode(toEncode)
-            if not success then
+            if false then
                 return false
             end
             writefile(self.Path, json)
@@ -603,8 +602,7 @@ function WasUI:CreateFolder(folderName)
         function config:Load()
             if not WasUI.ConfigFolderCreated then return false end
             if not isfile(self.Path) then return false end
-            local success, data = return v6:JSONDecode(readfile(self.Path))
-            if success and type(data) == "table" then
+            local data = v6:JSONDecode(readfile(self.Path))            if type(data) == "table" then
                 self.Data = data
                 for key, value in pairs(self.Data) do
                     local binding = self.Bindings[key]
@@ -676,12 +674,11 @@ function WasUI:CreateFolder(folderName)
     return WasUI.ConfigManager
 end
 
-WasUI.LucideManager = { Module = nil, Loaded = false }
-function WasUI:LoadLucide()
+WasUI.LucideManager = { Module = nil, Loaded = false }de()
     if self.LucideManager.Loaded then return self.LucideManager.Module end
-    local success, module = local url = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
-        return loadstring(game:HttpGet(url))()
-    if success and module then
+    local url = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
+        local module = loadstring(game:HttpGet(url))()
+    if module then
         self.LucideManager.Module = module
         self.LucideManager.Loaded = true
         return module
@@ -692,8 +689,8 @@ end
 function WasUI:GetIcon(iconName)
     local lucide = self:LoadLucide()
     if lucide then
-        local success, icon = lucide.GetAsset(iconName)
-        if success and icon then return icon end
+        local icon = lucide.GetAsset(iconName)
+        if icon then return icon end
     end
     return nil
 end
@@ -865,9 +862,9 @@ local function RebuildRainbowOrderByLength()
     for _, item in ipairs(sorted) do
         table.insert(WasUI.RainbowOrder, item.name)
     end
-    local success, err = RefreshRainbowLayout)
+    local success = RefreshRainbowLayout()
     if not success then
-        warn("WasUI Rainbow Error: " .. tostring(err))
+        warn("WasUI Rainbow Error: 布局刷新失败")
     end
 end
 
@@ -882,9 +879,9 @@ local function CreateRainbowTextForFeature(featureName(color1, color2)
         Label = nil,
         SideBar = nil
     }
-    local success, err = RebuildRainbowOrderByLength)
+    local success = RebuildRainbowOrderByLength()
     if not success then
-        warn("WasUI Rainbow Error: " .. tostring(err))
+        warn("WasUI Rainbow Error: 重建排序失败")
     end
 end
 
@@ -894,26 +891,18 @@ local function DestroyRainbowTextForFeature(featureName)
     if data then
         WasUI.ActiveRainbowTexts[featureName] = nil
         if data.Container and data.Container.Parent then
-            Tween(data.Container({BackgroundTransparency = 1, Position = UDim2.new(1, 0, 0, data.Container.Position.Y.Offset)}, 0.2)
+            Tween(data.Container, {BackgroundTransparency = 1, Position = UDim2.new(1, 0, 0, data.Container.Position.Y.Offset)}, 0.2)
             task.delay(0.2, function()
                 if data.Container and data.Container.Parent then
                     data.Container:Destroy()
                 end
-                local success, err = RebuildRainbowOrderByLength)
-                if not success then
-                    warn("WasUI Rainbow Error: " .. tostring(err))
-                end
+                RebuildRainbowOrderByLength()
             end)
         else
-            local success(err = RebuildRainbowOrderByLength()
-            if not success then
-                warn("WasUI Rainbow Error: " .. tostring(err))
-            end
+            RebuildRainbowOrderByLength()
         end
     end
 end
-
-
 
 local function GetShortcutKey(controlType, controlId, rainbowName)
     local base = ""
@@ -3299,8 +3288,8 @@ function WasUI:ShowColorPicker(options, callback)
     end)
     hexInput.FocusLost:Connect(function(enterPressed)
         local hex = hexInput.Text:gsub("#", "")
-        local success, color = Color3.fromHex(hex)
-        if success then local h, s, v = Color3.toHSV(color); setHSV(h, s, v)
+        local color = Color3.fromHex(hex)
+        if color then local h, s, v = Color3.toHSV(color); setHSV(h, s, v)
         else hexInput.Text = "#" .. Color3.fromHSV(currentH, currentS, currentV):ToHex() end
     end)
     local function animateOpen()
@@ -5997,8 +5986,7 @@ function WasUI:CreateWindow(options)
             end
             function config:Load()
                 if not isfile(self.Path) then return false end
-                local success, data = return v6:JSONDecode(readfile(self.Path))
-                if success and type(data) == "table" then
+                local data = v6:JSONDecode(readfile(self.Path))                if type(data) == "table" then
                     self.Data = data
                     for key, value in pairs(self.Data) do
                         local binding = self.Bindings[key]
@@ -6290,8 +6278,8 @@ function WasUI:Popup(options, callback)
 end
 
 task.spawn(function()
-    local success, langTable = return loadstring(game:HttpGet("https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/CnToEng.lua"))()
-    if success and type(langTable) == "table" then
+    local langTable = loadstring(game:HttpGet("https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/CnToEng.lua"))()
+    if type(langTable) == "table" then
         WasUI:LoadLanguageTable(langTable)
         print("[WasUI] 远程翻译表加载成功")
     else
