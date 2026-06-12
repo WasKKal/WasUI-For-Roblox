@@ -19,7 +19,7 @@ local function copyToClipboard(text)
     if type(setclipboard) == "function" then
         setclipboard(text)
         return true
-    elseif pcall(function() v12:SetTextAsync(text) end) then
+    elseif v12:SetTextAsync(text) then
         return true
     end
     return false
@@ -27,7 +27,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.4"
+WasUI.Version = "1.1.3"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -527,7 +527,7 @@ function WasUI:CreateFolder(folderName)
                 if toEncode == nil then
                     return false
                 end
-                local success, json = pcall(v6.JSONEncode, toEncode)
+                local success, json = v6.JSONEncode(toEncode)
                 if not success then
                     return false
                 end
@@ -536,14 +536,12 @@ function WasUI:CreateFolder(folderName)
             end
             function config:Load()
                 if not isfile(self.Path) then return false end
-                local success, data = pcall(function()
-                    return v6:JSONDecode(readfile(self.Path))
-                end)
+                local success, data = return v6:JSONDecode(readfile(self.Path))
                 if success and type(data) == "table" then
                     self.Data = data
                     for key, value in pairs(self.Data) do
                         local binding = self.Bindings[key]
-                        if binding and binding.control and binding.update and value ~= nil then
+                        if binding and binding.control and binding.update then
                             binding.update(value)
                         end
                     end
@@ -595,7 +593,7 @@ function WasUI:CreateFolder(folderName)
             if toEncode == nil then
                 return false
             end
-            local success, json = pcall(v6.JSONEncode, toEncode)
+            local success, json = v6.JSONEncode(toEncode)
             if not success then
                 return false
             end
@@ -605,14 +603,12 @@ function WasUI:CreateFolder(folderName)
         function config:Load()
             if not WasUI.ConfigFolderCreated then return false end
             if not isfile(self.Path) then return false end
-            local success, data = pcall(function()
-                return v6:JSONDecode(readfile(self.Path))
-            end)
+            local success, data = return v6:JSONDecode(readfile(self.Path))
             if success and type(data) == "table" then
                 self.Data = data
                 for key, value in pairs(self.Data) do
                     local binding = self.Bindings[key]
-                    if binding and binding.control and binding.update and value ~= nil then
+                    if binding and binding.control and binding.update then
                         binding.update(value)
                     end
                 end
@@ -683,10 +679,8 @@ end
 WasUI.LucideManager = { Module = nil, Loaded = false }
 function WasUI:LoadLucide()
     if self.LucideManager.Loaded then return self.LucideManager.Module end
-    local success, module = pcall(function()
-        local url = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
+    local success, module = local url = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
         return loadstring(game:HttpGet(url))()
-    end)
     if success and module then
         self.LucideManager.Module = module
         self.LucideManager.Loaded = true
@@ -698,7 +692,7 @@ end
 function WasUI:GetIcon(iconName)
     local lucide = self:LoadLucide()
     if lucide then
-        local success, icon = pcall(lucide.GetAsset, iconName)
+        local success, icon = lucide.GetAsset(iconName)
         if success and icon then return icon end
     end
     return nil
@@ -871,13 +865,13 @@ local function RebuildRainbowOrderByLength()
     for _, item in ipairs(sorted) do
         table.insert(WasUI.RainbowOrder, item.name)
     end
-    local success, err = pcall(RefreshRainbowLayout)
+    local success, err = RefreshRainbowLayout)
     if not success then
         warn("WasUI Rainbow Error: " .. tostring(err))
     end
 end
 
-local function CreateRainbowTextForFeature(featureName, color1, color2)
+local function CreateRainbowTextForFeature(featureName(color1, color2)
     featureName = type(featureName) == "string" and featureName or tostring(featureName)
     if WasUI.ActiveRainbowTexts[featureName] then return end
     WasUI.ActiveRainbowTexts[featureName] = {
@@ -888,7 +882,7 @@ local function CreateRainbowTextForFeature(featureName, color1, color2)
         Label = nil,
         SideBar = nil
     }
-    local success, err = pcall(RebuildRainbowOrderByLength)
+    local success, err = RebuildRainbowOrderByLength)
     if not success then
         warn("WasUI Rainbow Error: " .. tostring(err))
     end
@@ -900,18 +894,18 @@ local function DestroyRainbowTextForFeature(featureName)
     if data then
         WasUI.ActiveRainbowTexts[featureName] = nil
         if data.Container and data.Container.Parent then
-            Tween(data.Container, {BackgroundTransparency = 1, Position = UDim2.new(1, 0, 0, data.Container.Position.Y.Offset)}, 0.2)
+            Tween(data.Container({BackgroundTransparency = 1, Position = UDim2.new(1, 0, 0, data.Container.Position.Y.Offset)}, 0.2)
             task.delay(0.2, function()
                 if data.Container and data.Container.Parent then
                     data.Container:Destroy()
                 end
-                local success, err = pcall(RebuildRainbowOrderByLength)
+                local success, err = RebuildRainbowOrderByLength)
                 if not success then
                     warn("WasUI Rainbow Error: " .. tostring(err))
                 end
             end)
         else
-            local success, err = pcall(RebuildRainbowOrderByLength)
+            local success(err = RebuildRainbowOrderByLength()
             if not success then
                 warn("WasUI Rainbow Error: " .. tostring(err))
             end
@@ -1014,7 +1008,7 @@ local function AddLongPressToControl(controlInstance, onLongPress, longPressTime
     local pressed = false
     local startPos = nil
     local function cleanup()
-        if timer then pcall(function() task.cancel(timer) end); timer = nil end
+        if timer then task.cancel(timer); timer = nil end
         pressed = false
         startPos = nil
     end
@@ -1846,7 +1840,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
     local optionsPadding = CreateInstance("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8), Parent = self.OptionsContainer})
     self.OptionButtons = {}
     local function rebuildOptions()
-        for _, btn in pairs(self.OptionButtons) do if btn and btn.Destroy then pcall(btn.Destroy, btn) end end
+        for _, btn in pairs(self.OptionButtons) do if btn and btn.Destroy then btn.Destroy(btn) end end
         self.OptionButtons = {}
         for i, option in ipairs(self.Options) do
             local optionButton = CreateInstance("TextButton", {
@@ -3305,7 +3299,7 @@ function WasUI:ShowColorPicker(options, callback)
     end)
     hexInput.FocusLost:Connect(function(enterPressed)
         local hex = hexInput.Text:gsub("#", "")
-        local success, color = pcall(Color3.fromHex, hex)
+        local success, color = Color3.fromHex(hex)
         if success then local h, s, v = Color3.toHSV(color); setHSV(h, s, v)
         else hexInput.Text = "#" .. Color3.fromHSV(currentH, currentS, currentV):ToHex() end
     end)
@@ -3839,9 +3833,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 ZIndex = 0,
                 Parent = self.Instance
             })
-            pcall(function()
-                v9:PreloadAsync({url})
-            end)
+            v9:PreloadAsync({url})
         else
             self.BackgroundImage = nil
         end
@@ -4349,9 +4341,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
         for _, moved in ipairs(movedControls) do
             if moved.control and moved.control.Parent ~= moved.originalParent then
-                pcall(function()
-                    moved.control.Parent = moved.originalParent
-                end)
+                moved.control.Parent = moved.originalParent
                 moved.control.Visible = true
             end
         end
@@ -6007,9 +5997,7 @@ function WasUI:CreateWindow(options)
             end
             function config:Load()
                 if not isfile(self.Path) then return false end
-                local success, data = pcall(function()
-                    return v6:JSONDecode(readfile(self.Path))
-                end)
+                local success, data = return v6:JSONDecode(readfile(self.Path))
                 if success and type(data) == "table" then
                     self.Data = data
                     for key, value in pairs(self.Data) do
@@ -6302,9 +6290,7 @@ function WasUI:Popup(options, callback)
 end
 
 task.spawn(function()
-    local success, langTable = pcall(function()
-        return loadstring(game:HttpGet("https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/CnToEng.lua"))()
-    end)
+    local success, langTable = return loadstring(game:HttpGet("https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/CnToEng.lua"))()
     if success and type(langTable) == "table" then
         WasUI:LoadLanguageTable(langTable)
         print("[WasUI] 远程翻译表加载成功")
