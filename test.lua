@@ -83,18 +83,22 @@ function WasUI:SetDefaultLanguage(lang)
 end
 
 function WasUI:RefreshAllTexts()
-    for _, obj in ipairs(WasUI.Objects) do
-        local instance = obj.Object
-        if instance and instance:IsA("GuiObject") then
-            local original = instance:GetAttribute("OriginalText")
-            if original then
-                local prop = instance:GetAttribute("LocalizedProperty") or "Text"
-                local translated = self:Translate(original)
-                if instance[prop] ~= nil then
-                    instance[prop] = translated
-                end
+    local function refreshInstance(instance)
+        if not instance or not instance:IsA("GuiObject") then return end
+        local original = instance:GetAttribute("OriginalText")
+        if original then
+            local prop = instance:GetAttribute("LocalizedProperty") or "Text"
+            local translated = self:Translate(original)
+            if instance[prop] ~= nil then
+                instance[prop] = translated
             end
         end
+        for _, child in ipairs(instance:GetChildren()) do
+            refreshInstance(child)
+        end
+    end
+    for _, obj in ipairs(WasUI.Objects) do
+        refreshInstance(obj.Object)
     end
     for _, shortcut in pairs(WasUI.ShortcutButtons) do
         local btn = shortcut.button
@@ -202,6 +206,11 @@ function WasUI:RefreshAllTexts()
                     end
                 end
             end
+        end
+    end
+    for _, obj in ipairs(WasUI.Objects) do
+        if obj.Type == "Dropdown" and obj.Dropdown then
+            obj.Dropdown:UpdateDisplayText()
         end
     end
 end
@@ -1915,6 +1924,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
                 ZIndex = 10000,
                 Parent = self.OptionsContainer
             })
+            WasUI:SetLocalizedText(optionButton, option)
             CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = optionButton})
             optionButton.MouseEnter:Connect(function()
                 if self.MultiSelect then
@@ -2055,8 +2065,15 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         end
     end
     function self:GetDisplayText()
-        if self.MultiSelect then return #self.SelectedValues == 0 and WasUI:Translate("选择...") or table.concat(self.SelectedValues, ", ") end
-        return self.SelectedValue and tostring(self.SelectedValue) or WasUI:Translate("选择...")
+        if self.MultiSelect then
+            if #self.SelectedValues == 0 then return WasUI:Translate("选择...") end
+            local translated = {}
+            for _, v in ipairs(self.SelectedValues) do
+                table.insert(translated, WasUI:Translate(v))
+            end
+            return table.concat(translated, ", ")
+        end
+        return self.SelectedValue and WasUI:Translate(tostring(self.SelectedValue)) or WasUI:Translate("选择...")
     end
     function self:UpdateDisplayText()
         self.DropdownButton.Text = self:GetDisplayText()
@@ -2123,7 +2140,7 @@ function Dropdown:New(name, parent, title, options, defaultValue, callback, mult
         local cat = panel:GetCurrentCategory()
         if cat then self.Container:SetAttribute("Category", cat) end
     end
-    table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown"})
+    table.insert(WasUI.Objects, {Object = self.Container, Type = "Dropdown", Dropdown = self})
     table.insert(WasUI.Objects, {Object = self.DropdownButton, Type = "DropdownButton"})
     return self
 end
@@ -5154,7 +5171,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
-            Size = UDim2.new(0, 280, 0, 220),
+            Size = UDim2.new(0, 280, 0, 370),
             Position = UDim2.new(0.5, -140, 0.5, -110),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
