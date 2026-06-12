@@ -27,7 +27,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.4"
+WasUI.Version = "1.1.3"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -674,10 +674,10 @@ function WasUI:CreateFolder(folderName)
     return WasUI.ConfigManager
 end
 
-WasUI.LucideManager = { Module = nil, Loaded = false }de()
+function WasUI:LoadLucide()
     if self.LucideManager.Loaded then return self.LucideManager.Module end
     local url = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
-        local module = loadstring(game:HttpGet(url))()
+    local module = loadstring(game:HttpGet(url))()
     if module then
         self.LucideManager.Module = module
         self.LucideManager.Loaded = true
@@ -685,6 +685,7 @@ WasUI.LucideManager = { Module = nil, Loaded = false }de()
     end
     return nil
 end
+
 
 function WasUI:GetIcon(iconName)
     local lucide = self:LoadLucide()
