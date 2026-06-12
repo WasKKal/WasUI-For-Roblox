@@ -5299,107 +5299,108 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = snowBg
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowKnob})
-        local function updateSnowToggle(newState)
-            self.SnowEnabled = newState
-            if newState then
-                if not self.SnowContainer then
-                    self.SnowContainer = CreateInstance("Frame", {
-                        Name = "SnowContainer",
-                        Size = self.Instance.Size,
-                        Position = self.Instance.Position,
-                        BackgroundTransparency = 1,
-                        ZIndex = 100000,
-                        Parent = parent
-                    })
-                    local function updateSnowContainer()
-                        if self.SnowContainer and self.Instance then
-                            self.SnowContainer.Position = self.Instance.Position
-                            self.SnowContainer.Size = self.Instance.Size
-                        end
-                    end
-                    self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
-                    self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
+
+local function updateSnowToggle(newState)
+    self.SnowEnabled = newState
+    if newState then
+        if not self.SnowContainer then
+            self.SnowContainer = CreateInstance("Frame", {
+                Name = "SnowContainer",
+                Size = self.Instance.Size,
+                Position = self.Instance.Position,
+                BackgroundTransparency = 1,
+                ZIndex = 100000,
+                Parent = parent
+            })
+            local function updateSnowContainer()
+                if self.SnowContainer and self.Instance then
+                    self.SnowContainer.Position = self.Instance.Position
+                    self.SnowContainer.Size = self.Instance.Size
                 end
-                self.Snowflakes = {}
-                self.SnowTimer = 0
-                self.SnowChangeTimer = 0
-                if self.SnowConnection then
-                    self.SnowConnection:Disconnect()
-                    self.SnowConnection = nil
-                end
-                self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
-                        if not self.Instance.Visible then return end
-                        if not self.SnowContainer.Visible then return end
-                        self.SnowTimer = self.SnowTimer + deltaTime
-                        self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
-                        if self.SnowTimer >= 0.08 and #self.Snowflakes < 30 then
-                            self.SnowTimer = 0
-                            local size = math.random(4, 10)
-                            local flake = CreateInstance("Frame", {
-                                Size = UDim2.new(0, size, 0, size),
-                                Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.1, 0),
-                                BackgroundColor3 = WasUI.CurrentTheme.SnowColor,
-                                BackgroundTransparency = 0,
-                                BorderSizePixel = 0,
-                                ZIndex = 100001,
-                                Parent = self.SnowContainer
-                            })
-                            CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
-                            local speedY = math.random(150, 200) / 100
-                            local speedX = (math.random() - 0.5) * 0.7
-                            table.insert(self.Snowflakes, {
-                                Instance = flake,
-                                SpeedY = speedY,
-                                SpeedX = speedX,
-                                Age = 0,
-                                Size = size
-                            })
-                        end
-                        if self.SnowChangeTimer >= 1.25 then
-                            self.SnowChangeTimer = 0
-                            for _, data in ipairs(self.Snowflakes) do
-                                data.SpeedX = (math.random() - 0.5) * 0.8
-                                data.SpeedY = math.random(150, 200) / 100
-                            end
-                        end
-                        for i = #self.Snowflakes, 1, -1 do
-                            local data = self.Snowflakes[i]
-                            local flake = data.Instance
-                            if flake and flake.Parent then
-                                data.Age = data.Age + deltaTime
-                                local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
-                                local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
-                                local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
-                                local newSize = data.Size * (1 - data.Age / 3.2)
-                                flake.Position = UDim2.new(newX, 0, 0, newY)
-                                flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
-                                flake.BackgroundTransparency = 1 - alpha
-                                if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
-                                    flake:Destroy()
-                                    table.remove(self.Snowflakes, i)
-                                end
-                            else
-                                table.remove(self.Snowflakes, i)
-                            end
-                        end
-                    end)
-                end
-                self.SnowContainer.Visible = true
-                Tween(snowBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-                SpringTween(snowKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
-            else
-                if self.SnowContainer then
-                    self.SnowContainer.Visible = false
-                end
-                if self.SnowConnection then
-                    self.SnowConnection:Disconnect()
-                    self.SnowConnection = nil
-                end
-                local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
-                Tween(snowBg, {BackgroundColor3 = offCol}, 0.2)
-                SpringTween(snowKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
             end
+            self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
+            self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
         end
+        self.Snowflakes = {}
+        self.SnowTimer = 0
+        self.SnowChangeTimer = 0
+        if self.SnowConnection then
+            self.SnowConnection:Disconnect()
+            self.SnowConnection = nil
+        end
+        self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
+            if not self.Instance.Visible then return end
+            if not self.SnowContainer.Visible then return end
+            self.SnowTimer = self.SnowTimer + deltaTime
+            self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
+            if self.SnowTimer >= 0.08 and #self.Snowflakes < 30 then
+                self.SnowTimer = 0
+                local size = math.random(4, 10)
+                local flake = CreateInstance("Frame", {
+                    Size = UDim2.new(0, size, 0, size),
+                    Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.1, 0),
+                    BackgroundColor3 = WasUI.CurrentTheme.SnowColor,
+                    BackgroundTransparency = 0,
+                    BorderSizePixel = 0,
+                    ZIndex = 100001,
+                    Parent = self.SnowContainer
+                })
+                CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
+                local speedY = math.random(150, 200) / 100
+                local speedX = (math.random() - 0.5) * 0.7
+                table.insert(self.Snowflakes, {
+                    Instance = flake,
+                    SpeedY = speedY,
+                    SpeedX = speedX,
+                    Age = 0,
+                    Size = size
+                })
+            end
+            if self.SnowChangeTimer >= 1.25 then
+                self.SnowChangeTimer = 0
+                for _, data in ipairs(self.Snowflakes) do
+                    data.SpeedX = (math.random() - 0.5) * 0.8
+                    data.SpeedY = math.random(150, 200) / 100
+                end
+            end
+            for i = #self.Snowflakes, 1, -1 do
+                local data = self.Snowflakes[i]
+                local flake = data.Instance
+                if flake and flake.Parent then
+                    data.Age = data.Age + deltaTime
+                    local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
+                    local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
+                    local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
+                    local newSize = data.Size * (1 - data.Age / 3.2)
+                    flake.Position = UDim2.new(newX, 0, 0, newY)
+                    flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
+                    flake.BackgroundTransparency = 1 - alpha
+                    if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
+                        flake:Destroy()
+                        table.remove(self.Snowflakes, i)
+                    end
+                else
+                    table.remove(self.Snowflakes, i)
+                end
+            end
+        end)
+        self.SnowContainer.Visible = true
+        Tween(snowBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+        SpringTween(snowKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
+    else
+        if self.SnowContainer then
+            self.SnowContainer.Visible = false
+        end
+        if self.SnowConnection then
+            self.SnowConnection:Disconnect()
+            self.SnowConnection = nil
+        end
+        local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
+        Tween(snowBg, {BackgroundColor3 = offCol}, 0.2)
+        SpringTween(snowKnob, {Position = UDim2.new(0, 1, 0, 1)}, 0.3)
+    end
+end
+
         snowBg.MouseButton1Click:Connect(function()
             updateSnowToggle(not self.SnowEnabled)
         end)
