@@ -675,6 +675,9 @@ function WasUI:CreateFolder(folderName)
 end
 
 function WasUI:LoadLucide()
+    if not self.LucideManager then
+        self.LucideManager = { Module = nil, Loaded = false }
+    end
     if self.LucideManager.Loaded then return self.LucideManager.Module end
     local url = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
     local module = loadstring(game:HttpGet(url))()
@@ -685,7 +688,6 @@ function WasUI:LoadLucide()
     end
     return nil
 end
-
 
 function WasUI:GetIcon(iconName)
     local lucide = self:LoadLucide()
