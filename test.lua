@@ -527,7 +527,7 @@ function WasUI:CreateFolder(folderName)
                 if toEncode == nil then
                     return false
                 end
-                local success, json = v6.JSONEncode(toEncode)
+                local success, json = v6:JSONEncode(toEncode)
                 if not success then
                     return false
                 end
@@ -586,19 +586,21 @@ function WasUI:CreateFolder(folderName)
             self.Data[key] = value
             return true
         end
-        function config:Save()
-            if not WasUI.ConfigFolderCreated then return false end
-            local toEncode = encodeValue(self.Data)
-            if toEncode == nil then
-                return false
-            end
-            local success, json = v6.JSONEncode(toEncode)
-            if false then
-                return false
-            end
-            writefile(self.Path, json)
-            return true
-        end
+function config:Save()
+    if not WasUI.ConfigFolderCreated then return false end
+    local toEncode = encodeValue(self.Data)
+    if toEncode == nil then
+        return false
+    end
+    local success, json = pcall(function()
+        return v6:JSONEncode(toEncode)
+    end)
+    if not success then
+        return false
+    end
+    writefile(self.Path, json)
+    return true
+end
         function config:Load()
             if not WasUI.ConfigFolderCreated then return false end
             if not isfile(self.Path) then return false end
@@ -877,10 +879,7 @@ local function RebuildRainbowOrderByLength()
     for _, item in ipairs(sorted) do
         table.insert(WasUI.RainbowOrder, item.name)
     end
-    local success = RefreshRainbowLayout()
-    if not success then
-        warn("WasUI Rainbow Error: 布局刷新失败")
-    end
+RefreshRainbowLayout()
 end
 
 local function CreateRainbowTextForFeature(featureName, color1, color2)
@@ -894,10 +893,7 @@ local function CreateRainbowTextForFeature(featureName, color1, color2)
         Label = nil,
         SideBar = nil
     }
-    local success = RebuildRainbowOrderByLength()
-    if not success then
-        warn("WasUI Rainbow Error: 重建排序失败")
-    end
+RebuildRainbowOrderByLength()
 end
 
 local function DestroyRainbowTextForFeature(featureName)
