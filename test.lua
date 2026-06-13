@@ -3896,22 +3896,26 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
     function self:SetBackground(url)
         if self.BackgroundImage then
             self.BackgroundImage:Destroy()
+            self.BackgroundImage = nil
         end
         if url and url ~= "" then
-            self.BackgroundImage = CreateInstance("ImageLabel", {
-                Name = "Background",
-                Size = UDim2.new(1, 0, 1, 0),
-                Position = UDim2.new(0, 0, 0, 0),
-                BackgroundTransparency = 1,
-                Image = url,
-                ImageTransparency = 0,
-                ScaleType = Enum.ScaleType.Crop,
-                ZIndex = 0,
-                Parent = self.Instance
-            })
-            v9:PreloadAsync({url})
-        else
-            self.BackgroundImage = nil
+            local success = pcall(function()
+                v9:PreloadAsync({url})
+            end)
+            if success then
+                self.BackgroundImage = CreateInstance("ImageLabel", {
+                    Name = "Background",
+                    Size = UDim2.new(1, 0, 1, 0),
+                    Position = UDim2.new(0, 0, 0, 0),
+                    BackgroundTransparency = 1,
+                    Image = url,
+                    ImageTransparency = 1,
+                    ScaleType = Enum.ScaleType.Crop,
+                    ZIndex = 0,
+                    Parent = self.Instance
+                })
+                Tween(self.BackgroundImage, {ImageTransparency = 0}, 0.3)
+            end
         end
     end
     if not position then
@@ -3925,8 +3929,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         Size = size or UDim2.new(0, 380, 0, 350),
         Position = position,
         BackgroundColor3 = WasUI.CurrentTheme.Background,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 1,
         ClipsDescendants = true,
+        Visible = false,
         ZIndex = 1,
         Parent = parent
     })
@@ -4912,6 +4917,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 self.SnowConnection:Disconnect()
                 self.SnowConnection = nil
             end
+            if self.Snowflakes then
+                for _, data in ipairs(self.Snowflakes) do
+                    if data.Instance and data.Instance.Parent then
+                        data.Instance:Destroy()
+                    end
+                end
+                self.Snowflakes = {}
+            end
             if self.SnowContainer then
                 self.SnowContainer:Destroy()
                 self.SnowContainer = nil
@@ -5385,6 +5398,16 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowKnob})
 
+local function clearSnowflakes()
+    if self.Snowflakes then
+        for _, data in ipairs(self.Snowflakes) do
+            if data.Instance and data.Instance.Parent then
+                data.Instance:Destroy()
+            end
+        end
+        self.Snowflakes = {}
+    end
+end
 local function updateSnowToggle(newState)
     self.SnowEnabled = newState
     if newState then
@@ -5406,7 +5429,7 @@ local function updateSnowToggle(newState)
             self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
             self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
         end
-        self.Snowflakes = {}
+        clearSnowflakes()
         self.SnowTimer = 0
         self.SnowChangeTimer = 0
         if self.SnowConnection then
@@ -5414,7 +5437,9 @@ local function updateSnowToggle(newState)
             self.SnowConnection = nil
         end
         self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
+            if not self.Instance or not self.Instance.Parent then return end
             if not self.Instance.Visible then return end
+            if not self.SnowContainer or not self.SnowContainer.Parent then return end
             if not self.SnowContainer.Visible then return end
             self.SnowTimer = self.SnowTimer + deltaTime
             self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
@@ -5473,12 +5498,13 @@ local function updateSnowToggle(newState)
         Tween(snowBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
         SpringTween(snowKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
     else
-        if self.SnowContainer then
-            self.SnowContainer.Visible = false
-        end
+        clearSnowflakes()
         if self.SnowConnection then
             self.SnowConnection:Disconnect()
             self.SnowConnection = nil
+        end
+        if self.SnowContainer then
+            self.SnowContainer.Visible = false
         end
         local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
         Tween(snowBg, {BackgroundColor3 = offCol}, 0.2)
@@ -5953,7 +5979,9 @@ function self:SetVisible(visible)
         self.SnowTimer = 0
         self.SnowChangeTimer = 0
         self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
+            if not self.Instance or not self.Instance.Parent then return end
             if not self.Instance.Visible then return end
+            if not self.SnowContainer or not self.SnowContainer.Parent then return end
             if not self.SnowContainer.Visible then return end
             self.SnowTimer = self.SnowTimer + deltaTime
             self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
@@ -6011,8 +6039,7 @@ function self:SetVisible(visible)
     end
     local originalSize = self.Instance.Size
     local originalPos = self.Instance.Position
-    local originalTransparency = self.Instance.BackgroundTransparency
-    self.Instance.BackgroundTransparency = 1
+    local originalTransparency = 0.3
     self.Instance.Size = UDim2.new(0, 0, 0, 0)
     self.Instance.Position = UDim2.new(0.5, 0, 0.5, 0)
     if self.FlowStroke then
@@ -6024,15 +6051,6 @@ function self:SetVisible(visible)
     if self.SnowContainer then
         self.SnowContainer.Visible = false
     end
-    local syncOverlay = CreateInstance("Frame", {
-        Name = "SyncOverlay",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = self.Instance.BackgroundColor3,
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ZIndex = 100000,
-        Parent = self.Instance
-    })
     local function hideAllInternal()
         if self.TitleBar then self.TitleBar.Visible = false end
         if self.AnnouncementBar then self.AnnouncementBar.Visible = false end
@@ -6051,20 +6069,14 @@ function self:SetVisible(visible)
         if searchButton then searchButton.Visible = true end
     end
     hideAllInternal()
+    self.Instance.Visible = true
     local windowTween = Tween(self.Instance, {
         BackgroundTransparency = originalTransparency,
         Size = originalSize,
         Position = originalPos
-    }, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    Tween(syncOverlay, {BackgroundTransparency = 0}, 0.01)
+    }, 0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     windowTween.Completed:Connect(function()
         showAllInternal()
-        Tween(syncOverlay, {BackgroundTransparency = 1}, 0.15)
-        task.delay(0.15, function()
-            if syncOverlay and syncOverlay.Parent then
-                syncOverlay:Destroy()
-            end
-        end)
         if self.SnowContainer then
             self.SnowContainer.Visible = true
         end
