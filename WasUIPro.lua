@@ -4912,6 +4912,14 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 self.SnowConnection:Disconnect()
                 self.SnowConnection = nil
             end
+            if self.Snowflakes then
+                for _, data in ipairs(self.Snowflakes) do
+                    if data.Instance and data.Instance.Parent then
+                        data.Instance:Destroy()
+                    end
+                end
+                self.Snowflakes = {}
+            end
             if self.SnowContainer then
                 self.SnowContainer:Destroy()
                 self.SnowContainer = nil
@@ -5385,6 +5393,16 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowKnob})
 
+local function clearSnowflakes()
+    if self.Snowflakes then
+        for _, data in ipairs(self.Snowflakes) do
+            if data.Instance and data.Instance.Parent then
+                data.Instance:Destroy()
+            end
+        end
+        self.Snowflakes = {}
+    end
+end
 local function updateSnowToggle(newState)
     self.SnowEnabled = newState
     if newState then
@@ -5406,7 +5424,7 @@ local function updateSnowToggle(newState)
             self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
             self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
         end
-        self.Snowflakes = {}
+        clearSnowflakes()
         self.SnowTimer = 0
         self.SnowChangeTimer = 0
         if self.SnowConnection then
@@ -5415,6 +5433,7 @@ local function updateSnowToggle(newState)
         end
         self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
             if not self.Instance.Visible then return end
+            if not self.SnowContainer or not self.SnowContainer.Parent then return end
             if not self.SnowContainer.Visible then return end
             self.SnowTimer = self.SnowTimer + deltaTime
             self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
@@ -5473,12 +5492,13 @@ local function updateSnowToggle(newState)
         Tween(snowBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
         SpringTween(snowKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
     else
-        if self.SnowContainer then
-            self.SnowContainer.Visible = false
-        end
+        clearSnowflakes()
         if self.SnowConnection then
             self.SnowConnection:Disconnect()
             self.SnowConnection = nil
+        end
+        if self.SnowContainer then
+            self.SnowContainer.Visible = false
         end
         local offCol = (WasUI.CurrentTheme == WasUI.Themes.Dark) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(180, 180, 180)
         Tween(snowBg, {BackgroundColor3 = offCol}, 0.2)
@@ -5954,6 +5974,7 @@ function self:SetVisible(visible)
         self.SnowChangeTimer = 0
         self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
             if not self.Instance.Visible then return end
+            if not self.SnowContainer or not self.SnowContainer.Parent then return end
             if not self.SnowContainer.Visible then return end
             self.SnowTimer = self.SnowTimer + deltaTime
             self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
