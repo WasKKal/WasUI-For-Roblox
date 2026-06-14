@@ -6413,12 +6413,28 @@ function WasUI:Popup(options, callback)
 end
 
 task.spawn(function()
-    local langTable = loadstring(game:HttpGet("https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/CnToEng.lua"))()
+    local success, result = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/WasKKal/WasUI-For-Roblox/main/CnToEng.lua")
+    end)
+    if not success or type(result) ~= "string" or result == "" then
+        warn("[WasUI] 翻译表网络请求失败: " .. tostring(result))
+        return
+    end
+    local func, err = loadstring(result)
+    if not func then
+        warn("[WasUI] 翻译表编译失败: " .. tostring(err))
+        return
+    end
+    local execSuccess, langTable = pcall(func)
+    if not execSuccess then
+        warn("[WasUI] 翻译表执行失败: " .. tostring(langTable))
+        return
+    end
     if type(langTable) == "table" then
         WasUI:LoadLanguageTable(langTable)
         print("[WasUI] 远程翻译表加载成功")
     else
-        warn("[WasUI] 远程翻译表加载失败,无法切换English")
+        warn("[WasUI] 远程翻译表返回格式错误 (got " .. type(langTable) .. "),无法切换English")
     end
 end)
 
