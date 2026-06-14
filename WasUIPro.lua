@@ -4076,13 +4076,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
         if self.RainbowMode == "整体" then
             if self.FlowStroke then self.FlowStroke.Enabled = false end
-            if self.BorderFlow then
-                self.BorderFlow.Visible = true
-            else
+            if not self.BorderFlow then
                 createSolidGlowBorder()
             end
             local borderTime = 0
             self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
+                if not self.Instance or not self.Instance.Parent then return end
+                if not self.Instance.Visible then return end
                 borderTime = borderTime + deltaTime * 2.5
                 local hue = (borderTime * 0.3) % 1
                 local color = Color3.fromHSV(hue, 0.8, 1)
@@ -4101,6 +4101,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 self.FlowStroke.Enabled = true
             end
             self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
+                if not self.Instance or not self.Instance.Parent then return end
+                if not self.Instance.Visible then return end
                 self.FlowRotation = (self.FlowRotation + deltaTime * 60) % 360
                 if self.FlowGradient then
                     self.FlowGradient.Rotation = self.FlowRotation
@@ -6080,8 +6082,10 @@ function self:SetVisible(visible)
         if self.SnowContainer then
             self.SnowContainer.Visible = true
         end
-        if self.BorderFlow then
-            self.BorderFlow.Visible = (self.RainbowMode == "整体")
+        if self.BorderFlow and self.RainbowMode == "整体" then
+            self.BorderFlow.BackgroundTransparency = 1
+            self.BorderFlow.Visible = true
+            Tween(self.BorderFlow, {BackgroundTransparency = 0}, 0.3)
         end
         if self.FlowStroke then
             self.FlowStroke.Enabled = (self.RainbowMode == "流动")
