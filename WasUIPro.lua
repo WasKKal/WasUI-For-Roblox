@@ -2171,7 +2171,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     self.Min = min or 0
     self.Max = max or 100
     self.Step = step or 0.1
-    self.Value = math.clamp(defaultValue or self.Min, self.Min, self.Max)
+    local numericDefault = (type(defaultValue) == "number") and defaultValue or self.Min
+    self.Value = math.clamp(numericDefault, self.Min, self.Max)
     self.Callback = callback
     self.AnimationTween = nil
     self.Container = CreateInstance("Frame", {
@@ -2277,6 +2278,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         if self.AnimationTween then self.AnimationTween:Cancel(); self.AnimationTween = nil end
     end
     local function setValueImmediately(newValue)
+        if type(newValue) ~= "number" then return end
         newValue = math.clamp(newValue, self.Min, self.Max)
         newValue = roundToStep(newValue)
         if newValue == self.Value then return end
@@ -2465,7 +2467,8 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
     local self = Control:New(name, parent)
     self.Min = min or 0
     self.Max = max or 100
-    self.Value = math.clamp(defaultValue or self.Min, self.Min, self.Max)
+    local numericDefault = (type(defaultValue) == "number") and defaultValue or self.Min
+    self.Value = math.clamp(numericDefault, self.Min, self.Max)
     self.Callback = callback
     self.Segments = segments or {}
     self.AnimationTween = nil
