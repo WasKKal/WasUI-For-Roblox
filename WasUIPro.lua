@@ -6147,7 +6147,6 @@ end
     end)
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel", PanelData = self})
     return self
-end
 
 function WasUI:CreateWindow(options)
     options = options or {}
