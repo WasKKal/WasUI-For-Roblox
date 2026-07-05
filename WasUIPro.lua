@@ -5969,10 +5969,6 @@ end
             self.BorderFlow.Visible = visible and (self.RainbowMode == "整体")
         end
     end
-        if self.BorderFlow then
-            self.BorderFlow.Visible = visible
-        end
-    end
 
     function self:SetTitle(text)
         WasUI:SetLocalizedText(self.Title, text)
@@ -6147,6 +6143,7 @@ end
     end)
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel", PanelData = self})
     return self
+end
 
 function WasUI:CreateWindow(options)
     options = options or {}
