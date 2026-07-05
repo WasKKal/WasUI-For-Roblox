@@ -27,7 +27,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.5"
+WasUI.Version = "1.1.6"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -3883,6 +3883,24 @@ function Panel.__index(self, key)
     return rawget(Panel, key)
 end
 
+local function ParseImageAsset(input)
+    if tonumber(input) then return "rbxassetid://" .. input end
+    if type(input) == "string" and string.match(input, "^http") then
+        local getasset = getcustomasset or getsynasset
+        if getasset and writefile then
+            local success, result = pcall(function()
+                local req = (syn and syn.request) or (http and http.request) or http_request or request
+                local imgData = req({Url = input, Method = "GET"}).Body
+                local fileName = "WasUI_BG_" .. tostring(math.random(1000, 9999)) .. ".jpg"
+                writefile(fileName, imgData)
+                return getasset(fileName)
+            end)
+            if success then return result else warn("[WasUI] 背景图片下载失败: " .. tostring(result)) return "" end
+        end
+    end
+    return input
+end
+
 local function isPointOverButton(btn, point)
     if not btn or not btn.Parent then return false end
     local absPos = btn.AbsolutePosition
@@ -3902,22 +3920,20 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self.BackgroundImage = nil
         end
         if url and url ~= "" then
-            local success = pcall(function()
-                v9:PreloadAsync({url})
-            end)
-            if success then
+            local finalImg = ParseImageAsset(url)
+            if finalImg and finalImg ~= "" then
                 self.BackgroundImage = CreateInstance("ImageLabel", {
                     Name = "Background",
                     Size = UDim2.new(1, 0, 1, 0),
                     Position = UDim2.new(0, 0, 0, 0),
                     BackgroundTransparency = 1,
-                    Image = url,
+                    Image = finalImg,
                     ImageTransparency = 1,
                     ScaleType = Enum.ScaleType.Crop,
                     ZIndex = 0,
                     Parent = self.Instance
                 })
-                Tween(self.BackgroundImage, {ImageTransparency = 0}, 0.3)
+                Tween(self.BackgroundImage, {ImageTransparency = 0}, 0.4)
             end
         end
     end
@@ -4081,6 +4097,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             if self.FlowStroke then self.FlowStroke.Enabled = false end
             if not self.BorderFlow then
                 createSolidGlowBorder()
+            else
+                self.BorderFlow.Visible = true
             end
             local borderTime = 0
             self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
@@ -4411,6 +4429,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 searchResultTab.Button:Destroy()
             end
             if searchResultTab.Frame then
+                for _, child in ipairs(searchResultTab.Frame:GetChildren()) do
+                    if child.Name ~= "Spacing" then
+                        child:Destroy()
+                    end
+                end
                 searchResultTab.Frame:Destroy()
             end
             searchResultTab = nil
@@ -4428,6 +4451,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         for _, moved in ipairs(movedControls) do
             if moved.control and moved.control.Parent ~= moved.originalParent then
                 moved.control.Parent = moved.originalParent
+            end
+            if moved.control then
                 moved.control.Visible = true
             end
         end
@@ -4471,11 +4496,19 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                             end
                             if searchText and searchText ~= "" then
                                 if child:IsDescendantOf(game) then
+                                    -- Find original parent from movedControls if control was previously moved
+                                    local originalParent = child.Parent
+                                    for _, moved in ipairs(movedControls) do
+                                        if moved.control == child then
+                                            originalParent = moved.originalParent
+                                            break
+                                        end
+                                    end
                                     table.insert(controls, {
                                         Instance = child,
                                         SearchText = searchText,
                                         TabName = tabName,
-                                        OriginalParent = child.Parent
+                                        OriginalParent = originalParent
                                     })
                                 end
                             end
@@ -4564,6 +4597,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         for _, moved in ipairs(movedControls) do
             if moved.control and moved.control.Parent then
                 moved.control.Parent = moved.originalParent
+                moved.control.Visible = true
             end
         end
         movedControls = {}
@@ -5190,7 +5224,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
             Size = UDim2.new(0, 280, 0, 370),
-            Position = UDim2.new(0.5, -140, 0.5, -110),
+            Position = UDim2.new(0.5, -140, 0.5, -185),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
@@ -5198,6 +5232,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             ZIndex = 1000,
             Parent = settingsGui
         })
+        local function centerSettingsFrame()
+            if settingsFrame and settingsFrame.Parent then
+                local viewportSize = v7.CurrentCamera and v7.CurrentCamera.ViewportSize or v8:GetScreenSize()
+                local frameSize = settingsFrame.AbsoluteSize
+                settingsFrame.Position = UDim2.new(0.5, -frameSize.X/2, 0.5, -frameSize.Y/2)
+            end
+        end
+        settingsFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(centerSettingsFrame)
+        task.defer(centerSettingsFrame)
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
         WasUI.SettingsGui = settingsGui
         WasUI.SettingsPanel = settingsFrame
@@ -5917,11 +5960,15 @@ end
         self.ActiveTab = tabName
     end
 
-function self:SetVisible(visible)
+    function self:SetVisible(visible)
         self.Instance.Visible = visible
         if self.FlowStroke then
-            self.FlowStroke.Enabled = visible
+            self.FlowStroke.Enabled = visible and (self.RainbowMode == "流动")
         end
+        if self.BorderFlow then
+            self.BorderFlow.Visible = visible and (self.RainbowMode == "整体")
+        end
+    end
         if self.BorderFlow then
             self.BorderFlow.Visible = visible
         end
@@ -6085,10 +6132,14 @@ function self:SetVisible(visible)
         if self.SnowContainer then
             self.SnowContainer.Visible = true
         end
-        if self.BorderFlow and self.RainbowMode == "整体" then
-            self.BorderFlow.BackgroundTransparency = 1
-            self.BorderFlow.Visible = true
-            Tween(self.BorderFlow, {BackgroundTransparency = 0}, 0.3)
+        if self.BorderFlow then
+            if self.RainbowMode == "整体" then
+                self.BorderFlow.BackgroundTransparency = 1
+                self.BorderFlow.Visible = true
+                Tween(self.BorderFlow, {BackgroundTransparency = 0}, 0.3)
+            else
+                self.BorderFlow.Visible = false
+            end
         end
         if self.FlowStroke then
             self.FlowStroke.Enabled = (self.RainbowMode == "流动")
