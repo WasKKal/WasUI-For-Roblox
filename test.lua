@@ -64,7 +64,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.6"
+WasUI.Version = "1.1.7"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -3979,6 +3979,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                     ZIndex = 0,
                     Parent = self.Instance
                 })
+                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.BackgroundImage})
                 Tween(self.BackgroundImage, {ImageTransparency = 0}, 0.4)
             end
         end
@@ -4014,6 +4015,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         c2.Parent = colorFolder
     end
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
+    self.WindowScale = Instance.new("UIScale", self.Instance)
+    self.WindowScale.Scale = 1
     if backgroundUrl and backgroundUrl ~= "" then
         self:SetBackground(backgroundUrl)
     end
@@ -4069,24 +4072,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         borderFlowCorner.CornerRadius = UDim.new(0, 16)
         borderFlowCorner.Parent = self.BorderFlow
 
-        local flowGradient = Instance.new("UIGradient")
-        flowGradient.Rotation = 0
-        flowGradient.Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-            ColorSequenceKeypoint.new(0.08, Color3.fromRGB(255, 80, 0)),
-            ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
-            ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 255, 0)),
-            ColorSequenceKeypoint.new(0.33, Color3.fromRGB(128, 255, 0)),
-            ColorSequenceKeypoint.new(0.41, Color3.fromRGB(0, 255, 0)),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 128)),
-            ColorSequenceKeypoint.new(0.58, Color3.fromRGB(0, 255, 255)),
-            ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 128, 255)),
-            ColorSequenceKeypoint.new(0.75, Color3.fromRGB(0, 0, 255)),
-            ColorSequenceKeypoint.new(0.83, Color3.fromRGB(128, 0, 255)),
-            ColorSequenceKeypoint.new(0.91, Color3.fromRGB(255, 0, 255)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 128))
-        }
-        flowGradient.Parent = self.BorderFlow
+        -- 注意：UIGradient 已移除，因为 UIStroke 颜色由 Heartbeat 动态更新
+        -- 保留 BorderFlow 背景完全透明，仅通过 UIStroke 显示彩虹边框
 
         self.BorderStroke = Instance.new("UIStroke")
         self.BorderStroke.Color = Color3.fromRGB(255, 0, 0)
@@ -4767,7 +4754,29 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
         WasUI.ActiveDialogs = {}
         if WasUI.SettingsGui then
-            Tween(WasUI.SettingsPanel, {BackgroundTransparency = 1}, 0.2)
+            local panel = WasUI.SettingsPanel
+            if panel then
+                Tween(panel, {BackgroundTransparency = 1}, 0.2)
+                local titleBar = panel:FindFirstChild("TitleBar")
+                if titleBar then
+                    Tween(titleBar, {BackgroundTransparency = 1}, 0.2)
+                    for _, child in ipairs(titleBar:GetChildren()) do
+                        if child:IsA("TextLabel") or child:IsA("TextButton") then
+                            Tween(child, {TextTransparency = 1}, 0.2)
+                        end
+                    end
+                end
+                local content = panel:FindFirstChild("Content")
+                if content then
+                    for _, child in ipairs(content:GetDescendants()) do
+                        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
+                            Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
+                        elseif child:IsA("Frame") then
+                            Tween(child, {BackgroundTransparency = 1}, 0.2)
+                        end
+                    end
+                end
+            end
             Tween(WasUI.SettingsPanel:FindFirstChildWhichIsA("UIScale"), {Scale = 0.8}, 0.2)
             task.delay(0.2, function()
                 if WasUI.SettingsGui then
@@ -5329,6 +5338,19 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         closeBtn.MouseButton1Click:Connect(function()
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+            Tween(titleBar, {BackgroundTransparency = 1}, 0.2)
+            for _, child in ipairs(titleBar:GetChildren()) do
+                if child:IsA("TextLabel") or child:IsA("TextButton") then
+                    Tween(child, {TextTransparency = 1}, 0.2)
+                end
+            end
+            for _, child in ipairs(contentFrame:GetDescendants()) do
+                if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
+                    Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
+                elseif child:IsA("Frame") then
+                    Tween(child, {BackgroundTransparency = 1}, 0.2)
+                end
+            end
             task.wait(0.2)
             if WasUI.SettingsGui then
                 WasUI.SettingsGui:Destroy()
@@ -5406,6 +5428,19 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             local newThemeName = themeDisplayNames[nextIndex]
             themeDropdown.Text = newThemeName
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+            Tween(titleBar, {BackgroundTransparency = 1}, 0.2)
+            for _, child in ipairs(titleBar:GetChildren()) do
+                if child:IsA("TextLabel") or child:IsA("TextButton") then
+                    Tween(child, {TextTransparency = 1}, 0.2)
+                end
+            end
+            for _, child in ipairs(contentFrame:GetDescendants()) do
+                if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
+                    Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
+                elseif child:IsA("Frame") then
+                    Tween(child, {BackgroundTransparency = 1}, 0.2)
+                end
+            end
             task.wait(0.2)
             if WasUI.SettingsGui then
                 WasUI.SettingsGui:Destroy()
@@ -5447,6 +5482,99 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self:SetRainbowMode(newMode)
             rainbowModeButton.Text = newMode
             WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
+        end)
+        local scaleLabel = CreateInstance("TextLabel", {
+            Name = "ScaleLabel",
+            Size = UDim2.new(1, 0, 0, 20),
+            BackgroundTransparency = 1,
+            Text = "",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        WasUI:SetLocalizedText(scaleLabel, "窗口大小")
+        local scaleValueLabel = CreateInstance("TextLabel", {
+            Name = "ScaleValueLabel",
+            Size = UDim2.new(0.2, 0, 0, 20),
+            Position = UDim2.new(0.8, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "1.0",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Right,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        local scaleTrack = CreateInstance("Frame", {
+            Name = "ScaleTrack",
+            Size = UDim2.new(1, -2, 0, 12),
+            Position = UDim2.new(0, 2, 0, 20),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = scaleTrack})
+        local scaleFill = CreateInstance("Frame", {
+            Name = "ScaleFill",
+            Size = UDim2.new((1 - 0.3) / (1.5 - 0.3), 0, 1, 0),
+            BackgroundColor3 = WasUI.CurrentTheme.Accent,
+            BorderSizePixel = 0,
+            ZIndex = 1003,
+            Parent = scaleTrack
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = scaleFill})
+        local scaleKnob = CreateInstance("Frame", {
+            Name = "ScaleKnob",
+            Size = UDim2.new(0, 20, 0, 20),
+            Position = UDim2.new((1 - 0.3) / (1.5 - 0.3), -10, 0.5, -10),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            ZIndex = 1004,
+            Parent = scaleTrack
+        })
+        local scaleKnobCircle = CreateInstance("Frame", {
+            Size = UDim2.new(1, 0, 1, 0),
+            BackgroundColor3 = WasUI.CurrentTheme.Accent,
+            BorderSizePixel = 0,
+            Parent = scaleKnob
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = scaleKnobCircle})
+        local scaleDragging = false
+        local function updateScaleFromInput(inputX)
+            local trackPos = scaleTrack.AbsolutePosition
+            local trackSize = scaleTrack.AbsoluteSize.X
+            if trackSize <= 0 then return end
+            local t = math.clamp((inputX - trackPos.X) / trackSize, 0, 1)
+            local newScale = 0.3 + t * (1.5 - 0.3)
+            newScale = math.floor(newScale * 10 + 0.5) / 10
+            if self.WindowScale then
+                self.WindowScale.Scale = newScale
+            end
+            scaleFill.Size = UDim2.new(t, 0, 1, 0)
+            scaleKnob.Position = UDim2.new(t, -10, 0.5, -10)
+            scaleValueLabel.Text = string.format("%.1f", newScale)
+        end
+        scaleTrack.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                scaleDragging = true
+                updateScaleFromInput(input.Position.X)
+            end
+        end)
+        scaleTrack.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                scaleDragging = false
+            end
+        end)
+        v4.InputChanged:Connect(function(input)
+            if scaleDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                updateScaleFromInput(input.Position.X)
+            end
         end)
         local snowContainer = CreateInstance("Frame", {
             Name = "SnowToggleContainer",
@@ -5494,35 +5622,43 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowKnob})
 
 local function clearSnowflakes()
-    if self.Snowflakes then
-        for _, data in ipairs(self.Snowflakes) do
-            if data.Instance and data.Instance.Parent then
-                data.Instance:Destroy()
-            end
-        end
+    if not self.Snowflakes then
         self.Snowflakes = {}
+        return
     end
+    for _, data in ipairs(self.Snowflakes) do
+        if data and data.Instance and data.Instance.Parent then
+            data.Instance:Destroy()
+        end
+    end
+    self.Snowflakes = {}
 end
 local function updateSnowToggle(newState)
     self.SnowEnabled = newState
     if newState then
+        if not self.Snowflakes then
+            self.Snowflakes = {}
+        end
         if not self.SnowContainer then
+            local snowParent = self.Instance and self.Instance.Parent
             self.SnowContainer = CreateInstance("Frame", {
                 Name = "SnowContainer",
-                Size = self.Instance.Size,
-                Position = self.Instance.Position,
+                Size = self.Instance and self.Instance.Size or UDim2.new(0, 400, 0, 350),
+                Position = self.Instance and self.Instance.Position or UDim2.new(0.5, -200, 0.5, -175),
                 BackgroundTransparency = 1,
                 ZIndex = 100000,
-                Parent = parent
+                Parent = snowParent
             })
-            local function updateSnowContainer()
-                if self.SnowContainer and self.Instance then
-                    self.SnowContainer.Position = self.Instance.Position
-                    self.SnowContainer.Size = self.Instance.Size
+            if self.Instance then
+                local function updateSnowContainer()
+                    if self.SnowContainer and self.Instance then
+                        self.SnowContainer.Position = self.Instance.Position
+                        self.SnowContainer.Size = self.Instance.Size
+                    end
                 end
+                self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
+                self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
             end
-            self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
-            self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
         end
         clearSnowflakes()
         self.SnowTimer = 0
@@ -5764,6 +5900,19 @@ end
             local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
             if not inPanel then
                 Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+                Tween(titleBar, {BackgroundTransparency = 1}, 0.2)
+                for _, child in ipairs(titleBar:GetChildren()) do
+                    if child:IsA("TextLabel") or child:IsA("TextButton") then
+                        Tween(child, {TextTransparency = 1}, 0.2)
+                    end
+                end
+                for _, child in ipairs(contentFrame:GetDescendants()) do
+                    if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
+                        Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
+                    elseif child:IsA("Frame") then
+                        Tween(child, {BackgroundTransparency = 1}, 0.2)
+                    end
+                end
                 task.wait(0.2)
                 if WasUI.SettingsGui then
                     WasUI.SettingsGui:Destroy()
