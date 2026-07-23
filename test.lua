@@ -1807,7 +1807,19 @@ function Category:New(name, parent, title, iconName)
         while parentScroller and not parentScroller:IsA("ScrollingFrame") do parentScroller = parentScroller.Parent end
         if parentScroller and parentScroller:IsA("ScrollingFrame") then
             local layout = parentScroller:FindFirstChildOfClass("UIListLayout")
-            if layout then parentScroller.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8) end
+            if layout then
+                local windowScale = 1
+                local panel = parentScroller.Parent
+                while panel do
+                    if type(panel) == "table" and panel.WindowScale then
+                        windowScale = panel.WindowScale.Scale or 1
+                        break
+                    end
+                    panel = panel.Parent
+                end
+                if windowScale <= 0 then windowScale = 1 end
+                parentScroller.CanvasSize = UDim2.new(0, 0, 0, (layout.AbsoluteContentSize.Y + 8) / windowScale)
+            end
         end
     end
     local function updateLayout(animate)
@@ -4521,7 +4533,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
         if self.ContentArea and self.ContentArea.UIListLayout then
             task.wait()
-            self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, self.ContentArea.UIListLayout.AbsoluteContentSize.Y + 8)
+            local scale = self.WindowScale and self.WindowScale.Scale or 1
+            if scale <= 0 then scale = 1 end
+            self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, (self.ContentArea.UIListLayout.AbsoluteContentSize.Y + 8) / scale)
         end
         isSearchActive = false
     end
@@ -5398,7 +5412,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = contentFrame
         })
         local function refreshCanvas()
-            contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 8)
+            local scale = self.WindowScale and self.WindowScale.Scale or 1
+            if scale <= 0 then scale = 1 end
+            contentFrame.CanvasSize = UDim2.new(0, 0, 0, (contentLayout.AbsoluteContentSize.Y + 8) / scale)
         end
         contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshCanvas)
         local themeLabel = CreateInstance("TextLabel", {
@@ -5562,6 +5578,35 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             end
             scaleFill.Size = UDim2.new(t, 0, 1, 0)
             scaleValueLabel.Text = string.format("%.1f", newScale)
+            -- 强制刷新所有 ScrollingFrame 的 CanvasSize
+            task.defer(function()
+                if self.ContentArea then
+                    local contentLayout = self.ContentArea:FindFirstChildOfClass("UIListLayout")
+                    if contentLayout then
+                        local s = self.WindowScale and self.WindowScale.Scale or 1
+                        if s <= 0 then s = 1 end
+                        self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, (contentLayout.AbsoluteContentSize.Y + 8) / s)
+                    end
+                end
+                if self.TabContainer then
+                    local tabLayout = self.TabContainer:FindFirstChildOfClass("UIListLayout")
+                    if tabLayout then
+                        local s = self.WindowScale and self.WindowScale.Scale or 1
+                        if s <= 0 then s = 1 end
+                        self.TabContainer.CanvasSize = UDim2.new(0, (tabLayout.AbsoluteContentSize.X + 8) / s, 0, 0)
+                    end
+                end
+                for _, tabData in pairs(self.Tabs) do
+                    if tabData.Frame then
+                        local tabInnerLayout = tabData.Frame:FindFirstChildOfClass("UIListLayout")
+                        if tabInnerLayout then
+                            local s = self.WindowScale and self.WindowScale.Scale or 1
+                            if s <= 0 then s = 1 end
+                            tabData.Frame.CanvasSize = UDim2.new(0, 0, 0, (tabInnerLayout.AbsoluteContentSize.Y + 8) / s)
+                        end
+                    end
+                end
+            end)
         end
         scaleTrack.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -6029,7 +6074,9 @@ end
     end
     self.TabContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateTabBarHeight)
     tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        self.TabContainer.CanvasSize = UDim2.new(0, tabListLayout.AbsoluteContentSize.X + 8, 0, 0)
+        local scale = self.WindowScale and self.WindowScale.Scale or 1
+        if scale <= 0 then scale = 1 end
+        self.TabContainer.CanvasSize = UDim2.new(0, (tabListLayout.AbsoluteContentSize.X + 8) / scale, 0, 0)
         task.wait()
         updateTabBarHeight()
     end)
@@ -6060,7 +6107,9 @@ end
         Parent = self.ContentArea
     })
     local function refreshContentCanvas()
-        self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, contentListLayout.AbsoluteContentSize.Y + 8)
+        local scale = self.WindowScale and self.WindowScale.Scale or 1
+        if scale <= 0 then scale = 1 end
+        self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, (contentListLayout.AbsoluteContentSize.Y + 8) / scale)
     end
     contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshContentCanvas)
     refreshContentCanvas()
