@@ -15,6 +15,43 @@ local v11 = game:GetService("CoreGui")
 local v12 = game:GetService("Selection")
 local lp = v1.LocalPlayer
 
+local _huiCache = nil
+local _origGetHui = gethui
+function gethui()
+    if _huiCache ~= nil then
+        return _huiCache
+    end
+    local success, result = pcall(function()
+        return _origGetHui and _origGetHui()
+    end)
+    if success and result then
+        _huiCache = result
+        return result
+    end
+    _huiCache = game:GetService("CoreGui")
+    return _huiCache
+end
+
+function protectgui(gui)
+    if not gui then return end
+    local function tryProtect(func)
+        local success, err = pcall(func, gui)
+        return success
+    end
+    if syn and syn.protect_gui then
+        tryProtect(syn.protect_gui)
+    end
+    if protect_gui then
+        tryProtect(protect_gui)
+    end
+    if cloneref and _origGetHui then
+        pcall(function()
+            gui = cloneref(gui)
+        end)
+    end
+end
+
+
 local function copyToClipboard(text)
     if type(setclipboard) == "function" then
         setclipboard(text)
@@ -27,7 +64,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.6"
+WasUI.Version = "1.1.7"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -300,7 +337,8 @@ local function EnsureShortcutGui()
         WasUI.ShortcutGui.Name = "WasUI_Shortcuts"
         WasUI.ShortcutGui.ResetOnSpawn = false
         WasUI.ShortcutGui.DisplayOrder = 500
-        WasUI.ShortcutGui.Parent = v11
+        protectgui(WasUI.ShortcutGui)
+        WasUI.ShortcutGui.Parent = gethui()
     end
 end
 EnsureShortcutGui()
@@ -311,7 +349,8 @@ local function EnsureRippleGui()
         WasUI.RippleGui.Name = "WasUI_Ripples"
         WasUI.RippleGui.ResetOnSpawn = false
         WasUI.RippleGui.DisplayOrder = 10000
-        WasUI.RippleGui.Parent = v11
+        protectgui(WasUI.RippleGui)
+        WasUI.RippleGui.Parent = gethui()
     end
 end
 EnsureRippleGui()
@@ -322,7 +361,8 @@ local function EnsureNotificationGui()
         WasUI.NotificationGui.Name = "WasUI_Notifications"
         WasUI.NotificationGui.ResetOnSpawn = false
         WasUI.NotificationGui.DisplayOrder = 999
-        WasUI.NotificationGui.Parent = v11
+        protectgui(WasUI.NotificationGui)
+        WasUI.NotificationGui.Parent = gethui()
     end
 end
 EnsureNotificationGui()
@@ -333,7 +373,8 @@ local function EnsureDropdownGui()
         WasUI.DropdownGui.Name = "WasUI_Dropdowns"
         WasUI.DropdownGui.ResetOnSpawn = false
         WasUI.DropdownGui.DisplayOrder = 1000
-        WasUI.DropdownGui.Parent = v11
+        protectgui(WasUI.DropdownGui)
+        WasUI.DropdownGui.Parent = gethui()
     end
 end
 EnsureDropdownGui()
@@ -448,9 +489,13 @@ function WasUI:Notify(options)
             Tween(notif.Frame, {Position = targetPos}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         end
         local fadeOut = Tween(frame, {BackgroundTransparency = 1, Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, frame.Position.Y.Offset)}, 0.3)
-        fadeOut.Completed:Connect(function()
+        if fadeOut and fadeOut.Completed then
+            fadeOut.Completed:Connect(function()
+                frame:Destroy()
+            end)
+        else
             frame:Destroy()
-        end)
+        end
     end)
 end
 
@@ -746,7 +791,8 @@ local function RefreshRainbowLayout()
         WasUI.RainbowGui.Name = "WasUI_RainbowList"
         WasUI.RainbowGui.ResetOnSpawn = false
         WasUI.RainbowGui.DisplayOrder = 100
-        WasUI.RainbowGui.Parent = v11
+        protectgui(WasUI.RainbowGui)
+        WasUI.RainbowGui.Parent = gethui()
     end
     if not WasUI.RainbowMainContainer or not WasUI.RainbowMainContainer.Parent then
         WasUI.RainbowMainContainer = Instance.new("Frame")
@@ -1056,7 +1102,7 @@ local function ensureDragOverlay()
         dragOverlay.ZIndex = 99999
         dragOverlay.Active = true
         dragOverlay.Selectable = true
-        dragOverlay.Parent = v11
+        dragOverlay.Parent = gethui()
     end
 end
 
@@ -1761,7 +1807,19 @@ function Category:New(name, parent, title, iconName)
         while parentScroller and not parentScroller:IsA("ScrollingFrame") do parentScroller = parentScroller.Parent end
         if parentScroller and parentScroller:IsA("ScrollingFrame") then
             local layout = parentScroller:FindFirstChildOfClass("UIListLayout")
-            if layout then parentScroller.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8) end
+            if layout then
+                local windowScale = 1
+                local panel = parentScroller.Parent
+                while panel do
+                    if type(panel) == "table" and panel.WindowScale then
+                        windowScale = panel.WindowScale.Scale or 1
+                        break
+                    end
+                    panel = panel.Parent
+                end
+                if windowScale <= 0 then windowScale = 1 end
+                parentScroller.CanvasSize = UDim2.new(0, 0, 0, (layout.AbsoluteContentSize.Y + 8) / windowScale)
+            end
         end
     end
     local function updateLayout(animate)
@@ -2309,8 +2367,12 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             self.AnimationTween = nil
             setValueImmediately(targetValue)
         end
-        fillTween.Completed:Connect(onFinish)
-        knobTween.Completed:Connect(onFinish)
+        if fillTween and fillTween.Completed then
+            fillTween.Completed:Connect(onFinish)
+        end
+        if knobTween and knobTween.Completed then
+            knobTween.Completed:Connect(onFinish)
+        end
         fillTween:Play()
         knobTween:Play()
         self.AnimationTween = fillTween
@@ -2557,8 +2619,12 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
     end
     local function updateFill()
         local t = (self.Value - self.Min) / (self.Max - self.Min)
-        self.Fill:TweenSize(UDim2.new(t, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-        self.PercentLabel.Text = tostring(math.floor(self.Value)) .. "%"
+        if self.Fill and self.Fill:IsDescendantOf(game) then
+            self.Fill:TweenSize(UDim2.new(t, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+        end
+        if self.PercentLabel then
+            self.PercentLabel.Text = tostring(math.floor(self.Value)) .. "%"
+        end
         updateStatusText(self.Value)
         if self.Callback then self.Callback(self.Value) end
     end
@@ -2620,7 +2686,8 @@ function WasUI:CreateTooltip(target, text, options)
         tooltipGui.Name = "WasUI_Tooltip"
         tooltipGui.ResetOnSpawn = false
         tooltipGui.DisplayOrder = 2000
-        tooltipGui.Parent = v11
+        protectgui(tooltipGui)
+        tooltipGui.Parent = gethui()
         tooltipFrame = CreateInstance("Frame", {
             Name = "Tooltip",
             Size = UDim2.new(0, 0, 0, 0),
@@ -2719,7 +2786,8 @@ function WasUI:ShowConfirmDialog(options, callback)
     dialogGui.Name = "WasUI_ConfirmDialog"
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
-    dialogGui.Parent = v11
+    protectgui(dialogGui)
+    dialogGui.Parent = gethui()
     local overlay = CreateInstance("Frame", {
         Name = "Overlay",
         Size = UDim2.new(1, 0, 1, 0),
@@ -2918,7 +2986,8 @@ function WasUI:ShowPopup(options, callback)
     dialogGui.Name = "WasUI_Popup"
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
-    dialogGui.Parent = v11
+    protectgui(dialogGui)
+    dialogGui.Parent = gethui()
     local overlay = CreateInstance("Frame", {
         Name = "Overlay",
         Size = UDim2.new(1, 0, 1, 0),
@@ -3128,7 +3197,8 @@ function WasUI:ShowColorPicker(options, callback)
     dialogGui.Name = "WasUI_ColorPicker"
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
-    dialogGui.Parent = v11
+    protectgui(dialogGui)
+    dialogGui.Parent = gethui()
     local transparentOverlay = CreateInstance("Frame", {
         Name = "TransparentOverlay",
         Size = UDim2.new(1, 0, 1, 0),
@@ -3933,6 +4003,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                     ZIndex = 0,
                     Parent = self.Instance
                 })
+                CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.BackgroundImage})
                 Tween(self.BackgroundImage, {ImageTransparency = 0}, 0.4)
             end
         end
@@ -3968,6 +4039,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         c2.Parent = colorFolder
     end
     CreateInstance("UICorner", {CornerRadius = UDim.new(0, 14), Parent = self.Instance})
+    self.WindowScale = Instance.new("UIScale", self.Instance)
+    self.WindowScale.Scale = 1
     if backgroundUrl and backgroundUrl ~= "" then
         self:SetBackground(backgroundUrl)
     end
@@ -4023,24 +4096,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         borderFlowCorner.CornerRadius = UDim.new(0, 16)
         borderFlowCorner.Parent = self.BorderFlow
 
-        local flowGradient = Instance.new("UIGradient")
-        flowGradient.Rotation = 0
-        flowGradient.Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-            ColorSequenceKeypoint.new(0.08, Color3.fromRGB(255, 80, 0)),
-            ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
-            ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 255, 0)),
-            ColorSequenceKeypoint.new(0.33, Color3.fromRGB(128, 255, 0)),
-            ColorSequenceKeypoint.new(0.41, Color3.fromRGB(0, 255, 0)),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 128)),
-            ColorSequenceKeypoint.new(0.58, Color3.fromRGB(0, 255, 255)),
-            ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 128, 255)),
-            ColorSequenceKeypoint.new(0.75, Color3.fromRGB(0, 0, 255)),
-            ColorSequenceKeypoint.new(0.83, Color3.fromRGB(128, 0, 255)),
-            ColorSequenceKeypoint.new(0.91, Color3.fromRGB(255, 0, 255)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 128))
-        }
-        flowGradient.Parent = self.BorderFlow
+        -- 注意：UIGradient 已移除，因为 UIStroke 颜色由 Heartbeat 动态更新
+        -- 保留 BorderFlow 背景完全透明，仅通过 UIStroke 显示彩虹边框
 
         self.BorderStroke = Instance.new("UIStroke")
         self.BorderStroke.Color = Color3.fromRGB(255, 0, 0)
@@ -4476,7 +4533,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
         if self.ContentArea and self.ContentArea.UIListLayout then
             task.wait()
-            self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, self.ContentArea.UIListLayout.AbsoluteContentSize.Y + 8)
+            local scale = self.WindowScale and self.WindowScale.Scale or 1
+            if scale <= 0 then scale = 1 end
+            self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, (self.ContentArea.UIListLayout.AbsoluteContentSize.Y + 8) / scale)
         end
         isSearchActive = false
     end
@@ -4496,7 +4555,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                             end
                             if searchText and searchText ~= "" then
                                 if child:IsDescendantOf(game) then
-                                    -- Find original parent from movedControls if control was previously moved
+                                    
                                     local originalParent = child.Parent
                                     for _, moved in ipairs(movedControls) do
                                         if moved.control == child then
@@ -4721,7 +4780,29 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         end
         WasUI.ActiveDialogs = {}
         if WasUI.SettingsGui then
-            Tween(WasUI.SettingsPanel, {BackgroundTransparency = 1}, 0.2)
+            local panel = WasUI.SettingsPanel
+            if panel then
+                Tween(panel, {BackgroundTransparency = 1}, 0.2)
+                local titleBar = panel:FindFirstChild("TitleBar")
+                if titleBar then
+                    Tween(titleBar, {BackgroundTransparency = 1}, 0.2)
+                    for _, child in ipairs(titleBar:GetChildren()) do
+                        if child:IsA("TextLabel") or child:IsA("TextButton") then
+                            Tween(child, {TextTransparency = 1}, 0.2)
+                        end
+                    end
+                end
+                local content = panel:FindFirstChild("Content")
+                if content then
+                    for _, child in ipairs(content:GetDescendants()) do
+                        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
+                            Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
+                        elseif child:IsA("Frame") then
+                            Tween(child, {BackgroundTransparency = 1}, 0.2)
+                        end
+                    end
+                end
+            end
             Tween(WasUI.SettingsPanel:FindFirstChildWhichIsA("UIScale"), {Scale = 0.8}, 0.2)
             task.delay(0.2, function()
                 if WasUI.SettingsGui then
@@ -5211,7 +5292,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         settingsGui.Name = "WasUI_Settings"
         settingsGui.ResetOnSpawn = false
         settingsGui.DisplayOrder = 1001
-        settingsGui.Parent = v11
+        protectgui(settingsGui)
+        settingsGui.Parent = gethui()
         local clickCatcher = CreateInstance("Frame", {
             Name = "ClickCatcher",
             Size = UDim2.new(1, 0, 1, 0),
@@ -5282,6 +5364,23 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         })
         closeBtn.MouseButton1Click:Connect(function()
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+            Tween(titleBar, {BackgroundTransparency = 1}, 0.2)
+            for _, child in ipairs(titleBar:GetChildren()) do
+                if child:IsA("TextLabel") or child:IsA("TextButton") then
+                    Tween(child, {TextTransparency = 1}, 0.2)
+                end
+            end
+            if contentFrame then
+                if contentFrame then
+                    for _, child in ipairs(contentFrame:GetDescendants()) do
+                        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
+                            Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
+                        elseif child:IsA("Frame") then
+                            Tween(child, {BackgroundTransparency = 1}, 0.2)
+                        end
+                    end
+                end
+            end
             task.wait(0.2)
             if WasUI.SettingsGui then
                 WasUI.SettingsGui:Destroy()
@@ -5313,7 +5412,9 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = contentFrame
         })
         local function refreshCanvas()
-            contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 8)
+            local scale = self.WindowScale and self.WindowScale.Scale or 1
+            if scale <= 0 then scale = 1 end
+            contentFrame.CanvasSize = UDim2.new(0, 0, 0, (contentLayout.AbsoluteContentSize.Y + 8) / scale)
         end
         contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshCanvas)
         local themeLabel = CreateInstance("TextLabel", {
@@ -5359,6 +5460,23 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             local newThemeName = themeDisplayNames[nextIndex]
             themeDropdown.Text = newThemeName
             Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+            Tween(titleBar, {BackgroundTransparency = 1}, 0.2)
+            for _, child in ipairs(titleBar:GetChildren()) do
+                if child:IsA("TextLabel") or child:IsA("TextButton") then
+                    Tween(child, {TextTransparency = 1}, 0.2)
+                end
+            end
+            if contentFrame then
+                if contentFrame then
+                    for _, child in ipairs(contentFrame:GetDescendants()) do
+                        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
+                            Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
+                        elseif child:IsA("Frame") then
+                            Tween(child, {BackgroundTransparency = 1}, 0.2)
+                        end
+                    end
+                end
+            end
             task.wait(0.2)
             if WasUI.SettingsGui then
                 WasUI.SettingsGui:Destroy()
@@ -5400,6 +5518,102 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self:SetRainbowMode(newMode)
             rainbowModeButton.Text = newMode
             WasUI:Notify({Title = "彩虹边框模式", Content = "已切换至 " .. newMode .. " 模式", Duration = 1.5})
+        end)
+        local scaleLabel = CreateInstance("TextLabel", {
+            Name = "ScaleLabel",
+            Size = UDim2.new(1, 0, 0, 20),
+            BackgroundTransparency = 1,
+            Text = "",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        WasUI:SetLocalizedText(scaleLabel, "窗口大小")
+        local scaleValueLabel = CreateInstance("TextLabel", {
+            Name = "ScaleValueLabel",
+            Size = UDim2.new(0.2, 0, 0, 20),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "1.0",
+            TextColor3 = WasUI.CurrentTheme.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        local scaleTrack = CreateInstance("Frame", {
+            Name = "ScaleTrack",
+            Size = UDim2.new(1, -2, 0, 12),
+            Position = UDim2.new(0, 2, 0, 20),
+            BackgroundColor3 = WasUI.CurrentTheme.Input,
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            ZIndex = 1002,
+            Parent = contentFrame
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = scaleTrack})
+        local scaleFill = CreateInstance("Frame", {
+            Name = "ScaleFill",
+            Size = UDim2.new((1 - 0.3) / (1.5 - 0.3), 0, 1, 0),
+            BackgroundColor3 = WasUI.CurrentTheme.Accent,
+            BorderSizePixel = 0,
+            ZIndex = 1003,
+            Parent = scaleTrack
+        })
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = scaleFill})
+        local scaleDragging = false
+        local function updateScaleFromInput(inputX)
+            local trackPos = scaleTrack.AbsolutePosition
+            local trackSize = scaleTrack.AbsoluteSize.X
+            if trackSize <= 0 then return end
+            local t = math.clamp((inputX - trackPos.X) / trackSize, 0, 1)
+            local newScale = 0.3 + t * (1.5 - 0.3)
+            newScale = math.floor(newScale * 10 + 0.5) / 10
+            if self.WindowScale then
+                self.WindowScale.Scale = newScale
+            end
+            scaleFill.Size = UDim2.new(t, 0, 1, 0)
+            scaleValueLabel.Text = string.format("%.1f", newScale)
+            -- 强制刷新所有 ScrollingFrame 的 CanvasSize
+            task.defer(function()
+                if self.ContentArea then
+                    local contentLayout = self.ContentArea:FindFirstChildOfClass("UIListLayout")
+                    if contentLayout then
+                        local s = self.WindowScale and self.WindowScale.Scale or 1
+                        if s <= 0 then s = 1 end
+                        self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, (contentLayout.AbsoluteContentSize.Y + 8) / s)
+                    end
+                end
+                if self.TabContainer then
+                    local tabLayout = self.TabContainer:FindFirstChildOfClass("UIListLayout")
+                    if tabLayout then
+                        local s = self.WindowScale and self.WindowScale.Scale or 1
+                        if s <= 0 then s = 1 end
+                        self.TabContainer.CanvasSize = UDim2.new(0, (tabLayout.AbsoluteContentSize.X + 8) / s, 0, 0)
+                    end
+                end
+                -- TabFrame 是 Frame 不是 ScrollingFrame，不需要设置 CanvasSize
+            end)
+        end
+        scaleTrack.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                scaleDragging = true
+                updateScaleFromInput(input.Position.X)
+            end
+        end)
+        scaleTrack.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                scaleDragging = false
+            end
+        end)
+        v4.InputChanged:Connect(function(input)
+            if scaleDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                updateScaleFromInput(input.Position.X)
+            end
         end)
         local snowContainer = CreateInstance("Frame", {
             Name = "SnowToggleContainer",
@@ -5447,35 +5661,32 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = snowKnob})
 
 local function clearSnowflakes()
-    if self.Snowflakes then
-        for _, data in ipairs(self.Snowflakes) do
-            if data.Instance and data.Instance.Parent then
-                data.Instance:Destroy()
-            end
-        end
+    if not self.Snowflakes then
         self.Snowflakes = {}
+        return
     end
+    for _, data in ipairs(self.Snowflakes) do
+        if data and data.Instance and data.Instance.Parent then
+            data.Instance:Destroy()
+        end
+    end
+    self.Snowflakes = {}
 end
 local function updateSnowToggle(newState)
     self.SnowEnabled = newState
     if newState then
+        if not self.Snowflakes then
+            self.Snowflakes = {}
+        end
         if not self.SnowContainer then
             self.SnowContainer = CreateInstance("Frame", {
                 Name = "SnowContainer",
-                Size = self.Instance.Size,
-                Position = self.Instance.Position,
+                Size = UDim2.new(1, 0, 1, 0),
+                Position = UDim2.new(0, 0, 0, 0),
                 BackgroundTransparency = 1,
                 ZIndex = 100000,
-                Parent = parent
+                Parent = self.Instance
             })
-            local function updateSnowContainer()
-                if self.SnowContainer and self.Instance then
-                    self.SnowContainer.Position = self.Instance.Position
-                    self.SnowContainer.Size = self.Instance.Size
-                end
-            end
-            self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
-            self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
         end
         clearSnowflakes()
         self.SnowTimer = 0
@@ -5717,6 +5928,21 @@ end
             local inPanel = mousePos.X >= framePos.X and mousePos.X <= framePos.X + frameSize.X and mousePos.Y >= framePos.Y and mousePos.Y <= framePos.Y + frameSize.Y
             if not inPanel then
                 Tween(settingsFrame, {BackgroundTransparency = 1}, 0.2)
+                Tween(titleBar, {BackgroundTransparency = 1}, 0.2)
+                for _, child in ipairs(titleBar:GetChildren()) do
+                    if child:IsA("TextLabel") or child:IsA("TextButton") then
+                        Tween(child, {TextTransparency = 1}, 0.2)
+                    end
+                end
+                if contentFrame then
+                    for _, child in ipairs(contentFrame:GetDescendants()) do
+                        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
+                            Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
+                        elseif child:IsA("Frame") then
+                            Tween(child, {BackgroundTransparency = 1}, 0.2)
+                        end
+                    end
+                end
                 task.wait(0.2)
                 if WasUI.SettingsGui then
                     WasUI.SettingsGui:Destroy()
@@ -5828,7 +6054,9 @@ end
     end
     self.TabContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateTabBarHeight)
     tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        self.TabContainer.CanvasSize = UDim2.new(0, tabListLayout.AbsoluteContentSize.X + 8, 0, 0)
+        local scale = self.WindowScale and self.WindowScale.Scale or 1
+        if scale <= 0 then scale = 1 end
+        self.TabContainer.CanvasSize = UDim2.new(0, (tabListLayout.AbsoluteContentSize.X + 8) / scale, 0, 0)
         task.wait()
         updateTabBarHeight()
     end)
@@ -5859,7 +6087,9 @@ end
         Parent = self.ContentArea
     })
     local function refreshContentCanvas()
-        self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, contentListLayout.AbsoluteContentSize.Y + 8)
+        local scale = self.WindowScale and self.WindowScale.Scale or 1
+        if scale <= 0 then scale = 1 end
+        self.ContentArea.CanvasSize = UDim2.new(0, 0, 0, (contentListLayout.AbsoluteContentSize.Y + 8) / scale)
     end
     contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshContentCanvas)
     refreshContentCanvas()
@@ -6009,20 +6239,13 @@ end
     if self.SnowEnabled then
         self.SnowContainer = CreateInstance("Frame", {
             Name = "SnowContainer",
-            Size = self.Instance.Size,
-            Position = self.Instance.Position,
+            Size = UDim2.new(1, 0, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
             ZIndex = 100000,
-            Parent = parent
+            Parent = self.Instance
         })
-        local function updateSnowContainer()
-            if self.SnowContainer and self.Instance then
-                self.SnowContainer.Position = self.Instance.Position
-                self.SnowContainer.Size = self.Instance.Size
-            end
-        end
-        self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
-        self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
+        -- SnowContainer 放在 Instance 内部，自动跟随 UIScale 缩放
         self.Snowflakes = {}
         self.SnowTimer = 0
         self.SnowChangeTimer = 0
@@ -6123,7 +6346,26 @@ end
         Size = originalSize,
         Position = originalPos
     }, 0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    windowTween.Completed:Connect(function()
+    if windowTween and windowTween.Completed then
+        windowTween.Completed:Connect(function()
+            showAllInternal()
+            if self.SnowContainer then
+                self.SnowContainer.Visible = true
+            end
+            if self.BorderFlow then
+                if self.RainbowMode == "整体" then
+                    self.BorderFlow.BackgroundTransparency = 1
+                    self.BorderFlow.Visible = true
+                    Tween(self.BorderFlow, {BackgroundTransparency = 0}, 0.3)
+                else
+                    self.BorderFlow.Visible = false
+                end
+            end
+            if self.FlowStroke then
+                self.FlowStroke.Enabled = (self.RainbowMode == "流动")
+            end
+        end)
+    else
         showAllInternal()
         if self.SnowContainer then
             self.SnowContainer.Visible = true
@@ -6140,7 +6382,7 @@ end
         if self.FlowStroke then
             self.FlowStroke.Enabled = (self.RainbowMode == "流动")
         end
-    end)
+    end
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel", PanelData = self})
     return self
 end
@@ -6231,7 +6473,8 @@ function WasUI:CreateWindow(options)
     screenGui.Name = "WasUI_Main"
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = self.DefaultDisplayOrder
-    screenGui.Parent = v11
+    protectgui(screenGui)
+    screenGui.Parent = gethui()
     local window = Panel:New(title, screenGui, size, position, background, snowEnabled, titleTag, featureNameColor, frameColors)
     if options.WelcomeText then
         window:SetWelcome(options.WelcomeText)
