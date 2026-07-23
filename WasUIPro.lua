@@ -4155,6 +4155,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             if not self.BorderFlow then
                 createSolidGlowBorder()
             else
+                self.BorderFlow.BackgroundTransparency = 1
                 self.BorderFlow.Visible = true
             end
             local borderTime = 0
@@ -4193,7 +4194,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
 
     if self.FrameColors and #self.FrameColors > 0 then
         self.RainbowMode = nil
-    else
+    elseif self.RainbowMode then
         updateBorderMode()
     end
 
@@ -5558,7 +5559,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = scaleTrack})
         local scaleFill = CreateInstance("Frame", {
             Name = "ScaleFill",
-            Size = UDim2.new((1 - 0.3) / (1.5 - 0.3), 0, 1, 0),
+            Size = UDim2.new((1 - 0.7) / (1.3 - 0.7), 0, 1, 0),
             BackgroundColor3 = WasUI.CurrentTheme.Accent,
             BorderSizePixel = 0,
             ZIndex = 1003,
@@ -5571,8 +5572,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             local trackSize = scaleTrack.AbsoluteSize.X
             if trackSize <= 0 then return end
             local t = math.clamp((inputX - trackPos.X) / trackSize, 0, 1)
-            local newScale = 0.3 + t * (1.5 - 0.3)
-            newScale = math.floor(newScale * 10 + 0.5) / 10
+            local newScale = 0.7 + t * (1.3 - 0.7)
+            newScale = math.floor(newScale * 20 + 0.5) / 20
             if self.WindowScale then
                 self.WindowScale.Scale = newScale
             end
@@ -6356,7 +6357,6 @@ end
                 if self.RainbowMode == "整体" then
                     self.BorderFlow.BackgroundTransparency = 1
                     self.BorderFlow.Visible = true
-                    Tween(self.BorderFlow, {BackgroundTransparency = 0}, 0.3)
                 else
                     self.BorderFlow.Visible = false
                 end
@@ -6374,7 +6374,6 @@ end
             if self.RainbowMode == "整体" then
                 self.BorderFlow.BackgroundTransparency = 1
                 self.BorderFlow.Visible = true
-                Tween(self.BorderFlow, {BackgroundTransparency = 0}, 0.3)
             else
                 self.BorderFlow.Visible = false
             end
