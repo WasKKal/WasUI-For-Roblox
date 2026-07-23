@@ -5596,16 +5596,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                         self.TabContainer.CanvasSize = UDim2.new(0, (tabLayout.AbsoluteContentSize.X + 8) / s, 0, 0)
                     end
                 end
-                for _, tabData in pairs(self.Tabs) do
-                    if tabData.Frame then
-                        local tabInnerLayout = tabData.Frame:FindFirstChildOfClass("UIListLayout")
-                        if tabInnerLayout then
-                            local s = self.WindowScale and self.WindowScale.Scale or 1
-                            if s <= 0 then s = 1 end
-                            tabData.Frame.CanvasSize = UDim2.new(0, 0, 0, (tabInnerLayout.AbsoluteContentSize.Y + 8) / s)
-                        end
-                    end
-                end
+                -- TabFrame 是 Frame 不是 ScrollingFrame，不需要设置 CanvasSize
             end)
         end
         scaleTrack.InputBegan:Connect(function(input)
