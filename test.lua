@@ -489,9 +489,13 @@ function WasUI:Notify(options)
             Tween(notif.Frame, {Position = targetPos}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         end
         local fadeOut = Tween(frame, {BackgroundTransparency = 1, Position = UDim2.new(1, WasUI.NotificationWidth + 20, 0, frame.Position.Y.Offset)}, 0.3)
-        fadeOut.Completed:Connect(function()
+        if fadeOut and fadeOut.Completed then
+            fadeOut.Completed:Connect(function()
+                frame:Destroy()
+            end)
+        else
             frame:Destroy()
-        end)
+        end
     end)
 end
 
@@ -2351,8 +2355,12 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
             self.AnimationTween = nil
             setValueImmediately(targetValue)
         end
-        fillTween.Completed:Connect(onFinish)
-        knobTween.Completed:Connect(onFinish)
+        if fillTween and fillTween.Completed then
+            fillTween.Completed:Connect(onFinish)
+        end
+        if knobTween and knobTween.Completed then
+            knobTween.Completed:Connect(onFinish)
+        end
         fillTween:Play()
         knobTween:Play()
         self.AnimationTween = fillTween
@@ -2599,8 +2607,12 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
     end
     local function updateFill()
         local t = (self.Value - self.Min) / (self.Max - self.Min)
-        self.Fill:TweenSize(UDim2.new(t, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-        self.PercentLabel.Text = tostring(math.floor(self.Value)) .. "%"
+        if self.Fill and self.Fill:IsDescendantOf(game) then
+            self.Fill:TweenSize(UDim2.new(t, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+        end
+        if self.PercentLabel then
+            self.PercentLabel.Text = tostring(math.floor(self.Value)) .. "%"
+        end
         updateStatusText(self.Value)
         if self.Callback then self.Callback(self.Value) end
     end
@@ -5344,11 +5356,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                     Tween(child, {TextTransparency = 1}, 0.2)
                 end
             end
-            for _, child in ipairs(contentFrame:GetDescendants()) do
-                if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
-                    Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
-                elseif child:IsA("Frame") then
-                    Tween(child, {BackgroundTransparency = 1}, 0.2)
+            if contentFrame then
+                if contentFrame then
+                    for _, child in ipairs(contentFrame:GetDescendants()) do
+                        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
+                            Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
+                        elseif child:IsA("Frame") then
+                            Tween(child, {BackgroundTransparency = 1}, 0.2)
+                        end
+                    end
                 end
             end
             task.wait(0.2)
@@ -5434,11 +5450,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                     Tween(child, {TextTransparency = 1}, 0.2)
                 end
             end
-            for _, child in ipairs(contentFrame:GetDescendants()) do
-                if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
-                    Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
-                elseif child:IsA("Frame") then
-                    Tween(child, {BackgroundTransparency = 1}, 0.2)
+            if contentFrame then
+                if contentFrame then
+                    for _, child in ipairs(contentFrame:GetDescendants()) do
+                        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
+                            Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
+                        elseif child:IsA("Frame") then
+                            Tween(child, {BackgroundTransparency = 1}, 0.2)
+                        end
+                    end
                 end
             end
             task.wait(0.2)
@@ -5889,11 +5909,13 @@ end
                         Tween(child, {TextTransparency = 1}, 0.2)
                     end
                 end
-                for _, child in ipairs(contentFrame:GetDescendants()) do
-                    if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
-                        Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
-                    elseif child:IsA("Frame") then
-                        Tween(child, {BackgroundTransparency = 1}, 0.2)
+                if contentFrame then
+                    for _, child in ipairs(contentFrame:GetDescendants()) do
+                        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("ImageButton") then
+                            Tween(child, {TextTransparency = 1, BackgroundTransparency = 1}, 0.2)
+                        elseif child:IsA("Frame") then
+                            Tween(child, {BackgroundTransparency = 1}, 0.2)
+                        end
                     end
                 end
                 task.wait(0.2)
@@ -6302,7 +6324,26 @@ end
         Size = originalSize,
         Position = originalPos
     }, 0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    windowTween.Completed:Connect(function()
+    if windowTween and windowTween.Completed then
+        windowTween.Completed:Connect(function()
+            showAllInternal()
+            if self.SnowContainer then
+                self.SnowContainer.Visible = true
+            end
+            if self.BorderFlow then
+                if self.RainbowMode == "整体" then
+                    self.BorderFlow.BackgroundTransparency = 1
+                    self.BorderFlow.Visible = true
+                    Tween(self.BorderFlow, {BackgroundTransparency = 0}, 0.3)
+                else
+                    self.BorderFlow.Visible = false
+                end
+            end
+            if self.FlowStroke then
+                self.FlowStroke.Enabled = (self.RainbowMode == "流动")
+            end
+        end)
+    else
         showAllInternal()
         if self.SnowContainer then
             self.SnowContainer.Visible = true
@@ -6319,7 +6360,7 @@ end
         if self.FlowStroke then
             self.FlowStroke.Enabled = (self.RainbowMode == "流动")
         end
-    end)
+    end
     table.insert(WasUI.Objects, {Object = self.Instance, Type = "Panel", PanelData = self})
     return self
 end
