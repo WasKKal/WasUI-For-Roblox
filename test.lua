@@ -5499,13 +5499,13 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         local scaleValueLabel = CreateInstance("TextLabel", {
             Name = "ScaleValueLabel",
             Size = UDim2.new(0.2, 0, 0, 20),
-            Position = UDim2.new(0.8, 0, 0, 0),
+            Position = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
             Text = "1.0",
             TextColor3 = WasUI.CurrentTheme.Text,
             Font = Enum.Font.Gotham,
             TextSize = 12,
-            TextXAlignment = Enum.TextXAlignment.Right,
+            TextXAlignment = Enum.TextXAlignment.Left,
             ZIndex = 1002,
             Parent = contentFrame
         })
@@ -5529,22 +5529,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             Parent = scaleTrack
         })
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 8), Parent = scaleFill})
-        local scaleKnob = CreateInstance("Frame", {
-            Name = "ScaleKnob",
-            Size = UDim2.new(0, 20, 0, 20),
-            Position = UDim2.new((1 - 0.3) / (1.5 - 0.3), -10, 0.5, -10),
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            ZIndex = 1004,
-            Parent = scaleTrack
-        })
-        local scaleKnobCircle = CreateInstance("Frame", {
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundColor3 = WasUI.CurrentTheme.Accent,
-            BorderSizePixel = 0,
-            Parent = scaleKnob
-        })
-        CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = scaleKnobCircle})
         local scaleDragging = false
         local function updateScaleFromInput(inputX)
             local trackPos = scaleTrack.AbsolutePosition
@@ -5557,7 +5541,6 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 self.WindowScale.Scale = newScale
             end
             scaleFill.Size = UDim2.new(t, 0, 1, 0)
-            scaleKnob.Position = UDim2.new(t, -10, 0.5, -10)
             scaleValueLabel.Text = string.format("%.1f", newScale)
         end
         scaleTrack.InputBegan:Connect(function(input)
