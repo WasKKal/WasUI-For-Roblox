@@ -15,6 +15,43 @@ local v11 = game:GetService("CoreGui")
 local v12 = game:GetService("Selection")
 local lp = v1.LocalPlayer
 
+local _huiCache = nil
+local _origGetHui = gethui
+function gethui()
+    if _huiCache ~= nil then
+        return _huiCache
+    end
+    local success, result = pcall(function()
+        return _origGetHui and _origGetHui()
+    end)
+    if success and result then
+        _huiCache = result
+        return result
+    end
+    _huiCache = game:GetService("CoreGui")
+    return _huiCache
+end
+
+function protectgui(gui)
+    if not gui then return end
+    local function tryProtect(func)
+        local success, err = pcall(func, gui)
+        return success
+    end
+    if syn and syn.protect_gui then
+        tryProtect(syn.protect_gui)
+    end
+    if protect_gui then
+        tryProtect(protect_gui)
+    end
+    if cloneref and _origGetHui then
+        pcall(function()
+            gui = cloneref(gui)
+        end)
+    end
+end
+
+
 local function copyToClipboard(text)
     if type(setclipboard) == "function" then
         setclipboard(text)
@@ -27,7 +64,7 @@ end
 
 WasUI.DefaultDisplayOrder = 10
 WasUI.DialogTitle = "你要关闭WasUI吗?"
-WasUI.Version = "1.1.5"
+WasUI.Version = "1.1.6"
 WasUI.NotificationTop = 20
 WasUI.NotificationSpacing = 8
 WasUI.NotificationHeight = 30
@@ -300,7 +337,8 @@ local function EnsureShortcutGui()
         WasUI.ShortcutGui.Name = "WasUI_Shortcuts"
         WasUI.ShortcutGui.ResetOnSpawn = false
         WasUI.ShortcutGui.DisplayOrder = 500
-        WasUI.ShortcutGui.Parent = v11
+        protectgui(WasUI.ShortcutGui)
+        WasUI.ShortcutGui.Parent = gethui()
     end
 end
 EnsureShortcutGui()
@@ -311,7 +349,8 @@ local function EnsureRippleGui()
         WasUI.RippleGui.Name = "WasUI_Ripples"
         WasUI.RippleGui.ResetOnSpawn = false
         WasUI.RippleGui.DisplayOrder = 10000
-        WasUI.RippleGui.Parent = v11
+        protectgui(WasUI.RippleGui)
+        WasUI.RippleGui.Parent = gethui()
     end
 end
 EnsureRippleGui()
@@ -322,7 +361,8 @@ local function EnsureNotificationGui()
         WasUI.NotificationGui.Name = "WasUI_Notifications"
         WasUI.NotificationGui.ResetOnSpawn = false
         WasUI.NotificationGui.DisplayOrder = 999
-        WasUI.NotificationGui.Parent = v11
+        protectgui(WasUI.NotificationGui)
+        WasUI.NotificationGui.Parent = gethui()
     end
 end
 EnsureNotificationGui()
@@ -333,7 +373,8 @@ local function EnsureDropdownGui()
         WasUI.DropdownGui.Name = "WasUI_Dropdowns"
         WasUI.DropdownGui.ResetOnSpawn = false
         WasUI.DropdownGui.DisplayOrder = 1000
-        WasUI.DropdownGui.Parent = v11
+        protectgui(WasUI.DropdownGui)
+        WasUI.DropdownGui.Parent = gethui()
     end
 end
 EnsureDropdownGui()
@@ -746,7 +787,8 @@ local function RefreshRainbowLayout()
         WasUI.RainbowGui.Name = "WasUI_RainbowList"
         WasUI.RainbowGui.ResetOnSpawn = false
         WasUI.RainbowGui.DisplayOrder = 100
-        WasUI.RainbowGui.Parent = v11
+        protectgui(WasUI.RainbowGui)
+        WasUI.RainbowGui.Parent = gethui()
     end
     if not WasUI.RainbowMainContainer or not WasUI.RainbowMainContainer.Parent then
         WasUI.RainbowMainContainer = Instance.new("Frame")
@@ -1056,7 +1098,7 @@ local function ensureDragOverlay()
         dragOverlay.ZIndex = 99999
         dragOverlay.Active = true
         dragOverlay.Selectable = true
-        dragOverlay.Parent = v11
+        dragOverlay.Parent = gethui()
     end
 end
 
@@ -2171,7 +2213,8 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
     self.Min = min or 0
     self.Max = max or 100
     self.Step = step or 0.1
-    self.Value = math.clamp(defaultValue or self.Min, self.Min, self.Max)
+    local numericDefault = (type(defaultValue) == "number") and defaultValue or self.Min
+    self.Value = math.clamp(numericDefault, self.Min, self.Max)
     self.Callback = callback
     self.AnimationTween = nil
     self.Container = CreateInstance("Frame", {
@@ -2277,6 +2320,7 @@ function Slider:New(name, parent, title, min, max, defaultValue, callback, confi
         if self.AnimationTween then self.AnimationTween:Cancel(); self.AnimationTween = nil end
     end
     local function setValueImmediately(newValue)
+        if type(newValue) ~= "number" then return end
         newValue = math.clamp(newValue, self.Min, self.Max)
         newValue = roundToStep(newValue)
         if newValue == self.Value then return end
@@ -2465,7 +2509,8 @@ function ProgressBar:New(name, parent, title, min, max, defaultValue, callback, 
     local self = Control:New(name, parent)
     self.Min = min or 0
     self.Max = max or 100
-    self.Value = math.clamp(defaultValue or self.Min, self.Min, self.Max)
+    local numericDefault = (type(defaultValue) == "number") and defaultValue or self.Min
+    self.Value = math.clamp(numericDefault, self.Min, self.Max)
     self.Callback = callback
     self.Segments = segments or {}
     self.AnimationTween = nil
@@ -2617,7 +2662,8 @@ function WasUI:CreateTooltip(target, text, options)
         tooltipGui.Name = "WasUI_Tooltip"
         tooltipGui.ResetOnSpawn = false
         tooltipGui.DisplayOrder = 2000
-        tooltipGui.Parent = v11
+        protectgui(tooltipGui)
+        tooltipGui.Parent = gethui()
         tooltipFrame = CreateInstance("Frame", {
             Name = "Tooltip",
             Size = UDim2.new(0, 0, 0, 0),
@@ -2716,7 +2762,8 @@ function WasUI:ShowConfirmDialog(options, callback)
     dialogGui.Name = "WasUI_ConfirmDialog"
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
-    dialogGui.Parent = v11
+    protectgui(dialogGui)
+    dialogGui.Parent = gethui()
     local overlay = CreateInstance("Frame", {
         Name = "Overlay",
         Size = UDim2.new(1, 0, 1, 0),
@@ -2915,7 +2962,8 @@ function WasUI:ShowPopup(options, callback)
     dialogGui.Name = "WasUI_Popup"
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
-    dialogGui.Parent = v11
+    protectgui(dialogGui)
+    dialogGui.Parent = gethui()
     local overlay = CreateInstance("Frame", {
         Name = "Overlay",
         Size = UDim2.new(1, 0, 1, 0),
@@ -3125,7 +3173,8 @@ function WasUI:ShowColorPicker(options, callback)
     dialogGui.Name = "WasUI_ColorPicker"
     dialogGui.ResetOnSpawn = false
     dialogGui.DisplayOrder = 2000
-    dialogGui.Parent = v11
+    protectgui(dialogGui)
+    dialogGui.Parent = gethui()
     local transparentOverlay = CreateInstance("Frame", {
         Name = "TransparentOverlay",
         Size = UDim2.new(1, 0, 1, 0),
@@ -3880,6 +3929,24 @@ function Panel.__index(self, key)
     return rawget(Panel, key)
 end
 
+local function ParseImageAsset(input)
+    if tonumber(input) then return "rbxassetid://" .. input end
+    if type(input) == "string" and string.match(input, "^http") then
+        local getasset = getcustomasset or getsynasset
+        if getasset and writefile then
+            local success, result = pcall(function()
+                local req = (syn and syn.request) or (http and http.request) or http_request or request
+                local imgData = req({Url = input, Method = "GET"}).Body
+                local fileName = "WasUI_BG_" .. tostring(math.random(1000, 9999)) .. ".jpg"
+                writefile(fileName, imgData)
+                return getasset(fileName)
+            end)
+            if success then return result else warn("[WasUI] 背景图片下载失败: " .. tostring(result)) return "" end
+        end
+    end
+    return input
+end
+
 local function isPointOverButton(btn, point)
     if not btn or not btn.Parent then return false end
     local absPos = btn.AbsolutePosition
@@ -3899,22 +3966,20 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             self.BackgroundImage = nil
         end
         if url and url ~= "" then
-            local success = pcall(function()
-                v9:PreloadAsync({url})
-            end)
-            if success then
+            local finalImg = ParseImageAsset(url)
+            if finalImg and finalImg ~= "" then
                 self.BackgroundImage = CreateInstance("ImageLabel", {
                     Name = "Background",
                     Size = UDim2.new(1, 0, 1, 0),
                     Position = UDim2.new(0, 0, 0, 0),
                     BackgroundTransparency = 1,
-                    Image = url,
+                    Image = finalImg,
                     ImageTransparency = 1,
                     ScaleType = Enum.ScaleType.Crop,
                     ZIndex = 0,
                     Parent = self.Instance
                 })
-                Tween(self.BackgroundImage, {ImageTransparency = 0}, 0.3)
+                Tween(self.BackgroundImage, {ImageTransparency = 0}, 0.4)
             end
         end
     end
@@ -4078,6 +4143,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             if self.FlowStroke then self.FlowStroke.Enabled = false end
             if not self.BorderFlow then
                 createSolidGlowBorder()
+            else
+                self.BorderFlow.Visible = true
             end
             local borderTime = 0
             self.BorderConnection = v5.Heartbeat:Connect(function(deltaTime)
@@ -4408,6 +4475,11 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                 searchResultTab.Button:Destroy()
             end
             if searchResultTab.Frame then
+                for _, child in ipairs(searchResultTab.Frame:GetChildren()) do
+                    if child.Name ~= "Spacing" then
+                        child:Destroy()
+                    end
+                end
                 searchResultTab.Frame:Destroy()
             end
             searchResultTab = nil
@@ -4425,6 +4497,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         for _, moved in ipairs(movedControls) do
             if moved.control and moved.control.Parent ~= moved.originalParent then
                 moved.control.Parent = moved.originalParent
+            end
+            if moved.control then
                 moved.control.Visible = true
             end
         end
@@ -4468,11 +4542,19 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
                             end
                             if searchText and searchText ~= "" then
                                 if child:IsDescendantOf(game) then
+                                    
+                                    local originalParent = child.Parent
+                                    for _, moved in ipairs(movedControls) do
+                                        if moved.control == child then
+                                            originalParent = moved.originalParent
+                                            break
+                                        end
+                                    end
                                     table.insert(controls, {
                                         Instance = child,
                                         SearchText = searchText,
                                         TabName = tabName,
-                                        OriginalParent = child.Parent
+                                        OriginalParent = originalParent
                                     })
                                 end
                             end
@@ -4561,6 +4643,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         for _, moved in ipairs(movedControls) do
             if moved.control and moved.control.Parent then
                 moved.control.Parent = moved.originalParent
+                moved.control.Visible = true
             end
         end
         movedControls = {}
@@ -5174,7 +5257,8 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         settingsGui.Name = "WasUI_Settings"
         settingsGui.ResetOnSpawn = false
         settingsGui.DisplayOrder = 1001
-        settingsGui.Parent = v11
+        protectgui(settingsGui)
+        settingsGui.Parent = gethui()
         local clickCatcher = CreateInstance("Frame", {
             Name = "ClickCatcher",
             Size = UDim2.new(1, 0, 1, 0),
@@ -5187,7 +5271,7 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
         local settingsFrame = CreateInstance("Frame", {
             Name = "SettingsPanel",
             Size = UDim2.new(0, 280, 0, 370),
-            Position = UDim2.new(0.5, -140, 0.5, -110),
+            Position = UDim2.new(0.5, -140, 0.5, -185),
             BackgroundColor3 = WasUI.CurrentTheme.Background,
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
@@ -5195,6 +5279,15 @@ function Panel:New(name, parent, size, position, backgroundUrl, snowEnabled, tit
             ZIndex = 1000,
             Parent = settingsGui
         })
+        local function centerSettingsFrame()
+            if settingsFrame and settingsFrame.Parent then
+                local viewportSize = v7.CurrentCamera and v7.CurrentCamera.ViewportSize or v8:GetScreenSize()
+                local frameSize = settingsFrame.AbsoluteSize
+                settingsFrame.Position = UDim2.new(0.5, -frameSize.X/2, 0.5, -frameSize.Y/2)
+            end
+        end
+        settingsFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(centerSettingsFrame)
+        task.defer(centerSettingsFrame)
         CreateInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = settingsFrame})
         WasUI.SettingsGui = settingsGui
         WasUI.SettingsPanel = settingsFrame
@@ -5407,77 +5500,99 @@ local function clearSnowflakes()
                 data.Instance:Destroy()
             end
         end
+        self.Snowflakes = {}
     end
-    self.Snowflakes = {}
 end
 local function updateSnowToggle(newState)
     self.SnowEnabled = newState
     if newState then
-            if not self.SnowContainer then
-                self.SnowContainer = CreateInstance("Frame", {
-                    Name = "SnowContainer",
-                    Size = self.Instance.Size,
-                    Position = self.Instance.Position,
-                    BackgroundTransparency = 1,
-                    ZIndex = 100000,
-                    Parent = parent
+        if not self.SnowContainer then
+            self.SnowContainer = CreateInstance("Frame", {
+                Name = "SnowContainer",
+                Size = self.Instance.Size,
+                Position = self.Instance.Position,
+                BackgroundTransparency = 1,
+                ZIndex = 100000,
+                Parent = parent
+            })
+            local function updateSnowContainer()
+                if self.SnowContainer and self.Instance then
+                    self.SnowContainer.Position = self.Instance.Position
+                    self.SnowContainer.Size = self.Instance.Size
+                end
+            end
+            self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
+            self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
+        end
+        clearSnowflakes()
+        self.SnowTimer = 0
+        self.SnowChangeTimer = 0
+        if self.SnowConnection then
+            self.SnowConnection:Disconnect()
+            self.SnowConnection = nil
+        end
+        self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
+            if not self.Instance or not self.Instance.Parent then return end
+            if not self.Instance.Visible then return end
+            if not self.SnowContainer or not self.SnowContainer.Parent then return end
+            if not self.SnowContainer.Visible then return end
+            self.SnowTimer = self.SnowTimer + deltaTime
+            self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
+            if self.SnowTimer >= 0.08 and #self.Snowflakes < 30 then
+                self.SnowTimer = 0
+                local size = math.random(4, 10)
+                local flake = CreateInstance("Frame", {
+                    Size = UDim2.new(0, size, 0, size),
+                    Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.1, 0),
+                    BackgroundColor3 = WasUI.CurrentTheme.SnowColor,
+                    BackgroundTransparency = 0,
+                    BorderSizePixel = 0,
+                    ZIndex = 100001,
+                    Parent = self.SnowContainer
                 })
-                local function updateSnowContainer()
-                    if self.SnowContainer and self.Instance then
-                        self.SnowContainer.Position = self.Instance.Position
-                        self.SnowContainer.Size = self.Instance.Size
-                    end
-                end
-                self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
-                self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
+                CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
+                local speedY = math.random(150, 200) / 100
+                local speedX = (math.random() - 0.5) * 0.7
+                table.insert(self.Snowflakes, {
+                    Instance = flake,
+                    SpeedY = speedY,
+                    SpeedX = speedX,
+                    Age = 0,
+                    Size = size
+                })
             end
-            clearSnowflakes()
-            self.Snowflakes = self.Snowflakes or {}
-            self.SnowTimer = 0
-            self.SnowChangeTimer = 0
-            if self.SnowConnection then
-                self.SnowConnection:Disconnect()
-                self.SnowConnection = nil
-            end
-            self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
-                if not self.Instance or not self.Instance.Parent then return end
-                if not self.Instance.Visible then return end
-                if not self.SnowContainer or not self.SnowContainer.Parent then return end
-                if not self.SnowContainer.Visible then return end
-                if #self.Snowflakes < 30 then
-                    local snowLabel = CreateInstance("TextLabel", {
-                        Size = UDim2.new(0, 8, 0, 8),
-                        Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.05, 0),
-                        BackgroundTransparency = 1,
-                        Text = "❄",
-                        TextColor3 = WasUI.CurrentTheme.SnowColor,
-                        TextTransparency = 0.25,
-                        Font = Enum.Font.SciFi,
-                        TextSize = 12,
-                        ZIndex = 100001,
-                        Parent = self.SnowContainer
-                    })
-                    local fallTween = Tween(snowLabel, {
-                        Position = UDim2.new(snowLabel.Position.X.Scale + (math.random() - 0.5) * 0.3, 0, 1.05, 0)
-                    }, math.random(35, 60) / 10, Enum.EasingStyle.Linear)
-                    fallTween.Completed:Connect(function()
-                        if snowLabel and snowLabel.Parent then
-                            snowLabel:Destroy()
-                        end
-                    end)
-                    table.insert(self.Snowflakes, { Instance = snowLabel })
+            if self.SnowChangeTimer >= 1.25 then
+                self.SnowChangeTimer = 0
+                for _, data in ipairs(self.Snowflakes) do
+                    data.SpeedX = (math.random() - 0.5) * 0.8
+                    data.SpeedY = math.random(150, 200) / 100
                 end
-                for i = #self.Snowflakes, 1, -1 do
-                    local data = self.Snowflakes[i]
-                    if not data.Instance or not data.Instance.Parent then
+            end
+            for i = #self.Snowflakes, 1, -1 do
+                local data = self.Snowflakes[i]
+                local flake = data.Instance
+                if flake and flake.Parent then
+                    data.Age = data.Age + deltaTime
+                    local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
+                    local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
+                    local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
+                    local newSize = data.Size * (1 - data.Age / 3.2)
+                    flake.Position = UDim2.new(newX, 0, 0, newY)
+                    flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
+                    flake.BackgroundTransparency = 1 - alpha
+                    if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
+                        flake:Destroy()
                         table.remove(self.Snowflakes, i)
                     end
+                else
+                    table.remove(self.Snowflakes, i)
                 end
-            end)
-            self.SnowContainer.Visible = true
-            Tween(snowBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
-            SpringTween(snowKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
-        else
+            end
+        end)
+        self.SnowContainer.Visible = true
+        Tween(snowBg, {BackgroundColor3 = WasUI.CurrentTheme.Success}, 0.2)
+        SpringTween(snowKnob, {Position = UDim2.new(1, -18, 0, 1)}, 0.3)
+    else
         clearSnowflakes()
         if self.SnowConnection then
             self.SnowConnection:Disconnect()
@@ -5892,13 +6007,13 @@ end
         self.ActiveTab = tabName
     end
 
-function self:SetVisible(visible)
+    function self:SetVisible(visible)
         self.Instance.Visible = visible
         if self.FlowStroke then
-            self.FlowStroke.Enabled = visible
+            self.FlowStroke.Enabled = visible and (self.RainbowMode == "流动")
         end
         if self.BorderFlow then
-            self.BorderFlow.Visible = visible
+            self.BorderFlow.Visible = visible and (self.RainbowMode == "整体")
         end
     end
 
@@ -5956,37 +6071,62 @@ function self:SetVisible(visible)
         self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
         self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
         self.Snowflakes = {}
+        self.SnowTimer = 0
+        self.SnowChangeTimer = 0
         self.SnowConnection = v5.Heartbeat:Connect(function(deltaTime)
             if not self.Instance or not self.Instance.Parent then return end
             if not self.Instance.Visible then return end
             if not self.SnowContainer or not self.SnowContainer.Parent then return end
             if not self.SnowContainer.Visible then return end
-            if #self.Snowflakes < 30 then
-                local snowLabel = CreateInstance("TextLabel", {
-                    Size = UDim2.new(0, 8, 0, 8),
-                    Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.05, 0),
-                    BackgroundTransparency = 1,
-                    Text = "❄",
-                    TextColor3 = WasUI.CurrentTheme.SnowColor,
-                    TextTransparency = 0.25,
-                    Font = Enum.Font.SciFi,
-                    TextSize = 12,
+            self.SnowTimer = self.SnowTimer + deltaTime
+            self.SnowChangeTimer = self.SnowChangeTimer + deltaTime
+            if self.SnowTimer >= 0.08 and #self.Snowflakes < 30 then
+                self.SnowTimer = 0
+                local size = math.random(4, 10)
+                local flake = CreateInstance("Frame", {
+                    Size = UDim2.new(0, size, 0, size),
+                    Position = UDim2.new(math.random() * 0.9 + 0.05, 0, -0.1, 0),
+                    BackgroundColor3 = WasUI.CurrentTheme.SnowColor,
+                    BackgroundTransparency = 0,
+                    BorderSizePixel = 0,
                     ZIndex = 100001,
                     Parent = self.SnowContainer
                 })
-                local fallTween = Tween(snowLabel, {
-                    Position = UDim2.new(snowLabel.Position.X.Scale + (math.random() - 0.5) * 0.3, 0, 1.05, 0)
-                }, math.random(35, 60) / 10, Enum.EasingStyle.Linear)
-                fallTween.Completed:Connect(function()
-                    if snowLabel and snowLabel.Parent then
-                        snowLabel:Destroy()
-                    end
-                end)
-                table.insert(self.Snowflakes, { Instance = snowLabel })
+                CreateInstance("UICorner", {CornerRadius = UDim.new(1, 0), Parent = flake})
+                local speedY = math.random(150, 200) / 100
+                local speedX = (math.random() - 0.5) * 0.7
+                table.insert(self.Snowflakes, {
+                    Instance = flake,
+                    SpeedY = speedY,
+                    SpeedX = speedX,
+                    Age = 0,
+                    Size = size
+                })
+            end
+            if self.SnowChangeTimer >= 1.25 then
+                self.SnowChangeTimer = 0
+                for _, data in ipairs(self.Snowflakes) do
+                    data.SpeedX = (math.random() - 0.5) * 0.8
+                    data.SpeedY = math.random(150, 200) / 100
+                end
             end
             for i = #self.Snowflakes, 1, -1 do
                 local data = self.Snowflakes[i]
-                if not data.Instance or not data.Instance.Parent then
+                local flake = data.Instance
+                if flake and flake.Parent then
+                    data.Age = data.Age + deltaTime
+                    local newX = flake.Position.X.Scale + data.SpeedX * deltaTime * 0.6
+                    local newY = flake.Position.Y.Offset + data.SpeedY * deltaTime * 60
+                    local alpha = math.clamp(1 - data.Age / 2.8, 0, 1)
+                    local newSize = data.Size * (1 - data.Age / 3.2)
+                    flake.Position = UDim2.new(newX, 0, 0, newY)
+                    flake.Size = UDim2.new(0, math.max(2, newSize), 0, math.max(2, newSize))
+                    flake.BackgroundTransparency = 1 - alpha
+                    if newY > self.Instance.AbsoluteSize.Y * 1.5 or newX < -0.1 or newX > 1.1 or data.Age > 3.5 then
+                        flake:Destroy()
+                        table.remove(self.Snowflakes, i)
+                    end
+                else
                     table.remove(self.Snowflakes, i)
                 end
             end
@@ -6035,10 +6175,14 @@ function self:SetVisible(visible)
         if self.SnowContainer then
             self.SnowContainer.Visible = true
         end
-        if self.BorderFlow and self.RainbowMode == "整体" then
-            self.BorderFlow.BackgroundTransparency = 1
-            self.BorderFlow.Visible = true
-            Tween(self.BorderFlow, {BackgroundTransparency = 0}, 0.3)
+        if self.BorderFlow then
+            if self.RainbowMode == "整体" then
+                self.BorderFlow.BackgroundTransparency = 1
+                self.BorderFlow.Visible = true
+                Tween(self.BorderFlow, {BackgroundTransparency = 0}, 0.3)
+            else
+                self.BorderFlow.Visible = false
+            end
         end
         if self.FlowStroke then
             self.FlowStroke.Enabled = (self.RainbowMode == "流动")
@@ -6134,7 +6278,8 @@ function WasUI:CreateWindow(options)
     screenGui.Name = "WasUI_Main"
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = self.DefaultDisplayOrder
-    screenGui.Parent = v11
+    protectgui(screenGui)
+    screenGui.Parent = gethui()
     local window = Panel:New(title, screenGui, size, position, background, snowEnabled, titleTag, featureNameColor, frameColors)
     if options.WelcomeText then
         window:SetWelcome(options.WelcomeText)
