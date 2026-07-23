@@ -5679,25 +5679,14 @@ local function updateSnowToggle(newState)
             self.Snowflakes = {}
         end
         if not self.SnowContainer then
-            local snowParent = self.Instance and self.Instance.Parent
             self.SnowContainer = CreateInstance("Frame", {
                 Name = "SnowContainer",
-                Size = self.Instance and self.Instance.Size or UDim2.new(0, 400, 0, 350),
-                Position = self.Instance and self.Instance.Position or UDim2.new(0.5, -200, 0.5, -175),
+                Size = UDim2.new(1, 0, 1, 0),
+                Position = UDim2.new(0, 0, 0, 0),
                 BackgroundTransparency = 1,
                 ZIndex = 100000,
-                Parent = snowParent
+                Parent = self.Instance
             })
-            if self.Instance then
-                local function updateSnowContainer()
-                    if self.SnowContainer and self.Instance then
-                        self.SnowContainer.Position = self.Instance.Position
-                        self.SnowContainer.Size = self.Instance.Size
-                    end
-                end
-                self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
-                self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
-            end
         end
         clearSnowflakes()
         self.SnowTimer = 0
@@ -6250,20 +6239,13 @@ end
     if self.SnowEnabled then
         self.SnowContainer = CreateInstance("Frame", {
             Name = "SnowContainer",
-            Size = self.Instance.Size,
-            Position = self.Instance.Position,
+            Size = UDim2.new(1, 0, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
             ZIndex = 100000,
-            Parent = parent
+            Parent = self.Instance
         })
-        local function updateSnowContainer()
-            if self.SnowContainer and self.Instance then
-                self.SnowContainer.Position = self.Instance.Position
-                self.SnowContainer.Size = self.Instance.Size
-            end
-        end
-        self.Instance:GetPropertyChangedSignal("Position"):Connect(updateSnowContainer)
-        self.Instance:GetPropertyChangedSignal("Size"):Connect(updateSnowContainer)
+        -- SnowContainer 放在 Instance 内部，自动跟随 UIScale 缩放
         self.Snowflakes = {}
         self.SnowTimer = 0
         self.SnowChangeTimer = 0
